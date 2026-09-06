@@ -1,13 +1,18 @@
-# RailKeeper Anlagenmodule und normierte Verbindungsseiten
+# RailKeeper Modulbibliothek, Modulformen und normierte Verbindungsseiten
 
 Datum: 2026-09-06
-Status: Freigegebene visuelle Richtung, schriftliche Spezifikation zur Prüfung
+Status: Fachlich und visuell freigegeben, schriftliche Spezifikation zur Prüfung
 
 ## Ziel
 
 Der Anlagenbereich folgt der freigegebenen Variante 2: Die Arbeitsfläche steht im Mittelpunkt,
 Werkzeuge und Eigenschaften bleiben kompakt am Rand. Das Anlegen und Bearbeiten eines Moduls wird
 von einem einfachen Breite-mal-Tiefe-Formular zu einem präzisen Formeditor ausgebaut.
+
+Module werden aus der Bindung an eine einzelne Anlage gelöst und in einer projektweiten Bibliothek
+geführt. Eine versionierte Modulvorlage beschreibt Konstruktion, Geometrie, Anschlüsse und
+Gleisplanung. Davon getrennte Modulexemplare repräsentieren konkrete physische Anlagenteile mit
+eindeutiger Kennung, Eigentümer und Zustand. Baugleiche Exemplare können dieselbe Vorlage nutzen.
 
 Ein Modul darf eine freie Kontur und frei wählbare Maße haben. Modulnormen gelten nicht pauschal
 für das ganze Modul, sondern ausschließlich für ausdrücklich markierte Verbindungsseiten. Ein
@@ -18,10 +23,54 @@ Der Leitgedanke lautet:
 
 > Freie Form, normierte Köpfe.
 
+Die normale Anlagenplanung darf mit Vorlagen und noch nicht gebauten Modulen arbeiten. Die
+Ausstellungsplanung verwendet konkrete Modulexemplare und wird fachlich im bestehenden Bereich
+**Ausstellung** geführt. Ihr interaktiver, mehrstufiger Aufbau ist in der begleitenden
+[Spezifikation zur Ausstellungsanlagenplanung](./2026-09-06-exhibition-layout-planning-design.md)
+beschrieben.
+
+## Verbindliche visuelle Referenzen
+
+Die spätere Umsetzung folgt den beiden freigegebenen Bildern exakt. Sie sind keine lose
+Stilinspiration, sondern die verbindliche Desktopreferenz für Aufbau, Hierarchie, Flächen,
+Werkzeugpositionen, Inspektor, Typografie, Abstände, Farben und Interaktionsdichte.
+
+### Anlagenübersicht, Variante 2
+
+`C:\Users\droth\.codex\generated_images\01a07612-659f-7632-8706-cb2b937377fa\exec-ffa8ae91-5053-4c73-b629-83a701194a95.png`
+
+SHA-256:
+`3CAB446FD1FB6D3DC24391E7FF6C050CCEFF841EC5F429CF410BBF943522ABA5`
+
+### Moduleditor, freie Form und normierte Köpfe
+
+`C:\Users\droth\.codex\generated_images\01a07612-659f-7632-8706-cb2b937377fa\exec-be12f866-ee67-43f9-820c-f7c5131e29ec.png`
+
+SHA-256:
+`C387A13776ED3C839BEACAEED0D1B7A186C2749D56CF9BD29D5926E6EA8F1DA2`
+
+Funktional notwendige Zustände, Barrierefreiheit und responsive Umbrüche ergänzen diese Referenzen,
+ändern aber nicht eigenmächtig ihre visuelle Richtung. Eine unvermeidbare sichtbare Abweichung wird
+vor ihrer Umsetzung mit dem Benutzer abgestimmt.
+
+Vor visuellen Implementierungsarbeiten werden Existenz und SHA-256-Prüfsumme beider Dateien
+kontrolliert. Fehlt eine Datei oder stimmt die Prüfsumme nicht, wird die Arbeit angehalten und das
+Original erneut angefordert. Eine Rekonstruktion aus Erinnerung ersetzt keine Referenzdatei.
+
 ## Festgelegte Produktentscheidungen
 
 - Die visuelle Basis ist Variante 2 mit großer Zeichenfläche, schmaler Werkzeugleiste und
   kontextbezogenem Inspektor.
+- Modulvorlagen und Modulexemplare gehören zu einer projektweiten Bibliothek, nicht zu einer
+  einzelnen Anlage.
+- Eine Vorlage enthält die versionierte technische Definition. Ein Exemplar enthält Identität,
+  Eigentümer, Zustand und die verwendete Vorlagenrevision.
+- Ein physisches Exemplar darf in beliebig vielen gespeicherten Aufbauten vorkommen, aber nur einmal
+  innerhalb eines gleichzeitig verwendeten Aufbaus.
+- Eine Modulvorlage darf in einem normalen Anlagenentwurf mehrfach vorkommen. Sobald konkrete
+  Exemplare zugeordnet werden, muss jede physische Verwendung eindeutig sein.
+- Die normale Anlagenplanung und die Ausstellungsanlagenplanung bleiben getrennte Arbeitsabläufe
+  mit gemeinsamem Modul-, Geometrie-, Norm- und Verbindungsmodell.
 - Die Modulgrundfläche wird als geschlossene Kontur in lokalen Millimeterkoordinaten gespeichert.
 - Gerade und kreisbogenförmige Kontursegmente sind zulässig. Frei geformte Kurven und ein
   allgemeiner CAD-Constraint-Solver gehören nicht zum ersten Ausbau.
@@ -42,6 +91,12 @@ Der Leitgedanke lautet:
   Werte zum gewählten Profil passen. Es ist keine Fertigungsabnahme oder Zertifizierung.
 - Bestehende Module, die nur Breite, Tiefe und Konturpunkte enthalten, bleiben gültig und erhalten
   keine automatische Normzuordnung.
+- Modulplatzierungen verwenden `X`, `Y`, eine absolute beziehungsweise ebenenbezogene `Z`-Höhe und
+  eine Drehung um die Hochachse. Komplette Module erhalten keine Neigung oder Querneigung.
+- Höhenverläufe innerhalb eines Moduls bleiben relative Eigenschaften seiner Gleisplanung.
+- Die Umsetzung erfolgt vollständig inline und ohne Subagenten.
+- Alle sichtbaren deutschen und englischen Texte durchlaufen vor Abschluss eine gesonderte
+  Rechtschreib- und Konsistenzprüfung.
 
 ## Ausgangslage
 
@@ -55,6 +110,11 @@ Eigentümer, Breite und Tiefe. Daneben bestehen bereits wichtige technische Grun
 - Modulversionen schützen Schreibvorgänge vor konkurrierenden Änderungen.
 - Konfigurationen und der digitale Zwilling verwenden Modulkonturen und Ports bereits für
   Darstellung und Einrasten.
+- Jedes heutige `LayoutUnit` gehört fest zu genau einer Anlage. Dadurch kann dasselbe physische
+  Modul nicht ohne Kopie in mehreren Anlagen oder Ausstellungsaufbauten verwendet werden.
+- Platzierungen in einer Anlagenkonfiguration enthalten derzeit nur `X`, `Y` und Drehung. Die
+  Gleisplanung kennt zwar relative Gleishöhen, die Modulplatzierung selbst besitzt aber keine
+  Ebene oder `Z`-Koordinate.
 
 Diese Funktionen werden im neuen Editor zusammengeführt. Es entsteht kein paralleles zweites
 Kontur- oder Portmodell. Der heutige Rechteck-Fallback bleibt für alte Datensätze erhalten, bis eine
@@ -80,6 +140,27 @@ Freitext wäre sehr flexibel, könnte aber weder die Kompatibilität zweier Köp
 Gleisachsen oder Maße zuverlässig an einer Seite verankern. Notizen bleiben ergänzend möglich,
 ersetzen aber keine strukturierte Normzuordnung.
 
+### Projektweite Verwendung von Modulen
+
+#### 1. Modulvorlage und physisches Exemplar trennen
+
+Dies ist der ausgewählte Ansatz. Die Vorlage bündelt wiederverwendbare Geometrie, Normen, Ports und
+Gleisplanrevisionen. Jedes physische Exemplar erhält eine eigene Identität, einen Eigentümer, einen
+Zustand und eine festgelegte Vorlagenrevision. Normale Anlagenentwürfe dürfen Vorlagen verwenden;
+Ausstellungsaufbauten verwenden ausschließlich Exemplare.
+
+#### 2. Bestehende Anlagenmodule nur projektweit verschieben
+
+Dieser Ansatz benötigt weniger neue Entitäten, vermischt aber wiederverwendbare Konstruktion und
+physisches Eigentum. Baugleiche Module müssten vollständig dupliziert werden, und Änderungen wären
+nur schwer reproduzierbar.
+
+#### 3. Module für jede Anlage kopieren
+
+Kopien halten die heutige Anlagenbindung aufrecht, führen aber bei Geometrie, Normen,
+Eigentümerdaten und Gleisplanung zu auseinanderlaufenden Daten. Wechselnde Ausstellungsaufbauten
+wären unnötig aufwendig.
+
 ## Bedienkonzept
 
 ### Anlagen-Workspace
@@ -88,6 +169,11 @@ Der bestehende Anlagenkopf mit Anlage, Spurweite, Status und Versionsinformation
 oberhalb der Arbeitsfläche. Die vorhandenen Arbeitsbereiche Übersicht, Gleisplanung, Module,
 Aufbauten, Technik, Wartung und Dokumente bleiben erreichbar. Der aktive Bereich erhält mehr
 vertikalen Platz und vermeidet verschachtelte Kartenflächen.
+
+Der projektweite Modulbestand ist zusätzlich als eigenständige Bibliothek erreichbar. Der
+kontextuelle Bereich **Module** einer Anlage verwendet dieselbe Bibliothek, filtert zunächst aber
+auf die dort eingesetzten oder geplanten Vorlagen und Exemplare. Ein Wechsel auf **Alle Module**
+entfernt diesen Filter, ohne Datensätze zu kopieren.
 
 Im Bereich **Module** besteht die Ansicht aus:
 
@@ -100,6 +186,22 @@ Im Bereich **Module** besteht die Ansicht aus:
 Auf schmalen Ansichten wird die Modulauswahl zum Auswahlfeld. Werkzeugleiste und primäre Aktion
 bleiben erreichbar, der Inspektor öffnet als seitliches Panel oder Bottom Sheet. Die Zeichenfläche
 erzeugt kein unkontrolliertes horizontales Scrollen der Seite.
+
+### Modulvorlage und Modulexemplar
+
+Der Form- und Kopfeditor bearbeitet ausschließlich eine Modulvorlage beziehungsweise eine neue
+Vorlagenrevision. Ein physisches Exemplar zeigt die technische Vorlage schreibgeschützt und ergänzt
+Kennung, Eigentümer, Zustand, Standort, Verfügbarkeit und Notizen. Die Aktion **Weiteres Exemplar**
+legt ein baugleiches Exemplar derselben Revision an, ohne Geometrie oder Gleisplan zu duplizieren.
+
+Eine Vorlage besitzt einen veränderbaren Entwurf und unveränderliche freigegebene Revisionen. Nur
+eine freigegebene Revision kann einem bestätigten physischen Exemplar oder einem gesperrten Aufbau
+zugrunde liegen. Dadurch erzeugt nicht jede einzelne Zeichenbewegung eine dauerhafte Revision.
+
+Änderungen an einer bereits verwendeten Vorlage erzeugen eine neue Revision. Exemplare wechseln
+nicht automatisch. Der Benutzer erhält eine Vergleichsansicht und kann jedes Exemplar bewusst auf
+die neue Revision umstellen. Gesperrte oder veröffentlichte Aufbauten behalten ihre bisherige
+Revision.
 
 ### Modul anlegen
 
@@ -319,23 +421,39 @@ Darstellung als passend und bleiben in Liste, Editor und Aufbau sichtbar.
 Die genaue Tabellenteilung wird im Implementierungsplan festgelegt. Das persistierte Modell muss
 mindestens folgende Identitäten getrennt abbilden:
 
-- stabile Kontursegmente eines Moduls;
+- projektweite Modulvorlagen und unveränderliche Vorlagenrevisionen;
+- physische Modulexemplare mit eindeutiger Kennung und referenzierter Vorlagenrevision;
+- stabile Kontursegmente einer Vorlagenrevision;
 - Verbindungsseiten mit Referenz auf ein gerades Kontursegment;
 - Normfamilien und unveränderliche Profilrevisionen;
 - Zuordnungen zwischen Verbindungsseite und Profilrevision je Normbereich;
-- optionale Bindung vorhandener Modulports an eine Verbindungsseite.
+- optionale Bindung vorhandener Modulports an eine Verbindungsseite;
+- Verwendungen einer Vorlage oder eines Exemplars in normalen Anlagenentwürfen;
+- Verwendungen physischer Exemplare in Ausstellungsanlagenplänen.
 
 Die Migration ist vorwärtsgerichtet und deterministisch:
 
-1. Bestehende Konturpunkte werden in gerade Segmente mit stabilen IDs überführt.
-2. Module ohne gespeicherte Kontur erhalten ihren bisherigen Breite-mal-Tiefe-Rechteck-Fallback.
-3. Es werden keine Verbindungsseiten und keine Normen geraten oder automatisch zugeordnet.
-4. Bestehende Ports behalten absolute Position und Richtung und bleiben zunächst ungebunden.
-5. Breite und Tiefe bleiben im API-Modell erhalten und werden bei neuen Geometrien abgeleitet.
+1. Jedes bestehende `LayoutUnit` wird zu einer projektweiten Modulvorlage mit erster Revision.
+2. Ein zugehöriges, zunächst als **Bestand prüfen** markiertes Exemplar bewahrt Eigentümer und
+   bisherige Identität, ohne ungeprüft eine Ausstellungsverfügbarkeit zu behaupten.
+3. Bestehende Anlagenkonfigurationen referenzieren anschließend die migrierte Vorlagenrevision.
+   Position, Reihenfolge und Gleisplanrevision bleiben unverändert. Das zu prüfende Exemplar wird
+   dadurch nicht ungeprüft als tatsächlich verwendetes physisches Modul behauptet.
+4. Bestehende Konturpunkte werden in gerade Segmente mit stabilen IDs überführt.
+5. Module ohne gespeicherte Kontur erhalten ihren bisherigen Breite-mal-Tiefe-Rechteck-Fallback.
+6. Es werden keine Verbindungsseiten und keine Normen geraten oder automatisch zugeordnet.
+7. Bestehende Ports behalten absolute Position und Richtung und bleiben zunächst ungebunden.
+8. Breite und Tiefe bleiben im API-Modell erhalten und werden bei neuen Geometrien abgeleitet.
 
-Die Modulversion schützt die gesamte Geometrie als Aggregat. Kontur, Verbindungsseiten,
-Profilzuordnungen und gebundene Ports werden in einer Transaktion mit `expectedVersion`
-geschrieben. Dadurch kann kein Kopf auf eine bereits geänderte oder gelöschte Kante zeigen.
+Die bisherige Anlagenzuordnung wird als Verwendung in der ursprünglichen Anlage erhalten, nicht als
+Eigentumsgrenze der neuen Bibliothek. Erst nach einer ausdrücklichen Bestandsprüfung kann ein
+migriertes Exemplar in der Ausstellungsplanung als verfügbar angeboten werden.
+
+Die Vorlagenrevision schützt die gesamte technische Definition als Aggregat. Kontur,
+Verbindungsseiten, Profilzuordnungen und gebundene Ports werden in einer Transaktion mit
+`expectedVersion` geschrieben. Dadurch kann kein Kopf auf eine bereits geänderte oder gelöschte
+Kante zeigen. Das Exemplar besitzt eine eigene Version für Eigentümer-, Zustands- und
+Verfügbarkeitsdaten.
 
 ## API-Vertrag
 
@@ -347,10 +465,15 @@ einen aggregierten Lese- und Schreibvertrag für Modulgeometrie. Er umfasst:
 - Profilzuordnungen;
 - gebundene Ports;
 - berechnete Maße und Prüfergebnisse;
-- aktuelle Modulversion.
+- aktuelle Vorlagenrevision und Aggregatversion.
 
 Zusätzliche Endpunkte liefern die filterbare Normbibliothek, einzelne Profilrevisionen sowie das
 Anlegen und Revisionieren eigener Profile.
+
+Die Modulbibliothek erhält getrennte, paginierte Verträge für Vorlagen, Vorlagenrevisionen und
+physische Exemplare. Suche und Filter decken mindestens Kennung, Name, Eigentümer, Spurweite,
+Normprofil, Zustand, Verfügbarkeit und Archivstatus ab. Anlagen- und Ausstellungsendpunkte
+referenzieren diese projektweiten IDs, statt vollständige Moduldaten zu kopieren.
 
 Der bestehende Punktkontur-Endpunkt bleibt zunächst kompatibel. Sobald eine Kontur referenzierte
 Verbindungsseiten besitzt, darf ein alter, identitätsloser Komplettaustausch keine Kanten löschen.
@@ -367,6 +490,16 @@ Eine Verbindungsseite wird im Aufbau als starre Andockfläche verwendet. Beim Ei
 RailKeeper die gewählten Seiten gegeneinander aus und dreht ihre Außennormalen entgegengesetzt.
 Gebundene Gleisports dienen anschließend zur Feinprüfung der Gleisachsen.
 
+Normale Anlagenentwürfe dürfen eine Vorlagenrevision direkt platzieren, auch wenn noch kein
+physisches Exemplar existiert. Sobald ein konkretes Exemplar zugeordnet wird, bleibt diese
+Zuordnung eindeutig sichtbar. Ausstellungsanlagenpläne akzeptieren ausschließlich bestätigte
+physische Exemplare.
+
+Eine Platzierung enthält `X`, `Y`, `Z` und die Drehung um die Hochachse. Module bleiben als Ganzes
+horizontal. Relative Gleishöhen, Steigungen und Rampen werden weiterhin innerhalb der
+Gleisplanrevision des Moduls geführt. Die Verbindungskontrolle addiert Modulhöhe und relative
+Port- beziehungsweise Gleishöhe, bevor sie zwei Köpfe vergleicht.
+
 Vor dem Einrasten zeigt die Oberfläche:
 
 - geometrische Passung der Kopfbreite;
@@ -382,12 +515,17 @@ Ungebundene Altports funktionieren weiterhin mit dem bestehenden Port-Fangverhal
 Der digitale Zwilling zeichnet Verbindungsseiten mit Name und Status. In normaler Übersicht bleibt
 die Darstellung ruhig. Details erscheinen bei Auswahl oder aktivierter Prüfansicht.
 
+Die interaktive Platzierung, Ebenendarstellung und Skalierung großer Ausstellungsaufbauten gehören
+zur begleitenden Ausstellungsplanungsspezifikation. Beide Oberflächen verwenden dieselbe
+Transformations- und Verbindungsauswertung.
+
 ## Berechtigungen und Audit
 
 Die bestehenden Anlagenrechte bleiben maßgeblich:
 
 - Admin und Planner dürfen Modulgeometrie, Verbindungsseiten, Zuordnungen und eigene Normprofile
   anlegen oder ändern.
+- Admin und Planner dürfen Vorlagenrevisionen sowie physische Modulexemplare anlegen und pflegen.
 - Admin, Planner, Editor und Viewer dürfen Module, Profile, Quellen und Prüfungen lesen.
 - Editor und Viewer bleiben im Anlagenbereich schreibgeschützt.
 - Messe erhält keinen allgemeinen Zugriff auf den Anlageneditor.
@@ -396,7 +534,8 @@ Die bestehenden Anlagenrechte bleiben maßgeblich:
 
 Relevante Änderungen werden mit Akteur, Ziel-ID und Zeit protokolliert. Dazu gehören mindestens
 Geometrieänderungen, Zuordnung oder Entfernung einer Normrevision, Erstellung einer eigenen
-Profilrevision und das ausdrückliche Bestätigen einer inkompatiblen Verbindung.
+Profilrevision, Wechsel eines Exemplars auf eine andere Vorlagenrevision und das ausdrückliche
+Bestätigen einer inkompatiblen Verbindung.
 
 ## Konflikte, Fehler und Wiederherstellung
 
@@ -414,10 +553,16 @@ Bei `409 Conflict` werden lokale Änderungen nicht verworfen. Die Oberfläche bi
 Netzwerk- oder Validierungsfehler lassen den Entwurf auf der Seite bestehen. Ein Wechsel des Moduls
 mit ungespeicherten Änderungen benötigt eine Bestätigung.
 
+Eine neue Vorlagenrevision verändert weder physische Exemplare noch bestehende Aufbauten
+automatisch. Die Vergleichsansicht benennt geänderte Konturen, Köpfe, Ports, Normrevisionen und
+Gleisplanbezüge. Eine Umstellung ist ein eigener, protokollierter Vorgang.
+
 ## Backup und Restore
 
 Backups umfassen:
 
+- projektweite Modulvorlagen und sämtliche referenzierten Vorlagenrevisionen;
+- physische Modulexemplare mit Kennung, Eigentümer, Zustand und Revisionsbindung;
 - stabile Modulgeometrien;
 - Verbindungsseiten und Portbindungen;
 - die exakt referenzierten Profilrevisionen;
@@ -431,7 +576,8 @@ Inhalt unter demselben Schlüssel ist ein Validierungsfehler und wird vor dem de
 angezeigt.
 
 Alte Backups ohne stabile Kanten oder Normdaten bleiben importierbar. Ihre Punktkonturen werden wie
-bei der Datenbankmigration in gerade Segmente überführt. Es werden keine Normen erfunden.
+bei der Datenbankmigration in gerade Segmente überführt. Bestehende Anlagenmodule werden als
+**Bestand prüfen** migriert. Es werden weder Normen noch Ausstellungsverfügbarkeiten erfunden.
 
 ## Barrierefreiheit und Darstellungsqualität
 
@@ -445,20 +591,35 @@ bei der Datenbankmigration in gerade Segmente überführt. Es werden keine Norme
   überlaufen lassen.
 - Lichtes und dunkles Thema verwenden getrennt geprüfte Flächen-, Raster-, Auswahl-, Warn- und
   Fokuskontraste.
+- Sichtbare deutsche und englische Texte stammen aus der gemeinsamen i18n-Struktur. Beide
+  Sprachfassungen werden auf Rechtschreibung, Terminologie, Platzhalter und abgeschnittene Texte
+  geprüft.
+- Desktop-Screenshots werden bei gleicher Fenstergröße direkt gegen die freigegebenen Referenzen
+  verglichen. Abweichungen bei Hierarchie, Anordnung, Dichte und visueller Gewichtung gelten als
+  Fehler, sofern sie nicht durch eine zuvor abgestimmte responsive oder barrierefreie Anpassung
+  entstehen.
 
 ## Umsetzung in prüfbaren Stufen
 
-Die Umsetzung wird wegen des Umfangs in drei reviewbare Stufen zerlegt:
+Die Umsetzung wird wegen des Umfangs in vier prüfbare Stufen zerlegt. Die
+Ausstellungsanlagenplanung folgt anschließend ihrer eigenen Spezifikation und ihren eigenen Plänen.
 
-### Stufe 1: Domänenmodell und Verträge
+### Stufe 1: Projektweite Modulidentität
+
+- Modulvorlagen, unveränderliche Vorlagenrevisionen und physische Exemplare;
+- Migration bestehender `LayoutUnit`-Daten ohne Verlust ihrer Anlagenverwendung;
+- paginierte Bibliotheksverträge, Rollen, Audit und OpenAPI;
+- Backup-/Restore-Kompatibilität;
+- Bestandsprüfung migrierter Exemplare.
+
+### Stufe 2: Geometrie, Köpfe und Normverträge
 
 - stabile Kontursegmente und Migration;
 - Verbindungsseiten und zusammensetzbare Profilrevisionen;
-- aggregierter Geometrievertrag, OpenAPI, Rollen und Audit;
-- Backup-/Restore-Kompatibilität;
+- aggregierter Geometrievertrag und gebundene Ports;
 - serverseitige Geometrie- und Normprüfung.
 
-### Stufe 2: Modul- und Kopfeditor
+### Stufe 3: Modul- und Kopfeditor
 
 - Variante-2-Arbeitsfläche im Modulbereich;
 - Vorlagen, freie Kontur, Geraden, Kreisbögen und exakte Maße;
@@ -466,9 +627,10 @@ Die Umsetzung wird wegen des Umfangs in drei reviewbare Stufen zerlegt:
 - Kopfansicht, Quellenanzeige und verständliche Prüfergebnisse;
 - Konflikt-, Leer-, Lade- und Fehlerzustände.
 
-### Stufe 3: Anlagenaufbau und digitaler Zwilling
+### Stufe 4: Normale Anlagenplanung und digitaler Zwilling
 
 - Einrasten über Verbindungsseiten;
+- Platzierung von Vorlagen oder bewusst zugeordneten Exemplaren mit `X`, `Y`, `Z` und Drehung;
 - Kompatibilitätsvorschau und bestätigte Abweichungen;
 - Darstellung in Konfigurationen und digitalem Zwilling;
 - Übernahme der ruhigen, flächenorientierten Variante-2-Struktur in die übrigen Anlagenbereiche.
@@ -477,13 +639,18 @@ Jede Stufe wird separat gebaut, getestet und visuell geprüft. Die nächste Stuf
 die vorherige Daten- und API-Grundlage stabil ist.
 
 Nach Freigabe dieser Gesamtspezifikation erhält jede Stufe einen eigenen Implementierungsplan. Der
-erste Plan behandelt ausschließlich Stufe 1, damit Datenmodell, Migration und Verträge vor dem
-umfangreichen Editor verbindlich geprüft werden können.
+erste Plan behandelt ausschließlich Stufe 1, damit Bibliotheksmodell, Migration und Verträge vor
+Geometrieeditor und Ausstellungsplanung verbindlich geprüft werden können. Alle Arbeiten erfolgen
+inline ohne Subagenten.
 
 ## Verifikation
 
 Automatisierte Backendtests decken mindestens ab:
 
+- Migration jedes bestehenden Anlagenmoduls in Vorlage, erste Revision und zu prüfendes Exemplar;
+- Erhalt bestehender Anlagenkonfigurationen und Planrevisionen nach der Identitätsmigration;
+- projektweite Wiederverwendung einer Vorlage und eindeutige physische Exemplare;
+- bewussten Revisionswechsel eines Exemplars ohne Änderung gesperrter Aufbauten;
 - Migration alter Punktkonturen zu stabilen Geradensegmenten;
 - Rechteck-Fallback für Module ohne Kontur;
 - Selbstüberschneidung, Nullkante, ungültigen Kreisbogen und offene Kontur;
@@ -499,6 +666,9 @@ Automatisierte Backendtests decken mindestens ab:
 
 Frontendtests decken mindestens ab:
 
+- projektweite Suche und Filterung von Vorlagen und Exemplaren;
+- Anlegen mehrerer physischer Exemplare aus derselben Vorlage;
+- Bestandsprüfung und bewussten Wechsel einer Vorlagenrevision;
 - Anlegen aus jeder Startform und als freie Kontur;
 - exakte Bearbeitung per Tastatur und Formular;
 - Kante teilen und als Verbindungsseite markieren;
@@ -521,11 +691,19 @@ npm.cmd run build
 
 Die visuelle Prüfung umfasst mindestens Desktop und Mobilansicht, helles und dunkles Thema,
 Tastaturreihenfolge, lange deutsche Texte, große und kleine freie Konturen, ein Modul ohne Kopf,
-ein Modul mit mehreren unterschiedlichen Köpfen sowie eine inkompatible Verbindung.
+ein Modul mit mehreren unterschiedlichen Köpfen sowie eine inkompatible Verbindung. Die
+Desktopansicht wird direkt mit beiden freigegebenen Referenzbildern verglichen. Deutsche und
+englische Oberflächentexte werden abschließend separat auf Rechtschreibung und Terminologie geprüft.
 
 ## Abnahmekriterien
 
 - Ein Benutzer kann ein Modul mit beliebiger, gültiger Kontur aus Geraden und Kreisbögen anlegen.
+- Modulvorlagen und physische Modulexemplare sind projektweit verfügbar und nicht Eigentum einer
+  einzelnen Anlage.
+- Baugleiche Exemplare teilen dieselbe technische Vorlagenrevision, behalten aber eigene Kennung,
+  Eigentümer-, Zustands- und Verfügbarkeitsdaten.
+- Normale Anlagenentwürfe können Vorlagen verwenden, bevor ein physisches Exemplar existiert.
+- Eine neue Vorlagenrevision verändert bestehende Exemplare und Aufbauten nicht stillschweigend.
 - Maße lassen sich grafisch und numerisch in Millimetern bearbeiten.
 - Breite und Tiefe sind berechnete Begrenzungsmaße und können nicht von der Kontur abweichen.
 - Jede gerade Konturkante kann unabhängig als Verbindungsseite markiert werden.
@@ -539,6 +717,10 @@ ein Modul mit mehreren unterschiedlichen Köpfen sowie eine inkompatible Verbind
 - Aufbau und digitaler Zwilling können kompatible Köpfe erkennen und Abweichungen sichtbar halten.
 - Die Oberfläche entspricht der dichten, ruhigen Variante 2 und bleibt per Tastatur sowie auf
   mobilen Ansichten bedienbar.
+- Die Desktopumsetzung entspricht den freigegebenen Bildern ohne nicht abgestimmte sichtbare
+  Abweichungen.
+- Deutsche und englische UI-Texte enthalten keine bekannten Rechtschreib- oder
+  Terminologiefehler.
 
 ## Nicht-Ziele
 
@@ -546,6 +728,8 @@ ein Modul mit mehreren unterschiedlichen Köpfen sowie eine inkompatible Verbind
 - Allgemeine Bézierkurven, parametrische Baugruppen oder ein universeller Constraint-Solver.
 - Automatisches Herunterladen oder Interpretieren externer Normdokumente.
 - Stillschweigende Aktualisierung bestehender Module auf eine neue Normrevision.
+- Neigung oder Querneigung vollständiger Module in einem Aufbau.
 - Cloudbibliothek oder öffentlicher Austausch von Modulprofilen.
-- Ersatz der bestehenden Gleisplanung, Materialplanung oder Anlagenkonfiguration.
+- Vermischung der normalen Anlagenplanung mit dem veranstaltungsgebundenen Ausstellungsworkflow.
+- Ersatz der bestehenden Gleisplanung oder Materialplanung.
 - Automatische elektrische Schreibzugriffe auf Digitalzentralen.
