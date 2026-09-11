@@ -24,6 +24,10 @@ updates:
       timezone: Europe/Berlin
     open-pull-requests-limit: 5
     groups:
+      vitest:
+        patterns:
+          - vitest
+          - "@vitest/*"
       npm-minor-patch:
         update-types:
           - minor
