@@ -3,8 +3,8 @@ module railkeeper/backend
 go 1.26.6
 
 require (
-	golang.org/x/crypto v0.56.0
-	golang.org/x/image v0.45.0
+	golang.org/x/crypto v0.57.0
+	golang.org/x/image v0.46.0
 	golang.org/x/sys v0.48.0
 	modernc.org/sqlite v1.58.0
 )
