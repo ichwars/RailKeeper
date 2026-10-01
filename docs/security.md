@@ -69,7 +69,10 @@ RailKeeper is intended for local-first and small self-hosted installations. This
 
 - CodeQL analyzes Go and JavaScript/TypeScript changes.
 - Dependabot monitors Go modules, npm, Docker and GitHub Actions dependencies.
-- `govulncheck` and `npm audit` scan dependencies on a schedule.
+- `govulncheck` and `npm audit` scan dependencies in dependency pull requests and on a schedule.
+- The npm audit includes development dependencies used to build and test the frontend.
+- Trivy scans the repository and runtime Docker image. Pull requests build and scan the image
+  locally without publishing it; pushes to `main` and release tags publish and scan the image.
 - `golangci-lint`, backend tests, frontend tests and the frontend production build gate changes.
 
 Security findings must be reported privately as described in the repository-level

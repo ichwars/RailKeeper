@@ -37,7 +37,7 @@ jobs:
           fi
 
   npm-audit:
-    name: npm runtime dependency audit
+    name: npm dependency audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -49,11 +49,11 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
-      - name: Scan runtime dependencies
+      - name: Scan runtime and development dependencies
         working-directory: frontend
         shell: bash
         run: |
-          if ! npm audit --omit=dev --audit-level=high > "$RUNNER_TEMP/npm-audit.txt" 2>&1; then
+          if ! npm audit --include=dev --audit-level=high > "$RUNNER_TEMP/npm-audit.txt" 2>&1; then
             echo "::error::npm dependency audit failed. Re-run npm audit locally for details."
             exit 1
           fi
