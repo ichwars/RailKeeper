@@ -168,6 +168,13 @@ class ReleaseWorkflowTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(state, {'release': None, 'dispatches': []})
 
+    def test_empty_prerelease_identifier_never_publishes(self):
+        for version in ('0.1.22-beta..1', '0.1.22-beta.', '0.1.22-.'):
+            with self.subTest(version=version):
+                result, state = self.run_release(version=version)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(state, {'release': None, 'dispatches': []})
+
     def test_release_lookup_failure_never_publishes(self):
         result, state = self.run_release(lookup_error=True)
         self.assertNotEqual(result.returncode, 0)
