@@ -9,6 +9,14 @@ permissions:
   contents: read
 
 jobs:
+  release-workflow:
+    name: Release workflow tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Test release publication guards
+        run: python3 .github/scripts/test_release_workflow.py
+
   backend:
     name: Backend tests
     runs-on: ubuntu-latest
