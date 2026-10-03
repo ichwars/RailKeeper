@@ -3,7 +3,7 @@ title: Master-data administration
 description: Govern RailKeeper master data, inventory-number schemes, locations, and transfers safely.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.4
+reviewedVersion: 0.1.21
 lastReviewed: 2026-08-28
 ---
 

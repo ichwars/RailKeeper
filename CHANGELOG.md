@@ -6,6 +6,27 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.21] - 2026-10-03
+
+### Changed
+
+- Go and SQLite dependencies, React, Lucide, Vite, Vitest, coverage, and other frontend build and
+  test packages were updated to the current, previously checked state of `main`. The frontend
+  package explicitly uses ES modules.
+- Dependabot updates Vitest and its related packages together. Node 25 updates remain excluded
+  from the Docker build based on Node 24.
+- The runtime version, Docker installation examples, and documentation version metadata are
+  aligned with v0.1.21.
+
+### Security
+
+- The frontend lockfile includes updated Undici dependencies to address known vulnerabilities.
+- Dependency pull requests run Go and npm vulnerability checks. The npm audit includes development
+  dependencies used to build and test the frontend.
+- Pull requests build Docker images locally and scan them with Trivy without publishing them.
+  Images from `main` and release tags continue to be published and scanned.
+- GitHub Actions SHA pins, including CodeQL, were updated.
+
 ## [0.1.20.4] - 2026-09-03
 
 ### Changed

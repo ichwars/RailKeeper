@@ -3,7 +3,7 @@ title: Import und Export
 description: Fahrzeug-, Zubehör- und Messedaten über geprüfte Transferaufträge austauschen.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.4
+reviewedVersion: 0.1.21
 lastReviewed: 2026-08-27
 ---
 

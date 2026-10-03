@@ -3,7 +3,7 @@ title: Fahrzeugwartung und Zustand
 description: Fahrzeugwartungen erfassen, planen, abschließen, prüfen und sicher entfernen.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.4
+reviewedVersion: 0.1.21
 lastReviewed: 2026-08-16
 ---
 

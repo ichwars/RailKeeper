@@ -3,7 +3,7 @@ title: Entries and printing
 description: Record exhibition locomotives, resolve address conflicts, and print the operating list.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.4
+reviewedVersion: 0.1.21
 lastReviewed: 2026-08-31
 ---
 
