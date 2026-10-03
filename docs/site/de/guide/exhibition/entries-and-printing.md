@@ -3,7 +3,7 @@ title: Einträge und Drucken
 description: Messeloks erfassen, Adresskonflikte lösen und die Betriebsliste drucken.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.4
+reviewedVersion: 0.1.21
 lastReviewed: 2026-08-31
 ---
 

@@ -6,6 +6,28 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.21] - 2026-10-03
+
+### Geändert
+
+- Go- und SQLite-Abhängigkeiten sowie React, Lucide, Vite, Vitest, Coverage und weitere
+  Frontend-Build- und Testpakete wurden auf den aktuellen, bereits geprüften Stand von `main`
+  aktualisiert. Das Frontend-Paket verwendet explizit ES-Module.
+- Dependabot aktualisiert Vitest und die zugehörigen Pakete gemeinsam. Node-25-Updates bleiben
+  für das auf Node 24 basierende Docker-Build ausgeschlossen.
+- Laufzeitversion, Docker-Installationsbeispiele und Versionsmetadaten der Dokumentation sind
+  auf v0.1.21 abgestimmt.
+
+### Sicherheit
+
+- Die Frontend-Sperrdatei enthält die aktualisierten Undici-Abhängigkeiten zur Behebung bekannter
+  Sicherheitslücken.
+- Abhängigkeits-Pull-Requests führen Go- und npm-Sicherheitsprüfungen aus. Der npm-Audit umfasst
+  auch die Entwicklungsabhängigkeiten für Build und Tests.
+- Docker-Images werden in Pull-Requests lokal gebaut und mit Trivy geprüft, ohne sie zu
+  veröffentlichen. Images von `main` und Release-Tags werden weiterhin veröffentlicht und geprüft.
+- Die SHA-Pinnungen der GitHub Actions einschließlich CodeQL wurden aktualisiert.
+
 ## [0.1.20.4] - 2026-09-03
 
 ### Geändert

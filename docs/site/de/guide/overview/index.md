@@ -3,7 +3,7 @@ title: Übersicht, Kennzahlen und Datenqualität
 description: RailKeeper-Dashboard auswerten, Datenlücken bearbeiten und Kacheln anordnen.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.4
+reviewedVersion: 0.1.21
 lastReviewed: 2026-08-16
 ---
 

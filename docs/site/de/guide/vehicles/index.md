@@ -3,7 +3,7 @@ title: Fahrzeugbestand und Grunddaten
 description: Fahrzeuge suchen, filtern, anlegen, pflegen, ausgeben und sicher löschen.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.4
+reviewedVersion: 0.1.21
 lastReviewed: 2026-08-17
 ---
 

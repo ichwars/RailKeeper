@@ -3,7 +3,7 @@ title: Overview, metrics, and data quality
 description: Read the RailKeeper dashboard, follow data gaps, and arrange its widgets.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.4
+reviewedVersion: 0.1.21
 lastReviewed: 2026-08-16
 ---
 
