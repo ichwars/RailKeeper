@@ -113,6 +113,27 @@ Rollback:
 
 3. Wenn Migrationen bereits angewendet wurden, nur mit vorherigem Datenbackup zurückrollen.
 
+## Release-Veröffentlichung
+
+Nach erfolgreicher `CI` für einen Push auf `main` prüft **Publish Release** die Laufzeitversion
+in `backend/cmd/railkeeper/main.go` und die passende Release-Datei, beispielsweise
+`docs/releases/v0.1.21.md`.
+Der geprüfte Commit muss weiterhin der aktuelle Stand von `main` sein. Für eine noch nicht
+veröffentlichte Version erstellt der Workflow Tag und GitHub-Release mit den zweisprachigen
+Release-Notizen und startet die vorhandenen Docker- und Windows-Workflows für diesen Tag.
+
+Bestehende Releases und Tags werden nicht überschrieben. Fehlen passende Release-Notizen,
+schlägt die CI fehl oder verweist ein bestehender Tag auf einen anderen Commit, wird keine neue
+Veröffentlichung ausgeführt. Ein erneuter Versuch desselben Release-Laufs kann die Paket-Builds
+nach einer unterbrochenen Veröffentlichung erneut starten. Der manuelle Start auf `main` prüft
+ebenfalls zuerst dessen erfolgreiche CI.
+
+Das repositoryeigene `GITHUB_TOKEN` benötigt nur `contents: write` zum Veröffentlichen und
+`actions: write` zum Starten der Paket-Builds. Tag-Schreibvorgänge mit diesem Token lösen keine
+Push-Workflows aus; deshalb werden die beiden Builds ausdrücklich per `workflow_dispatch`
+gestartet. Vor einem produktiven Update den erfolgreichen Docker-Build und die Verfügbarkeit
+des gewünschten Windows-Pakets im Release prüfen.
+
 ## Beta-Releases
 
 Beta-Versionen werden mit einem Prerelease-Tag veröffentlicht, zum Beispiel:
@@ -123,8 +144,9 @@ v0.1.15-beta.1
 
 Der Windows-Portable-Workflow markiert solche Tags automatisch als GitHub Prerelease.
 Der Docker-Workflow setzt für stabile Versionstags `latest`, für Prerelease-Tags
-zusätzlich `beta`. Pushes auf `main` erzeugen nur den beweglichen `edge`-Kanal und
-keinen produktiven `latest`-Tag.
+zusätzlich `beta`. Normale Pushes auf `main` erzeugen den beweglichen `edge`-Kanal. Bei einer
+neuen, geprüften Version veröffentlicht **Publish Release** zusätzlich das Release; dessen Paket-Build setzt
+für stabile Versionen `latest` beziehungsweise für Prereleases `beta`.
 
 Beta-Installation per Docker:
 

@@ -1,0 +1,102 @@
+name: Publish Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >-
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository) ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    env:
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          persist-credentials: false
+
+      - name: Publish checked version and start package builds
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          if [[ "$RELEASE_SHA" != "$main_sha" ]]; then
+            echo "::notice::Skipping a superseded main commit."
+            exit 0
+          fi
+
+          ci_result="$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
+            -f branch=main -f event=push -f head_sha="$RELEASE_SHA" \
+            --jq '.workflow_runs[0].conclusion')"
+          if [[ "$ci_result" != success ]]; then
+            echo "::error::The current main commit has no successful CI run."
+            exit 1
+          fi
+
+          version="$(sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' \
+            backend/cmd/railkeeper/main.go)"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid runtime release version."
+            exit 1
+          fi
+          tag="v$version"
+          notes="docs/releases/$tag.md"
+          if [[ ! -f "$notes" ]] || [[ "$(head -n 1 "$notes")" != "# RailKeeper $tag" ]]; then
+            echo "::error::Matching release notes are required."
+            exit 1
+          fi
+
+          releases="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --paginate --jq '.[].tag_name')"
+          release_exists=false
+          if grep -Fxq -- "$tag" <<< "$releases"; then
+            release_exists=true
+            if [[ "$GITHUB_RUN_ATTEMPT" == 1 && "$GITHUB_EVENT_NAME" != workflow_dispatch ]]; then
+              echo "::notice::Release $tag already exists."
+              exit 0
+            fi
+          fi
+
+          tag_refs="$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$tag" --jq '.[].ref')"
+          if grep -Fxq -- "refs/tags/$tag" <<< "$tag_refs"; then
+            tagged_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/$tag" --jq '.sha')"
+            if [[ "$tagged_sha" != "$RELEASE_SHA" ]]; then
+              echo "::error::The existing release tag points to another commit."
+              exit 1
+            fi
+          fi
+
+          if [[ "$release_exists" == false ]]; then
+            release_flags=(--latest)
+            if [[ "$version" == *-* ]]; then
+              release_flags=(--prerelease --latest=false)
+            fi
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$RELEASE_SHA" \
+              --title "RailKeeper $tag" --notes-file "$notes" "${release_flags[@]}"
+          fi
+
+          # GITHUB_TOKEN tag writes do not trigger push workflows; dispatch both builds explicitly.
+          gh workflow run docker-image.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"
+          gh workflow run windows-standalone.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"

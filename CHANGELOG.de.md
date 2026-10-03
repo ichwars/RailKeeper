@@ -17,6 +17,9 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
   für das auf Node 24 basierende Docker-Build ausgeschlossen.
 - Laufzeitversion, Docker-Installationsbeispiele und Versionsmetadaten der Dokumentation sind
   auf v0.1.21 abgestimmt.
+- Neue Versionen mit passenden Release-Notizen werden nach erfolgreicher `main`-CI automatisch
+  als GitHub-Release veröffentlicht. Der Release-Workflow startet die vorhandenen Docker- und
+  Windows-Builds für den geprüften Tag.
 
 ### Sicherheit
 
