@@ -68,6 +68,11 @@ jobs:
             exit 1
           fi
 
+          if ! grep -Fxq '## Deutsch' "$notes" || ! grep -Fxq '## English' "$notes"; then
+            echo "::error::German and English release notes are required."
+            exit 1
+          fi
+
           releases="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
             --paginate --jq '.[].tag_name')"
           release_exists=false

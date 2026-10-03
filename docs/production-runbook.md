@@ -125,8 +125,10 @@ Release-Notizen und startet die vorhandenen Docker- und Windows-Workflows für d
 Bestehende Releases und Tags werden nicht überschrieben. Fehlen passende Release-Notizen,
 schlägt die CI fehl oder verweist ein bestehender Tag auf einen anderen Commit, wird keine neue
 Veröffentlichung ausgeführt. Ein erneuter Versuch desselben Release-Laufs kann die Paket-Builds
-nach einer unterbrochenen Veröffentlichung erneut starten. Der manuelle Start auf `main` prüft
-ebenfalls zuerst dessen erfolgreiche CI.
+nach einer unterbrochenen Veröffentlichung erneut starten, solange `main` noch auf denselben
+Commit zeigt. Bei inzwischen weitergelaufenem `main` die beiden Paket-Workflows manuell am
+bestehenden Release-Tag starten. Der manuelle Release-Start auf `main` prüft ebenfalls zuerst
+dessen erfolgreiche CI. Der Windows-Upload erhält die vorhandenen Release-Notizen.
 
 Das repositoryeigene `GITHUB_TOKEN` benötigt nur `contents: write` zum Veröffentlichen und
 `actions: write` zum Starten der Paket-Builds. Tag-Schreibvorgänge mit diesem Token lösen keine

@@ -69,7 +69,7 @@ def release_script():
 
 class ReleaseWorkflowTests(unittest.TestCase):
     def run_release(self, *, version='0.1.21', main_sha=CHECKED_SHA, ci='success',
-                    notes=True, existing_release=False, existing_tag=False,
+                    notes=True, languages=('Deutsch', 'English'), existing_release=False, existing_tag=False,
                     tag_sha=CHECKED_SHA, attempt='1', event='workflow_run', lookup_error=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -79,7 +79,8 @@ class ReleaseWorkflowTests(unittest.TestCase):
             (root / 'docs/releases').mkdir(parents=True)
             if notes:
                 (root / f'docs/releases/v{version}.md').write_text(
-                    f'# RailKeeper v{version}\n\nReviewed release notes.\n')
+                    f'# RailKeeper v{version}\n\n' + '\n\n'.join(
+                        f'## {language}\n\nReviewed release notes.' for language in languages) + '\n')
             (root / 'bin').mkdir()
             gh = root / 'bin/gh'
             gh.write_text(GH_FIXTURE)
@@ -131,6 +132,13 @@ class ReleaseWorkflowTests(unittest.TestCase):
         result, state = self.run_release(notes=False)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(state, {'release': None, 'dispatches': []})
+
+    def test_missing_language_section_never_publishes(self):
+        for language in ('Deutsch', 'English'):
+            with self.subTest(language=language):
+                result, state = self.run_release(languages=(language,))
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(state, {'release': None, 'dispatches': []})
 
     def test_existing_release_remains_unchanged(self):
         result, state = self.run_release(existing_release=True)
