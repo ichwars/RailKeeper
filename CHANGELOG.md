@@ -10,6 +10,8 @@ All notable changes to RailKeeper are documented in this file.
 
 - Raised the minimum Go version to 1.26.9 to address reachable standard-library vulnerabilities
   reported by `govulncheck`.
+- Updated the transitive frontend dependency `source-map-js` to 1.2.2 to address
+  GHSA-68fv-2mgg-jv7q.
 
 ## [0.1.21] - 2026-10-03
 
