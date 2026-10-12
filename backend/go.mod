@@ -1,6 +1,6 @@
 module railkeeper/backend
 
-go 1.26.6
+go 1.26.9
 
 require (
 	golang.org/x/crypto v0.57.0

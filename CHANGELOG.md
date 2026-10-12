@@ -6,6 +6,11 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+### Security
+
+- Raised the minimum Go version to 1.26.9 to address reachable standard-library vulnerabilities
+  reported by `govulncheck`.
+
 ## [0.1.21] - 2026-10-03
 
 ### Changed
