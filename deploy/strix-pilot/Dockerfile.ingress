@@ -1,0 +1,2 @@
+FROM nginx@sha256:ed84151ed2d47ef93c0939eb9b9754c6990db6092cd2081e11988a47a83d47ea
+COPY --chmod=0444 nginx.conf /etc/nginx/nginx.conf

@@ -7,6 +7,8 @@
 .env
 .env.*
 !.env.example
+.strix-pilot
+strix_runs
 data
 dist
 frontend/dist
