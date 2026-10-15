@@ -88,3 +88,7 @@ pnpm-debug.log*
 !.env.example
 *.pem
 *.key
+
+# Private Strix pilot findings, credentials and disposable source snapshots
+/strix_runs/
+/.strix-pilot/

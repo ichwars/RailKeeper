@@ -1,5 +1,7 @@
 # Security
 
+Manual security testing: [Strix pilot setup and operation (Deutsch / English)](strix-pilot.md).
+
 RailKeeper is intended for local-first and small self-hosted installations. This document describes the implemented baseline and the remaining hardening work.
 
 ## Implemented

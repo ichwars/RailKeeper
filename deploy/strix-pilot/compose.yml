@@ -1,0 +1,64 @@
+services:
+  railkeeper:
+    build:
+      context: ../..
+      target: runtime
+    environment:
+      RAILKEEPER_ADDR: ":8080"
+      RAILKEEPER_DATA_DIR: /data
+      RAILKEEPER_MIGRATIONS_DIR: /app/migrations
+      RAILKEEPER_SEEDS_DIR: /app/seeds
+      RAILKEEPER_STATIC_DIR: /app/web
+      RAILKEEPER_COOKIE_SECURE: "false"
+    networks:
+      - pilot
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /data:size=256m,uid=10001,gid=10001,mode=0700
+    mem_limit: 1g
+    cpus: 1
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "railkeeper", "healthcheck"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  ingress:
+    build:
+      context: .
+      dockerfile: Dockerfile.ingress
+    user: "101:101"
+    entrypoint: ["nginx", "-g", "daemon off;"]
+    depends_on:
+      railkeeper:
+        condition: service_healthy
+    ports:
+      - "${STRIX_BIND_IP:-127.0.0.1}:${STRIX_PORT:-18080}:8080"
+    networks:
+      - pilot
+      - ingress
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    mem_limit: 64m
+    pids_limit: 32
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+networks:
+  pilot:
+    internal: true
+  ingress: {}

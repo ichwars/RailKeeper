@@ -1,0 +1,95 @@
+name: Strix-Pilot / Strix pilot
+
+on:
+  workflow_dispatch:
+    inputs:
+      scan_mode:
+        description: "Prüftiefe / Scan depth"
+        type: choice
+        options: [quick, standard, deep]
+        default: quick
+      max_budget:
+        description: "LLM-Budget in USD, maximal 50 / LLM budget in USD, maximum 50"
+        type: string
+        default: "10"
+      publish_reports:
+        description: "Befunde als öffentlich lesbare Artefakte hochladen / Upload publicly readable findings"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: railkeeper-strix-pilot
+  cancel-in-progress: false
+
+jobs:
+  pilot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      COMPOSE_FILE: deploy/strix-pilot/compose.yml
+      COMPOSE_PROJECT_NAME: railkeeper-strix-${{ github.run_id }}-${{ github.run_attempt }}
+      SCAN_MODE: ${{ inputs.scan_mode }}
+      MAX_BUDGET: ${{ inputs.max_budget }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Voraussetzungen prüfen / Check prerequisites
+        env:
+          STRIX_LLM: ${{ vars.STRIX_LLM }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          test -n "$STRIX_LLM" || { echo '::error::Set repository variable STRIX_LLM'; exit 1; }
+          test -n "$LLM_API_KEY" || { echo '::error::Set repository secret LLM_API_KEY'; exit 1; }
+          python3 -c 'import math, os; b=float(os.environ["MAX_BUDGET"]); assert math.isfinite(b) and 0 < b <= 50'
+          python3 -m unittest discover -s tools -p test_strix_pilot.py
+          mkdir -m 700 "$RUNNER_TEMP/railkeeper-strix"
+          echo "PILOT_DIRECTORY=$RUNNER_TEMP/railkeeper-strix" >> "$GITHUB_ENV"
+          # Bind only to the Docker bridge, not to the public runner interface.
+          bridge_ip="$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')"
+          echo "STRIX_BIND_IP=$bridge_ip" >> "$GITHUB_ENV"
+
+      - name: Strix installieren / Install Strix
+        run: bash .github/scripts/install_strix.sh "$RUNNER_TEMP/strix-bin"
+
+      - name: Isolierte Testinstanz starten / Start isolated test instance
+        run: |
+          docker compose up --build --detach --wait --wait-timeout 150 > "$PILOT_DIRECTORY/build.private.log" 2>&1
+          python3 tools/strix_pilot.py seed \
+            --url "http://$STRIX_BIND_IP:18080" --output "$PILOT_DIRECTORY/accounts.private.json"
+
+      - name: Strix ausführen / Run Strix
+        env:
+          STRIX_LLM: ${{ vars.STRIX_LLM }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          STRIX_IMAGE: ghcr.io/usestrix/strix-sandbox@sha256:f6906c3114e504fd1a218fcf028d7a0e46851118403a438b63956de6ea7c4331 # 1.3.0
+          STRIX_TELEMETRY: "false"
+        run: |
+          python3 tools/strix_pilot.py scan \
+            --strix "$RUNNER_TEMP/strix-bin/strix" \
+            --url http://host.docker.internal:18080 \
+            --accounts "$PILOT_DIRECTORY/accounts.private.json" \
+            --output "$PILOT_DIRECTORY/scan" \
+            --mode "$SCAN_MODE" --budget "$MAX_BUDGET" --turns 80 --minutes 45
+
+      - name: Berichte veröffentlichen (optional) / Publish reports (optional)
+        if: always() && inputs.publish_reports
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: strix-pilot-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/railkeeper-strix/scan/summary.txt
+            ${{ runner.temp }}/railkeeper-strix/scan/strix_runs/*/penetration_test_report.md
+            ${{ runner.temp }}/railkeeper-strix/scan/strix_runs/*/vulnerabilities/*.md
+          retention-days: 3
+          if-no-files-found: warn
+
+      - name: Testinstanz entfernen / Remove test instance
+        if: always()
+        run: |
+          docker compose down --volumes --remove-orphans
+          rm -f "$PILOT_DIRECTORY/accounts.private.json"
