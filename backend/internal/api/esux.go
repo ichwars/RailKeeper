@@ -107,6 +107,13 @@ func parseESUXMetadata(filename string, data []byte) (*esuxMetadata, error) {
 func applyESUXMetadata(filename string, data []byte, decoderProfile string, description string) (string, string) {
 	metadata, err := parseESUXMetadata(filename, data)
 	if err != nil {
+		if strings.TrimSpace(decoderProfile) == "" {
+			if text, ok := decoderPreviewText(filename, data); ok {
+				if _, profile, recognized, parseErr := parseLokProgrammerCVList(text); recognized && parseErr == nil {
+					decoderProfile = profile
+				}
+			}
+		}
 		return decoderProfile, description
 	}
 	if strings.TrimSpace(decoderProfile) == "" {
@@ -131,6 +138,9 @@ func esuxPreviewResponse(filename string, sizeBytes int64, mimeType string, data
 			response.SuggestedDecoderProfile = profile
 			if err != nil {
 				response.CVImportError = err.Error()
+			} else if profile != "" {
+				response.HasMetadata = true
+				response.Decoder = profile
 			}
 		}
 	}

@@ -135,3 +135,25 @@ func TestLokProgrammerCVProvenanceIncludesHeadersBlankLinesAndIndexes(t *testing
 		}
 	}
 }
+
+func TestLokProgrammerTextProfileIsAvailableForOriginalFileStorage(t *testing.T) {
+	data := []byte("Decoder: LokPilot 5 micro DCC (5.14.183)\nCV 007 = 255")
+	preview := esuxPreviewResponse("decoder.txt", int64(len(data)), "text/plain", data)
+	if !preview.HasMetadata || preview.Decoder != "LokPilot 5 micro DCC" || preview.SuggestedDecoderProfile != preview.Decoder {
+		t.Fatalf("text metadata unavailable: %+v", preview)
+	}
+	profile, description := applyESUXMetadata("decoder.txt", data, "", "")
+	if profile != preview.Decoder || description != "" {
+		t.Fatalf("text profile lost on file storage: %q %q", profile, description)
+	}
+	profile, description = applyESUXMetadata("decoder.txt", data, "Manuell", "Eigene Notiz")
+	if profile != "Manuell" || description != "Eigene Notiz" {
+		t.Fatalf("manual file metadata overwritten: %q %q", profile, description)
+	}
+	invalid := append(append([]byte{}, data...), []byte("\nCV 1 = invalid")...)
+	preview = esuxPreviewResponse("decoder.txt", int64(len(invalid)), "text/plain", invalid)
+	profile, _ = applyESUXMetadata("decoder.txt", invalid, "", "")
+	if preview.HasMetadata || preview.CVImportError == "" || profile != "" {
+		t.Fatalf("malformed TXT was accepted as valid metadata: %+v %q", preview, profile)
+	}
+}
