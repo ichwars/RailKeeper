@@ -152,34 +152,67 @@ Märklin mLD3, Märklin mSD3 und Lenz Standard+. Bereits in CV-Werten oder Datei
 erscheinen als Schnellwahl. Ein Profil ist beschreibender Freitext und keine Prüfung des
 physischen Decoders.
 
-RailKeeper identifiziert eine CV-Zeile durch CV-Nummer und normalisiertes Decoderprofil. Das
-Protokoll gehört nicht zu dieser Identität. **CV hinzufügen** aktualisiert eine vorhandene passende
-Zeile, anstatt ein Duplikat anzulegen. **CV speichern**, **CV bearbeiten** und **CV löschen** wirken
-sofort und laden das vollständige Fahrzeug neu. Löschen besitzt keine zusätzliche Bestätigung.
+RailKeeper identifiziert eine CV-Zeile durch Fahrzeug, getrimmtes Decoderprofil (einschließlich
+Groß-/Kleinschreibung), CV-Nummer und das optionale Paar **CV31/CV32**. Das Protokoll gehört nicht
+zur Identität. Basiswerte haben keine Indexangabe; Seite `0/0` ist davon verschieden. Für CVs
+257–512 können beide Indexfelder gemeinsam Werte von 0 bis 255 enthalten. Bestehende Werte ohne
+Index bleiben unverändert erhalten. Bei mehreren Decodern am selben Fahrzeug unterschiedliche
+Profilbezeichnungen verwenden, auch wenn es derselbe Decodertyp ist.
 
-Ändert eine Aktualisierung den Zahlenwert, legt RailKeeper einen Historieneintrag an. Reine
-Metadatenänderungen erzeugen keinen. Die stabile Oberfläche zeigt die fünf neuesten
-Historieneinträge einer Zeile.
+**CV hinzufügen** aktualisiert einen passenden Wert. Bearbeiten und Löschen wirken sofort;
+Löschen besitzt keine zusätzliche Bestätigung. Nur eine Änderung des Zahlenwerts erzeugt einen
+Historieneintrag. Die Tabelle zeigt die fünf neuesten Änderungen je Wert.
+
+Die Wertetabelle zeigt Indexseiten ausdrücklich, lässt sich nach Decoderprofil, Seite und Text
+filtern und zeigt jeweils 50 Zeilen. Die Übersicht **Wichtige Decoderwerte** zeigt für ein
+gewähltes Profil die aus den gespeicherten Basis-CVs abgeleitete DCC-Adresse, Herstellerkennung,
+CV29 mit Bits sowie Analog- und RailCom-Freigabe. Sie meldet keine Live-Zustände und ändert weder
+Fahrzeugadresse noch Funktionsbezeichnungen. Bei mehreren Profilen zuerst eines im Filter wählen.
+
+## Dateien für einen sauberen Import
+
+Für Lokomotiven und Wagen mit Funktionsdecoder gilt derselbe Ablauf. Die Zuordnung erfolgt immer
+am ausgewählten, bereits gespeicherten Fahrzeug.
+
+| Datei | Erforderlich | Verarbeitung und Anzeige |
+| --- | --- | --- |
+| Vollständige LokProgrammer-CV-Liste als TXT | Für den vollständigen ESU-CV-Import | Alle Werte mit Indexseiten in Vorschau und CV-Tabelle |
+| CSV oder RailKeeper-CV-JSON | Alternative zur TXT-Liste | Strukturierte Werte, Profile, optionale Indexfelder |
+| ESUX / ESU | Optional | Originalprojekt unter CV-Dateien; sichere Metadatenvorschau. Der proprietäre CV-Inhalt wird nicht dekodiert |
+| Kopierter Text der Decoderinformationen | Optional | Fahrzeugbeilage für Seriennummer, Firmware und Rohkennungen; kein automatischer Identitätsimport |
+| Screenshot, Foto, Anleitung | Optional | Fahrzeugbeilagen bzw. Bilder als prüfbare Nachweise; keine automatische OCR oder CV-Erkennung |
+| Funktions-JSON | Optional | Namen, Symbole und Schaltarten über den getrennten Funktionsimport |
+
+Eine ESUX-Datei ist keine Voraussetzung für den TXT-Import. Projektname und Typ wie `steam`
+identifizieren die wirkliche Lok nicht zuverlässig. Eine rohe CV-Liste ersetzt auch keine bestätigte
+Zuordnung von AUX-Ausgängen zu tatsächlich angeschlossenen Lampen oder Kupplungen.
 
 ## CV-Werte importieren und exportieren
 
-Der CV-**Import** liest die erste ausgewählte JSON-, CSV- oder TXT-Datei.
+**Import** liest die erste ausgewählte Datei (höchstens 2 MiB, 10.000 Werte).
 
-- JSON darf ein Array auf oberster Ebene oder ein Objekt mit `cvValues` sein.
-- CSV oder TXT verwendet eine Zeile je Wert in der Reihenfolge CV-Nummer, Wert, Beschreibung,
-  Kategorie und Decoderprofil.
-- Als Trenner sind Semikolon und Komma möglich.
-- Eine mit `cv` beginnende Zeile gilt als Kopfzeile.
-- Beim Textimport bleiben Protokoll und Quelldatei leer.
+- LokProgrammer-TXT wird mit `Decoder:`, `CV 001 = 003` und
+  `Index: 4099 (CV31=16, CV32=3)` vollständig verarbeitet. Der Decoderkopf liefert das Profil;
+  eine Firmware-Endung wird davon getrennt. Fehlerhafte oder widersprüchliche Indexzeilen blockieren
+  die gesamte Dateivorschau, statt eine Teilmenge zu liefern.
+- JSON darf ein Array oder ein Objekt mit `cvValues` sein. Optionale Felder heißen `indexCV31`
+  und `indexCV32`. Alte Dateien ohne diese Felder bleiben importierbar.
+- CSV unterstützt benannte Spalten, beispielsweise
+  `cvNumber;value;decoderProfile;indexCV31;indexCV32`. Auch `cv_number`, `cv31`, `cv32`, `CV` und
+  `Wert` werden erkannt. Ohne Kopfzeile gilt die Reihenfolge CV-Nummer, Wert, Beschreibung,
+  Kategorie, Decoderprofil, CV31, CV32. Komma oder Semikolon sind möglich.
+- Ein im CV-Formular gewähltes Profil gilt als ausdrückliches Zielprofil für den Import. Ohne
+  dieses verwendet RailKeeper das Profil der Datei. Eine im Formular gewählte Quelldatei muss
+  zum aktuellen Fahrzeug gehören. Aus JSON exportierte Datei-IDs werden nicht automatisch übertragen.
 
-Die Vorschau markiert jede Zeile als **neu**, **geändert**, **gleich** oder **ungültig**. Neue und
-geänderte Zeilen sind zunächst ausgewählt, gleiche und ungültige nicht. Doppelte Kombinationen aus
-CV-Nummer und Profil sind nach dem ersten Vorkommen ungültig.
+Die Vorschau markiert Zeilen als **neu**, **geändert**, **gleich** oder **ungültig**. Neue und
+geänderte Zeilen sind ausgewählt. Nur echte Wiederholungen derselben vollständigen Identität gelten
+als doppelt; CV257 auf Seite 16/3 und CV257 auf Seite 16/4 sind verschiedene Werte.
 
-Nutze **Nur neue**, **Alle auswählen**, **Keine auswählen** oder einzelne Kontrollkästchen und
-danach **Ausgewählte Felder übernehmen**. Ausgewählte Zeilen werden nacheinander geschrieben. Ein
-später Fehler macht frühere Zeilen nicht rückgängig und verhindert die normale Aktualisierung. Lade
-neu, vergleiche und wiederhole nur fehlende Zeilen.
+**Nur neue**, **Alle auswählen**, **Keine auswählen** und einzelne Kontrollkästchen steuern die
+Auswahl über alle Vorschauseiten. **Ausgewählte Felder übernehmen** speichert die Auswahl samt
+Historie in einer Transaktion. Ein Fehler rollt sämtliche Änderungen dieses Imports zurück.
+Die Originaldatei wird dabei nicht gespeichert; sie kann zusätzlich unter CV-Dateien abgelegt werden.
 
 **Export** lädt `<inventarnummer>-cv.json` oder `railkeeper-cv.json` herunter. Die Datei enthält
 Fahrzeugidentität, bevorzugte Decodernummer und alle mit dem Fahrzeug gelieferten CV-Datensätze
@@ -211,10 +244,10 @@ Die Auswahl erzeugt zuerst eine **Upload-Vorschau**. Sie kann Größe, MIME-Typ,
 Projekt, Decoder, Adresse, Typ, Hersteller, LokProgrammer-Metadaten sowie die Anzahl erkannter
 CV-Werte und Funktionstasten anzeigen. Eine Vorschau speichert die Originaldatei nicht.
 
-Jede Dateivorschau liefert höchstens 32 erkannte CV-Werte und 32 erkannte Funktionen. Eine
-angezeigte Anzahl von 32 kann daher bedeuten, dass die Quelle weitere Einträge enthält. Vergleiche
-die Vorschau mit der Projektdatei. Importiere übrige CVs über den direkten CV-Import und übrige
-Funktionen per Funktions-JSON oder manueller Eingabe.
+LokProgrammer-TXT liefert bis zu 10.000 CV-Werte einschließlich Indexseiten. Für JSON/CSV/TXT
+liest **CVs prüfen** die Originaldatei erneut über den vollständigen CV-Importweg. Andere
+Vorschauformate sind Extraktionsvorschläge und können unvollständig sein. Funktionsvorschläge
+bleiben auf 32 begrenzt. Die binäre ESUX-Datei liefert Metadaten, keinen vollständigen CV-Import.
 
 Die Vorschauaktionen sind unabhängig:
 
@@ -329,3 +362,46 @@ nacheinander ausgeführten Aktion rückgängig.
 
 Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.20.3** und wurde zuletzt am
 16.08.2026 geprüft.
+
+
+## Digitaldaten im Fahrzeugdialog
+
+Unter **Modell → Digital** bleiben die manuelle Digitaladresse, DT-Adresse für Doppeltraktion,
+Decodertyp und ABC-Fahrzeugangabe bearbeitbar. Daneben zeigt RailKeeper die aus dem gewählten
+Decoderprofil ermittelten Werte mit CV-Quelle: aktive DCC-Adresse, Verbundadresse und Richtung,
+ausschließlich freigegebene Verbundfunktionen (CV21/CV22), ABC und konstanten Bremsweg.
+DT wird nicht aus CV19 übernommen. Fehlende Werte bleiben unbekannt; Profile und Indexseiten
+werden für die Auswertung nicht vermischt. **Aus CVs übernehmen** kopiert bekannte Adresse,
+erkannten Decodertyp und ABC-Status ins Formular; **Änderungen speichern** sichert diese Angaben.
+
+Der Reiter **CV** bietet **Verständlich erklärt**, **Alle CV-Werte** und **Dateien & Import**.
+Die Aktionen **CV-Liste importieren** und **Decoderdatei hochladen** sind getrennt. Eine originale
+ESUX-Datei bleibt als Decoderprojekt hinterlegbar; vollständige Werte benötigen die CV-Liste.
+Die gemeinsame Decoderübersicht zeigt Profil, aktive Adresse, Wertezahl und Indexseiten. Unter
+**Verständlich erklärt** stehen Thema, Erklärung, Ergebnis und CV-Quelle nebeneinander; ein Klick
+auf die Quelle öffnet rechts eine Seitenleiste für genau diesen CV. Sie zeigt Dezimal-, Hex- und
+Binärwert, Indexseite, Decoderprofil und die tatsächlich gespeicherte Quelle. Nur beim Basis-CV29
+werden dessen Bits erklärt. **CV-Wert bearbeiten** öffnet denselben Datensatz einschließlich
+Indexseite im Editor. Beim CV-Import werden die Originalzeile (einschließlich Kopf- und Leerzeilen)
+und der Exportzeitpunkt aus dem TXT-Dateikopf gespeichert und in der Seitenleiste angezeigt.
+Die Uhrzeit bleibt ohne angenommene Zeitzone erhalten. JSON-Exporte und Backups enthalten diese
+Angaben; Importe oder Bearbeitungen ohne Herkunftsangaben erhalten bereits gespeicherte Angaben.
+Bei älteren Datensätzen ohne Quelle steht weiterhin „Nicht erfasst“; das Speicherdatum wird nicht
+als Exportdatum verwendet. Backupformat 22 erhält die Herkunft, ältere Backups bleiben einlesbar.
+Zusätzliche Verbund-/Decoderangaben sind eingeklappt erreichbar. Die ESU-Anzeige für DC-Analogbetrieb
+berücksichtigt CV29 und CV50 gemeinsam. **Dateien & Import** erklärt die beiden Dateiarten und
+zeigt den übernommenen Wertebestand sowie gespeicherte Originaldateien.
+In der Rohwerttabelle sucht `CV29` genau nach CV29; auch Bedeutungen lassen sich suchen.
+Profil-, Index- und Nullwertfilter grenzen die Liste ein. **CV-Werte exportieren** steht hier bereit. Erklärungen zu Basiswerten und den Bits von CV29 ergänzen die unveränderten Rohwerte.
+Der TXT-Dateikopf bleibt als Quellenbeschreibung bei CV7 erhalten und liefert nach erneutem Import
+die vollständige Firmwarekennung; CV7=255 wird nicht als Firmwareversion interpretiert.
+
+Bei erkannten ESU LokPilot 5 (Herstellerkennung 151 und passendes Profil) werden einfache positive
+Tastenzuordnungen aus den Mappingseiten im Reiter **Steuerung** angezeigt. Richtung, Ausgang und
+CV-Quelle bleiben sichtbar. Vorschläge füllen nur leere Funktionseinträge und müssen anschließend
+je Funktion gespeichert werden. Fehlende Felder und komplexe Bedingungen werden nicht ergänzt.
+AUX3 im Ausgangsmodus 31 wird als PowerPack Control gekennzeichnet, ohne einen tatsächlichen
+PowerPack-Einbau zu behaupten. Die reale Belegung anderer AUX-Ausgänge bleibt zu bestätigen.
+
+Fachliche Grundlage: [ESU LokPilot 5, 8. Auflage](https://www.esu.eu/en/downloads/instruction-manuals/digital-decoders/?tx_esudownloads_pi1%5BdownloadItem%5D=0318b68e0cb850d9101947622d1041ea)
+und [NMRA S-9.2.2](https://www.nmra.org/sites/default/files/s-9.2.2_2012_10.pdf).
