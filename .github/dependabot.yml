@@ -24,6 +24,10 @@ updates:
       timezone: Europe/Berlin
     open-pull-requests-limit: 5
     groups:
+      vitest:
+        patterns:
+          - vitest
+          - "@vitest/*"
       npm-minor-patch:
         update-types:
           - minor
@@ -31,6 +35,10 @@ updates:
 
   - package-ecosystem: docker
     directory: /
+    ignore:
+      - dependency-name: node
+        versions:
+          - ">=25, <26"
     schedule:
       interval: weekly
       day: monday

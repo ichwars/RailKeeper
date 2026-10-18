@@ -6,6 +6,61 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+### Security
+
+- Raised the minimum Go version to 1.26.9 to address reachable standard-library vulnerabilities
+  reported by `govulncheck`.
+- Updated the transitive frontend dependency `source-map-js` to 1.2.2 to address
+  GHSA-68fv-2mgg-jv7q.
+
+## [0.1.21] - 2026-10-03
+
+### Changed
+
+- Go and SQLite dependencies, React, Lucide, Vite, Vitest, coverage, and other frontend build and
+  test packages were updated to the current, previously checked state of `main`. The frontend
+  package explicitly uses ES modules.
+- Dependabot updates Vitest and its related packages together. Node 25 updates remain excluded
+  from the Docker build based on Node 24.
+- The runtime version, Docker installation examples, and documentation version metadata are
+  aligned with v0.1.21.
+- New versions with matching release notes are published as GitHub releases after successful
+  `main` CI. The release workflow starts the existing Docker and Windows builds for the checked tag.
+
+### Security
+
+- The frontend lockfile includes updated Undici dependencies to address known vulnerabilities.
+- Dependency pull requests run Go and npm vulnerability checks. The npm audit includes development
+  dependencies used to build and test the frontend.
+- Pull requests build Docker images locally and scan them with Trivy without publishing them.
+  Images from `main` and release tags continue to be published and scanned.
+- GitHub Actions SHA pins, including CodeQL, were updated.
+
+## [0.1.20.4] - 2026-09-03
+
+### Changed
+
+- Exhibitions have a separate A4 landscape print document. It includes every saved entry in the
+  selected event with images, model and control data, operating days, availability, status, complete
+  function assignments, and notes. Screen filters do not limit the report; navigation and controls
+  are excluded.
+- Z21 provides a read-only preview of known locomotive addresses with time and item limits.
+  Intellibox transport selection and Z21 diagnostics distinguish available capabilities from
+  planned ones more clearly. These flows do not write to the command station.
+
+### Fixed
+
+- Printing waits for images and remains disabled while a newly selected exhibition is loading.
+  Legacy free-text function assignments are preserved. Hidden row actions no longer cause
+  page overflow in the exhibition view.
+- ECoS rejects incomplete compatibility replies and distinguishes them from complete replies
+  with firmware that has not yet been verified.
+- Concurrent edits and autosaves in the layout twin preserve other unsaved drafts. Position
+  history, conflict reloads, and stale replies after switching modules were corrected.
+- The track planner safeguards dragging, gauge validation, material analysis, and transactional
+  snapping. Module-port previews account for unsaved placements; dimension changes cannot leave
+  existing ports outside module bounds.
+
 ## [0.1.20.3] - 2026-08-28
 
 ### Added

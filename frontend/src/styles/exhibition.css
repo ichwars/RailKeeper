@@ -735,6 +735,7 @@
 }
 
 .exhibition-row-menu {
+  position: relative;
   display: inline-flex;
   align-items: center;
 }

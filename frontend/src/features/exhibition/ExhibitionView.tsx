@@ -11,7 +11,7 @@ import {
   Upload
 } from "lucide-react";
 import { api, ExhibitionEntry, ExhibitionEntryInput, ExhibitionList, ExhibitionListInput, MasterDataEntry } from "../../shared/api";
-import { functionSymbolImageData } from "../../shared/functionSymbolImages";
+import { printList } from "./exhibitionPrint";
 import { FunctionSymbolPicker, functionSymbolIcon, functionSymbolMetadata } from "../../shared/functionSymbols";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
@@ -23,7 +23,6 @@ type ListSortKey = "designation" | "date" | "entryCount" | "locked";
 type EntrySortKey = "owner" | "locomotiveName" | "dtDecoder" | "decoderNumber" | "functionKeys";
 type SortDirection = "asc" | "desc";
 type EntryTab = "general" | "images" | "functions";
-type PrintOptions = { includeImages: boolean };
 
 type ExhibitionMasterDataOptions = {
   manufacturers: MasterDataEntry[];
@@ -69,13 +68,6 @@ const functionKeys = Array.from({ length: 32 }, (_, index) => `F${index}`);
 const functionTypes = ["standard", "licht", "sound", "kupplung", "rauch", "sonderfunktion"];
 const dayScopes = ["all", "day1", "day2", "day3", "day4"];
 const selectableDayScopes = dayScopes.filter((scope) => scope !== "all");
-const htmlEscapes: Record<string, string> = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  "\"": "&quot;",
-  "'": "&#39;"
-};
 function defaultFunction(key: string): ExhibitionFunction {
   return {
     key,
@@ -224,21 +216,6 @@ function controlRows(
   ];
 }
 
-export function printFunctionChips(value: string | undefined, symbols: MasterDataEntry[]) {
-  const configured = parseFunctions(value).filter(isConfiguredFunction);
-  if (configured.length === 0) return "-";
-  return configured.map((item) => {
-    const metadata = functionSymbolMetadata(symbols, item.symbolKey);
-    const imageData = functionSymbolImageData(metadata, "print");
-    const label = functionDisplayName(item);
-    return `<span class="function-chip">${imageData ? `<img src="${escapeHTML(imageData)}" alt="" />` : ""}<strong>${escapeHTML(item.key)}</strong> ${escapeHTML(label)}</span>`;
-  }).join("");
-}
-
-function escapeHTML(value: unknown) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => htmlEscapes[char] || char);
-}
-
 function fileToDataURL(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -246,133 +223,6 @@ function fileToDataURL(file: File) {
     reader.onerror = () => reject(reader.error || new Error("Bild konnte nicht gelesen werden."));
     reader.readAsDataURL(file);
   });
-}
-
-function printHTMLDocument(html: string) {
-  const frame = document.createElement("iframe");
-  frame.setAttribute("aria-hidden", "true");
-  frame.style.position = "fixed";
-  frame.style.right = "0";
-  frame.style.bottom = "0";
-  frame.style.width = "0";
-  frame.style.height = "0";
-  frame.style.border = "0";
-  frame.style.opacity = "0";
-  document.body.appendChild(frame);
-
-  const printWindow = frame.contentWindow;
-  if (!printWindow) {
-    frame.remove();
-    return;
-  }
-
-  let printed = false;
-  const runPrint = () => {
-    if (printed) return;
-    printed = true;
-    printWindow.focus();
-    printWindow.print();
-    window.setTimeout(() => frame.remove(), 1200);
-  };
-
-  frame.onload = runPrint;
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
-  window.setTimeout(runPrint, 250);
-}
-
-function printList(
-  list: ExhibitionList,
-  entries: ExhibitionEntry[],
-  symbols: MasterDataEntry[] = [],
-  language = "de",
-  t: (key: string, values?: Record<string, string | number>) => string = (key) => key,
-  options: PrintOptions = { includeImages: true }
-) {
-  const rows = entries.map((entry) => {
-    const modelParts = modelMeta(entry);
-    const controlParts = controlRows(entry, t);
-    return `
-    <tr>
-      ${options.includeImages ? `<td class="image-cell">${entry.imageUrl ? `<img src="${escapeHTML(entry.imageUrl)}" alt="" />` : `<span>-</span>`}</td>` : ""}
-      <td class="owner-cell">${escapeHTML(entry.owner)}<small>${escapeHTML(dayScopeLabel(entry.dayScope, t))}</small></td>
-      <td class="loco-cell">
-        <strong>${escapeHTML(locomotiveTitle(entry))}</strong>
-        ${modelParts.length > 0 ? `<small>${modelParts.map(escapeHTML).join(" | ")}</small>` : ""}
-      </td>
-      <td class="control-cell">${controlParts.map(([label, value]) => `<span class="control-row"><em>${escapeHTML(label)}:</em> <strong>${escapeHTML(value)}</strong></span>`).join("")}</td>
-      <td class="function-cell"><div class="function-chip-grid">${printFunctionChips(entry.functionKeys, symbols)}</div></td>
-      <td class="notes-cell">${entry.notes ? escapeHTML(entry.notes) : "-"}</td>
-    </tr>
-  `;
-  }).join("");
-  const emptyColSpan = options.includeImages ? 6 : 5;
-  const colGroup = options.includeImages
-    ? `<colgroup><col class="col-image" /><col class="col-owner" /><col class="col-loco" /><col class="col-control" /><col class="col-functions" /><col class="col-notes" /></colgroup>`
-    : `<colgroup><col class="col-owner" /><col class="col-loco" /><col class="col-control" /><col class="col-functions" /><col class="col-notes" /></colgroup>`;
-  printHTMLDocument(`<!doctype html>
-    <html lang="${escapeHTML(language)}">
-      <head>
-        <meta charset="utf-8" />
-        <title> </title>
-        <style>
-          @page { size: A4 landscape; margin: 13mm 12mm 12mm; }
-          * { box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; margin: 0; color: #111; }
-          .print-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid #78b943; }
-          .print-eyebrow { margin: 0 0 4px; color: #4e7f27; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
-          h1 { margin: 0 0 5px; font-size: 22px; line-height: 1.12; }
-          p { margin: 0; color: #555; }
-          .print-meta { font-size: 11px; }
-          .print-logo { width: 44px; height: 44px; object-fit: contain; flex: 0 0 auto; }
-          table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 10.5px; }
-          .col-image { width: 74px; }
-          .col-owner { width: 102px; }
-          .col-loco { width: 200px; }
-          .col-control { width: 180px; }
-          .col-functions { width: 178px; }
-          .col-notes { width: auto; }
-          th, td { border-bottom: 1px solid #d7ddd9; padding: 7px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
-          th { background: #eef5ee; color: #26352a; font-size: 9px; text-transform: uppercase; }
-          td strong, td small { display: block; }
-          td small { margin-top: 3px; color: #666; line-height: 1.35; }
-          .image-cell { width: 74px; }
-          .image-cell img, .image-cell span { display: grid; width: 66px; height: 46px; place-items: center; border: 1px solid #d7ddd9; border-radius: 4px; object-fit: contain; }
-          .control-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 5px; margin-bottom: 3px; line-height: 1.25; }
-          .control-row em { color: #666; font-style: normal; }
-          .function-cell { min-width: 0; }
-          .function-chip-grid { display: grid; grid-template-columns: repeat(2, max-content); gap: 5px 6px; align-content: start; min-width: 0; }
-          .function-chip { display: inline-flex; align-items: center; gap: 4px; min-width: 54px; padding: 3px 6px; border: 1px solid #d9e4dc; border-radius: 4px; white-space: nowrap; }
-          .function-chip img { width: 14px; height: 14px; object-fit: contain; }
-          .function-chip strong { display: inline; }
-        </style>
-      </head>
-      <body>
-        <header class="print-head">
-          <div>
-            <p class="print-eyebrow">RailKeeper Ausstellung</p>
-            <h1>${escapeHTML(list.designation)}</h1>
-            <p class="print-meta">${escapeHTML(t("exhibition.entriesCountWithDate", { date: formatDate(list.date, language), count: entries.length }))}</p>
-          </div>
-          <img class="print-logo" src="/brand/railkeeper-mark.png" alt="RailKeeper" />
-        </header>
-        <table>
-          ${colGroup}
-          <thead>
-            <tr>
-              ${options.includeImages ? `<th>${escapeHTML(t("exhibition.image"))}</th>` : ""}
-              <th>${escapeHTML(t("exhibition.owner"))}</th>
-              <th>${escapeHTML(t("exhibition.locomotiveName"))}</th>
-              <th>${escapeHTML(t("exhibition.controlData"))}</th>
-              <th>${escapeHTML(t("exhibition.functionKeys"))}</th>
-              <th>${escapeHTML(t("exhibition.notes"))}</th>
-            </tr>
-          </thead>
-          <tbody>${rows || `<tr><td colspan="${emptyColSpan}">${escapeHTML(t("exhibition.printEmpty"))}</td></tr>`}</tbody>
-        </table>
-      </body>
-    </html>`);
 }
 
 export function ExhibitionView({ roles }: { roles: string[] }) {

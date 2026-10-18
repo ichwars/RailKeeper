@@ -3,7 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, ExhibitionList, ExhibitionWorkspace, MasterDataEntry } from "../../shared/api";
-import { ExhibitionView, printFunctionChips } from "./ExhibitionView";
+import { ExhibitionView } from "./ExhibitionView";
+import { printFunctionChips } from "./exhibitionPrint";
+import * as exhibitionPrint from "./exhibitionPrint";
 
 const list: ExhibitionList = {
   id: "messe-koeln",
@@ -55,7 +57,7 @@ const lightSymbol: MasterDataEntry = {
   label: "Licht",
   active: true,
   sortOrder: 10,
-  metadata: { imageData: "print-data", activeImageData: "active-data" },
+  metadata: { imageData: "data:image/png;base64,cHJpbnQ=", activeImageData: "data:image/png;base64,YWN0aXZl" },
   createdAt: list.createdAt,
   updatedAt: list.updatedAt,
 };
@@ -102,8 +104,45 @@ describe("Exhibition reference workspace", () => {
       [lightSymbol],
     );
 
-    expect(html).toContain('src="print-data"');
-    expect(html).not.toContain('src="active-data"');
+    expect(html).toContain('src="data:image/png;base64,cHJpbnQ="');
+    expect(html).not.toContain('src="data:image/png;base64,YWN0aXZl"');
+  });
+
+  it("prints all saved entries in the selected event despite screen filters", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "exhibitionLists").mockResolvedValue([list]);
+    vi.spyOn(api, "exhibitionWorkspace").mockResolvedValue(workspace);
+    vi.spyOn(api, "masterData").mockResolvedValue([lightSymbol]);
+    const print = vi.spyOn(exhibitionPrint, "printList").mockResolvedValue();
+    const pagePrint = vi.spyOn(window, "print").mockImplementation(() => {});
+    render(<ExhibitionView roles={["Messe"]} />);
+    await screen.findByText("BR 103 113-7");
+    await user.click(screen.getByRole("button", { name: /^Tag 1/ }));
+    await user.type(screen.getByRole("textbox", { name: "Einträge durchsuchen" }), "BR 103");
+    expect(screen.queryByText("V 200 033")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Drucken" }));
+    expect(print).toHaveBeenCalledWith(list, workspace.entries, [lightSymbol], "de", expect.any(Function));
+    expect(pagePrint).not.toHaveBeenCalled();
+  });
+
+  it("blocks printing the previous workspace while another event loads and reports failures", async () => {
+    const user = userEvent.setup();
+    const nextList = { ...list, id: "next-event", designation: "Nächste Ausstellung" };
+    let finishLoad: (value: ExhibitionWorkspace) => void = () => {};
+    vi.spyOn(api, "exhibitionLists").mockResolvedValue([list, nextList]);
+    vi.spyOn(api, "exhibitionWorkspace").mockResolvedValueOnce(workspace)
+      .mockReturnValueOnce(new Promise((resolve) => { finishLoad = resolve; }));
+    vi.spyOn(api, "masterData").mockResolvedValue([]);
+    const print = vi.spyOn(exhibitionPrint, "printList").mockRejectedValue(new Error("Druck nicht verfügbar"));
+    render(<ExhibitionView roles={["Messe"]} />);
+    await screen.findByText("BR 103 113-7");
+    await user.click(screen.getByRole("button", { name: /Nächste Ausstellung/ }));
+    expect(screen.getByRole("button", { name: "Drucken" })).toBeDisabled();
+    finishLoad({ ...workspace, list: nextList, entries: [] });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Drucken" })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "Drucken" }));
+    expect(print).toHaveBeenCalledWith(nextList, [], [], "de", expect.any(Function));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Druck nicht verfügbar");
   });
 
   it("persists lifecycle transitions from the event menu", async () => {
