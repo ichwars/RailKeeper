@@ -39,22 +39,26 @@ func (s *VehicleService) CreateCVValue(ctx context.Context, vehicleID string, in
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	item := VehicleCVValue{
-		ID:             randomID(),
-		VehicleID:      vehicleID,
-		CVNumber:       input.CVNumber,
-		Value:          input.Value,
-		Description:    input.Description,
-		Category:       input.Category,
-		Protocol:       input.Protocol,
-		DecoderProfile: input.DecoderProfile,
-		SourceFileID:   input.SourceFileID,
-		CreatedAt:      now,
-		UpdatedAt:      now,
+		ID:               randomID(),
+		VehicleID:        vehicleID,
+		CVNumber:         input.CVNumber,
+		IndexCV31:        input.IndexCV31,
+		IndexCV32:        input.IndexCV32,
+		Value:            input.Value,
+		Description:      input.Description,
+		Category:         input.Category,
+		Protocol:         input.Protocol,
+		DecoderProfile:   input.DecoderProfile,
+		SourceFileID:     input.SourceFileID,
+		SourceLine:       input.SourceLine,
+		SourceExportedAt: input.SourceExportedAt,
+		CreatedAt:        now,
+		UpdatedAt:        now,
 	}
 	if _, err := s.db.ExecContext(ctx, `
-INSERT INTO vehicle_cv_values(id, vehicle_id, cv_number, value, description, category, protocol, decoder_profile, source_file_id, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, item.ID, item.VehicleID, item.CVNumber, item.Value, item.Description, item.Category, item.Protocol, item.DecoderProfile, item.SourceFileID, item.CreatedAt, item.UpdatedAt); err != nil {
+INSERT INTO vehicle_cv_values(id, vehicle_id, cv_number, value, description, category, protocol, decoder_profile, source_file_id, created_at, updated_at, index_cv31, index_cv32, source_line, source_exported_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, item.ID, item.VehicleID, item.CVNumber, item.Value, item.Description, item.Category, item.Protocol, item.DecoderProfile, item.SourceFileID, item.CreatedAt, item.UpdatedAt, item.IndexCV31, item.IndexCV32, item.SourceLine, item.SourceExportedAt); err != nil {
 		return nil, fmt.Errorf("create vehicle cv value: %w", err)
 	}
 	return &item, nil
@@ -84,16 +88,13 @@ func (s *VehicleService) UpdateCVValue(ctx context.Context, vehicleID, cvValueID
 	if err != nil {
 		return nil, fmt.Errorf("begin cv value update: %w", err)
 	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
+	defer func() { _ = tx.Rollback() }()
 	result, err := tx.ExecContext(ctx, `
 UPDATE vehicle_cv_values
-SET cv_number=?, value=?, description=?, category=?, protocol=?, decoder_profile=?, source_file_id=?, updated_at=?
+SET cv_number=?, value=?, description=?, category=?, protocol=?, decoder_profile=?, source_file_id=?, updated_at=?, index_cv31=?, index_cv32=?,
+    source_line=COALESCE(?, source_line), source_exported_at=CASE WHEN ?='' THEN source_exported_at ELSE ? END
 WHERE id=? AND vehicle_id=?
-`, input.CVNumber, input.Value, input.Description, input.Category, input.Protocol, input.DecoderProfile, input.SourceFileID, now, cvValueID, vehicleID)
+`, input.CVNumber, input.Value, input.Description, input.Category, input.Protocol, input.DecoderProfile, input.SourceFileID, now, input.IndexCV31, input.IndexCV32, input.SourceLine, input.SourceExportedAt, input.SourceExportedAt, cvValueID, vehicleID)
 	if err != nil {
 		return nil, fmt.Errorf("update vehicle cv value: %w", err)
 	}
@@ -122,7 +123,7 @@ func (s *VehicleService) GetCVValue(ctx context.Context, vehicleID, cvValueID st
 	var item VehicleCVValue
 	err := s.db.QueryRowContext(ctx, `
 SELECT id, vehicle_id, cv_number, value, COALESCE(description, ''), COALESCE(category, ''),
-       COALESCE(protocol, ''), COALESCE(decoder_profile, ''), COALESCE(source_file_id, ''), created_at, updated_at
+       COALESCE(protocol, ''), COALESCE(decoder_profile, ''), COALESCE(source_file_id, ''), created_at, updated_at, index_cv31, index_cv32, source_line, source_exported_at
 FROM vehicle_cv_values
 WHERE id=? AND vehicle_id=?
 `, strings.TrimSpace(cvValueID), strings.TrimSpace(vehicleID)).Scan(
@@ -137,6 +138,10 @@ WHERE id=? AND vehicle_id=?
 		&item.SourceFileID,
 		&item.CreatedAt,
 		&item.UpdatedAt,
+		&item.IndexCV31,
+		&item.IndexCV32,
+		&item.SourceLine,
+		&item.SourceExportedAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -174,10 +179,10 @@ func (s *VehicleService) DeleteCVValue(ctx context.Context, vehicleID, cvValueID
 func (s *VehicleService) loadVehicleCVValues(ctx context.Context, vehicleID string) ([]VehicleCVValue, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, vehicle_id, cv_number, value, COALESCE(description, ''), COALESCE(category, ''),
-       COALESCE(protocol, ''), COALESCE(decoder_profile, ''), COALESCE(source_file_id, ''), created_at, updated_at
+       COALESCE(protocol, ''), COALESCE(decoder_profile, ''), COALESCE(source_file_id, ''), created_at, updated_at, index_cv31, index_cv32, source_line, source_exported_at
 FROM vehicle_cv_values
 WHERE vehicle_id=?
-ORDER BY protocol ASC, decoder_profile ASC, cv_number ASC
+ORDER BY decoder_profile ASC, index_cv31 ASC, index_cv32 ASC, cv_number ASC
 `, strings.TrimSpace(vehicleID))
 	if err != nil {
 		return nil, fmt.Errorf("list vehicle cv values: %w", err)
@@ -199,6 +204,10 @@ ORDER BY protocol ASC, decoder_profile ASC, cv_number ASC
 			&item.SourceFileID,
 			&item.CreatedAt,
 			&item.UpdatedAt,
+			&item.IndexCV31,
+			&item.IndexCV32,
+			&item.SourceLine,
+			&item.SourceExportedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan vehicle cv value: %w", err)
 		}
@@ -210,12 +219,8 @@ ORDER BY protocol ASC, decoder_profile ASC, cv_number ASC
 	if err := rows.Close(); err != nil {
 		return nil, fmt.Errorf("close vehicle cv values: %w", err)
 	}
-	for index := range out {
-		history, err := s.loadVehicleCVValueHistory(ctx, out[index].ID)
-		if err != nil {
-			return nil, err
-		}
-		out[index].History = history
+	if err := s.loadCVHistories(ctx, vehicleID, out); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

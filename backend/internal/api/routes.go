@@ -127,6 +127,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodDelete, "/api/v1/vehicles/{id}/functions/{functionKey}", routeAccessEditor, (*App).deleteVehicleFunction, nil},
 		{http.MethodGet, "/api/v1/vehicles/{id}/cv-values", routeAccessViewer, (*App).listVehicleCVValues, nil},
 		{http.MethodPost, "/api/v1/vehicles/{id}/cv-values", routeAccessEditor, (*App).createVehicleCVValue, nil},
+		{http.MethodPost, "/api/v1/vehicles/{id}/cv-values/import", routeAccessEditor, (*App).importVehicleCVValues, nil},
 		{http.MethodPut, "/api/v1/vehicles/{id}/cv-values/{cvValueID}", routeAccessEditor, (*App).updateVehicleCVValue, nil},
 		{http.MethodDelete, "/api/v1/vehicles/{id}/cv-values/{cvValueID}", routeAccessEditor, (*App).deleteVehicleCVValue, nil},
 		{http.MethodPost, "/api/v1/cv-files/preview", routeAccessEditor, (*App).previewVehicleCVFile, nil},

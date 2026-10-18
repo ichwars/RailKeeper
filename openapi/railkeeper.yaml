@@ -2326,6 +2326,71 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ArticleSearchResult"
+    VehicleCVValueInput:
+      type: object
+      required: [cvNumber, value]
+      description: A CV belongs to a vehicle and an exact trimmed decoder profile. Both index fields must be omitted/null for unindexed values, or supplied together for CVs 257-512. Zero is a valid index and differs from no index. Protocol is descriptive and is not part of the unique key.
+      properties:
+        cvNumber:
+          type: integer
+          minimum: 1
+          maximum: 1024
+        value:
+          type: integer
+          minimum: 0
+          maximum: 255
+        indexCV31:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 255
+        indexCV32:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 255
+        decoderProfile:
+          type: string
+          maxLength: 160
+        protocol:
+          type: string
+          maxLength: 80
+        category:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 1000
+        sourceFileId:
+          type: string
+          maxLength: 80
+          description: Must reference a decoder attachment of this same vehicle.
+        sourceLine:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 10000000
+          description: Physical 1-based line in the imported source file, including header and blank lines.
+        sourceExportedAt:
+          type: string
+          maxLength: 19
+          pattern: '^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$'
+          description: Valid local calendar timestamp from the source export (YYYY-MM-DDTHH:mm:ss). No timezone is inferred. Missing provenance is preserved on updates/imports.
+    VehicleCVValue:
+      allOf:
+        - $ref: "#/components/schemas/VehicleCVValueInput"
+        - type: object
+          required: [id, vehicleId, createdAt, updatedAt]
+          properties:
+            id:
+              type: string
+            vehicleId:
+              type: string
+            createdAt:
+              type: string
+            updatedAt:
+              type: string
+            history:
+              type: array
+              items:
+                type: object
     VehicleCVFilePreview:
       type: object
       required: [fileName, sizeBytes, mimeType, hasMetadata]
@@ -2357,12 +2422,33 @@ components:
           type: string
         suggestedDescription:
           type: string
+        cvImportError:
+          type: string
+          description: A malformed LokProgrammer CV list cannot be imported. No partial CV suggestions are returned.
         suggestedCvValues:
           type: array
+          maxItems: 10000
+          description: LokProgrammer TXT is parsed completely with CV31/CV32 index pages.
           items:
             type: object
             required: [cvNumber, value]
             properties:
+              sourceLine:
+                $ref: "#/components/schemas/VehicleCVValueInput/properties/sourceLine"
+              sourceExportedAt:
+                $ref: "#/components/schemas/VehicleCVValueInput/properties/sourceExportedAt"
+              indexCV31:
+                type: [integer, 'null']
+                minimum: 0
+                maximum: 255
+              indexCV32:
+                type: [integer, 'null']
+                minimum: 0
+                maximum: 255
+              decoderProfile:
+                type: string
+              protocol:
+                type: string
               cvNumber:
                 type: integer
               value:
@@ -12373,10 +12459,22 @@ paths:
             type: string
       responses:
         "200":
-          description: CV values
+          description: CV values, including separate index pages and per-value history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VehicleCVValue"
     post:
       tags: [Vehicles]
       summary: Create a CV value for a vehicle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleCVValueInput"
       parameters:
         - name: id
           in: path
@@ -12386,10 +12484,60 @@ paths:
       responses:
         "201":
           description: CV value created
+  /vehicles/{id}/cv-values/import:
+    post:
+      tags: [Vehicles]
+      summary: Import a reviewed selection of CV values atomically
+      description: Requires Editor or Admin and CSRF. Upserts by vehicle, exact decoder profile, CV number and index pair. Duplicate input keys, unknown field names, missing/null values and foreign source attachments are rejected. All selected values and value histories commit together, or the entire import rolls back. Request limit 8 MiB. This stores inventory data and never writes to a decoder.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [values]
+              properties:
+                values:
+                  type: array
+                  minItems: 1
+                  maxItems: 10000
+                  items:
+                    $ref: "#/components/schemas/VehicleCVValueInput"
+      responses:
+        "200":
+          description: All selected values were imported
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [imported]
+                properties:
+                  imported:
+                    type: integer
+        "400":
+          description: Invalid JSON, invalid values/index pair, duplicate identity, foreign source file or exceeded limits
+        "403":
+          description: Role or CSRF check failed
+        "404":
+          description: Vehicle not found
+        "500":
+          description: Import failed and all changes rolled back
   /vehicles/{id}/cv-values/{cvValueID}:
     put:
       tags: [Vehicles]
       summary: Update a CV value
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleCVValueInput"
       parameters:
         - name: id
           in: path

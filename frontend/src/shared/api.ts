@@ -485,12 +485,16 @@ export type VehicleCVValue = {
   id: string;
   vehicleId: string;
   cvNumber: number;
+  indexCV31?: number | null;
+  indexCV32?: number | null;
   value: number;
   description?: string;
   category?: string;
   protocol?: string;
   decoderProfile?: string;
   sourceFileId?: string;
+  sourceLine?: number | null;
+  sourceExportedAt?: string;
   createdAt: string;
   updatedAt: string;
   history?: VehicleCVValueHistory[];
@@ -507,12 +511,16 @@ export type VehicleCVValueHistory = {
 
 export type VehicleCVValueInput = {
   cvNumber: number;
+  indexCV31?: number | null;
+  indexCV32?: number | null;
   value: number;
   description?: string;
   category?: string;
   protocol?: string;
   decoderProfile?: string;
   sourceFileId?: string;
+  sourceLine?: number | null;
+  sourceExportedAt?: string;
 };
 
 export type VehicleCVFile = {
@@ -542,7 +550,13 @@ export type VehicleCVFilePreview = {
   lokProgrammer?: string;
   suggestedDecoderProfile?: string;
   suggestedDescription?: string;
+  cvImportError?: string;
   suggestedCvValues?: {
+    sourceLine?: number | null;
+    sourceExportedAt?: string;
+    decoderProfile?: string;
+    indexCV31?: number | null;
+    indexCV32?: number | null;
     cvNumber: number;
     value: number;
     description?: string;
@@ -1668,6 +1682,10 @@ export const api = {
     }),
   vehicleCVValues: (vehicleId: string) =>
     request<VehicleCVValue[]>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values`),
+  importVehicleCVValues: (vehicleId: string, values: VehicleCVValueInput[]) =>
+    request<{ imported: number }>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/import`, {
+      method: "POST", body: JSON.stringify({ values })
+    }, { timeoutMs: 30000 }),
   createVehicleCVValue: (vehicleId: string, input: VehicleCVValueInput) =>
     request<VehicleCVValue>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values`, {
       method: "POST",
