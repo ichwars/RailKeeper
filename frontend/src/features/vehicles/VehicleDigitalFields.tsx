@@ -33,6 +33,7 @@ export function VehicleDigitalFields({ form, values, readonly, update, onOpenCV 
     ...(a.esu5 ? { decoderType: state.profile } : {}),
     ...(a.abc != null ? { abcBrakes: a.abc } : {})
   });
+  const canApply = a.address != null || a.esu5 || a.abc != null;
   const longActive = a.config != null && Boolean(a.config & 32);
   const address = a.address == null ? unknown : `${a.address} · ${t(longActive
     ? "vehicles.decoder.longDccAddress" : "vehicles.decoder.shortDccAddress")}`;
@@ -44,7 +45,7 @@ export function VehicleDigitalFields({ form, values, readonly, update, onOpenCV 
       <label className="digital-equipped"><input type="checkbox" checked={Boolean(form.digital)}
         aria-label="Digital" onChange={(event) => update({ digital: event.target.checked })}
         disabled={readonly} />{t("vehicles.decoder.equipped")}</label>
-      <button type="button" className="secondary-button" disabled={readonly || a.address == null} onClick={apply}>
+      <button type="button" className="secondary-button" disabled={readonly || !canApply} onClick={apply}>
         {t("vehicles.decoder.applyFields")}</button>
     </div>
     {state.profiles.length > 1 && <div className="digital-profile-choice"><DecoderProfileSelect {...state} /></div>}

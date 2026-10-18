@@ -34,6 +34,23 @@ describe("vehicle digital settings", () => {
     expect(screen.getByRole("button", { name: "Aus CVs übernehmen" })).toBeDisabled();
     for (const checkbox of screen.getAllByRole("checkbox")) expect(checkbox).toBeDisabled();
   });
+  it("applies known decoder and braking fields from a partial CV list without changing addresses", () => {
+    const update = vi.fn();
+    render(<VehicleDigitalFields form={{ ...emptyVehicle, digitalDecoderNumber: "77", dtDecoderNumber: "55" }}
+      values={values.filter(value => value.cvNumber === 8 || value.cvNumber === 27)}
+      readonly={false} update={update} />);
+    const button = screen.getByRole("button", { name: "Aus CVs übernehmen" });
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    expect(update).toHaveBeenCalledExactlyOnceWith({ decoderType: "LokPilot 5 micro DCC", abcBrakes: false });
+  });
+  it("can apply a verified decoder type even when address and ABC state are unknown", () => {
+    const update = vi.fn();
+    render(<VehicleDigitalFields form={emptyVehicle} values={values.filter(value => value.cvNumber === 8)}
+      readonly={false} update={update} />);
+    fireEvent.click(screen.getByRole("button", { name: "Aus CVs übernehmen" }));
+    expect(update).toHaveBeenCalledExactlyOnceWith({ decoderType: "LokPilot 5 micro DCC" });
+  });
   it("keeps identity values visible and additional stored fields behind the disclosure", () => {
     const open = vi.fn();
     render(<VehicleDigitalFields form={emptyVehicle} values={values} readonly={false} update={vi.fn()} onOpenCV={open} />);
