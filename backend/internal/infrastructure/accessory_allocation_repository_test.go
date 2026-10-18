@@ -19,8 +19,6 @@ type allocationFixture struct {
 	quantityProduct   *application.AccessoryProduct
 	individualProduct *application.AccessoryProduct
 	asset             *application.AccessoryAsset
-	layout            *application.Layout
-	unit              *application.LayoutUnit
 	vehicle           *application.Vehicle
 }
 
@@ -72,12 +70,12 @@ func TestAccessoryUsageRejectsActiveLocationBelowArchivedAncestor(t *testing.T) 
 	assertConflict("asset", err)
 	_, err = fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
 		ProductID: fixture.quantityProduct.ID, LocationID: child.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 	}, "planner-1")
 	assertConflict("reservation", err)
 	_, err = fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ProductID: fixture.quantityProduct.ID, SourceLocationID: child.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		Condition:             domain.AccessoryConditionReady,
 	}, "editor-1")
 	assertConflict("installation", err)
@@ -86,7 +84,7 @@ func TestAccessoryUsageRejectsActiveLocationBelowArchivedAncestor(t *testing.T) 
 func TestAccessoryAllocationsReserveAndInstallQuantityAtomically(t *testing.T) {
 	fixture := newAllocationFixture(t)
 	ctx := t.Context()
-	target := application.AllocationTargetInput{LayoutID: fixture.layout.ID}
+	target := application.AllocationTargetInput{VehicleID: fixture.vehicle.ID}
 
 	reservation, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
 		ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 3,
@@ -208,7 +206,7 @@ SET changed_at='2026-01-01T12:00:00Z' WHERE installation_id=?`, installation.ID)
 func TestAccessoryInstallationInheritsReservationTechnicalDataWithNonEmptyOverrides(t *testing.T) {
 	fixture := newAllocationFixture(t)
 	ctx := t.Context()
-	target := application.AllocationTargetInput{LayoutID: fixture.layout.ID}
+	target := application.AllocationTargetInput{VehicleID: fixture.vehicle.ID}
 	reservation, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
 		ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 1,
 		AllocationTargetInput: target, Placement: "Bahnhof West", DigitalAddress: "17",
@@ -230,67 +228,6 @@ func TestAccessoryInstallationInheritsReservationTechnicalDataWithNonEmptyOverri
 		installation.DecoderOutput != "A2" || installation.Connection != "J4" ||
 		installation.WiringNotes != "blau/gelb" {
 		t.Fatalf("installation did not inherit reservation technical data with override: %#v", installation)
-	}
-}
-
-func TestAccessoryAllocationsLinkTechnicalPositionAndInheritItOnInstallation(t *testing.T) {
-	fixture := newAllocationFixture(t)
-	ctx := t.Context()
-	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(fixture.db))
-	position, err := layouts.CreateTechnicalPosition(ctx, fixture.unit.ID,
-		application.CreateLayoutTechnicalPositionInput{
-			Label: "Signal A", Kind: domain.LayoutPositionSignal,
-			PositionXMM: 120, PositionYMM: 40, ProductID: fixture.quantityProduct.ID,
-		}, "planner-1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	target := application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID}
-	reservation, err := fixture.allocations.CreateReservation(ctx,
-		application.CreateAccessoryReservationInput{
-			ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 1,
-			AllocationTargetInput: target, TechnicalPositionID: position.ID,
-		}, "planner-1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if reservation.TechnicalPositionID != position.ID {
-		t.Fatalf("reservation lost technical position: %#v", reservation)
-	}
-	installation, err := fixture.allocations.Install(ctx,
-		application.CreateAccessoryInstallationInput{
-			ReservationID: reservation.ID, ProductID: fixture.quantityProduct.ID,
-			SourceLocationID: fixture.location.ID, Quantity: 1,
-			AllocationTargetInput: target, Condition: domain.AccessoryConditionReady,
-		}, "editor-1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if installation.TechnicalPositionID != position.ID {
-		t.Fatalf("installation did not inherit technical position: %#v", installation)
-	}
-
-	otherUnit, err := layouts.CreateUnit(ctx, fixture.layout.ID, application.CreateLayoutUnitInput{
-		Name: "Modul 2", Kind: domain.LayoutUnitKindModule,
-	}, "planner-1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
-		ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: otherUnit.ID},
-		TechnicalPositionID:   position.ID,
-	}, "planner-1")
-	if !errors.Is(err, application.ErrAccessoryConflict) {
-		t.Fatalf("expected unit mismatch conflict, got %v", err)
-	}
-	_, err = fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
-		ProductID: fixture.individualProduct.ID, AssetID: fixture.asset.ID,
-		LocationID: fixture.location.ID, Quantity: 1,
-		AllocationTargetInput: target, TechnicalPositionID: position.ID,
-	}, "planner-1")
-	if !errors.Is(err, application.ErrAccessoryConflict) {
-		t.Fatalf("expected product mismatch conflict, got %v", err)
 	}
 }
 
@@ -353,7 +290,7 @@ func TestAccessoryAllocationsTrackIndividualAssetLifecycle(t *testing.T) {
 	if _, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ProductID: fixture.individualProduct.ID, AssetID: fixture.asset.ID,
 		SourceLocationID: fixture.location.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 	}, "editor-1"); !errors.Is(err, application.ErrAccessoryConflict) {
 		t.Fatalf("expected active asset installation conflict, got %v", err)
 	}
@@ -400,7 +337,7 @@ func TestAccessoryStockMovementsTrackQuantityInstallationAndRemoval(t *testing.T
 	ctx := t.Context()
 	installation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ProductID: fixture.quantityProduct.ID, SourceLocationID: fixture.location.ID, Quantity: 2,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		Condition:             domain.AccessoryConditionReady,
 	}, "editor-1")
 	if err != nil {
@@ -431,7 +368,7 @@ func TestAccessoryStockMovementsTrackQuantityInstallationAndRemoval(t *testing.T
 	individualInstallation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ProductID: fixture.individualProduct.ID, AssetID: fixture.asset.ID,
 		SourceLocationID: fixture.location.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		Condition:             domain.AccessoryConditionReady,
 	}, "editor-1")
 	if err != nil {
@@ -482,7 +419,7 @@ func TestAccessoryHybridAllocationsUseAssetAndQuantityPaths(t *testing.T) {
 	assetReservation, err := fixture.allocations.CreateReservation(ctx,
 		application.CreateAccessoryReservationInput{
 			ProductID: hybrid.ID, AssetID: asset.ID, LocationID: fixture.location.ID, Quantity: 1,
-			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+			AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		}, "planner-1")
 	if err != nil {
 		t.Fatal(err)
@@ -493,7 +430,7 @@ func TestAccessoryHybridAllocationsUseAssetAndQuantityPaths(t *testing.T) {
 	assetInstallation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ReservationID: assetReservation.ID, ProductID: hybrid.ID, AssetID: asset.ID,
 		SourceLocationID: fixture.location.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		Condition:             domain.AccessoryConditionReady,
 	}, "editor-1")
 	if err != nil {
@@ -522,7 +459,7 @@ func TestAccessoryHybridAllocationsUseAssetAndQuantityPaths(t *testing.T) {
 	quantityReservation, err := fixture.allocations.CreateReservation(ctx,
 		application.CreateAccessoryReservationInput{
 			ProductID: hybrid.ID, LocationID: fixture.location.ID, Quantity: 1,
-			AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+			AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		}, "planner-1")
 	if err != nil {
 		t.Fatal(err)
@@ -530,7 +467,7 @@ func TestAccessoryHybridAllocationsUseAssetAndQuantityPaths(t *testing.T) {
 	quantityInstallation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ReservationID: quantityReservation.ID, ProductID: hybrid.ID,
 		SourceLocationID: fixture.location.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		Condition:             domain.AccessoryConditionReady,
 	}, "editor-1")
 	if err != nil {
@@ -564,7 +501,7 @@ func TestAccessoryStockAdjustmentCannotConsumeReservedQuantity(t *testing.T) {
 	reservation, err := fixture.allocations.CreateReservation(ctx,
 		application.CreateAccessoryReservationInput{
 			ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 3,
-			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+			AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		}, "planner-1")
 	if err != nil {
 		t.Fatal(err)
@@ -595,7 +532,7 @@ func TestAccessoryStockTransferCannotConsumeReservedQuantity(t *testing.T) {
 	reservation, err := fixture.allocations.CreateReservation(ctx,
 		application.CreateAccessoryReservationInput{
 			ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 4,
-			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+			AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		}, "planner-1")
 	if err != nil {
 		t.Fatal(err)
@@ -637,7 +574,7 @@ func TestAccessoryIndividualizationCannotConsumeReservedQuantityAtSource(t *test
 	reservation, err := fixture.allocations.CreateReservation(ctx,
 		application.CreateAccessoryReservationInput{
 			ProductID: hybrid.ID, LocationID: source.ID, Quantity: 1,
-			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+			AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		}, "planner-1")
 	if err != nil {
 		t.Fatal(err)
@@ -670,7 +607,7 @@ func TestAccessoryIndividualizationCannotConsumeReservedQuantityAtSource(t *test
 	}
 	if _, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
 		ProductID: hybrid.ID, LocationID: other.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 	}, "planner-1"); err != nil {
 		t.Fatal(err)
 	}
@@ -721,15 +658,19 @@ func TestAccessoryAllocationsValidateTargetsAndReservationMatch(t *testing.T) {
 	}
 	reservation, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
 		ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := application.NewVehicleService(fixture.db).Create(ctx, application.CreateVehicleInput{InventoryNumber: "RK-OTHER-1", Manufacturer: "ESU", Name: "Other vehicle", Gauge: "TT", Category: "Lokomotive", Gattung: "Dampflokomotive"}, "editor-1")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ReservationID: reservation.ID, ProductID: fixture.quantityProduct.ID,
 		SourceLocationID: fixture.location.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: other.ID},
 	}, "editor-1"); !errors.Is(err, application.ErrAccessoryConflict) {
 		t.Fatalf("expected mismatched reservation target conflict, got %v", err)
 	}
@@ -747,24 +688,24 @@ func TestAccessoryAllocationsProtectReservationsFromDirectInstall(t *testing.T) 
 	ctx := t.Context()
 	if _, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
 		ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 4,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 	}, "planner-1"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ProductID: fixture.quantityProduct.ID, SourceLocationID: fixture.location.ID, Quantity: 2,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 	}, "editor-1"); !errors.Is(err, application.ErrAccessoryInsufficientStock) {
 		t.Fatalf("expected reserved stock protection, got %v", err)
 	}
 	installation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ProductID: fixture.quantityProduct.ID, SourceLocationID: fixture.location.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 	}, "editor-1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if installation.Quantity != 1 || installation.LayoutUnitID != fixture.unit.ID {
+	if installation.Quantity != 1 || installation.VehicleID != fixture.vehicle.ID {
 		t.Fatalf("unexpected direct installation: %#v", installation)
 	}
 	assertAllocationSummary(t, fixture.allocations, fixture.quantityProduct.ID,
@@ -778,7 +719,7 @@ func TestAccessoryAllocationsPreventTrackingModeChangeWithActiveInstallation(t *
 	ctx := t.Context()
 	if _, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ProductID: fixture.quantityProduct.ID, SourceLocationID: fixture.location.ID, Quantity: 5,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 	}, "editor-1"); err != nil {
 		t.Fatal(err)
 	}
@@ -825,7 +766,7 @@ func TestAccessoryAllocationsHandleIndividualRemovalDispositionsAndPrivateNotes(
 		installation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 			ProductID: fixture.individualProduct.ID, AssetID: asset.ID,
 			SourceLocationID: fixture.location.ID, Quantity: 1,
-			AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+			AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 			Condition:             domain.AccessoryConditionReady, Notes: "private install note",
 		}, "editor-1")
 		if err != nil {
@@ -905,19 +846,6 @@ func newAllocationFixture(t *testing.T) allocationFixture {
 			InventoryNumber: "RK-Z-1001", Condition: domain.AccessoryConditionReady,
 			Lifecycle: domain.AccessoryLifecycleStored, StorageLocationID: fixture.location.ID,
 		}, "editor-1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
-	fixture.layout, err = layouts.CreateLayout(ctx, application.CreateLayoutInput{
-		Name: "Testanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
-	}, "planner-1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	fixture.unit, err = layouts.CreateUnit(ctx, fixture.layout.ID, application.CreateLayoutUnitInput{
-		Name: "Modul 1", Kind: domain.LayoutUnitKindModule,
-	}, "planner-1")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -118,8 +118,8 @@ INSERT INTO accessory_installations(
 	if err := db.QueryRow(`SELECT COUNT(*) FROM roles WHERE name='Planner'`).Scan(&plannerCount); err != nil {
 		t.Fatal(err)
 	}
-	if plannerCount != 1 {
-		t.Fatalf("expected one Planner role, got %d", plannerCount)
+	if plannerCount != 0 {
+		t.Fatalf("expected retired Planner role absent, got %d", plannerCount)
 	}
 }
 

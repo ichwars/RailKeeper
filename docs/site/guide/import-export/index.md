@@ -21,10 +21,10 @@ separate workflows.
 
 ## Access rights
 
-Admin, Editor, Viewer, Planner, and Messe can open **Import/Export**. Pure Messe accounts see and
+Admin, Editor, Viewerand Messe can open **Import/Export**. Pure Messe accounts see and
 run only exhibition-list profiles and jobs. The server applies that scope independently of the UI.
 
-Admin and Editor can create or update full transfer profiles and apply imports. Viewer and Planner
+Admin and Editor can create or update full transfer profiles and apply imports. Viewer users
 can inspect jobs and create exports but cannot apply imported data. Messe can export, review, and
 apply exhibition-list transfers within its isolated scope. Only Admin can disable profiles, delete
 artifacts, or request that RailKeeper open an artifact folder on the server.

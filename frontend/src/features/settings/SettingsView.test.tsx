@@ -246,7 +246,7 @@ describe("SettingsView data navigation", () => {
 
   it.each([
     ["", "Allgemein", "Sprache, Startseite, Datumsformat und Druckausgabe."],
-    ["?tab=data", "Daten", "Stammdaten für Fahrzeuge, Artikel und Anlagen zentral pflegen."],
+    ["?tab=data", "Daten", "Stammdaten für Fahrzeuge und Artikel zentral pflegen."],
     ["?tab=digital", "Digitalzentralen", "Zentrale Verbindungen konfigurieren, testen und für spätere Live-Aktualisierungen vorbereiten."],
     ["?tab=importExport", "Backup", "Stammdaten übertragen, vollständige Sicherungen erstellen und kontrolliert wiederherstellen."],
     ["?tab=appearance", "Darstellung", "Design-Optionen und Anzeigeeinstellungen werden hier gebündelt."],
@@ -327,15 +327,15 @@ describe("SettingsView data navigation", () => {
       .toHaveAttribute("href", expect.stringContaining("RailKeeper-windows-x64-v0.2.0.zip"));
   });
 
-  it("enables Anlage as a start page and displays a stored layout preference", async () => {
+  it("falls back from an old Anlage start page and removes the option", async () => {
     const user = userEvent.setup();
     window.localStorage.setItem("railkeeper.settings.defaultView", "layouts");
     render(<SettingsView username="viewer" />);
 
     const trigger = await screen.findByRole("button", { name: /Standardansicht/ });
-    expect(trigger).toHaveTextContent("Anlage");
+    expect(trigger).toHaveTextContent("Übersicht");
     await user.click(trigger);
-    expect(screen.getByRole("option", { name: "Anlage" })).toBeEnabled();
+    expect(screen.queryByRole("option", { name: "Anlage" })).not.toBeInTheDocument();
     expect(window.localStorage.getItem("railkeeper.settings.defaultView")).toBe("layouts");
   });
 });

@@ -25,7 +25,7 @@ import {
   X
 } from "lucide-react";
 import type { AppView } from "../../app/App";
-import { availableStartView, isViewTemporarilyDisabled } from "../../app/navigationAvailability";
+import { availableStartView } from "../../app/navigationAvailability";
 import {
   api,
   AuditLogEntry,
@@ -1545,7 +1545,6 @@ export function SettingsView({ username }: { username: string }) {
                     <option value="overview">{t("nav.overview")}</option>
                     <option value="vehicles">{t("nav.vehicles")}</option>
                     <option value="accessories">{t("nav.accessories")}</option>
-                    <option value="layouts" disabled={isViewTemporarilyDisabled("layouts")}>{t("nav.layouts")}</option>
                     <option value="exhibition">{t("nav.exhibition")}</option>
                     <option value="importExport">{t("nav.importExport")}</option>
                     <option value="settings">{t("nav.settings")}</option>

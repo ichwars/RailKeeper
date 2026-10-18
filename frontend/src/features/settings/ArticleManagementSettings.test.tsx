@@ -105,7 +105,7 @@ describe("ArticleManagementSettings", () => {
     ]);
   });
 
-  it.each(["Planner", "Viewer"])("keeps the article settings read-only for %s", async (role) => {
+  it.each(["Viewer", "Viewer"])("keeps the article settings read-only for %s", async (role) => {
     render(<ArticleManagementHarness roles={[role]} />);
 
     expect(await screen.findByText("Stück")).toBeInTheDocument();

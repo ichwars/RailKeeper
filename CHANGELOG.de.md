@@ -6,6 +6,10 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+### Entfernt
+
+- Anlagenarbeitsbereich, Modul-/Gleisplanung, Planungs-APIs und Planner-Rolle entfernt. Zubehörreservierungen und Einbauten in Fahrzeugen bleiben erhalten. Vorhandene Anlagenzuordnungen werden archiviert, Reservierungen freigegeben und Einbauten unter Erhalt des Eigentumsbestands ins Ursprungslager zurückgeführt; ältere Backups bleiben importierbar (Backupversion 23).
+
 ### Sicherheit
 
 - Go-Mindestversion auf 1.26.9 erhöht, um die von `govulncheck` erkannten erreichbaren

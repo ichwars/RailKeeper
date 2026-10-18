@@ -73,8 +73,8 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 22 {
-		t.Fatalf("expected backup version 22, got %d", backup.Version)
+	if backup.Version != 23 {
+		t.Fatalf("expected backup version 23, got %d", backup.Version)
 	}
 	if len(backup.Tables["vehicles"]) != 1 {
 		t.Fatalf("expected one vehicle in backup, got %d", len(backup.Tables["vehicles"]))
@@ -156,8 +156,8 @@ func TestBackupVersionEighteenPreservesVehicleSetInventoryNumber(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 22 {
-		t.Fatalf("expected backup version 22, got %d", backup.Version)
+	if backup.Version != 23 {
+		t.Fatalf("expected backup version 23, got %d", backup.Version)
 	}
 	if got := backup.Tables["vehicle_sets"][0]["inventory_number"]; got != created.InventoryNumber {
 		t.Fatalf("set inventory number missing from backup: %v", got)
@@ -377,7 +377,7 @@ WHERE type='article_type' AND key='track'`); err != nil {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if doc.Version != 22 {
+	if doc.Version != 23 {
 		t.Fatalf("version=%d", doc.Version)
 	}
 	if _, err := service.Import(t.Context(), doc); err != nil {
@@ -527,8 +527,8 @@ func TestBackupOperationalFieldsAndListPriceRemainCompatible(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if document.Version != 22 {
-		t.Fatalf("expected backup version 22 for operational fields and accessory list price, got %d",
+	if document.Version != 23 {
+		t.Fatalf("expected backup version 23 for operational fields and accessory list price, got %d",
 			document.Version)
 	}
 	targetDir := t.TempDir()
@@ -605,8 +605,8 @@ func TestBackupVersionFourRoundTripPreservesStageOneDataReferences(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 22 {
-		t.Fatalf("expected version 22 export, got %d", backup.Version)
+	if backup.Version != 23 {
+		t.Fatalf("expected version 23 export, got %d", backup.Version)
 	}
 	for _, table := range stageOneBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -688,8 +688,8 @@ INSERT INTO accessory_installation_positions(installation_id, position_id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 22 {
-		t.Fatalf("expected version 22 export, got %d", backup.Version)
+	if backup.Version != 23 {
+		t.Fatalf("expected version 23 export, got %d", backup.Version)
 	}
 	for _, table := range []string{
 		"layout_unit_outline_points", "layout_technical_positions",
@@ -766,8 +766,8 @@ INSERT INTO plan_track_object_reservations(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 22 {
-		t.Fatalf("expected version 22 export, got %d", backup.Version)
+	if backup.Version != 23 {
+		t.Fatalf("expected version 23 export, got %d", backup.Version)
 	}
 	for _, table := range versionFiveBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -816,7 +816,7 @@ SELECT active FROM plan_track_object_reservations WHERE reservation_id='track-pl
 		!strings.Contains(geometryJSON, `"xMm":166`) || revisionID != "revision-2" ||
 		geometryID != "tillig-tt-modellgleis-83101-v1" || positionX != 291.5 || positionY != 80 ||
 		rotation != 15 || elevationStart != -2 || elevationEnd != 2.15 || version != 3 ||
-		lineageID != "track-draft" || reservationActive != 1 {
+		lineageID != "track-draft" || reservationActive != 0 {
 		t.Fatalf("track-planner data changed after restore: manufacturer=%q name=%q geometry=%q "+
 			"revision=%q geometryID=%q position=%v/%v rotation=%v elevation=%v/%v version=%d",
 			manufacturer, name, geometryJSON, revisionID, geometryID, positionX, positionY, rotation,
@@ -879,8 +879,8 @@ INSERT INTO layout_unit_ports(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 22 || len(backup.Tables["layout_unit_ports"]) != 1 {
-		t.Fatalf("expected version 22 module-port export, got version=%d rows=%d",
+	if backup.Version != 23 || len(backup.Tables["layout_unit_ports"]) != 1 {
+		t.Fatalf("expected version 23 module-port export, got version=%d rows=%d",
 			backup.Version, len(backup.Tables["layout_unit_ports"]))
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE layout_unit_ports SET name='Changed', x_mm=100`); err != nil {
@@ -935,8 +935,8 @@ VALUES('layout-grade', 'Steigungsanlage', 'private', 'TT', '1:120', '', 3.5,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 22 {
-		t.Fatalf("expected version 22 export, got %d", backup.Version)
+	if backup.Version != 23 {
+		t.Fatalf("expected version 23 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE layouts SET max_grade_percent=NULL WHERE id='layout-grade'`); err != nil {
 		t.Fatal(err)
@@ -998,8 +998,8 @@ VALUES('layout-clearance', 'Abstandsanlage', 'private', 'TT', '1:120', '', NULL,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 22 {
-		t.Fatalf("expected version 22 export, got %d", backup.Version)
+	if backup.Version != 23 {
+		t.Fatalf("expected version 23 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `
 UPDATE layouts SET minimum_track_clearance_mm=NULL WHERE id='layout-clearance'`); err != nil {
@@ -1162,7 +1162,6 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 	allocations := application.NewAccessoryAllocationService(repository)
 	blobs := application.NewFileBlobService(db, dataDir)
 	documents := application.NewAccessoryDocumentService(repository, blobs)
-	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
 
 	location, err := accessories.CreateLocation(ctx, application.CreateStorageLocationInput{
 		Name: "Main article store", Description: "Dry and locked",
@@ -1231,21 +1230,10 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 		t.Fatal(err)
 	}
 
-	layout, err := layouts.CreateLayout(ctx, application.CreateLayoutInput{
-		Name: "Club layout", Kind: domain.LayoutKindClub, Gauge: "TT", Scale: "1:120",
-	}, "planner-1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	unitRecord, err := layouts.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
-		Name: "Station module", Kind: domain.LayoutUnitKindModule,
-	}, "planner-1")
-	if err != nil {
-		t.Fatal(err)
-	}
+	vehicleID := seedBackupVehicle(t, db)
 	reservation, err := allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
 		ProductID: product.ID, LocationID: location.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: unitRecord.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: vehicleID},
 		Placement:             "Track 2", DigitalAddress: "17", DecoderOutput: "A", Connection: "J", WiringNotes: "blue wire",
 		Note: "Autumn exhibition",
 	}, "planner-1")
@@ -1254,7 +1242,7 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 	}
 	installation, err := allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ReservationID: reservation.ID, ProductID: product.ID, SourceLocationID: location.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: unitRecord.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: vehicleID},
 		Placement:             "Track 2", DigitalAddress: "17", DecoderOutput: "A", Connection: "J", WiringNotes: "blue wire",
 		Condition: domain.AccessoryConditionReady, Notes: "Installed for acceptance",
 	}, "editor-1")
@@ -1282,8 +1270,8 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 22 {
-		t.Fatalf("expected version 22 export, got %d", backup.Version)
+	if backup.Version != 23 {
+		t.Fatalf("expected version 23 export, got %d", backup.Version)
 	}
 	for _, table := range versionThreeBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -2189,7 +2177,7 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		doc.Version = 23
+		doc.Version = 24
 		if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
 			t.Fatalf("expected future backup rejection, got %v", err)
 		}

@@ -21,18 +21,17 @@ zusammen, verändert den Bestand aber nicht selbst.
 
 ## Zugriffsrechte und Arbeitsbereich
 
-Admin, Editor, Viewer und Planner können **Zubehör** öffnen und Artikeldaten einsehen. Ihre
+Admin, Editor, Viewer können **Zubehör** öffnen und Artikeldaten einsehen. Ihre
 Schreibrechte unterscheiden sich:
 
 | Rolle | Stabiler Zugriff in der Übersicht |
 | --- | --- |
 | Viewer | Artikel und ihre gespeicherten Ressourcen ansehen. |
-| Planner | Artikel ansehen und später Reservierungen anlegen oder stornieren. Die allgemeine Artikel- und Bestandsbearbeitung bleibt schreibgeschützt. |
 | Editor | Artikel anlegen und bearbeiten, archivieren oder wiederherstellen sowie Bestand und Lebenszyklus verwalten. |
 | Admin | Besitzt die Editor-Rechte und kann zusätzlich einen vollständig unbenutzten Artikel endgültig löschen. |
 | Messe | Erhält allein durch die Rolle Messe keinen Zugriff auf Zubehör. |
 
-Die Seite zeigt Viewern und Plannern einen ausdrücklichen Schreibschutz-Hinweis. Die serverseitigen
+Die Seite zeigt Viewern einen ausdrücklichen Schreibschutz-Hinweis. Die serverseitigen
 Rollenprüfungen sind maßgeblich. Ein sichtbarer Wert oder eine Leseaktion verleiht kein
 Schreibrecht.
 
@@ -161,7 +160,7 @@ von Rolle und Artikelzustand bieten die Zeilen außerdem:
 
 Endgültiges Löschen gelingt nur bei einem vollständig unbenutzten Artikel. Bestand ungleich null,
 Einzelstücke, Bestandsbewegungen, Käufe, Reservierungen, Einbauten oder eine technische
-Layoutposition mit Artikelbezug blockieren es. Gespeicherte Artikeldokumente blockieren einen
+archivierte Altposition mit Artikelbezug blockieren es. Gespeicherte Artikeldokumente blockieren einen
 ansonsten unbenutzten Artikel nicht. RailKeeper entfernt beim Löschen ihre Metadaten und versucht
 anschließend, auch die gespeicherten Dateien zu entfernen.
 

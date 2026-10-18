@@ -64,7 +64,7 @@ The **General** tab contains three groups.
 | Railway company | Selection from active railway-company master data when available. |
 
 Admin can load these general master-data choices. A Messe account combined with Viewer, Editor, or
-Planner can also load them. Pure Messe receives only **No selection** in those four selectors. The
+Viewer can also load them. Pure Messe receives only **No selection** in those four selectors. The
 selectors do not accept arbitrary text. When a stored choice cannot be loaded, the control can show
 **No selection** even though the entry draft still carries its previous value. Do not deliberately
 choose **No selection** and save if that stored classification must be retained; use Admin or a

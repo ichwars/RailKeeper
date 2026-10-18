@@ -73,65 +73,35 @@
 - active, inactive, and print palettes for the RailKeeper Werkstatt-Linie with stable dark tiles
 - accessory catalogue with quantity stock and individually tracked assets
 - hierarchical storage locations and stock adjustments
-- reservations and installations for vehicles, layouts and layout units
+- reservations and installations for vehicles
 - accessory condition, removal and allocation history
-- private and club layouts with modules, segments, baseboards and areas
-- setup configurations with positions, rotations and published plan references
-- plan variants with draft, review and immutable publication workflow
-- dedicated Planner role with server-side permission boundaries
-- bilingual, responsive accessory and layout workspaces
-- backup version 2 for all accessory, layout and allocation data
-- backward-compatible import of version 1 backups
-- interactive layout twin with transformed units, technical positions, state filters and history
-- verified Tillig TT track planner with placement, snapping, analysis, BOM and reservations
-- module ports, elevation profiles, grade and clearance checks, flex tracks and transition curves
-- free plan objects for buildings, platforms, landscape, lines and labels
-- versioned RailKeeper track-library exchange with review workflow and immutable plan snapshots
-
-## Layout Planning Roadmap Status
-
-The local implementation for the roadmap tracked by issues #31 through #36 is complete:
-
-- Stage 1, issue #34: layout and accessory foundation
-- Stage 2, issue #35: interactive layout twin
-- Stage 3, issue #32: first verified Tillig TT track planner
-- Stage 4, issue #36: advanced geometry and free plan objects
-- Stage 5, issue #33: track libraries and exchange format
-
-The authoritative exchange format is `railkeeper.track-library` schema 1. Proprietary AnyRail,
-SCARM and WinTrack converters remain deferred until a reliable specification or test corpus is
-available. Local completion does not change the state of the corresponding GitHub issues.
+- lossless retirement of former layout planning, preserving vehicle installations and old backups
 
 ## Next Practical Milestones
 
-1. Layout planner follow-up
-   - validate additional manufacturer catalogues through the reviewed library workflow
-   - extend reusable geometry only from documented manufacturer or catalogue sources
-   - add proprietary converters only when their formats can be validated reliably
-   - keep digital layout control explicitly out of scope
-2. ESU LokProgrammer import
+1. ESU LokProgrammer import
    - only reverse-engineer proprietary ESUX blocks if no supported export path exists
    - keep expanding supported export formats when real samples become available
-3. Digital command-station adapters
+2. Digital command-station adapters
    - finish the Z21 adapter beyond the current UDP connection test where useful
    - evaluate Intellibox 3 as a Z21-compatible provider first
    - evaluate Intellibox 3 LocoNet-over-TCP for data that Z21 does not expose
    - defer Intellibox 2 USB/COM-Port support until the Windows-local workflow and Docker limitations are clear
-4. Settings and system integration
+3. Settings and system integration
    - decide how far print jobs should be automated beyond the browser system dialog
    - decide which authentication options should become functional instead of informational
    - keep storage usage, backup and restore visible without making settings feel overloaded
-5. Exhibition hardening
+4. Exhibition hardening
    - add backend-side duplicate address validation for exhibition entries, matching the current UI warning for DCC/SX address conflicts
    - decide whether duplicate exhibition addresses should be warning-only or blocked at database/API level
-6. Ongoing Bambuddy-inspired design polish
+5. Ongoing Bambuddy-inspired design polish
    - continue refining dense toolbar/table layouts without boxed hover effects
    - keep icon buttons transparent by default with color-only hover feedback
    - review mobile navigation after the collapsible desktop sidebar work
    - continue checking table, card and modal readability in dark mode
    - refine maintenance placement and visual hierarchy in the inventory area
    - adapt Bambuddy-style row context menus further where they add clear value
-7. Vehicle action depth
+6. Vehicle action depth
    - evaluate direct upload shortcuts in the quick menu where useful
    - keep destructive actions separated and confirmed
    - later upload polish: drag sorting for vehicle images

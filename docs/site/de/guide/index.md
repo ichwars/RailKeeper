@@ -13,8 +13,7 @@ Dieses Handbuch erklärt den vollständigen veröffentlichten RailKeeper-Arbeits
 Vereine und kleine Werkstätten. Es umfasst Ersteinrichtung, Navigation, Fahrzeuge, Zubehör,
 Decoderdaten, Wartung, Dokumente, Berichte, Ausstellungen sowie kontrollierten Import und Export.
 
-Die Inhalte dieses Bereichs beschreiben RailKeeper v0.1.20.3. Der Anlagen-Arbeitsbereich befindet
-sich noch in Entwicklung und wird deshalb nicht als stabile Benutzerfunktion dargestellt.
+Der frühere Anlagenbereich wurde entfernt. Zubehörverwaltung und Einbauten in Fahrzeugen bleiben erhalten.
 
 ## Hier beginnen
 

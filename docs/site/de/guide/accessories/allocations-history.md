@@ -26,11 +26,8 @@ Jede Reservierung und jeder Einbau benötigt genau ein Ziel:
 | Ziel | Auswahl im stabilen Dialog |
 | --- | --- |
 | Fahrzeug | Inventarnummer und Fahrzeugname. |
-| Anlage | Eine nicht archivierte Anlage. |
-| Anlageneinheit | Eine nicht archivierte Anlageneinheit. |
 
-Der Dialog verwendet vorhandene Ziele, legt aber keine Anlagen an und bearbeitet sie nicht. Dieses
-Kapitel dokumentiert weder das Anlegen noch das Bearbeiten von Anlagen.
+Der Dialog verwendet vorhandene Fahrzeuge als Zuordnungsziel.
 
 Fünf optionale Felder begleiten beide Abläufe: **Platzierung**, **Digitaladresse**,
 **Decoderausgang**, **Anschluss** und **Verdrahtungshinweise**. Sie beschreiben, wo und wie das
@@ -56,7 +53,7 @@ Verfügbar.
 
 ## Bestand reservieren
 
-1. Wählen Sie Fahrzeug, Anlage oder Anlageneinheit und das genaue Ziel.
+1. Wählen Sie Fahrzeug und das genaue Ziel.
 2. Erfassen Sie optional die fünf technischen Platzierungsfelder.
 3. Wählen Sie bei einem Hybridartikel **Menge** oder **Einzelstück** als Quelle.
 4. Wählen Sie einen aktiven Lagerort. Bei Einzelverwaltung wählen Sie ein dort eingelagertes

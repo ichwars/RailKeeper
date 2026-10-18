@@ -50,7 +50,7 @@ func TestDataTransferProfileRoutesEnforceRolesAndMesseScope(t *testing.T) {
 		"messe":  loginRouteTestUser(t, auth, "messe", "messe-password"),
 	}
 
-	viewerProfiles := layoutRequest(t, router, sessions["viewer"], http.MethodGet,
+	viewerProfiles := authedJSONRequest(t, router, sessions["viewer"], http.MethodGet,
 		"/api/v1/data-transfer/profiles", nil, true)
 	assertStatus(t, viewerProfiles, http.StatusOK)
 	var listed []application.DataTransferProfile
@@ -59,11 +59,11 @@ func TestDataTransferProfileRoutesEnforceRolesAndMesseScope(t *testing.T) {
 		t.Fatalf("viewer profiles = %#v, want all profiles", listed)
 	}
 
-	viewerCreate := layoutRequest(t, router, sessions["viewer"], http.MethodPost,
+	viewerCreate := authedJSONRequest(t, router, sessions["viewer"], http.MethodPost,
 		"/api/v1/data-transfer/profiles", validDataTransferProfileRequest("Viewer"), true)
 	assertProblem(t, viewerCreate, http.StatusForbidden, "forbidden")
 
-	editorCreate := layoutRequest(t, router, sessions["editor"], http.MethodPost,
+	editorCreate := authedJSONRequest(t, router, sessions["editor"], http.MethodPost,
 		"/api/v1/data-transfer/profiles", validDataTransferProfileRequest("Editor"), true)
 	assertStatus(t, editorCreate, http.StatusCreated)
 	var createdProfile application.DataTransferProfile
@@ -71,15 +71,15 @@ func TestDataTransferProfileRoutesEnforceRolesAndMesseScope(t *testing.T) {
 	if bytes.Contains(editorCreate.Body.Bytes(), []byte(`"lastUsedAt"`)) {
 		t.Fatalf("new profile response unexpectedly contains lastUsedAt: %s", editorCreate.Body.String())
 	}
-	updatedProfile := layoutRequest(t, router, sessions["editor"], http.MethodPut,
+	updatedProfile := authedJSONRequest(t, router, sessions["editor"], http.MethodPut,
 		"/api/v1/data-transfer/profiles/"+createdProfile.ID,
 		validDataTransferProfileRequest("Editor updated"), true)
 	assertStatus(t, updatedProfile, http.StatusOK)
-	disabledProfile := layoutRequest(t, router, sessions["admin"], http.MethodDelete,
+	disabledProfile := authedJSONRequest(t, router, sessions["admin"], http.MethodDelete,
 		"/api/v1/data-transfer/profiles/"+createdProfile.ID, nil, true)
 	assertStatus(t, disabledProfile, http.StatusNoContent)
 
-	messeProfiles := layoutRequest(t, router, sessions["messe"], http.MethodGet,
+	messeProfiles := authedJSONRequest(t, router, sessions["messe"], http.MethodGet,
 		"/api/v1/data-transfer/profiles", nil, true)
 	assertStatus(t, messeProfiles, http.StatusOK)
 	decodeResponse(t, messeProfiles, &listed)
@@ -87,7 +87,7 @@ func TestDataTransferProfileRoutesEnforceRolesAndMesseScope(t *testing.T) {
 		t.Fatalf("messe profiles = %#v, want only exhibition-list profiles", listed)
 	}
 
-	invalid := layoutRequest(t, router, sessions["editor"], http.MethodPost, "/api/v1/data-transfer/profiles",
+	invalid := authedJSONRequest(t, router, sessions["editor"], http.MethodPost, "/api/v1/data-transfer/profiles",
 		map[string]any{"name": "Master data", "direction": "export", "format": "railkeeper-json",
 			"areas": []string{"masterData"}}, true)
 	assertProblem(t, invalid, http.StatusBadRequest, "data_transfer_validation")
@@ -114,7 +114,7 @@ func TestDataTransferImportRoutesUploadResolveAndCancelPersistentPreview(t *test
 	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
 	editor := loginRouteTestUser(t, auth, "editor-import", "editor-password")
 
-	created := layoutRequest(t, router, editor, http.MethodPost, "/api/v1/data-transfer/jobs/import",
+	created := authedJSONRequest(t, router, editor, http.MethodPost, "/api/v1/data-transfer/jobs/import",
 		map[string]any{"profileId": profile.ID}, true)
 	assertStatus(t, created, http.StatusCreated)
 	var job application.DataTransferJob
@@ -150,7 +150,7 @@ func TestDataTransferImportRoutesUploadResolveAndCancelPersistentPreview(t *test
 		t.Fatalf("file-first multipart mapping was not saved: %#v", profiles)
 	}
 
-	resolved := layoutRequest(t, router, editor, http.MethodPut,
+	resolved := authedJSONRequest(t, router, editor, http.MethodPut,
 		"/api/v1/data-transfer/jobs/"+job.ID+"/issues/"+preview.Issues[0].ID,
 		map[string]any{"resolution": "skip"}, true)
 	assertStatus(t, resolved, http.StatusOK)
@@ -159,14 +159,14 @@ func TestDataTransferImportRoutesUploadResolveAndCancelPersistentPreview(t *test
 		t.Fatalf("resolved job state = %q", job.State)
 	}
 
-	cancelled := layoutRequest(t, router, editor, http.MethodPost,
+	cancelled := authedJSONRequest(t, router, editor, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+job.ID+"/cancel", nil, true)
 	assertStatus(t, cancelled, http.StatusOK)
 	decodeResponse(t, cancelled, &job)
 	if job.State != application.TransferJobCancelled {
 		t.Fatalf("cancelled job state = %q", job.State)
 	}
-	retried := layoutRequest(t, router, editor, http.MethodPost,
+	retried := authedJSONRequest(t, router, editor, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+job.ID+"/retry", nil, true)
 	assertStatus(t, retried, http.StatusCreated)
 	assertDataTransferAuditActions(t, db, "DataTransferImportJobCreated", "DataTransferImportUploaded",
@@ -204,21 +204,21 @@ func TestDataTransferConfirmRouteRequiresTrueAndAppliesReadyPreview(t *testing.T
 	var preview application.DataTransferPreview
 	decodeResponse(t, uploaded, &preview)
 
-	rejected := layoutRequest(t, router, editor, http.MethodPost,
+	rejected := authedJSONRequest(t, router, editor, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+job.ID+"/confirm",
 		map[string]any{"confirm": false, "expectedRevision": preview.Job.Revision}, true)
 	assertProblem(t, rejected, http.StatusBadRequest, "data_transfer_validation")
 
-	missingRevision := layoutRequest(t, router, editor, http.MethodPost,
+	missingRevision := authedJSONRequest(t, router, editor, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+job.ID+"/confirm", map[string]any{"confirm": true}, true)
 	assertProblem(t, missingRevision, http.StatusBadRequest, "data_transfer_validation")
 
-	staleRevision := layoutRequest(t, router, editor, http.MethodPost,
+	staleRevision := authedJSONRequest(t, router, editor, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+job.ID+"/confirm",
 		map[string]any{"confirm": true, "expectedRevision": preview.Job.Revision - 1}, true)
 	assertProblem(t, staleRevision, http.StatusConflict, "data_transfer_conflict")
 
-	confirmed := layoutRequest(t, router, editor, http.MethodPost,
+	confirmed := authedJSONRequest(t, router, editor, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+job.ID+"/confirm",
 		map[string]any{"confirm": true, "expectedRevision": preview.Job.Revision}, true)
 	assertStatus(t, confirmed, http.StatusOK)
@@ -261,10 +261,10 @@ func TestDataTransferImportRoutesEnforceMesseAreaScope(t *testing.T) {
 	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
 	messe := loginRouteTestUser(t, auth, "messe-import", "messe-password")
 
-	forbidden := layoutRequest(t, router, messe, http.MethodPost, "/api/v1/data-transfer/jobs/import",
+	forbidden := authedJSONRequest(t, router, messe, http.MethodPost, "/api/v1/data-transfer/jobs/import",
 		map[string]any{"profileId": vehicleProfile.ID}, true)
 	assertProblem(t, forbidden, http.StatusForbidden, "data_transfer_forbidden")
-	allowed := layoutRequest(t, router, messe, http.MethodPost, "/api/v1/data-transfer/jobs/import",
+	allowed := authedJSONRequest(t, router, messe, http.MethodPost, "/api/v1/data-transfer/jobs/import",
 		map[string]any{"profileId": exhibitionProfile.ID}, true)
 	assertStatus(t, allowed, http.StatusCreated)
 	var exhibitionJob application.DataTransferJob
@@ -285,7 +285,7 @@ func TestDataTransferImportRoutesEnforceMesseAreaScope(t *testing.T) {
 	assertStatus(t, uploaded, http.StatusOK)
 	var preview application.DataTransferPreview
 	decodeResponse(t, uploaded, &preview)
-	createList := layoutRequest(t, router, messe, http.MethodPost,
+	createList := authedJSONRequest(t, router, messe, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+exhibitionJob.ID+"/confirm",
 		map[string]any{"confirm": true, "expectedRevision": preview.Job.Revision}, true)
 	assertProblem(t, createList, http.StatusForbidden, "data_transfer_forbidden")
@@ -338,7 +338,7 @@ func TestDataTransferMesseImportCannotReplaceListHeadersOrDeleteEntries(t *testi
 
 	createAndResolve := func(t *testing.T, resolution string) application.DataTransferJob {
 		t.Helper()
-		created := layoutRequest(t, router, messe, http.MethodPost, "/api/v1/data-transfer/jobs/import",
+		created := authedJSONRequest(t, router, messe, http.MethodPost, "/api/v1/data-transfer/jobs/import",
 			map[string]any{"profileId": profile.ID}, true)
 		assertStatus(t, created, http.StatusCreated)
 		var job application.DataTransferJob
@@ -351,7 +351,7 @@ func TestDataTransferMesseImportCannotReplaceListHeadersOrDeleteEntries(t *testi
 		if len(preview.Issues) != 1 || preview.Issues[0].Code != "duplicate_exhibition_list" {
 			t.Fatalf("unexpected exhibition preview issues: %#v", preview.Issues)
 		}
-		resolved := layoutRequest(t, router, messe, http.MethodPut,
+		resolved := authedJSONRequest(t, router, messe, http.MethodPut,
 			"/api/v1/data-transfer/jobs/"+job.ID+"/issues/"+preview.Issues[0].ID,
 			map[string]any{"resolution": resolution}, true)
 		assertStatus(t, resolved, http.StatusOK)
@@ -360,13 +360,13 @@ func TestDataTransferMesseImportCannotReplaceListHeadersOrDeleteEntries(t *testi
 	}
 
 	replaceJob := createAndResolve(t, "replace")
-	replace := layoutRequest(t, router, messe, http.MethodPost,
+	replace := authedJSONRequest(t, router, messe, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+replaceJob.ID+"/confirm",
 		map[string]any{"confirm": true, "expectedRevision": replaceJob.Revision}, true)
 	assertProblem(t, replace, http.StatusForbidden, "data_transfer_forbidden")
 
 	mergeJob := createAndResolve(t, "merge")
-	merge := layoutRequest(t, router, messe, http.MethodPost,
+	merge := authedJSONRequest(t, router, messe, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+mergeJob.ID+"/confirm",
 		map[string]any{"confirm": true, "expectedRevision": mergeJob.Revision}, true)
 	assertStatus(t, merge, http.StatusOK)
@@ -392,7 +392,7 @@ func TestDataTransferImportWriteScopeKeepsMesseViewerAndPlannerExhibitionOnly(t 
 	auth := application.NewAuthService(db)
 	users := []application.CreateUserInput{
 		{Username: "messe-viewer", Password: "user-password", Roles: []string{"Messe", "Viewer"}},
-		{Username: "messe-planner", Password: "user-password", Roles: []string{"Messe", "Planner"}},
+		{Username: "messe-planner", Password: "user-password", Roles: []string{"Messe", "Viewer"}},
 		{Username: "messe-editor", Password: "user-password", Roles: []string{"Messe", "Editor"}},
 		{Username: "messe-admin", Password: "user-password", Roles: []string{"Messe", "Admin"}},
 	}
@@ -422,10 +422,10 @@ func TestDataTransferImportWriteScopeKeepsMesseViewerAndPlannerExhibitionOnly(t 
 	for _, username := range []string{"messe-viewer", "messe-planner"} {
 		t.Run(username, func(t *testing.T) {
 			session := loginRouteTestUser(t, auth, username, "user-password")
-			forbiddenCreate := layoutRequest(t, router, session, http.MethodPost,
+			forbiddenCreate := authedJSONRequest(t, router, session, http.MethodPost,
 				"/api/v1/data-transfer/jobs/import", map[string]any{"profileId": vehicleProfile.ID}, true)
 			assertProblem(t, forbiddenCreate, http.StatusForbidden, "data_transfer_forbidden")
-			allowedCreate := layoutRequest(t, router, session, http.MethodPost,
+			allowedCreate := authedJSONRequest(t, router, session, http.MethodPost,
 				"/api/v1/data-transfer/jobs/import", map[string]any{"profileId": exhibitionProfile.ID}, true)
 			assertStatus(t, allowedCreate, http.StatusCreated)
 
@@ -457,7 +457,7 @@ func TestDataTransferImportWriteScopeKeepsMesseViewerAndPlannerExhibitionOnly(t 
 			if err != nil {
 				t.Fatal(err)
 			}
-			forbiddenResolve := layoutRequest(t, router, session, http.MethodPut,
+			forbiddenResolve := authedJSONRequest(t, router, session, http.MethodPut,
 				"/api/v1/data-transfer/jobs/"+resolveJob.ID+"/issues/"+issues[0].ID,
 				map[string]any{"resolution": "skip"}, true)
 			assertProblem(t, forbiddenResolve, http.StatusForbidden, "data_transfer_forbidden")
@@ -466,7 +466,7 @@ func TestDataTransferImportWriteScopeKeepsMesseViewerAndPlannerExhibitionOnly(t 
 			if err != nil {
 				t.Fatal(err)
 			}
-			forbiddenCancel := layoutRequest(t, router, session, http.MethodPost,
+			forbiddenCancel := authedJSONRequest(t, router, session, http.MethodPost,
 				"/api/v1/data-transfer/jobs/"+cancelJob.ID+"/cancel", nil, true)
 			assertProblem(t, forbiddenCancel, http.StatusForbidden, "data_transfer_forbidden")
 
@@ -480,7 +480,7 @@ func TestDataTransferImportWriteScopeKeepsMesseViewerAndPlannerExhibitionOnly(t 
 			if err != nil {
 				t.Fatal(err)
 			}
-			forbiddenConfirm := layoutRequest(t, router, session, http.MethodPost,
+			forbiddenConfirm := authedJSONRequest(t, router, session, http.MethodPost,
 				"/api/v1/data-transfer/jobs/"+confirmJob.ID+"/confirm",
 				map[string]any{"confirm": true, "expectedRevision": preview.Job.Revision}, true)
 			assertProblem(t, forbiddenConfirm, http.StatusForbidden, "data_transfer_forbidden")
@@ -490,7 +490,7 @@ func TestDataTransferImportWriteScopeKeepsMesseViewerAndPlannerExhibitionOnly(t 
 	for _, username := range []string{"messe-editor", "messe-admin"} {
 		t.Run(username, func(t *testing.T) {
 			session := loginRouteTestUser(t, auth, username, "user-password")
-			created := layoutRequest(t, router, session, http.MethodPost,
+			created := authedJSONRequest(t, router, session, http.MethodPost,
 				"/api/v1/data-transfer/jobs/import", map[string]any{"profileId": vehicleProfile.ID}, true)
 			assertStatus(t, created, http.StatusCreated)
 		})
@@ -589,13 +589,13 @@ func TestDataTransferExportRoutesCreateExecuteDownloadAndDeleteArtifact(t *testi
 	viewer := loginRouteTestUser(t, auth, "viewer-export", "viewer-password")
 	admin := loginRouteTestUser(t, auth, "admin-export", "admin-password")
 
-	createdResponse := layoutRequest(t, router, viewer, http.MethodPost,
+	createdResponse := authedJSONRequest(t, router, viewer, http.MethodPost,
 		"/api/v1/data-transfer/jobs/export", map[string]any{"profileId": profile.ID}, true)
 	assertStatus(t, createdResponse, http.StatusCreated)
 	var job application.DataTransferJob
 	decodeResponse(t, createdResponse, &job)
 
-	executedResponse := layoutRequest(t, router, viewer, http.MethodPost,
+	executedResponse := authedJSONRequest(t, router, viewer, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+job.ID+"/execute", nil, true)
 	assertStatus(t, executedResponse, http.StatusOK)
 	var result application.DataTransferExportResult
@@ -603,18 +603,18 @@ func TestDataTransferExportRoutesCreateExecuteDownloadAndDeleteArtifact(t *testi
 	if result.Job.State != application.TransferJobCompleted || result.OpenFolderAvailable {
 		t.Fatalf("unexpected export response: %#v", result)
 	}
-	conflict := layoutRequest(t, router, viewer, http.MethodPost,
+	conflict := authedJSONRequest(t, router, viewer, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+job.ID+"/execute", nil, true)
 	assertProblem(t, conflict, http.StatusConflict, "data_transfer_conflict")
 
-	download := layoutRequest(t, router, viewer, http.MethodGet,
+	download := authedJSONRequest(t, router, viewer, http.MethodGet,
 		"/api/v1/data-transfer/artifacts/"+result.Artifact.ID+"/download", nil, true)
 	assertStatus(t, download, http.StatusOK)
 	if download.Header().Get("Content-Disposition") == "" || download.Body.Len() == 0 {
 		t.Fatalf("download lacks headers or content: headers=%v body=%q", download.Header(), download.Body.String())
 	}
 
-	deleted := layoutRequest(t, router, admin, http.MethodDelete,
+	deleted := authedJSONRequest(t, router, admin, http.MethodDelete,
 		"/api/v1/data-transfer/artifacts/"+result.Artifact.ID, nil, true)
 	assertStatus(t, deleted, http.StatusNoContent)
 	matches, err := filepath.Glob(filepath.Join(dataDir, "exports", "*.csv"))
@@ -624,7 +624,7 @@ func TestDataTransferExportRoutesCreateExecuteDownloadAndDeleteArtifact(t *testi
 	if len(matches) != 0 {
 		t.Fatalf("deleted artifact still exists: %v", matches)
 	}
-	download = layoutRequest(t, router, viewer, http.MethodGet,
+	download = authedJSONRequest(t, router, viewer, http.MethodGet,
 		"/api/v1/data-transfer/artifacts/"+result.Artifact.ID+"/download", nil, true)
 	assertProblem(t, download, http.StatusGone, "data_transfer_artifact_deleted")
 	assertDataTransferAuditActions(t, db,
@@ -682,10 +682,10 @@ func TestDataTransferExportRoutesEnforceMesseAreaScopeBeforeCreatingJob(t *testi
 	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
 	messe := loginRouteTestUser(t, auth, "messe-export", "messe-password")
 
-	forbidden := layoutRequest(t, router, messe, http.MethodPost,
+	forbidden := authedJSONRequest(t, router, messe, http.MethodPost,
 		"/api/v1/data-transfer/jobs/export", map[string]any{"profileId": vehicleProfile.ID}, true)
 	assertProblem(t, forbidden, http.StatusForbidden, "data_transfer_forbidden")
-	allowed := layoutRequest(t, router, messe, http.MethodPost,
+	allowed := authedJSONRequest(t, router, messe, http.MethodPost,
 		"/api/v1/data-transfer/jobs/export", map[string]any{"profileId": exhibitionProfile.ID}, true)
 	assertStatus(t, allowed, http.StatusCreated)
 
@@ -717,7 +717,7 @@ func TestDataTransferExportOpenFolderUsesConfinedExportDirectory(t *testing.T) {
 	)
 	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
 	admin := loginRouteTestUser(t, auth, "admin-folder", "admin-password")
-	response := layoutRequest(t, router, admin, http.MethodPost,
+	response := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/data-transfer/artifacts/open-folder", nil, true)
 	assertStatus(t, response, http.StatusNoContent)
 	if openedPath != filepath.Join(dataDir, "exports") {
@@ -744,13 +744,13 @@ func TestDataTransferProfileRoutesUpdateAndDisableProfiles(t *testing.T) {
 	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
 	session := loginRouteTestUser(t, auth, "admin", "admin-password")
 
-	updated := layoutRequest(t, router, session, http.MethodPut,
+	updated := authedJSONRequest(t, router, session, http.MethodPut,
 		"/api/v1/data-transfer/profiles/"+profile.ID,
 		map[string]any{"name": "Vehicles and accessories", "direction": "export", "format": "railkeeper-json",
 			"areas": []string{"vehicles", "accessories"}}, true)
 	assertStatus(t, updated, http.StatusOK)
 
-	disabled := layoutRequest(t, router, session, http.MethodDelete,
+	disabled := authedJSONRequest(t, router, session, http.MethodDelete,
 		"/api/v1/data-transfer/profiles/"+profile.ID, nil, true)
 	assertStatus(t, disabled, http.StatusNoContent)
 	profiles, err := service.ListProfiles(t.Context())
@@ -793,23 +793,23 @@ func TestDataTransferJobDeleteRouteAllowsOnlyAdminsAndCancelledJobs(t *testing.T
 	admin := loginRouteTestUser(t, auth, "admin-delete", "admin-password")
 	editor := loginRouteTestUser(t, auth, "editor-delete", "editor-password")
 
-	withoutCSRF := layoutRequest(t, router, admin, http.MethodDelete,
+	withoutCSRF := authedJSONRequest(t, router, admin, http.MethodDelete,
 		"/api/v1/data-transfer/jobs/"+csrfCancelled.ID, nil, false)
 	assertProblem(t, withoutCSRF, http.StatusForbidden, "csrf_required")
 
-	forbidden := layoutRequest(t, router, editor, http.MethodDelete,
+	forbidden := authedJSONRequest(t, router, editor, http.MethodDelete,
 		"/api/v1/data-transfer/jobs/"+editorCancelled.ID, nil, true)
 	assertProblem(t, forbidden, http.StatusForbidden, "forbidden")
 
-	conflict := layoutRequest(t, router, admin, http.MethodDelete,
+	conflict := authedJSONRequest(t, router, admin, http.MethodDelete,
 		"/api/v1/data-transfer/jobs/"+completed.ID, nil, true)
 	assertProblem(t, conflict, http.StatusConflict, "data_transfer_conflict")
 
-	missing := layoutRequest(t, router, admin, http.MethodDelete,
+	missing := authedJSONRequest(t, router, admin, http.MethodDelete,
 		"/api/v1/data-transfer/jobs/missing", nil, true)
 	assertProblem(t, missing, http.StatusNotFound, "data_transfer_not_found")
 
-	deleted := layoutRequest(t, router, admin, http.MethodDelete,
+	deleted := authedJSONRequest(t, router, admin, http.MethodDelete,
 		"/api/v1/data-transfer/jobs/"+cancelled.ID, nil, true)
 	assertStatus(t, deleted, http.StatusNoContent)
 	if _, err := repository.GetJob(t.Context(), cancelled.ID); !errors.Is(err, sql.ErrNoRows) {
@@ -867,7 +867,7 @@ func TestDataTransferQueryAndRetryRoutesReturnScopedPersistentHistory(t *testing
 	editor := loginRouteTestUser(t, auth, "editor-query", "editor-password")
 	admin := loginRouteTestUser(t, auth, "admin-query", "admin-password")
 
-	summaryResponse := layoutRequest(t, router, viewer, http.MethodGet,
+	summaryResponse := authedJSONRequest(t, router, viewer, http.MethodGet,
 		"/api/v1/data-transfer/summary", nil, true)
 	assertStatus(t, summaryResponse, http.StatusOK)
 	var summary application.DataTransferSummary
@@ -876,7 +876,7 @@ func TestDataTransferQueryAndRetryRoutesReturnScopedPersistentHistory(t *testing
 		t.Fatalf("unexpected query summary: %#v", summary)
 	}
 
-	listedResponse := layoutRequest(t, router, viewer, http.MethodGet,
+	listedResponse := authedJSONRequest(t, router, viewer, http.MethodGet,
 		"/api/v1/data-transfer/jobs?direction=import&states=completed&limit=1", nil, true)
 	assertStatus(t, listedResponse, http.StatusOK)
 	var jobs []application.DataTransferJob
@@ -884,11 +884,11 @@ func TestDataTransferQueryAndRetryRoutesReturnScopedPersistentHistory(t *testing
 	if len(jobs) != 1 || jobs[0].ID != vehicleJob.ID {
 		t.Fatalf("filtered jobs = %#v", jobs)
 	}
-	invalidLimit := layoutRequest(t, router, viewer, http.MethodGet,
+	invalidLimit := authedJSONRequest(t, router, viewer, http.MethodGet,
 		"/api/v1/data-transfer/jobs?limit=0", nil, true)
 	assertProblem(t, invalidLimit, http.StatusBadRequest, "data_transfer_validation")
 
-	detailResponse := layoutRequest(t, router, viewer, http.MethodGet,
+	detailResponse := authedJSONRequest(t, router, viewer, http.MethodGet,
 		"/api/v1/data-transfer/jobs/"+vehicleJob.ID, nil, true)
 	assertStatus(t, detailResponse, http.StatusOK)
 	var details application.DataTransferJobDetails
@@ -897,10 +897,10 @@ func TestDataTransferQueryAndRetryRoutesReturnScopedPersistentHistory(t *testing
 		t.Fatalf("job details = %#v", details)
 	}
 
-	retryResponse := layoutRequest(t, router, viewer, http.MethodPost,
+	retryResponse := authedJSONRequest(t, router, viewer, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+vehicleJob.ID+"/retry", nil, true)
 	assertProblem(t, retryResponse, http.StatusForbidden, "forbidden")
-	retryResponse = layoutRequest(t, router, editor, http.MethodPost,
+	retryResponse = authedJSONRequest(t, router, editor, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+vehicleJob.ID+"/retry", nil, true)
 	assertStatus(t, retryResponse, http.StatusCreated)
 	var retry application.DataTransferJob
@@ -908,24 +908,24 @@ func TestDataTransferQueryAndRetryRoutesReturnScopedPersistentHistory(t *testing
 	if retry.ID == vehicleJob.ID || retry.State != application.TransferJobDraft || retry.ConfirmedAt != "" {
 		t.Fatalf("retry = %#v", retry)
 	}
-	adminRetry := layoutRequest(t, router, admin, http.MethodPost,
+	adminRetry := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+vehicleJob.ID+"/retry", nil, true)
 	assertStatus(t, adminRetry, http.StatusCreated)
 
-	messeJobsResponse := layoutRequest(t, router, messe, http.MethodGet,
+	messeJobsResponse := authedJSONRequest(t, router, messe, http.MethodGet,
 		"/api/v1/data-transfer/jobs", nil, true)
 	assertStatus(t, messeJobsResponse, http.StatusOK)
 	decodeResponse(t, messeJobsResponse, &jobs)
 	if len(jobs) != 1 || jobs[0].ID != exhibitionJob.ID {
 		t.Fatalf("messe jobs = %#v", jobs)
 	}
-	forbiddenDetail := layoutRequest(t, router, messe, http.MethodGet,
+	forbiddenDetail := authedJSONRequest(t, router, messe, http.MethodGet,
 		"/api/v1/data-transfer/jobs/"+vehicleJob.ID, nil, true)
 	assertProblem(t, forbiddenDetail, http.StatusForbidden, "data_transfer_forbidden")
-	messeForbiddenRetry := layoutRequest(t, router, messe, http.MethodPost,
+	messeForbiddenRetry := authedJSONRequest(t, router, messe, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+vehicleJob.ID+"/retry", nil, true)
 	assertProblem(t, messeForbiddenRetry, http.StatusForbidden, "data_transfer_forbidden")
-	messeRetry := layoutRequest(t, router, messe, http.MethodPost,
+	messeRetry := authedJSONRequest(t, router, messe, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+exhibitionJob.ID+"/retry", nil, true)
 	assertStatus(t, messeRetry, http.StatusCreated)
 }

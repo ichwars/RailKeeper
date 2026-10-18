@@ -13,10 +13,10 @@ The **Overview** is RailKeeper's working dashboard for inventory size, recorded 
 digitalization, maintenance, and data quality. This chapter explains what each number means and how
 to continue from an indicator to the affected vehicles. It describes stable RailKeeper v0.1.20.3.
 
-Admin, Editor, Viewer, and Planner users can open the overview. An account with only the Messe role
+Admin, Editor, Viewer users can open the overview. An account with only the Messe role
 starts in **Exhibition** and cannot open this dashboard.
 
-Only Admin and Editor users can change vehicle data. Viewer and Planner users can inspect the
+Only Admin and Editor users can change vehicle data. Viewer users can inspect the
 dashboard and filtered results, but must ask an Admin or Editor to correct missing data.
 
 ## Open and refresh the overview
@@ -155,8 +155,7 @@ Creating, importing, or changing vehicles requires the Admin or Editor role.
 2. Select the relevant gap.
 3. RailKeeper opens **Vehicle inventory** and activates the corresponding inventory or quality
    filter.
-4. Open the affected records. As an Admin or Editor, add or correct the missing data. As a Viewer
-   or Planner, use the result to identify the records and ask an Admin or Editor to update them.
+4. Open the affected records. As an Admin or Editor, add or correct the missing data. As a Viewer users, use the result to identify the records and ask an Admin or Editor to update them.
 5. Return to **Overview** and use refresh to recalculate the dashboard.
 
 For an article-number, EAN, or decoder gap, clearing the active quality-filter pill removes the gap
@@ -184,7 +183,7 @@ shared with other browsers or saved as account-wide dashboard settings.
 
 | Situation | What RailKeeper shows | What to do |
 | --- | --- | --- |
-| No vehicles | Zero summary values, empty lists, and the create/import recommendation | As an Admin or Editor, create vehicles or import a list. As a Viewer or Planner, ask one of those roles to populate the inventory. |
+| No vehicles | Zero summary values, empty lists, and the create/import recommendation | As an Admin or Editor, create vehicles or import a list. As a Viewer users, ask one of those roles to populate the inventory. |
 | No due-dated open maintenance | An empty maintenance-radar message | Add a due date if the work should appear in the radar |
 | No major data gaps | A confirmation in **Action needed** | Continue with maintenance or other inventory details |
 | All widgets hidden | **Dashboard empty** with **Reset layout** | Reset the layout to restore all widgets |

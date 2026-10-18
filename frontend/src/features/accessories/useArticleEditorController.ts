@@ -13,8 +13,6 @@ import {
   type AccessoryStockMovement,
   type AccessoryStockSummary,
   type AccessoryUsageHistory,
-  type Layout,
-  type LayoutUnit,
   type MasterDataEntry,
   type StorageLocation,
   type Vehicle
@@ -59,8 +57,6 @@ export type ArticleEditorResources = {
   installations: AccessoryInstallation[];
   usageHistory: AccessoryUsageHistory | null;
   vehicles: Vehicle[];
-  layouts: Layout[];
-  units: LayoutUnit[];
 };
 
 const emptyResources = (): ArticleEditorResources => ({
@@ -75,8 +71,6 @@ const emptyResources = (): ArticleEditorResources => ({
   installations: [],
   usageHistory: null,
   vehicles: [],
-  layouts: [],
-  units: []
 });
 
 function errorMessage(reason: unknown): string {
@@ -143,7 +137,7 @@ export function useArticleEditorController({
     return {
       canEdit,
       canManageStock: canEdit,
-      canReserve: canEdit || roles.includes("Planner"),
+      canReserve: canEdit,
       canInstall: canEdit
     };
   }, [roles]);
@@ -363,9 +357,7 @@ export function useArticleEditorController({
 
   const requestClose = () => {
     const formDirty = mode !== "view" && (isArticleEditorDirty(form, initialForm) || pendingArticleImages.length > 0);
-    const writableSubdraftDirty = mode === "view"
-      ? !permissions.canEdit && permissions.canReserve && Boolean(subdraftDirty.reservation)
-      : Object.values(subdraftDirty).some(Boolean);
+    const writableSubdraftDirty = mode !== "view" && Object.values(subdraftDirty).some(Boolean);
     if (formDirty || writableSubdraftDirty) {
       setCloseConfirmationOpen(true);
       return;

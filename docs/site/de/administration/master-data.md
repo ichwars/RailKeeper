@@ -26,16 +26,16 @@ Dieser Bereich dokumentiert RailKeeper v0.1.20.3 und trennt vier administrative 
 
 ## Zugriffsrechte
 
-| Aktion | Admin | Editor | Viewer | Planner | Messe |
-| --- | --- | --- | --- | --- | --- |
-| Einstellungen öffnen und Stammdaten lesen | Ja | Ja | Ja | Ja | Nein |
-| Einträge anlegen, bearbeiten, deaktivieren oder reaktivieren | Ja | Ja | Nein | Nein | Nein |
-| Geeigneten eigenen Eintrag endgültig löschen | Ja | Ja | Nein | Nein | Nein |
-| Lagerorte verwalten | Ja | Ja | Nein | Nein | Nein |
-| Inventarnummernschemata verwalten | Ja | Ja | Nein | Nein | Nein |
-| Stammdatendokument exportieren oder importieren | Ja | Nein | Nein | Nein | Nein |
+| Aktion | Admin | Editor | Viewer | Messe |
+| --- | --- | --- | --- | --- |
+| Einstellungen öffnen und Stammdaten lesen | Ja | Ja | Ja | Nein |
+| Einträge anlegen, bearbeiten, deaktivieren oder reaktivieren | Ja | Ja | Nein | Nein |
+| Geeigneten eigenen Eintrag endgültig löschen | Ja | Ja | Nein | Nein |
+| Lagerorte verwalten | Ja | Ja | Nein | Nein |
+| Inventarnummernschemata verwalten | Ja | Ja | Nein | Nein |
+| Stammdatendokument exportieren oder importieren | Ja | Nein | Nein | Nein |
 
-Viewer und Planner erben den Lesezugriff. Die Artikelverwaltung zeigt ausdrücklich einen
+Viewer erben den Lesezugriff. Die Artikelverwaltung zeigt ausdrücklich einen
 Nur-Lese-Zustand. Einige Bedienelemente für allgemeine Stammdaten und Inventarnummern können für
 diese Rollen in v0.1.20.3 trotzdem sichtbar bleiben, der Server weist aber jeden Schreibvorgang ab.
 Ein sichtbares Bedienelement erteilt niemals eine Berechtigung.

@@ -69,7 +69,7 @@ Der Reiter **Allgemein** enthält drei Bereiche.
 | Bahnverwaltung | Auswahl aus aktiven Bahnverwaltungen, wenn verfügbar. |
 
 Admin kann diese allgemeinen Stammdatenauswahlen laden. Ein Messekonto mit zusätzlicher Rolle
-Viewer, Editor oder Planner kann sie ebenfalls laden. Reines Messe erhält in diesen vier
+Viewer, Editor kann sie ebenfalls laden. Reines Messe erhält in diesen vier
 Auswahllisten nur **Keine Auswahl**. Die Auswahllisten nehmen keinen beliebigen Freitext an. Kann
 ein gespeicherter Wert nicht geladen werden, zeigt das Bedienelement möglicherweise
 **Keine Auswahl**, obwohl der Eintragsentwurf seinen bisherigen Wert noch enthält. Wähle nicht

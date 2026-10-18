@@ -44,7 +44,7 @@ func TestDigitalCenterLiveRoutesUseConfiguredTargetExposeMessagesAndRejectUnsupp
 	router := NewRouter(Config{AuthService: auth, DigitalCenterWorkspace: workspace})
 	admin := loginRouteTestUser(t, auth, "live-admin", "admin-password")
 
-	started := layoutRequest(t, router, admin, http.MethodPost,
+	started := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/digital-centers/ecos/live/start?sessionId="+session.ID,
 		map[string]any{"host": "attacker.invalid", "port": 1}, true)
 	assertStatus(t, started, http.StatusOK)
@@ -52,11 +52,11 @@ func TestDigitalCenterLiveRoutesUseConfiguredTargetExposeMessagesAndRejectUnsupp
 		t.Fatalf("live target = %#v, request body overrode server settings", ecos.startInput)
 	}
 
-	statusResponse := layoutRequest(t, router, admin, http.MethodGet,
+	statusResponse := authedJSONRequest(t, router, admin, http.MethodGet,
 		"/api/v1/digital-centers/ecos/live/status", nil, true)
 	assertStatus(t, statusResponse, http.StatusOK)
 
-	messagesResponse := layoutRequest(t, router, admin, http.MethodGet,
+	messagesResponse := authedJSONRequest(t, router, admin, http.MethodGet,
 		"/api/v1/digital-centers/read-sessions/"+session.ID+"/messages", nil, true)
 	assertStatus(t, messagesResponse, http.StatusOK)
 	var messages struct {
@@ -67,11 +67,11 @@ func TestDigitalCenterLiveRoutesUseConfiguredTargetExposeMessagesAndRejectUnsupp
 		t.Fatalf("messages = %#v", messages.Messages)
 	}
 
-	stopped := layoutRequest(t, router, admin, http.MethodPost,
+	stopped := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/digital-centers/ecos/live/stop?sessionId="+session.ID, nil, true)
 	assertStatus(t, stopped, http.StatusOK)
 
-	unsupported := layoutRequest(t, router, admin, http.MethodPost,
+	unsupported := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/digital-centers/z21/live/start?sessionId="+session.ID, nil, true)
 	assertProblem(t, unsupported, http.StatusBadRequest, "digital_center_capability_unavailable")
 }
@@ -95,10 +95,10 @@ func TestDigitalCenterLiveRoutesRequireAdminAndCSRF(t *testing.T) {
 	viewer := loginRouteTestUser(t, auth, "live-viewer", "viewer-password")
 	admin := loginRouteTestUser(t, auth, "live-admin-csrf", "admin-password")
 
-	denied := layoutRequest(t, router, viewer, http.MethodGet,
+	denied := authedJSONRequest(t, router, viewer, http.MethodGet,
 		"/api/v1/digital-centers/ecos/live/status", nil, true)
 	assertProblem(t, denied, http.StatusForbidden, "forbidden")
-	csrf := layoutRequest(t, router, admin, http.MethodPost,
+	csrf := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/digital-centers/ecos/live/start", nil, false)
 	assertProblem(t, csrf, http.StatusForbidden, "csrf_required")
 }
@@ -128,7 +128,7 @@ func TestDigitalCenterLiveStartPreservesSanitizedBadGatewayResponse(t *testing.T
 	router := NewRouter(Config{AuthService: auth, DigitalCenterWorkspace: workspace})
 	admin := loginRouteTestUser(t, auth, "live-error-admin", "admin-password")
 
-	response := layoutRequest(t, router, admin, http.MethodPost,
+	response := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/digital-centers/ecos/live/start", nil, true)
 	assertProblem(t, response, http.StatusBadGateway, "ecos_live_start_failed")
 }

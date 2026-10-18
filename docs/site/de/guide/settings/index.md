@@ -19,16 +19,16 @@ Dieses Kapitel dokumentiert RailKeeper v0.1.20.3.
 
 ## Zugriffsrechte
 
-Admin, Editor, Viewer und Planner können **Einstellungen** öffnen. Ein reines Messe-Konto bleibt im
+Admin, Editor, Viewer können **Einstellungen** öffnen. Ein reines Messe-Konto bleibt im
 isolierten Messearbeitsbereich und kann diese Seite nicht öffnen. Persönliche Profileinstellungen
 verwenden die angemeldete Profil-API und sind nach Benutzer getrennt.
 
-| Aktion | Admin | Editor | Viewer | Planner |
-| --- | --- | --- | --- | --- |
-| **Allgemein** und **Darstellung** öffnen | Ja | Ja | Ja | Ja |
-| Persönliche Profileinstellungen ändern | Ja | Ja | Ja | Ja |
-| Benannte Systemdrucker lesen | Ja | Nein | Nein | Nein |
-| Ausschließlich für Admins erlaubte Vorgänge ausführen | Ja | Nein | Nein | Nein |
+| Aktion | Admin | Editor | Viewer |
+| --- | --- | --- | --- |
+| **Allgemein** und **Darstellung** öffnen | Ja | Ja | Ja |
+| Persönliche Profileinstellungen ändern | Ja | Ja | Ja |
+| Benannte Systemdrucker lesen | Ja | Nein | Nein |
+| Ausschließlich für Admins erlaubte Vorgänge ausführen | Ja | Nein | Nein |
 
 Die sichtbare Seite ist nicht die Berechtigungsgrenze. RailKeeper prüft geschützte System- und
 Datenvorgänge auf dem Server. Das Verschieben oder Ausblenden eines Navigationseintrags erteilt oder

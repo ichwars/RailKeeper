@@ -22,7 +22,7 @@ Ein Fahrzeug muss normalerweise einmal gespeichert sein, bevor RailKeeper Funkti
 oder Dateien speichern kann. Ein ungespeicherter ECoS-Entwurf kann CVs und eine abgeleitete Kurve
 anzeigen. Seine normalen Schreibaktionen bleiben jedoch deaktiviert.
 
-Admin, Editor, Viewer und Planner können gespeicherte Decoderdaten ansehen. Auf Viewer-Ebene sind
+Admin, Editor, Viewer können gespeicherte Decoderdaten ansehen. Auf Viewer-Ebene sind
 auch Funktions- und CV-Export sowie der Download von Decoder-Dateien möglich. Nur Admin und Editor
 dürfen Daten speichern, importieren, übernehmen, hochladen oder löschen. Der Server erzwingt diese
 Grenze.

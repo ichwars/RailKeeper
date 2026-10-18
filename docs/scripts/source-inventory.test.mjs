@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { after, test } from "node:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { promisify } from "node:util";
 
 import {
   buildSourceInventory,
@@ -14,6 +16,7 @@ import {
 } from "./source-inventory.mjs";
 
 const temporaryRoots = [];
+const execFileAsync = promisify(execFile);
 
 after(async () => {
   await Promise.all(temporaryRoots.map((root) => rm(root, { force: true, recursive: true })));
@@ -101,6 +104,25 @@ test("builds a deterministic source inventory when translations match", async ()
     "docs/architecture.md",
     "docs/releases/v0.1.0.md",
   ]);
+});
+
+test("uses the current working tree when tracked sources are deleted and replacements are untracked", async () => {
+  const translations = '"nav.overview": "Overview"';
+  const root = await fixture({
+    "frontend/src/app/App.tsx": 'startsWith("/vehicles")',
+    "frontend/src/app/Shell.tsx": 'href: "/overview"',
+    "frontend/src/shared/i18n/en.ts": translations,
+    "frontend/src/shared/i18n/de.ts": translations,
+    "backend/internal/api/routes.go": "",
+    "openapi/railkeeper.yaml": "paths:\n",
+    "backend/removed.go": "RAILKEEPER_REMOVED",
+  });
+  await execFileAsync("git", ["init", "--quiet"], { cwd: root });
+  await execFileAsync("git", ["add", "backend/removed.go"], { cwd: root });
+  await rm(join(root, "backend/removed.go"));
+  await writeFile(join(root, "backend/replacement.go"), "RAILKEEPER_REPLACEMENT");
+  const inventory = await buildSourceInventory(root);
+  assert.deepEqual(inventory.environmentVariables, ["RAILKEEPER_REPLACEMENT"]);
 });
 
 test("rejects mismatched English and German translation keys", async () => {

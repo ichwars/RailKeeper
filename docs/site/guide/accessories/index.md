@@ -21,18 +21,17 @@ by itself.
 
 ## Access rights and workspace model
 
-Admin, Editor, Viewer, and Planner users can open **Accessories** and inspect article data. Their
+Admin, Editor, Viewer users can open **Accessories** and inspect article data. Their
 write rights differ:
 
 | Role | Stable overview access |
 | --- | --- |
 | Viewer | View articles and their stored resources. |
-| Planner | View articles and later create or cancel reservations. General article and stock editing remains read-only. |
 | Editor | Create and edit articles, archive or restore them, and manage their stock and lifecycle. |
 | Admin | Has Editor rights and can additionally delete a completely unused article permanently. |
 | Messe | Has no accessories access through the Messe role alone. |
 
-The page shows an explicit read-only note to Viewer and Planner users. Server-side role checks are
+The page shows an explicit read-only note to Viewer users. Server-side role checks are
 authoritative. A visible value or read action does not grant write permission.
 
 The counts and rows come from the local RailKeeper database. Changing search, a filter, or sorting

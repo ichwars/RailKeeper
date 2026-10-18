@@ -119,8 +119,7 @@ ohne allgemeinen Zugriff auf die Einstellungen zu erhalten.
    anbietet.
 
 Mitgelieferte Einträge lassen sich bearbeiten und deaktivieren, aber nicht löschen. Ein verwendeter
-eigener Eintrag kann ebenfalls nicht gelöscht werden. Wird ein Schreibvorgang für Viewer oder
-Planner abgewiesen, ist ein Admin- oder Editor-Konto erforderlich.
+eigener Eintrag kann ebenfalls nicht gelöscht werden. Wird ein Schreibvorgang für Viewer abgewiesen, ist ein Admin- oder Editor-Konto erforderlich.
 
 ## Verwandte Seiten
 

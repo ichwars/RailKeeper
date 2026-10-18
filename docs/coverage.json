@@ -114,13 +114,6 @@
       "germanPath": "de/administration/system-operations.md"
     },
     {
-      "id": "layouts-unpublished",
-      "audience": "developer",
-      "status": "not-published",
-      "englishPath": "development/layouts.md",
-      "germanPath": "de/development/layouts.md"
-    },
-    {
       "id": "deployment-configuration",
       "audience": "admin",
       "status": "planned",
@@ -154,7 +147,6 @@
       "/overview": "overview",
       "/vehicles": "vehicles-core",
       "/accessories": "accessories",
-      "/layouts": "layouts-unpublished",
       "/exhibition": "exhibition",
       "/import-export": "import-export",
       "/digital-centers": "digital-centers",
@@ -168,7 +160,6 @@
       "digitalCenters": "digital-centers",
       "exhibition": "exhibition",
       "importExport": "import-export",
-      "layouts": "layouts-unpublished",
       "nav": "shared-navigation",
       "overview": "overview",
       "settings.articleManagement": "master-data",
@@ -245,9 +236,6 @@
       "/api/v1/vehicles": "vehicles-core",
       "/api/v1/accessory": "accessories",
       "/api/v1/storage-locations": "accessories",
-      "/api/v1/layout": "layouts-unpublished",
-      "/api/v1/plan-": "layouts-unpublished",
-      "/api/v1/track-": "layouts-unpublished",
       "/api/v1/inventory-number-schemes": "master-data",
       "/api/v1/master-data": "master-data",
       "/api/v1/backup": "backup-restore",

@@ -18,16 +18,16 @@ This chapter documents stable RailKeeper v0.1.20.3.
 
 ## Access rights
 
-Admin, Editor, Viewer, and Planner can open **Settings**. A pure Messe account remains in the
+Admin, Editor, Viewer users can open **Settings**. A pure Messe account remains in the
 isolated exhibition workspace and cannot open this page. Personal profile settings use the
 authenticated profile API and are isolated by user.
 
-| Action | Admin | Editor | Viewer | Planner |
-| --- | --- | --- | --- | --- |
-| Open **General** and **Appearance** | Yes | Yes | Yes | Yes |
-| Change personal profile preferences | Yes | Yes | Yes | Yes |
-| Read named system printers | Yes | No | No | No |
-| Run Admin-only operations | Yes | No | No | No |
+| Action | Admin | Editor | Viewer |
+| --- | --- | --- | --- |
+| Open **General** and **Appearance** | Yes | Yes | Yes |
+| Change personal profile preferences | Yes | Yes | Yes |
+| Read named system printers | Yes | No | No |
+| Run Admin-only operations | Yes | No | No |
 
 The visible page is not the permission boundary. RailKeeper checks protected system and data
 operations on the server. Reordering or hiding a navigation entry never grants or removes access.

@@ -10,7 +10,7 @@ lastReviewed: 2026-08-16
 # Fahrzeugbilder und Beilagen
 
 Der Tab **Uploads** verwaltet lokale Fahrzeugbilder und allgemeine Beilagen am Fahrzeugdatensatz.
-Admin, Editor, Viewer und Planner können gespeicherte Medien ansehen. Nur Admin und Editor dürfen
+Admin, Editor, Viewer können gespeicherte Medien ansehen. Nur Admin und Editor dürfen
 hochladen, Metadaten ändern oder löschen. Der Server prüft diese Regel auch dann, wenn ein
 Bedienelement sichtbar ist.
 
@@ -125,7 +125,7 @@ Wiederherstellungsbereich auszuwählen. Verlasse dich erst darauf, wenn RailKeep
 akzeptiert. Diese Seite verspricht nichts über Kopien, die du zuvor heruntergeladen oder außerhalb
 von RailKeeper angelegt hast.
 
-Admin, Editor, Viewer und Planner können vorhandene Medien ansehen. Serverseitige Schreibzugriffe
+Admin, Editor, Viewer können vorhandene Medien ansehen. Serverseitige Schreibzugriffe
 erfordern Admin oder Editor. **Quelle öffnen** ist der Übergang für importierte Bildquellen. Externe
 Artikelbilder, **Gefundene Dokumente**, Web-Dokument-Import und **Ersatzteile extrahieren** erklärt
 [Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares). CV-Dateien und

@@ -42,7 +42,7 @@ func TestCVProvenanceSurvivesEditsImportsAndBackup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if doc.Version != 22 {
+	if doc.Version < 22 {
 		t.Fatal("metadata needs version 22")
 	}
 	if _, err := backup.Import(t.Context(), doc); err != nil {

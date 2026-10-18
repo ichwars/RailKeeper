@@ -13,7 +13,7 @@ File import is a review workflow, not a direct database load. RailKeeper reads t
 maps its columns, validates each row against the vehicles already loaded, and lets an authorized
 user choose which rows to create or update.
 
-Use an Editor or Admin account to save. Viewer and Planner can inspect the preview but the server
+Use an Editor or Admin account to save. Viewer users can inspect the preview but the server
 rejects their vehicle writes.
 
 ## Supported input formats

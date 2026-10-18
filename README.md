@@ -46,8 +46,6 @@ against the project sources in both English and German.
 - Local-first inventory with SQLite, uploads and JSON backups
 - Vehicle records with model data, technical fields, ownership details, images, attachments, QR codes and clean read-only detail views
 - Article inventory with generated inventory numbers, sortable selection-first overview, quantity or individual tracking, storage-location stock, reservations, installations, documents and usage history
-- Layout, module, setup and plan-revision foundation with version-conflict protection; the workspace
-  remains temporarily hidden from the main navigation while it is refined
 - Article data web search with configurable sources, barcode/EAN entry, ZXing-based camera scanning,
   typed track details, and explicit field-by-field review
 - PDF report dialog for inventory overview and detail lists with selectable vehicles, QR codes and images

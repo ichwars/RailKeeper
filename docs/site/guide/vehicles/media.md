@@ -10,7 +10,7 @@ lastReviewed: 2026-08-16
 # Vehicle images and attachments
 
 The **Uploads** tab keeps local vehicle images and general attachments with the vehicle record.
-Admin, Editor, Viewer, and Planner can inspect stored media. Only Admin and Editor can upload,
+Admin, Editor, Viewer users can inspect stored media. Only Admin and Editor can upload,
 change metadata, or delete it, and the server enforces that rule even if a control is visible.
 
 ## Open the Uploads tab
@@ -110,7 +110,7 @@ validation and restore. Before extensive cleanup, export a backup and ask an Adm
 file in the restore panel. Rely on it only after RailKeeper accepts it as compatible. This page
 makes no promise about copies downloaded or created outside RailKeeper.
 
-Admin, Editor, Viewer, and Planner may inspect existing media. Server-side writes require Admin or
+Admin, Editor, Viewer users may inspect existing media. Server-side writes require Admin or
 Editor. **Open source** is the transition for imported image sources. See
 [Article search, web documents, and spare parts](/guide/vehicles/search-and-spares) for remote
 article images, **Found documents**, web-document import, and **Extract spare parts**. CV files and

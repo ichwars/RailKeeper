@@ -53,7 +53,7 @@ article numbers are checked in their respective tables, not as one shared global
 There is no delete endpoint in v0.1.20.3. Deactivate an unused scheme instead. Editing or
 deactivating a scheme never renumbers existing records.
 
-Only Admin and Editor may create or save schemes. Viewer and Planner can read the table. The stable
+Only Admin and Editor may create or save schemes. Viewer users can read the table. The stable
 UI can still show editable-looking fields to those read-only roles, but the server rejects the
 write.
 

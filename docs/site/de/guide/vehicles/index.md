@@ -13,8 +13,8 @@ Der **Fahrzeugbestand** ist der zentrale Arbeitsbereich für Modellbahnfahrzeuge
 Bestandsstatus, Suche, Filter, Tabellen- und Kartenansicht, Fahrzeuggrunddaten, QR-Etiketten und
 druckbare Reports. Dieses Kapitel beschreibt den mit RailKeeper v0.1.20.3 veröffentlichten Fahrzeugablauf.
 
-Admin, Editor, Viewer und Planner können den Bestand einsehen. Fahrzeuge anlegen, ändern und
-löschen dürfen nur Admin und Editor. In v0.1.20.3 können Schreibfunktionen für Viewer und Planner
+Admin, Editor, Viewer können den Bestand einsehen. Fahrzeuge anlegen, ändern und
+löschen dürfen nur Admin und Editor. In v0.1.20.3 können Schreibfunktionen für Viewer
 trotzdem sichtbar sein. Der Server lehnt ihre Schreibversuche ab und RailKeeper zeigt den
 Fehler an.
 
@@ -316,7 +316,7 @@ identifizierte Fahrzeug bestätigen. v0.1.20.3 bietet weder Rückgängig noch ei
 
 Das Löschen entfernt das Fahrzeug und seine abhängigen Datenbankeinträge, darunter
 Inventarnummernhistorie, Bilder, Anhangsmetadaten, Wartungen, Funktionen, CV-Daten, externe
-Zuordnungen und Ersatzteile. Zuordnungen zu Anlagen oder Zubehör können das Löschen blockieren.
+Zuordnungen und Ersatzteile. Zubehörzuordnungen können das Löschen blockieren.
 RailKeeper schreibt bei Erfolg einen Audit-Eintrag `VehicleDeleted`. Exportiere vor dem Löschen
 wichtiger Datensätze eine aktuelle Sicherung. Die Anwendung verspricht nicht, jede referenzierte
 Datei physisch zu entfernen.
@@ -337,7 +337,7 @@ Datei physisch zu entfernen.
 | Löschen schlägt fehl | Der Fehler erscheint über dem Bestand und die Bestätigung bleibt geöffnet. Betrachte das Fahrzeug als nicht gelöscht, behebe die gemeldete Ursache und versuche es erneut. |
 | Reporterzeugung schlägt fehl | Der Fehler erscheint über dem Bestand und der Reportdialog bleibt geöffnet. Prüfe Verbindung und Pop-up-Behandlung und erstelle ihn erneut. |
 | Report ohne Zeilen | Passe Suche oder Filter an oder markiere mindestens eine sichtbare Zeile. |
-| Löschen blockiert | Entferne oder ändere die Anlagen- oder Zubehörzuordnung, die das Fahrzeug noch referenziert, und versuche es erneut. |
+| Löschen blockiert | Entferne oder ändere die Zubehörzuordnung, die das Fahrzeug noch referenziert, und versuche es erneut. |
 
 ## Verwandte Seiten
 

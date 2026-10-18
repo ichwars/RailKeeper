@@ -24,7 +24,7 @@ gespeicherte Auswahl startet auf Deutsch.
 ## Standardansicht
 
 Die Standardansicht wird verwendet, wenn RailKeeper über seine Stammadresse ohne genaueren Pfad
-startet. Zur Auswahl stehen Übersicht, Fahrzeugbestand, Zubehör, Anlage, Ausstellung,
+startet. Zur Auswahl stehen Übersicht, Fahrzeugbestand, Zubehör, Ausstellung,
 Import/Export und Einstellungen.
 
 Dabei gelten folgende Grenzen:
@@ -34,9 +34,7 @@ Dabei gelten folgende Grenzen:
   Arbeitsbereich. Die Standardansicht umgeht diese rollenabhängige Entscheidung nicht.
 - Darf die aktuelle Rolle ein gespeichertes Ziel nicht öffnen, verwendet RailKeeper die erste
   zulässige Ansicht.
-- **Anlage** ist in v0.1.20.3 auswählbar, bleibt aber ein unveröffentlichter Entwicklungsbereich und
-  wird in der normalen Seitenleiste nicht angezeigt. Für den stabilen Benutzerablauf eine andere
-  Startseite wählen.
+
 
 ## Datums- und Zeitformat
 
@@ -81,9 +79,7 @@ Das Ausblenden entfernt nur den Link aus der Seitenleiste. Mit der erforderliche
 die zugrunde liegende Seite weiterhin direkt öffnen. Für die aktuelle Rolle unzulässige Einträge
 bleiben unabhängig von ihrer gespeicherten Position herausgefiltert.
 
-Die Liste kann **Anlage** enthalten, obwohl RailKeeper v0.1.20.3 diesen Arbeitsbereich nicht in der
-normalen Seitenleiste veröffentlicht. Verschieben oder Einblenden macht ihn nicht zu einer
-veröffentlichten Benutzerfunktion.
+
 
 Reihenfolge und ausgeblendete Einträge werden für jeden Benutzernamen getrennt gespeichert und über
 dessen Profil synchronisiert. Der kleine Pfeil am unteren Ende der Seitenleiste klappt sie nur im

@@ -22,7 +22,7 @@ func TestAccessoryRoutesEnforceRoleAndCSRFBoundaries(t *testing.T) {
 		{Username: "admin", Password: "admin-password", Roles: []string{"Admin"}},
 		{Username: "editor", Password: "editor-password", Roles: []string{"Editor"}},
 		{Username: "viewer", Password: "viewer-password", Roles: []string{"Viewer"}},
-		{Username: "planner", Password: "planner-password", Roles: []string{"Planner"}},
+		{Username: "planner", Password: "planner-password", Roles: []string{"Viewer"}},
 		{Username: "messe", Password: "messe-password", Roles: []string{"Messe"}},
 	} {
 		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
@@ -39,7 +39,7 @@ func TestAccessoryRoutesEnforceRoleAndCSRFBoundaries(t *testing.T) {
 	}
 
 	for role, session := range sessions {
-		response := layoutRequest(t, router, session, http.MethodGet, "/api/v1/accessory-products", nil, true)
+		response := authedJSONRequest(t, router, session, http.MethodGet, "/api/v1/accessory-products", nil, true)
 		want := http.StatusOK
 		if role == "messe" {
 			want = http.StatusForbidden
@@ -49,7 +49,7 @@ func TestAccessoryRoutesEnforceRoleAndCSRFBoundaries(t *testing.T) {
 		}
 	}
 	for role, session := range sessions {
-		response := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products", map[string]any{
+		response := authedJSONRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products", map[string]any{
 			"manufacturer": "Tillig", "articleNumber": "83-" + role, "name": "Gleis " + role,
 			"category": "Gleismaterial", "trackingMode": "quantity",
 		}, true)
@@ -61,7 +61,7 @@ func TestAccessoryRoutesEnforceRoleAndCSRFBoundaries(t *testing.T) {
 			t.Fatalf("%s write: got %d, want %d: %s", role, response.Code, want, response.Body.String())
 		}
 	}
-	withoutCSRF := layoutRequest(
+	withoutCSRF := authedJSONRequest(
 		t, router, sessions["editor"], http.MethodPost, "/api/v1/accessory-products",
 		map[string]any{
 			"manufacturer": "Tillig", "articleNumber": "83100", "name": "Gerades Gleis",
@@ -78,7 +78,7 @@ func TestAccessoryProductDeleteRequiresAdminAndCSRF(t *testing.T) {
 		{Username: "admin-delete", Password: "admin-password", Roles: []string{"Admin"}},
 		{Username: "editor-delete", Password: "editor-password", Roles: []string{"Editor"}},
 		{Username: "viewer-delete", Password: "viewer-password", Roles: []string{"Viewer"}},
-		{Username: "planner-delete", Password: "planner-password", Roles: []string{"Planner"}},
+		{Username: "planner-delete", Password: "planner-password", Roles: []string{"Viewer"}},
 		{Username: "messe-delete", Password: "messe-password", Roles: []string{"Messe"}},
 	} {
 		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
@@ -99,7 +99,7 @@ func TestAccessoryProductDeleteRequiresAdminAndCSRF(t *testing.T) {
 		loginRouteTestUser(t, auth, "messe-delete", "messe-password"),
 	}
 	create := func(articleNumber string) application.AccessoryProduct {
-		response := layoutRequest(t, router, admin, http.MethodPost,
+		response := authedJSONRequest(t, router, admin, http.MethodPost,
 			"/api/v1/accessory-products", map[string]any{
 				"manufacturer": "Tillig", "articleNumber": articleNumber,
 				"name": "Löschtest", "category": "Gleismaterial", "trackingMode": "quantity",
@@ -113,16 +113,16 @@ func TestAccessoryProductDeleteRequiresAdminAndCSRF(t *testing.T) {
 	protected := create("DELETE-CSRF")
 	path := "/api/v1/accessory-products/" + protected.ID
 	for _, session := range nonAdmins {
-		assertProblem(t, layoutRequest(t, router, session, http.MethodDelete, path, nil, true),
+		assertProblem(t, authedJSONRequest(t, router, session, http.MethodDelete, path, nil, true),
 			http.StatusForbidden, "forbidden")
 	}
-	assertProblem(t, layoutRequest(t, router, admin, http.MethodDelete, path, nil, false),
+	assertProblem(t, authedJSONRequest(t, router, admin, http.MethodDelete, path, nil, false),
 		http.StatusForbidden, "csrf_required")
-	assertStatus(t, layoutRequest(t, router, admin, http.MethodDelete, path, nil, true),
+	assertStatus(t, authedJSONRequest(t, router, admin, http.MethodDelete, path, nil, true),
 		http.StatusNoContent)
-	assertProblem(t, layoutRequest(t, router, admin, http.MethodGet, path, nil, true),
+	assertProblem(t, authedJSONRequest(t, router, admin, http.MethodGet, path, nil, true),
 		http.StatusNotFound, "accessory_not_found")
-	assertProblem(t, layoutRequest(t, router, admin, http.MethodDelete,
+	assertProblem(t, authedJSONRequest(t, router, admin, http.MethodDelete,
 		"/api/v1/accessory-products/missing", nil, true),
 		http.StatusNotFound, "accessory_not_found")
 }
@@ -142,13 +142,13 @@ func TestAccessoryProductDeleteRejectsUsedProduct(t *testing.T) {
 			infrastructure.NewAccessoryRepository(db),
 		),
 	})
-	locationResponse := layoutRequest(t, router, admin, http.MethodPost,
+	locationResponse := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/storage-locations", map[string]any{"name": "Sperrlager"}, true)
 	assertStatus(t, locationResponse, http.StatusCreated)
 	var location application.StorageLocation
 	decodeResponse(t, locationResponse, &location)
 
-	productResponse := layoutRequest(t, router, admin, http.MethodPost,
+	productResponse := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/accessory-products", map[string]any{
 			"manufacturer": "Tillig", "articleNumber": "DELETE-BLOCKED", "name": "Benutzter Artikel",
 			"category": "Gleismaterial", "trackingMode": "quantity",
@@ -157,14 +157,14 @@ func TestAccessoryProductDeleteRejectsUsedProduct(t *testing.T) {
 	var product application.AccessoryProduct
 	decodeResponse(t, productResponse, &product)
 	path := "/api/v1/accessory-products/" + product.ID
-	assertStatus(t, layoutRequest(t, router, admin, http.MethodPost,
+	assertStatus(t, authedJSONRequest(t, router, admin, http.MethodPost,
 		path+"/stock-adjustments", map[string]any{
 			"locationId": location.ID, "delta": 1,
 		}, true), http.StatusOK)
 
-	assertProblem(t, layoutRequest(t, router, admin, http.MethodDelete, path, nil, true),
+	assertProblem(t, authedJSONRequest(t, router, admin, http.MethodDelete, path, nil, true),
 		http.StatusConflict, "accessory_delete_blocked")
-	assertStatus(t, layoutRequest(t, router, admin, http.MethodGet, path, nil, true), http.StatusOK)
+	assertStatus(t, authedJSONRequest(t, router, admin, http.MethodGet, path, nil, true), http.StatusOK)
 }
 
 func TestAccessoryRoutesCoverCatalogueLocationsAndInventory(t *testing.T) {
@@ -181,25 +181,25 @@ func TestAccessoryRoutesCoverCatalogueLocationsAndInventory(t *testing.T) {
 		AccessoryService: application.NewAccessoryService(infrastructure.NewAccessoryRepository(db)),
 	})
 
-	rootResponse := layoutRequest(t, router, session, http.MethodPost, "/api/v1/storage-locations", map[string]any{
+	rootResponse := authedJSONRequest(t, router, session, http.MethodPost, "/api/v1/storage-locations", map[string]any{
 		"name": "Werkstatt",
 	}, true)
 	assertStatus(t, rootResponse, http.StatusCreated)
 	var root application.StorageLocation
 	decodeResponse(t, rootResponse, &root)
 
-	childResponse := layoutRequest(t, router, session, http.MethodPost, "/api/v1/storage-locations", map[string]any{
+	childResponse := authedJSONRequest(t, router, session, http.MethodPost, "/api/v1/storage-locations", map[string]any{
 		"parentId": root.ID, "name": "Schrank A",
 	}, true)
 	assertStatus(t, childResponse, http.StatusCreated)
 	var child application.StorageLocation
 	decodeResponse(t, childResponse, &child)
-	assertStatus(t, layoutRequest(t, router, session, http.MethodPut, "/api/v1/storage-locations/"+child.ID,
+	assertStatus(t, authedJSONRequest(t, router, session, http.MethodPut, "/api/v1/storage-locations/"+child.ID,
 		map[string]any{"parentId": root.ID, "name": "Schrank A1"}, true), http.StatusOK)
-	assertStatus(t, layoutRequest(t, router, session, http.MethodGet, "/api/v1/storage-locations", nil, true),
+	assertStatus(t, authedJSONRequest(t, router, session, http.MethodGet, "/api/v1/storage-locations", nil, true),
 		http.StatusOK)
 
-	quantityResponse := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
+	quantityResponse := authedJSONRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
 		map[string]any{
 			"manufacturer": "Tillig", "articleNumber": "83101", "name": "Gerades Gleis",
 			"category": "Gleismaterial", "trackingMode": "quantity",
@@ -207,7 +207,7 @@ func TestAccessoryRoutesCoverCatalogueLocationsAndInventory(t *testing.T) {
 	assertStatus(t, quantityResponse, http.StatusCreated)
 	var quantityProduct application.AccessoryProduct
 	decodeResponse(t, quantityResponse, &quantityProduct)
-	listResponse := layoutRequest(t, router, session, http.MethodGet,
+	listResponse := authedJSONRequest(t, router, session, http.MethodGet,
 		"/api/v1/accessory-products?query=Tillig", nil, true)
 	assertStatus(t, listResponse, http.StatusOK)
 	var listResult application.AccessoryArticleListResult
@@ -216,9 +216,9 @@ func TestAccessoryRoutesCoverCatalogueLocationsAndInventory(t *testing.T) {
 		listResult.Metrics.ArticleCount != 1 || len(listResult.FilterOptions.Manufacturers) != 1 {
 		t.Fatalf("unexpected article list response: %#v", listResult)
 	}
-	assertStatus(t, layoutRequest(t, router, session, http.MethodGet,
+	assertStatus(t, authedJSONRequest(t, router, session, http.MethodGet,
 		"/api/v1/accessory-products/"+quantityProduct.ID, nil, true), http.StatusOK)
-	assertStatus(t, layoutRequest(t, router, session, http.MethodPut,
+	assertStatus(t, authedJSONRequest(t, router, session, http.MethodPut,
 		"/api/v1/accessory-products/"+quantityProduct.ID, map[string]any{
 			"manufacturer": "Tillig", "articleNumber": "83101", "name": "Gerades Modellgleis",
 			"category": "Gleismaterial", "trackingMode": "quantity",
@@ -226,7 +226,7 @@ func TestAccessoryRoutesCoverCatalogueLocationsAndInventory(t *testing.T) {
 
 	stockPath := "/api/v1/accessory-products/" + quantityProduct.ID + "/stock"
 	adjustmentPath := "/api/v1/accessory-products/" + quantityProduct.ID + "/stock-adjustments"
-	adjustedResponse := layoutRequest(t, router, session, http.MethodPost, adjustmentPath,
+	adjustedResponse := authedJSONRequest(t, router, session, http.MethodPost, adjustmentPath,
 		map[string]any{"locationId": child.ID, "delta": 5}, true)
 	assertStatus(t, adjustedResponse, http.StatusOK)
 	var stock application.AccessoryStockSummary
@@ -234,12 +234,12 @@ func TestAccessoryRoutesCoverCatalogueLocationsAndInventory(t *testing.T) {
 	if stock.TotalQuantity != 5 {
 		t.Fatalf("unexpected stock: %#v", stock)
 	}
-	assertStatus(t, layoutRequest(t, router, session, http.MethodGet, stockPath, nil, true), http.StatusOK)
-	assertProblem(t, layoutRequest(t, router, session, http.MethodPost, adjustmentPath,
+	assertStatus(t, authedJSONRequest(t, router, session, http.MethodGet, stockPath, nil, true), http.StatusOK)
+	assertProblem(t, authedJSONRequest(t, router, session, http.MethodPost, adjustmentPath,
 		map[string]any{"locationId": child.ID, "delta": -6}, true),
 		http.StatusConflict, "accessory_insufficient_stock")
 
-	individualResponse := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
+	individualResponse := authedJSONRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
 		map[string]any{
 			"manufacturer": "Lenz", "articleNumber": "LS150", "name": "Schaltdecoder",
 			"category": "Decoder", "trackingMode": "individual",
@@ -248,27 +248,27 @@ func TestAccessoryRoutesCoverCatalogueLocationsAndInventory(t *testing.T) {
 	var individualProduct application.AccessoryProduct
 	decodeResponse(t, individualResponse, &individualProduct)
 	assetsPath := "/api/v1/accessory-products/" + individualProduct.ID + "/assets"
-	assetResponse := layoutRequest(t, router, session, http.MethodPost, assetsPath, map[string]any{
+	assetResponse := authedJSONRequest(t, router, session, http.MethodPost, assetsPath, map[string]any{
 		"inventoryNumber": "RK-Z-0001", "condition": "ready", "lifecycle": "stored",
 		"storageLocationId": child.ID,
 	}, true)
 	assertStatus(t, assetResponse, http.StatusCreated)
 	var asset application.AccessoryAsset
 	decodeResponse(t, assetResponse, &asset)
-	assertStatus(t, layoutRequest(t, router, session, http.MethodGet, assetsPath, nil, true), http.StatusOK)
-	assertStatus(t, layoutRequest(t, router, session, http.MethodPut, "/api/v1/accessory-assets/"+asset.ID,
+	assertStatus(t, authedJSONRequest(t, router, session, http.MethodGet, assetsPath, nil, true), http.StatusOK)
+	assertStatus(t, authedJSONRequest(t, router, session, http.MethodPut, "/api/v1/accessory-assets/"+asset.ID,
 		map[string]any{
 			"inventoryNumber": "RK-Z-0001", "condition": "maintenance_due", "lifecycle": "maintenance",
 			"storageLocationId": child.ID,
 		}, true), http.StatusOK)
-	assertProblem(t, layoutRequest(t, router, session, http.MethodPost,
+	assertProblem(t, authedJSONRequest(t, router, session, http.MethodPost,
 		"/api/v1/accessory-products/"+individualProduct.ID+"/stock-adjustments",
 		map[string]any{"locationId": child.ID, "delta": 1}, true),
 		http.StatusConflict, "accessory_tracking_mode")
 
-	assertProblem(t, layoutRequest(t, router, session, http.MethodGet,
+	assertProblem(t, authedJSONRequest(t, router, session, http.MethodGet,
 		"/api/v1/accessory-products/missing", nil, true), http.StatusNotFound, "accessory_not_found")
-	assertProblem(t, layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
+	assertProblem(t, authedJSONRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
 		map[string]any{"name": "Invalid"}, true), http.StatusBadRequest, "accessory_validation")
 }
 
@@ -306,7 +306,7 @@ func TestAccessoryArticleRoutesUseActiveConfiguredSubtypeMasterData(t *testing.T
 			"packageQuantity": 1, "stockUnit": "piece", "inventoryStrategy": "quantity",
 		}
 	}
-	createResponse := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
+	createResponse := authedJSONRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
 		articleInput("custom-create", "club_profile"), true)
 	assertStatus(t, createResponse, http.StatusCreated)
 	var created application.AccessoryProduct
@@ -315,7 +315,7 @@ func TestAccessoryArticleRoutesUseActiveConfiguredSubtypeMasterData(t *testing.T
 		t.Fatalf("configured subtype was not normalized canonically: %#v", created)
 	}
 
-	updateResponse := layoutRequest(t, router, session, http.MethodPut,
+	updateResponse := authedJSONRequest(t, router, session, http.MethodPut,
 		"/api/v1/accessory-products/"+created.ID, articleInput("custom-update", "club_profile"), true)
 	assertStatus(t, updateResponse, http.StatusOK)
 
@@ -325,7 +325,7 @@ func TestAccessoryArticleRoutesUseActiveConfiguredSubtypeMasterData(t *testing.T
 		"unconfigured": "direct_api_value",
 	} {
 		t.Run(name, func(t *testing.T) {
-			response := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
+			response := authedJSONRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
 				articleInput(name, subtype), true)
 			assertProblem(t, response, http.StatusBadRequest, "accessory_validation")
 		})
@@ -380,7 +380,7 @@ func TestAccessoryArticleRoutesEnforceControlledCustomFieldsForDirectClients(t *
 			"inventoryStrategy": "quantity", "attributes": attributes,
 		}
 	}
-	create := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
+	create := authedJSONRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
 		articleInput("controlled", validAttributes), true)
 	assertStatus(t, create, http.StatusCreated)
 	var product application.AccessoryProduct
@@ -407,7 +407,7 @@ func TestAccessoryArticleRoutesEnforceControlledCustomFieldsForDirectClients(t *
 	}
 	for _, test := range invalid {
 		t.Run(test.name, func(t *testing.T) {
-			response := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
+			response := authedJSONRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
 				articleInput(test.name, test.attributes), true)
 			assertAccessoryValidationMessage(t, response, test.message)
 		})
@@ -424,16 +424,16 @@ func TestAccessoryArticleRoutesEnforceControlledCustomFieldsForDirectClients(t *
 		t.Fatal(err)
 	}
 	unchanged := articleInput("renamed article", validAttributes)
-	response := layoutRequest(t, router, session, http.MethodPut,
+	response := authedJSONRequest(t, router, session, http.MethodPut,
 		"/api/v1/accessory-products/"+product.ID, unchanged, true)
 	assertStatus(t, response, http.StatusOK)
 	changedAttributes := append([]map[string]any(nil), validAttributes...)
 	changedAttributes[0] = map[string]any{"key": "text", "kind": "text", "textValue": "Changed"}
-	response = layoutRequest(t, router, session, http.MethodPut,
+	response = authedJSONRequest(t, router, session, http.MethodPut,
 		"/api/v1/accessory-products/"+product.ID, articleInput("mutation", changedAttributes), true)
 	assertAccessoryValidationMessage(t, response, "inactive custom attribute")
 	duplicateHistorical := append(append([]map[string]any(nil), validAttributes...), validAttributes[0])
-	response = layoutRequest(t, router, session, http.MethodPut,
+	response = authedJSONRequest(t, router, session, http.MethodPut,
 		"/api/v1/accessory-products/"+product.ID, articleInput("duplicate historical", duplicateHistorical), true)
 	assertAccessoryValidationMessage(t, response, "duplicate")
 }
@@ -478,7 +478,7 @@ func TestAccessoryArticleRoutesEnforceRoleAndCSRFForEveryNewEndpoint(t *testing.
 	for _, testCase := range readCases {
 		t.Run("read/"+testCase.name, func(t *testing.T) {
 			for role, session := range fixture.sessions {
-				response := layoutRequest(t, fixture.router, session, testCase.method, testCase.path, nil, true)
+				response := authedJSONRequest(t, fixture.router, session, testCase.method, testCase.path, nil, true)
 				want := testCase.wantEditor
 				if role == "messe" {
 					want = http.StatusForbidden
@@ -534,7 +534,7 @@ func TestAccessoryArticleRoutesEnforceRoleAndCSRFForEveryNewEndpoint(t *testing.
 
 func TestAccessoryArticleListParsesApprovedQueryAndRejectsInvalidEnums(t *testing.T) {
 	fixture := newAccessoryAPIFixture(t, 1024*1024)
-	response := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+	response := authedJSONRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
 		"/api/v1/accessory-products?query=Modell&manufacturer=Tillig&articleType=track&articleType=other"+
 			"&gauge=TT&gauge=H0&status=available&status=reserved&locationId="+fixture.locationA.ID+
 			"&sort=stock&direction=desc", nil, true)
@@ -556,7 +556,7 @@ func TestAccessoryArticleListParsesApprovedQueryAndRejectsInvalidEnums(t *testin
 		"direction":    "direction=sideways",
 	} {
 		t.Run(name, func(t *testing.T) {
-			invalid := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+			invalid := authedJSONRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
 				"/api/v1/accessory-products?"+query, nil, true)
 			assertProblem(t, invalid, http.StatusBadRequest, "accessory_validation")
 		})
@@ -572,13 +572,13 @@ func TestAccessoryArticleListRejectsInvalidRawGaugeValues(t *testing.T) {
 		"too long":   "gauge=" + strings.Repeat("G", 129),
 	} {
 		t.Run(name, func(t *testing.T) {
-			response := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+			response := authedJSONRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
 				"/api/v1/accessory-products?"+query, nil, true)
 			assertProblem(t, response, http.StatusBadRequest, "accessory_validation")
 		})
 	}
 
-	legitimate := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+	legitimate := authedJSONRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
 		"/api/v1/accessory-products?gauge=Schmalspur%20(750%20mm)", nil, true)
 	assertStatus(t, legitimate, http.StatusOK)
 }
@@ -607,7 +607,7 @@ func TestAccessoryArticleListRejectsInvalidRawScalarFilters(t *testing.T) {
 			}
 			for name, rawQuery := range tests {
 				t.Run(name, func(t *testing.T) {
-					response := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+					response := authedJSONRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
 						"/api/v1/accessory-products?"+rawQuery, nil, true)
 					assertProblem(t, response, http.StatusBadRequest, "accessory_validation")
 				})
@@ -620,7 +620,7 @@ func TestAccessoryArticleListRejectsInvalidRawScalarFilters(t *testing.T) {
 		"manufacturer=" + url.QueryEscape("Česká železnice"),
 		"locationId=" + url.QueryEscape("Lager Süd"),
 	} {
-		response := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+		response := authedJSONRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
 			"/api/v1/accessory-products?"+rawQuery, nil, true)
 		assertStatus(t, response, http.StatusOK)
 	}
@@ -638,7 +638,7 @@ func TestAccessoryArticleListRejectsMalformedQueryEncoding(t *testing.T) {
 	fixture.router.ServeHTTP(response, request)
 	assertProblem(t, response, http.StatusBadRequest, "accessory_validation")
 
-	validUnicode := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+	validUnicode := authedJSONRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
 		"/api/v1/accessory-products?query=M%C3%A4rklin%20%C3%9Cbergang", nil, true)
 	assertStatus(t, validUnicode, http.StatusOK)
 }
@@ -648,7 +648,7 @@ func TestAccessoryArticleRoutesCoverDuplicateArchivePurchaseTransferAndIndividua
 	editor := fixture.sessions["editor"]
 	productPath := "/api/v1/accessory-products/" + fixture.product.ID
 
-	duplicate := layoutRequest(t, fixture.router, editor, http.MethodPost,
+	duplicate := authedJSONRequest(t, fixture.router, editor, http.MethodPost,
 		"/api/v1/accessory-products/duplicate-check",
 		map[string]any{"manufacturer": " Tillig ", "articleNumber": " 83101 "}, true)
 	assertStatus(t, duplicate, http.StatusOK)
@@ -657,12 +657,12 @@ func TestAccessoryArticleRoutesCoverDuplicateArchivePurchaseTransferAndIndividua
 	if len(duplicateResult.Candidates) != 1 || duplicateResult.Candidates[0].ID != fixture.product.ID {
 		t.Fatalf("unexpected duplicate result: %#v", duplicateResult)
 	}
-	createdDuplicate := layoutRequest(t, fixture.router, editor, http.MethodPost, "/api/v1/accessory-products",
+	createdDuplicate := authedJSONRequest(t, fixture.router, editor, http.MethodPost, "/api/v1/accessory-products",
 		typedAccessoryProductInput("Tillig", "83101", "Confirmed variant", domain.AccessoryInventoryQuantity), true)
 	assertStatus(t, createdDuplicate, http.StatusCreated)
 
 	for _, endpoint := range []string{"archive", "archive", "restore", "restore"} {
-		response := layoutRequest(t, fixture.router, editor, http.MethodPost, productPath+"/"+endpoint, nil, true)
+		response := authedJSONRequest(t, fixture.router, editor, http.MethodPost, productPath+"/"+endpoint, nil, true)
 		assertStatus(t, response, http.StatusOK)
 		var product application.AccessoryProduct
 		decodeResponse(t, response, &product)
@@ -680,11 +680,11 @@ func TestAccessoryArticleRoutesCoverDuplicateArchivePurchaseTransferAndIndividua
 	if archiveAuditCount != 4 {
 		t.Fatalf("archive/restore audit count=%d, want 4", archiveAuditCount)
 	}
-	assertProblem(t, layoutRequest(t, fixture.router, editor, http.MethodPost,
+	assertProblem(t, authedJSONRequest(t, fixture.router, editor, http.MethodPost,
 		"/api/v1/accessory-products/missing/archive", nil, true),
 		http.StatusNotFound, "accessory_not_found")
 
-	transfer := layoutRequest(t, fixture.router, editor, http.MethodPost, productPath+"/stock-transfers",
+	transfer := authedJSONRequest(t, fixture.router, editor, http.MethodPost, productPath+"/stock-transfers",
 		map[string]any{"fromLocationId": fixture.locationA.ID, "toLocationId": fixture.locationB.ID,
 			"quantity": 3, "note": "Move"}, true)
 	assertStatus(t, transfer, http.StatusOK)
@@ -693,7 +693,7 @@ func TestAccessoryArticleRoutesCoverDuplicateArchivePurchaseTransferAndIndividua
 	if stock.TotalQuantity != 20 || len(stock.Locations) != 2 {
 		t.Fatalf("unexpected transferred stock: %#v", stock)
 	}
-	movements := layoutRequest(t, fixture.router, editor, http.MethodGet, productPath+"/stock-movements", nil, true)
+	movements := authedJSONRequest(t, fixture.router, editor, http.MethodGet, productPath+"/stock-movements", nil, true)
 	assertStatus(t, movements, http.StatusOK)
 	var journal []application.AccessoryStockMovement
 	decodeResponse(t, movements, &journal)
@@ -701,11 +701,11 @@ func TestAccessoryArticleRoutesCoverDuplicateArchivePurchaseTransferAndIndividua
 		t.Fatalf("stock journal missing transfer rows: %#v", journal)
 	}
 
-	purchase := layoutRequest(t, fixture.router, editor, http.MethodPost, productPath+"/purchases",
+	purchase := authedJSONRequest(t, fixture.router, editor, http.MethodPost, productPath+"/purchases",
 		map[string]any{"purchasedAt": "2026-08-08", "supplier": "Dealer", "quantity": 2,
 			"storageLocationId": fixture.locationB.ID, "bookToStock": true, "currency": "eur"}, true)
 	assertStatus(t, purchase, http.StatusCreated)
-	purchases := layoutRequest(t, fixture.router, editor, http.MethodGet, productPath+"/purchases", nil, true)
+	purchases := authedJSONRequest(t, fixture.router, editor, http.MethodGet, productPath+"/purchases", nil, true)
 	assertStatus(t, purchases, http.StatusOK)
 	var purchaseList []application.AccessoryPurchase
 	decodeResponse(t, purchases, &purchaseList)
@@ -713,7 +713,7 @@ func TestAccessoryArticleRoutesCoverDuplicateArchivePurchaseTransferAndIndividua
 		t.Fatalf("unexpected purchases: %#v", purchaseList)
 	}
 
-	individualized := layoutRequest(t, fixture.router, editor, http.MethodPost,
+	individualized := authedJSONRequest(t, fixture.router, editor, http.MethodPost,
 		"/api/v1/accessory-products/"+fixture.hybridProduct.ID+"/individualizations",
 		map[string]any{"locationId": fixture.locationA.ID,
 			"asset": map[string]any{"inventoryNumber": "RK-Z-9001", "condition": "ready", "lifecycle": "stored"}}, true)
@@ -744,5 +744,5 @@ func accessoryRouteCaseRequest(
 		return accessoryMultipartRequest(t, router, session, testCase.method, testCase.path, "manual.pdf",
 			[]byte("%PDF-1.7\nexample"), map[string]string{"category": "manual"}, withCSRF)
 	}
-	return layoutRequest(t, router, session, testCase.method, testCase.path, testCase.body, withCSRF)
+	return authedJSONRequest(t, router, session, testCase.method, testCase.path, testCase.body, withCSRF)
 }

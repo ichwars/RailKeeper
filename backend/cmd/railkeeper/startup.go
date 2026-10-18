@@ -222,8 +222,6 @@ func buildApplicationHandler(
 		return nil, fmt.Errorf("warm master data cache: %w", err)
 	}
 
-	layoutService := application.NewLayoutService(infrastructure.NewLayoutRepository(database))
-	trackPlannerRepository := infrastructure.NewTrackPlannerRepository(database)
 	accessoryRepository := infrastructure.NewAccessoryRepository(database)
 	authService := application.NewAuthService(database)
 	vehicleService := application.NewVehicleService(database)
@@ -260,9 +258,6 @@ func buildApplicationHandler(
 		FileBlobService:             fileBlobService,
 		DatabaseMaintenance:         application.NewDatabaseMaintenanceService(database, paths.DataDir),
 		ExhibitionService:           application.NewExhibitionService(database),
-		LayoutService:               layoutService,
-		TrackPlannerService:         application.NewTrackPlannerService(trackPlannerRepository),
-		TrackLibraryService:         application.NewTrackLibraryService(trackPlannerRepository),
 		AccessoryService:            application.NewAccessoryService(accessoryRepository, fileBlobService),
 		AccessoryAllocationService:  application.NewAccessoryAllocationService(accessoryRepository),
 		AccessoryDocumentService: application.NewAccessoryDocumentService(

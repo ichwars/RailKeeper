@@ -13,7 +13,7 @@ The export actions use the complete vehicle list loaded by **Import/Export**. Th
 searches or filters from the vehicle-inventory page. All three controls remain disabled while the
 list is loading or when no vehicles exist.
 
-Admin, Editor, Viewer, and Planner can export. Export does not modify RailKeeper data.
+Admin, Editor, Viewer users can export. Export does not modify RailKeeper data.
 
 ## CSV export
 

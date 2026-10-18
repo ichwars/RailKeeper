@@ -126,7 +126,7 @@ function hasAdmin(roles: string[]) {
 }
 
 function canReadInventory(roles: string[]) {
-  return roles.some((role) => ["Admin", "Editor", "Viewer", "Planner"].includes(role));
+  return roles.some((role) => ["Admin", "Editor", "Viewer"].includes(role));
 }
 
 function newEventInput(): ExhibitionListInput {

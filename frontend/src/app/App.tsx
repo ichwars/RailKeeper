@@ -7,13 +7,12 @@ import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference } from "../shared/theme";
 import { availableStartView } from "./navigationAvailability";
 
-export type AppView = "overview" | "vehicles" | "accessories" | "layouts" | "exhibition" | "importExport" | "digitalCenters" | "settings";
+export type AppView = "overview" | "vehicles" | "accessories" | "exhibition" | "importExport" | "digitalCenters" | "settings";
 
 const defaultViewSettingKey = "railkeeper.settings.defaultView";
 const OverviewView = lazy(() => import("../features/overview/OverviewView").then((module) => ({ default: module.OverviewView })));
 const VehiclesView = lazy(() => import("../features/vehicles/VehiclesView").then((module) => ({ default: module.VehiclesView })));
 const AccessoriesView = lazy(() => import("../features/accessories/AccessoriesView").then((module) => ({ default: module.AccessoriesView })));
-const LayoutsView = lazy(() => import("../features/layouts/LayoutsView").then((module) => ({ default: module.LayoutsView })));
 const ExhibitionView = lazy(() => import("../features/exhibition/ExhibitionView").then((module) => ({ default: module.ExhibitionView })));
 const ImportExportView = lazy(() => import("../features/importExport/ImportExportView").then((module) => ({ default: module.ImportExportView })));
 const DigitalCentersView = lazy(() => import("../features/digitalCenters/DigitalCentersView").then((module) => ({ default: module.DigitalCentersView })));
@@ -27,7 +26,6 @@ export function pathForView(nextView: AppView) {
   if (nextView === "overview") return "/overview";
   if (nextView === "vehicles") return "/vehicles";
   if (nextView === "accessories") return "/accessories";
-  if (nextView === "layouts") return "/layouts";
   if (nextView === "exhibition") return "/exhibition";
   if (nextView === "importExport") return "/import-export";
   if (nextView === "digitalCenters") return "/digital-centers";
@@ -44,9 +42,6 @@ export function currentView(): AppView {
   }
   if (window.location.pathname.startsWith("/accessories")) {
     return "accessories";
-  }
-  if (window.location.pathname.startsWith("/layouts")) {
-    return "layouts";
   }
   if (window.location.pathname.startsWith("/exhibition")) {
     return "exhibition";
@@ -65,7 +60,7 @@ export function currentView(): AppView {
 
 function canAccessView(view: AppView, roles: string[]) {
   if (roles.includes("Admin")) return true;
-  const canUseInventory = roles.includes("Editor") || roles.includes("Viewer") || roles.includes("Planner");
+  const canUseInventory = roles.includes("Editor") || roles.includes("Viewer");
   const canUseExhibition = roles.includes("Messe");
   if (view === "exhibition") return canUseExhibition;
   if (view === "importExport") return canUseInventory || canUseExhibition;
@@ -74,7 +69,7 @@ function canAccessView(view: AppView, roles: string[]) {
 
 function firstAllowedView(roles: string[]): AppView {
   if (roles.includes("Admin")) return "overview";
-  if (roles.includes("Editor") || roles.includes("Viewer") || roles.includes("Planner")) return "overview";
+  if (roles.includes("Editor") || roles.includes("Viewer")) return "overview";
   if (roles.includes("Messe")) return "exhibition";
   return "overview";
 }
@@ -193,7 +188,6 @@ export function App() {
         {effectiveView === "overview" && <OverviewView username={session.username} roles={session.roles} />}
         {effectiveView === "vehicles" && <VehiclesView username={session.username} roles={session.roles} />}
         {effectiveView === "accessories" && <AccessoriesView roles={session.roles} />}
-        {effectiveView === "layouts" && <LayoutsView roles={session.roles} />}
         {effectiveView === "exhibition" && <ExhibitionView roles={session.roles} />}
         {effectiveView === "importExport" && <ImportExportView roles={session.roles} />}
         {effectiveView === "digitalCenters" && <DigitalCentersView roles={session.roles} />}

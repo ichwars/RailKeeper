@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, extname, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -157,12 +157,21 @@ async function walkFiles(root, directory, files) {
 
 async function repositoryFiles(root) {
   try {
-    const { stdout } = await execFileAsync("git", ["ls-files", "-z"], {
+    const { stdout } = await execFileAsync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], {
       cwd: root,
       encoding: "utf8",
       maxBuffer: 10 * 1024 * 1024,
     });
-    return sortUnique(stdout.split("\0").filter(Boolean).filter((path) => !excludedPath(path)));
+    const candidates = sortUnique(stdout.split("\0").filter(Boolean).filter((path) => !excludedPath(path)));
+    const existing = await Promise.all(candidates.map(async (path) => {
+      try {
+        return (await stat(resolve(root, path))).isFile() ? path : null;
+      } catch (error) {
+        if (error.code === "ENOENT") return null;
+        throw error;
+      }
+    }));
+    return existing.filter((path) => path !== null);
   } catch {
     const files = [];
     await walkFiles(root, root, files);

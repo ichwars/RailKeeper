@@ -39,8 +39,7 @@ current defaults when it reads the browser preference.
 
 An EAN-only barcode search is the exception and can run without those identity values.
 
-Admin and Editor can use the editable vehicle UI, import files, and change spare parts. Viewer and
-Planner can inspect stored vehicles, attachments, and spare parts. The article-search API permits
+Admin and Editor can use the editable vehicle UI, import files, and change spare parts. Viewer users can inspect stored vehicles, attachments, and spare parts. The article-search API permits
 Viewer-level read access, but the read-only vehicle UI still disables search and apply controls.
 Image, attachment, and spare-part writes require Editor-level server access. Messe does not receive
 the general vehicle workflow.

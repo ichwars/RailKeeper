@@ -44,7 +44,7 @@ func TestDigitalCenterWorkspaceRoutesUseConfiguredTargetAndBoundPagination(t *te
 	router := NewRouter(Config{AuthService: auth, DigitalCenterWorkspace: workspace})
 	admin := loginRouteTestUser(t, auth, "center-admin", "admin-password")
 
-	summaryResponse := layoutRequest(t, router, admin, http.MethodGet,
+	summaryResponse := authedJSONRequest(t, router, admin, http.MethodGet,
 		"/api/v1/digital-centers/workspace", nil, true)
 	assertStatus(t, summaryResponse, http.StatusOK)
 	var summary struct {
@@ -59,7 +59,7 @@ func TestDigitalCenterWorkspaceRoutesUseConfiguredTargetAndBoundPagination(t *te
 		t.Fatalf("workspace transport summary = %#v", summary.Centers[0].Transports)
 	}
 
-	started := layoutRequest(t, router, admin, http.MethodPost,
+	started := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/digital-centers/ecos/read-sessions",
 		map[string]any{"host": "attacker.invalid", "port": 1}, true)
 	assertStatus(t, started, http.StatusCreated)
@@ -72,11 +72,11 @@ func TestDigitalCenterWorkspaceRoutesUseConfiguredTargetAndBoundPagination(t *te
 		t.Fatalf("started session = %#v", session)
 	}
 
-	sessionResponse := layoutRequest(t, router, admin, http.MethodGet,
+	sessionResponse := authedJSONRequest(t, router, admin, http.MethodGet,
 		"/api/v1/digital-centers/read-sessions/"+session.ID, nil, true)
 	assertStatus(t, sessionResponse, http.StatusOK)
 
-	itemsResponse := layoutRequest(t, router, admin, http.MethodGet,
+	itemsResponse := authedJSONRequest(t, router, admin, http.MethodGet,
 		"/api/v1/digital-centers/read-sessions/"+session.ID+
 			"/items?q=Lok&compareStatus=new&page=1&pageSize=1000", nil, true)
 	assertStatus(t, itemsResponse, http.StatusOK)
@@ -86,7 +86,7 @@ func TestDigitalCenterWorkspaceRoutesUseConfiguredTargetAndBoundPagination(t *te
 		t.Fatalf("work item page = %#v", page)
 	}
 
-	itemResponse := layoutRequest(t, router, admin, http.MethodGet,
+	itemResponse := authedJSONRequest(t, router, admin, http.MethodGet,
 		"/api/v1/digital-centers/read-sessions/"+session.ID+"/items/"+page.Items[0].ID, nil, true)
 	assertStatus(t, itemResponse, http.StatusOK)
 	var item application.DigitalCenterWorkItem
@@ -132,7 +132,7 @@ func TestDigitalCenterWorkspaceRoutesDenyViewerAndMesse(t *testing.T) {
 			{method: http.MethodGet, path: "/api/v1/digital-centers/workspace"},
 			{method: http.MethodPost, path: "/api/v1/digital-centers/ecos/read-sessions"},
 		} {
-			response := layoutRequest(t, router, session, request.method, request.path, nil, true)
+			response := authedJSONRequest(t, router, session, request.method, request.path, nil, true)
 			assertProblem(t, response, http.StatusForbidden, "forbidden")
 		}
 	}
@@ -159,7 +159,7 @@ func TestDigitalCenterReadSessionRouteRequiresCSRF(t *testing.T) {
 	})
 	admin := loginRouteTestUser(t, auth, "csrf-admin", "admin-password")
 
-	response := layoutRequest(t, router, admin, http.MethodPost,
+	response := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/digital-centers/ecos/read-sessions", nil, false)
 	assertProblem(t, response, http.StatusForbidden, "csrf_required")
 }
@@ -186,7 +186,7 @@ func TestDigitalCenterWorkItemRouteRejectsUnknownFilter(t *testing.T) {
 	router := NewRouter(Config{AuthService: auth, DigitalCenterWorkspace: workspace})
 	admin := loginRouteTestUser(t, auth, "filter-admin", "admin-password")
 
-	response := layoutRequest(t, router, admin, http.MethodGet,
+	response := authedJSONRequest(t, router, admin, http.MethodGet,
 		"/api/v1/digital-centers/read-sessions/"+readSession.ID+"/items?compareStatus=unsafe", nil, true)
 	assertProblem(t, response, http.StatusBadRequest, "digital_center_filter_invalid")
 }

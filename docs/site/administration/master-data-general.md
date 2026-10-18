@@ -112,7 +112,7 @@ general Settings access.
 7. Use permanent deletion only when RailKeeper offers it for an unused custom entry.
 
 Bundled entries can be edited and deactivated but not deleted. A referenced custom entry also
-cannot be deleted. If a write is rejected for Viewer or Planner, sign in with Admin or Editor
+cannot be deleted. If a write is rejected for Viewer users, sign in with Admin or Editor
 authority instead of retrying the visible control.
 
 ## Related pages

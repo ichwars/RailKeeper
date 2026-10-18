@@ -24,7 +24,7 @@ describe("ArticlePurchaseDocumentsTab", () => {
     const onChanged = vi.fn().mockResolvedValue(undefined);
     render(<ArticlePurchaseDocumentsTab article={article} disabled={false} onChanged={onChanged} resources={{
       locations: [], stock: null, movements: [], assets: [], purchases: [], documents: [], reservations: [],
-      installations: [], usageHistory: null, vehicles: [], layouts: [], units: []
+      installations: [], usageHistory: null, vehicles: [],
     }} onDirtyChange={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: "Kauf buchen" }));
@@ -45,7 +45,7 @@ describe("ArticlePurchaseDocumentsTab", () => {
       locations: [{ id: "location-track-shelf", name: "Gleislager", parentId: undefined, archived: false,
         createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" }],
       stock: null, movements: [], assets: [], purchases: [], documents: [], reservations: [],
-      installations: [], usageHistory: null, vehicles: [], layouts: [], units: []
+      installations: [], usageHistory: null, vehicles: [],
     }} onDirtyChange={vi.fn()} />);
 
     const quantity = screen.getByRole("spinbutton", { name: "Menge" });
@@ -67,7 +67,7 @@ describe("ArticlePurchaseDocumentsTab", () => {
     const onChanged = vi.fn().mockRejectedValue(new Error("Aktualisierung fehlgeschlagen"));
     render(<ArticlePurchaseDocumentsTab article={article} disabled={false} onChanged={onChanged} resources={{
       locations: [], stock: null, movements: [], assets: [], purchases: [], documents: [], reservations: [],
-      installations: [], usageHistory: null, vehicles: [], layouts: [], units: []
+      installations: [], usageHistory: null, vehicles: [],
     }} onDirtyChange={vi.fn()} />);
     await user.type(screen.getByRole("textbox", { name: "Bezugsquelle" }), "Modellbahnshop");
 
@@ -83,7 +83,7 @@ describe("ArticlePurchaseDocumentsTab", () => {
     vi.setSystemTime(new Date(2026, 7, 8, 0, 30));
     render(<ArticlePurchaseDocumentsTab article={article} disabled={false} onChanged={vi.fn()}
       onDirtyChange={vi.fn()} resources={{ locations: [], stock: null, movements: [], assets: [], purchases: [],
-        documents: [], reservations: [], installations: [], usageHistory: null, vehicles: [], layouts: [], units: [] }} />);
+        documents: [], reservations: [], installations: [], usageHistory: null, vehicles: [],  }} />);
 
     expect(screen.getByRole("textbox", { name: "Kaufdatum" })).toHaveValue("08.08.2026");
   });
@@ -96,7 +96,7 @@ describe("ArticlePurchaseDocumentsTab", () => {
         documents: [{ id: "doc-1", productId: article.id, originalName: "Rechnung.pdf", fileName: "doc.pdf",
           category: "invoice", mimeType: "application/pdf", sizeBytes: 100, isPrimary: false, createdBy: "admin",
           createdAt: "2026-08-08T09:00:00Z", updatedAt: "2026-08-08T09:00:00Z" }],
-        reservations: [], installations: [], usageHistory: null, vehicles: [], layouts: [], units: [] }} />);
+        reservations: [], installations: [], usageHistory: null, vehicles: [],  }} />);
 
     const deleteButton = screen.getByRole("button", { name: "Dokument löschen: Rechnung.pdf" });
     deleteButton.focus();
@@ -122,7 +122,7 @@ describe("ArticlePurchaseDocumentsTab", () => {
       return <ArticlePurchaseDocumentsTab article={article} disabled={false}
         onChanged={async () => setDocuments([])} onDirtyChange={vi.fn()} resources={{
           locations: [], stock: null, movements: [], assets: [], purchases: [], documents,
-          reservations: [], installations: [], usageHistory: null, vehicles: [], layouts: [], units: []
+          reservations: [], installations: [], usageHistory: null, vehicles: [],
         }} />;
     }
     render(<Harness />);
@@ -140,7 +140,7 @@ describe("ArticlePurchaseDocumentsTab", () => {
     const upload = vi.spyOn(api, "uploadAccessoryDocument").mockRejectedValue(new Error("Upload fehlgeschlagen"));
     render(<ArticlePurchaseDocumentsTab article={article} disabled={false} onChanged={vi.fn()}
       onDirtyChange={vi.fn()} resources={{ locations: [], stock: null, movements: [], assets: [], purchases: [],
-        documents: [], reservations: [], installations: [], usageHistory: null, vehicles: [], layouts: [], units: [] }} />);
+        documents: [], reservations: [], installations: [], usageHistory: null, vehicles: [],  }} />);
     const image = new File(["image"], "produkt.png", { type: "image/png" });
 
     await user.upload(screen.getByLabelText("Datei", { selector: "input" }), image);
@@ -167,7 +167,7 @@ describe("ArticlePurchaseDocumentsTab", () => {
         documents: [{ id: "image-2", productId: article.id, originalName: "Seite.png", fileName: "seite.png",
           category: "image", mimeType: "image/png", sizeBytes: 100, isPrimary: false, createdBy: "admin",
           createdAt: "2026-08-08T09:00:00Z", updatedAt: "2026-08-08T09:00:00Z" }],
-        reservations: [], installations: [], usageHistory: null, vehicles: [], layouts: [], units: [] }} />);
+        reservations: [], installations: [], usageHistory: null, vehicles: [],  }} />);
 
     await user.click(screen.getByRole("button", { name: "Als Produktbild verwenden: Seite.png" }));
 

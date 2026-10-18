@@ -1,4 +1,4 @@
-import { createLayoutsAccessoriesAPI } from "./apiLayoutsAccessories";
+import { createAccessoriesAPI } from "./apiAccessories";
 import type {
   DataTransferCSVMappingInput,
   DataTransferExportResult,
@@ -28,7 +28,7 @@ import type {
   ECoSLiveStatus
 } from "../features/digitalCenters/digitalCenterModel";
 
-export * from "./apiLayoutsAccessories";
+export * from "./apiAccessories";
 export type * from "../features/importExport/dataTransferModel";
 export type * from "../features/digitalCenters/digitalCenterModel";
 
@@ -1287,7 +1287,7 @@ function digitalCenterSessionSuffix(sessionID?: string) {
 }
 
 export const api = {
-  ...createLayoutsAccessoriesAPI(request),
+  ...createAccessoriesAPI(request),
   dataTransferSummary: () => request<DataTransferSummary>("/data-transfer/summary"),
   dataTransferProfiles: () => request<DataTransferProfile[]>("/data-transfer/profiles"),
   createDataTransferProfile: (input: DataTransferProfileInput) =>

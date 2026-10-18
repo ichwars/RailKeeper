@@ -233,7 +233,7 @@ function LegacyExhibitionView({ roles }: { roles: string[] }) {
   const { language, t } = useI18n();
   const canManageLists = hasAdmin(roles);
   const canReadInventoryMasterData = roles.some((role) =>
-    role === "Admin" || role === "Editor" || role === "Viewer" || role === "Planner"
+    role === "Admin" || role === "Editor" || role === "Viewer"
   );
   const [lists, setLists] = useState<ExhibitionList[]>([]);
   const [selectedID, setSelectedID] = useState("");

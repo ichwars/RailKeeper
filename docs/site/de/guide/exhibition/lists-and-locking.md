@@ -25,7 +25,7 @@ Liste.
 | Eintrag einer offenen Liste löschen | Nein | Ja |
 
 Admin erhält direkten Zugriff auf den Messearbeitsbereich und benötigt keine zusätzliche Rolle
-Messe. Editor, Viewer und Planner öffnen den Arbeitsbereich allein nicht und erteilen keine
+Messe. Editor, Viewer öffnen den Arbeitsbereich allein nicht und erteilen keine
 Listenverwaltung.
 
 ## Liste anlegen
