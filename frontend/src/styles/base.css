@@ -1,3 +1,28 @@
+/* Segoe UI matches the approved Windows prototype; Selawik is the local OFL fallback. */
+@font-face {
+  font-family: "RailKeeper Sans";
+  src: url("/fonts/selawk.woff2") format("woff2");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RailKeeper Sans";
+  src: url("/fonts/selawksb.woff2") format("woff2");
+  font-weight: 600 650;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RailKeeper Sans";
+  src: url("/fonts/selawkb.woff2") format("woff2");
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Theme, reset, shell layout and page primitives. */
 :root {
   color-scheme: light;
@@ -15,6 +40,8 @@
   --accent-bright: #a5ec60;
   --accent-soft: #e9f8df;
   --warm: #fca311;
+  --info: #1556a2;
+  --info-bg: #e4f2ff;
   --danger: #b42318;
   --function-symbol-bg: #111719;
   --function-symbol-border: rgba(11, 30, 38, 0.34);
@@ -27,6 +54,8 @@
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
+  --field-gap: 6px;
+  --control-height-compact: 36px;
   --space-lg: 16px;
   --space-xl: 24px;
   --space-2xl: 32px;
@@ -40,7 +69,7 @@
   --duration-slow: 180ms;
   --ease-standard: ease;
   --ease-out: ease-out;
-  --font-sans: "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Segoe UI", "RailKeeper Sans", system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   /* 11px is reserved for short machine metadata; user-facing copy starts at caption. */
   --font-size-micro: 11px;
@@ -67,10 +96,10 @@
   --font-weight-medium: 500;
   --font-weight-semibold: 650;
   --font-weight-bold: 700;
-  --font-weight-strong: 750;
-  --font-weight-extra-bold: 800;
-  --font-weight-black: 850;
-  --font-weight-heavy: 900;
+  --font-weight-strong: 650;
+  --font-weight-extra-bold: 650;
+  --font-weight-black: 700;
+  --font-weight-heavy: 700;
   --line-height-compact: 1;
   --line-height-tight: 1.15;
   --line-height-snug: 1.25;
@@ -97,6 +126,8 @@
 }
 
 :root[data-theme="dark"] {
+  --info: #9bd0ff;
+  --info-bg: rgba(103, 183, 255, 0.14);
   color-scheme: dark;
   --bg: #0f1314;
   --panel: #171c1f;
