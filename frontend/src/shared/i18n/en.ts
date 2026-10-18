@@ -1770,6 +1770,7 @@ export const enTranslations: Record<string, string> = {
     "vehicles.cv.noDescription": "—",
     "vehicles.cv.invalidFile": "The CV list is invalid. Check index headers and row format.",
     "vehicles.cv.fileTooLarge": "The CV list must not exceed 2 MiB.",
+    "vehicles.cv.jsonFileTooLarge": "The CV JSON file must not exceed 32 MiB.",
     "vehicles.cv.invalidRecord": "Invalid CV record.",
     "vehicles.cv.invalidJson": "CV JSON must contain an array or an object with cvValues.",
     "vehicles.cv.invalidCsv": "Invalid CSV quoting.",

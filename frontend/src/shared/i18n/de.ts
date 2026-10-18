@@ -1770,6 +1770,7 @@ export const deTranslations: Record<string, string> = {
     "vehicles.cv.noDescription": "—",
     "vehicles.cv.invalidFile": "Die CV-Liste ist ungültig. Indexangaben und Zeilenformat prüfen.",
     "vehicles.cv.fileTooLarge": "Die CV-Liste darf höchstens 2 MiB groß sein.",
+    "vehicles.cv.jsonFileTooLarge": "Die CV-JSON-Datei darf höchstens 32 MiB groß sein.",
     "vehicles.cv.invalidRecord": "Ungültiger CV-Datensatz.",
     "vehicles.cv.invalidJson": "CV-JSON muss eine Liste oder ein Objekt mit cvValues enthalten.",
     "vehicles.cv.invalidCsv": "Ungültige CSV-Anführungszeichen.",

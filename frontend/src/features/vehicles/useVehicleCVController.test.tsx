@@ -86,4 +86,18 @@ describe("useVehicleCVController", () => {
     await waitFor(() => expect(result.current.state.importPreview).toBeNull());
   });
 
+  it("does not inherit the edited CV profile or attachment when importing a list", async () => {
+    const { result } = renderController();
+    act(() => result.current.commands.edit(cvValueFixture({ decoderProfile: "Anderer Decoder", sourceFileId: "old-source" })));
+    const file = new File([JSON.stringify({ cvValues: [{ cvNumber: 1, value: 17,
+      decoderProfile: "LokPilot 5 micro DCC", sourceFileId: "exported-source",
+      sourceLine: 4, sourceExportedAt: "2026-10-17T17:41:59" }] })], "import.json");
+    await act(() => result.current.commands.importValues(fileList(file)));
+    expect(result.current.state.importPreview?.rows[0].input).toMatchObject({
+      cvNumber: 1, value: 17, decoderProfile: "LokPilot 5 micro DCC", sourceFileId: "",
+      sourceLine: 4, sourceExportedAt: "2026-10-17T17:41:59"
+    });
+    expect(result.current.state.form).toMatchObject({ decoderProfile: "Anderer Decoder", sourceFileId: "old-source" });
+  });
+
 });

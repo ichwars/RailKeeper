@@ -154,10 +154,7 @@ export function useVehicleCVController({
     setSaving(true);
     onMessage("");
     try {
-      const values = (await readCVImportFile(file)).map((value) => ({ ...value,
-        decoderProfile: form.decoderProfile || value.decoderProfile || "",
-        sourceFileId: form.sourceFileId || ""
-      }));
+      const values = await readCVImportFile(file);
       const preview = buildCVImportPreview(file.name, values, selected.cvValues || []);
       if (!preview.rows.some((row) => row.status !== "invalid")) {
         throw new Error("Keine gültigen CV-Werte gefunden.");

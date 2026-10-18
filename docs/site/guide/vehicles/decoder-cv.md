@@ -175,7 +175,10 @@ the actual locomotive. Raw CV mapping cannot confirm which lamps or couplers are
 
 ## Import and export CV values
 
-**Import** reads the first selected file (maximum 2 MiB and 10,000 values).
+**Import** reads the first selected file: TXT/CSV up to 2 MiB, CV JSON up to 32 MiB,
+with at most 10,000 values. The larger local JSON limit accounts for exported record identities,
+timestamps and history. Only importable fields are sent to the server; the atomic import request
+remains limited to 8 MiB.
 
 - LokProgrammer TXT supports `Decoder:`, `CV 001 = 003` and
   `Index: 4099 (CV31=16, CV32=3)`. The decoder header provides the profile without its firmware
@@ -185,8 +188,8 @@ the actual locomotive. Raw CV mapping cannot confirm which lamps or couplers are
 - CSV supports named columns, e.g. `cvNumber;value;decoderProfile;indexCV31;indexCV32`, including
   aliases `cv_number`, `cv31`, `cv32`, `CV` and `Wert`. Without headers, order is CV number, value,
   description, category, decoder profile, CV31, CV32. Commas and semicolons are accepted.
-- A profile chosen in the CV form explicitly overrides file profiles for the import. Otherwise the
-  file profile is used. A source attachment selected in the form must belong to the current vehicle.
+- Lists retain their own decoder profiles and provenance. Profile and attachment selections in
+  the single-value editor apply only to that edited value and are not inherited by list imports.
   Attachment IDs from exported JSON are not automatically transferred.
 
 Preview statuses are **new**, **changed**, **same** and **invalid**. New and changed rows start

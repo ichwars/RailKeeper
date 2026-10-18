@@ -5,11 +5,18 @@ import { readLanguage, translate } from "../../shared/i18n";
 const importError = (key: string) => new Error(translate(readLanguage(), `vehicles.cv.${key}`));
 
 export const maxCVImportValues = 10000;
+export const maxCVTextImportBytes = 2 * 1024 * 1024;
+// Full JSON exports also contain record identities, timestamps and history, removed before import.
+export const maxCVJSONImportBytes = 32 * 1024 * 1024;
 
 export async function readCVImportFile(file: File): Promise<VehicleCVValueInput[]> {
-  if (file.size > 2 * 1024 * 1024) throw importError("fileTooLarge");
+  const json = /\.json$/i.test(file.name);
+  if (file.size > (json ? maxCVJSONImportBytes : maxCVTextImportBytes)) {
+    throw importError(json ? "jsonFileTooLarge" : "fileTooLarge");
+  }
   const text = (await file.text()).replace(/^\uFEFF/, "");
   if (/^(?:Decoder:|Index:|CV\s+\d+\s*=)/m.test(text)) {
+    if (file.size > maxCVTextImportBytes) throw importError("fileTooLarge");
     const preview = await api.previewVehicleCVFile(file);
     if (preview.cvImportError) throw importError("invalidFile");
     return (preview.suggestedCvValues || []).map((value) => ({
@@ -63,6 +70,7 @@ export function cvValuesFromImport(text: string): VehicleCVValueInput[] {
     const parsed: unknown = JSON.parse(trimmed);
     const rows: unknown = Array.isArray(parsed) ? parsed : record(parsed).cvValues;
     if (!Array.isArray(rows)) throw importError("invalidJson");
+    if (rows.length > maxCVImportValues) throw importError("tooMany");
     values = rows.map(input);
   } else {
     const numberedLines = text.split(/\r?\n/).map((text, index) => ({ text, line: index + 1 })).filter(row => row.text.trim());
@@ -82,6 +90,7 @@ export function cvValuesFromImport(text: string): VehicleCVValueInput[] {
     if (hasHeader) sourceLines.shift();
     const headers = hasHeader ? cells.shift()!.map((cell) => aliases[normalize(cell)] || "")
       : ["cvNumber", "value", "description", "category", "decoderProfile", "indexCV31", "indexCV32"];
+    if (cells.length > maxCVImportValues) throw importError("tooMany");
     values = cells.map((cells, index) => {
       const row = Object.fromEntries(headers.filter(Boolean).map(key => [key, cells[headers.indexOf(key)]]));
       if (!row.sourceLine) row.sourceLine = String(sourceLines[index]);

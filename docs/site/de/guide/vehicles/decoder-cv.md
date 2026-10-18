@@ -189,7 +189,10 @@ Zuordnung von AUX-Ausgängen zu tatsächlich angeschlossenen Lampen oder Kupplun
 
 ## CV-Werte importieren und exportieren
 
-**Import** liest die erste ausgewählte Datei (höchstens 2 MiB, 10.000 Werte).
+**Import** liest die erste ausgewählte Datei: TXT/CSV bis 2 MiB, CV-JSON bis 32 MiB,
+jeweils höchstens 10.000 Werte. Die höhere lokale JSON-Grenze berücksichtigt exportierte
+Datensatzkennungen, Zeitstempel und Historien. Der Server erhält nur die importierbaren Felder;
+für die atomare Importanfrage gilt weiterhin die Grenze von 8 MiB.
 
 - LokProgrammer-TXT wird mit `Decoder:`, `CV 001 = 003` und
   `Index: 4099 (CV31=16, CV32=3)` vollständig verarbeitet. Der Decoderkopf liefert das Profil;
@@ -201,9 +204,9 @@ Zuordnung von AUX-Ausgängen zu tatsächlich angeschlossenen Lampen oder Kupplun
   `cvNumber;value;decoderProfile;indexCV31;indexCV32`. Auch `cv_number`, `cv31`, `cv32`, `CV` und
   `Wert` werden erkannt. Ohne Kopfzeile gilt die Reihenfolge CV-Nummer, Wert, Beschreibung,
   Kategorie, Decoderprofil, CV31, CV32. Komma oder Semikolon sind möglich.
-- Ein im CV-Formular gewähltes Profil gilt als ausdrückliches Zielprofil für den Import. Ohne
-  dieses verwendet RailKeeper das Profil der Datei. Eine im Formular gewählte Quelldatei muss
-  zum aktuellen Fahrzeug gehören. Aus JSON exportierte Datei-IDs werden nicht automatisch übertragen.
+- Die Liste liefert ihre Decoderprofile und Herkunftsangaben. Profil und Dateizuordnung im
+  Einzelwerteditor gelten nur für den dort bearbeiteten Wert und werden nicht auf Listenimporte
+  übertragen. Aus JSON exportierte Datei-IDs werden nicht automatisch übertragen.
 
 Die Vorschau markiert Zeilen als **neu**, **geändert**, **gleich** oder **ungültig**. Neue und
 geänderte Zeilen sind ausgewählt. Nur echte Wiederholungen derselben vollständigen Identität gelten
