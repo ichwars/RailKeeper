@@ -88,7 +88,7 @@ export function useVehicleDecoderFilesController({
         const rows: VehicleCVValueInput[] = /\.(txt|csv|json)$/i.test(file.name) ? await readCVImportFile(file) : preview.suggestedCvValues || [];
         return rows.map((value) => ({
           ...value,
-          decoderProfile: fileProfile || value.decoderProfile || preview.suggestedDecoderProfile || preview.decoder || preview.projectName || "",
+          decoderProfile: value.decoderProfile || preview.suggestedDecoderProfile || preview.decoder || fileProfile || preview.projectName || "",
           sourceFileId: ""
         }));
       }));
