@@ -11,7 +11,11 @@ func TestCVIndexMigrationPreservesExistingValuesAndHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("close test database: %v", err)
+		}
+	})
 	if _, err := db.Exec(`PRAGMA foreign_keys=ON; CREATE TABLE vehicles(id TEXT PRIMARY KEY); INSERT INTO vehicles VALUES('v')`); err != nil {
 		t.Fatal(err)
 	}

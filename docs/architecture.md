@@ -68,6 +68,9 @@ Node.js is only used to build the frontend.
   discarded. See `docs/architecture/z21-read-scope.md` for protocol evidence, bounds, and hardware gaps.
 - Decoder CV identity is vehicle + exact trimmed decoder profile + CV number + optional CV31/CV32 pair.
   Unindexed values and zero index pages remain distinct. Reviewed CV selections commit atomically.
+- Maintainer tests can use `RAILKEEPER_CV_FIXTURE` to read a local LokProgrammer TXT export instead
+  of the synthetic full-list fixture. This optional test setting is not runtime configuration;
+  private exports stay outside version control.
 - SQLite remains the default database because it keeps local installation, backup, and restore simple.
 - Attachments are stored on the filesystem below the configured data directory; metadata stays in SQLite.
 - CV provenance stores the physical source line and source export wall-clock timestamp without an inferred timezone. Missing provenance on edits/imports preserves existing metadata. Legacy records remain unknown until matched to an original source.
