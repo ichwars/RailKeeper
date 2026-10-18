@@ -1,9 +1,10 @@
-import { Barcode, ChevronDown, ChevronUp, ExternalLink, PackageSearch, RadioTower } from "lucide-react";
-import type { ReactNode } from "react";
-import { CreateVehicleRequest, MasterDataEntry, MasterDataRelation, VehicleExternalMapping } from "../../shared/api";
+import { Barcode, ChevronDown, ChevronRight, FileText, ExternalLink, PackageSearch, RadioTower } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { CreateVehicleRequest, MasterDataEntry, MasterDataRelation, VehicleExternalMapping, VehicleCVValue } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { sourceDisplayName } from "./articleSearch";
 import { RequiredLabel, VehicleDetailsFields, VehicleOwnershipFields } from "./VehicleFormFields";
+import { VehicleDigitalFields } from "./VehicleDigitalFields";
 import { AppSelect } from "../../shared/ui/AppSelect";
 
 type ECoSRequiredField = "manufacturer" | "name" | "gauge" | "category" | "gattung";
@@ -71,6 +72,8 @@ function digitalMappingFromDescription(description: string | undefined): Digital
 
 export function VehicleModelTab({
   form,
+  cvValues = [],
+  onOpenCV,
   externalMappings,
   readonly,
   articleSearchLoading,
@@ -96,6 +99,8 @@ export function VehicleModelTab({
   hideAcquisitionDetails = false
 }: {
   form: CreateVehicleRequest;
+  cvValues?: VehicleCVValue[];
+  onOpenCV?: () => void;
   externalMappings: VehicleExternalMapping[];
   readonly: boolean;
   articleSearchLoading: boolean;
@@ -121,6 +126,7 @@ export function VehicleModelTab({
   hideAcquisitionDetails?: boolean;
 }) {
   const { t } = useI18n();
+  const [digitalOpen, setDigitalOpen] = useState(false);
   const sharedReadonly = readonly || sharedFieldsReadonly;
   const externalMapping = externalMappings.find((mapping) => compactValue(mapping.externalId)) || externalMappings[0];
   const digitalMapping: DigitalMappingDisplay | null = externalMapping
@@ -134,8 +140,8 @@ export function VehicleModelTab({
   return (
     <div className="accordion-stack">
       <section className="accordion-section">
-        <button type="button" className="accordion-trigger" onClick={() => onToggleSection("model")}>
-          {openSections.model ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        <button type="button" className="accordion-trigger" aria-expanded={openSections.model} onClick={() => onToggleSection("model")}>
+          {openSections.model ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           {t("vehicles.tab.model")}
         </button>
         {openSections.model && (
@@ -299,33 +305,6 @@ export function VehicleModelTab({
               </label>
             </div>
 
-            <div className="form-row three-columns decoder-row">
-              <label>
-                {t("vehicle.field.digitalDecoderNumber")}
-                <span className="inline-switch-input">
-                  <span className="switch-field" aria-label="Digital">
-                    <input type="checkbox" checked={Boolean(form.digital)} onChange={(event) => onUpdate({ digital: event.target.checked })} disabled={readonly} />
-                    <span />
-                  </span>
-                  <input value={form.digitalDecoderNumber || ""} onChange={(event) => onUpdate({ digitalDecoderNumber: event.target.value })} disabled={readonly || !form.digital} />
-                </span>
-              </label>
-              <label>
-                {t("vehicle.field.dtDecoderNumber")}
-                <span className="inline-switch-input">
-                  <span className="switch-field" aria-label="DT Decoder">
-                    <input type="checkbox" checked={Boolean(form.dtDecoder)} onChange={(event) => onUpdate({ dtDecoder: event.target.checked })} disabled={readonly} />
-                    <span />
-                  </span>
-                  <input value={form.dtDecoderNumber || ""} onChange={(event) => onUpdate({ dtDecoderNumber: event.target.value })} disabled={readonly || !form.dtDecoder} />
-                </span>
-              </label>
-              <label>
-                {t("vehicle.field.decoderType")}
-                <input value={form.decoderType || ""} onChange={(event) => onUpdate({ decoderType: event.target.value })} disabled={readonly} />
-              </label>
-            </div>
-
             <div className="form-row compact-switch-row">
               <label className="switch-label">
                 {t("vehicle.field.exhibitionReady")}
@@ -338,13 +317,6 @@ export function VehicleModelTab({
                 {t("vehicle.field.exhibition")}
                 <span className="switch-field">
                   <input type="checkbox" checked={Boolean(form.exhibition)} onChange={(event) => onUpdate({ exhibition: event.target.checked })} disabled={readonly} />
-                  <span />
-                </span>
-              </label>
-              <label className="switch-label">
-                ABC-Bremsen
-                <span className="switch-field">
-                  <input type="checkbox" checked={Boolean(form.abcBrakes)} onChange={(event) => onUpdate({ abcBrakes: event.target.checked })} disabled={readonly} />
                   <span />
                 </span>
               </label>
@@ -369,8 +341,8 @@ export function VehicleModelTab({
       </section>
 
       <section className="accordion-section">
-        <button type="button" className="accordion-trigger" onClick={() => onToggleSection("details")}>
-          {openSections.details ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        <button type="button" className="accordion-trigger" aria-expanded={openSections.details} onClick={() => onToggleSection("details")}>
+          {openSections.details ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           {t("vehicles.details.title")}
         </button>
         {openSections.details && (
@@ -389,8 +361,8 @@ export function VehicleModelTab({
       </section>
 
       <section className="accordion-section">
-        <button type="button" className="accordion-trigger" onClick={() => onToggleSection("vehicle")}>
-          {openSections.vehicle ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        <button type="button" className="accordion-trigger" aria-expanded={openSections.vehicle} onClick={() => onToggleSection("vehicle")}>
+          {openSections.vehicle ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           {t("vehicles.vehicle.title")}
         </button>
         {openSections.vehicle && (
@@ -404,6 +376,14 @@ export function VehicleModelTab({
             />
           </div>
         )}
+      </section>
+      <section className="accordion-section">
+        <button type="button" className="accordion-trigger" aria-expanded={digitalOpen} onClick={() => setDigitalOpen(!digitalOpen)}>
+          {digitalOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />} {t("vehicles.decoder.digital")}
+          {cvValues.length > 0 && <span className="digital-import-badge"><FileText size={12} aria-hidden="true" />{t("vehicles.decoder.fromCVList")}</span>}
+        </button>
+        {digitalOpen && <div className="accordion-content"><VehicleDigitalFields form={form} values={cvValues}
+          readonly={readonly} update={onUpdate} onOpenCV={onOpenCV} /></div>}
       </section>
     </div>
   );

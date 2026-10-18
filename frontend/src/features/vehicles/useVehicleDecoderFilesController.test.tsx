@@ -62,7 +62,7 @@ describe("useVehicleDecoderFilesController", () => {
     const file = new File(["decoder"], "decoder.esux", { type: "application/octet-stream" });
 
     await act(() => result.current.commands.uploadFiles(fileList(file)));
-    act(() => result.current.commands.previewValuesForImport());
+    await act(() => result.current.commands.previewValuesForImport());
     expect(onImportPreview).toHaveBeenCalledWith(expect.objectContaining({
       fileName: "Decoder-Datei-Vorschau",
       rows: [expect.objectContaining({ input: expect.objectContaining({ cvNumber: 1, value: 3 }) })]

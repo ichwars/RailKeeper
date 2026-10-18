@@ -4,6 +4,7 @@ import { MasterDataEntry, Vehicle, VehicleFunctionInput } from "../../shared/api
 import { FunctionSymbolPicker, functionSymbolIcon, functionSymbolMetadata } from "../../shared/functionSymbols";
 import { useI18n } from "../../shared/i18n";
 import { functionModes } from "./cvImport";
+import { VehicleDecoderMapping } from "./VehicleDecoderMapping";
 import { AppSelect } from "../../shared/ui/AppSelect";
 
 type FunctionEdit = VehicleFunctionInput & { persisted?: boolean };
@@ -80,6 +81,8 @@ export function VehicleFunctionsTab({
           </button>
         </div>
       </div>
+      {selected && <VehicleDecoderMapping values={selected.cvValues || []} readonly={readonly || saving}
+        update={updateFunctionEdit} edit={functionEdit} />}
       {!canEditFunctions && <p className="empty-state compact">{t("vehicles.functions.emptyUntilSave")}</p>}
       {canEditFunctions && (
         <div className="function-list">

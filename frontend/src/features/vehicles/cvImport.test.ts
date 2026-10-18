@@ -58,4 +58,43 @@ describe("CV imports", () => {
     expect(isValidFunctionMapping(mapping)).toBe(true);
     expect(isValidFunctionMapping({ ...mapping, functionKey: "F99" })).toBe(false);
   });
+
+  it("preserves indexed JSON and named CSV columns, including zero indexes", () => {
+    const rows = cvValuesFromImport('cv_number;value;cv31;cv32;description\n257;4;16;3;"A; B"\n257;5;0;0;Zero\n1;3;;;Adresse');
+    expect(rows).toMatchObject([
+      { cvNumber: 257, value: 4, indexCV31: 16, indexCV32: 3, description: "A; B" },
+      { cvNumber: 257, value: 5, indexCV31: 0, indexCV32: 0 },
+      { cvNumber: 1, value: 3, indexCV31: undefined, indexCV32: undefined }
+    ]);
+    expect(cvValuesFromImport(JSON.stringify({ cvValues: rows }))).toEqual(rows);
+    expect(buildCVImportPreview("pages.csv", rows, []).rows.every((row) => row.status === "new")).toBe(true);
+    expect(cvValuesFromImport('[{"cvNumber":1,"value":null}]')[0].value).toBeNaN();
+    expect(cvValuesFromImport('[{"cvNumber":1,"value":3,"sourceFileId":"foreign"}]')[0].sourceFileId).toBe("");
+  });
+
+  it("preserves provenance in JSON/CSV and detects metadata-only changes", () => {
+    const provenance = { sourceLine: 4, sourceExportedAt: "2026-10-17T17:41:59" };
+    const existing = cvValueFixture();
+    const input = { ...existing, ...provenance };
+    expect(cvValuesFromImport(JSON.stringify({ cvValues: [input] }))[0]).toMatchObject(provenance);
+    expect(cvValuesFromImport("CV;Wert;sourceLine;sourceExportedAt\n1;3;4;2026-10-17T17:41:59")[0]).toMatchObject(provenance);
+    expect(cvValuesFromImport("\nCV;Wert\n\n1;3")[0].sourceLine).toBe(4);
+    expect(buildCVImportPreview("data.json", [input], [existing]).rows[0]).toMatchObject({ status: "changed", selected: true, message: "ändert Originalzeile, Exportdatum" });
+    expect(buildCVImportPreview("data.json", [input], [input]).rows[0].status).toBe("same");
+    expect(isValidCVValueInput({ cvNumber: 1, value: 3, sourceLine: 0 })).toBe(false);
+    expect(isValidCVValueInput({ cvNumber: 1, value: 3, sourceExportedAt: "2026-02-30T17:41:59" })).toBe(false);
+    expect(isValidCVValueInput({ cvNumber: 1, value: 3, sourceExportedAt: "2026-10-17T17:41:59Z" })).toBe(false);
+  });
+
+  it("keeps equal CV numbers separate across index pages and rejects incomplete pairs", () => {
+    const existing = cvValueFixture({ cvNumber: 257, indexCV31: 16, indexCV32: 3 });
+    const inputs = [
+      { cvNumber: 257, value: 3, indexCV31: 16, indexCV32: 4, decoderProfile: existing.decoderProfile },
+      { cvNumber: 257, value: 3, indexCV31: 16, decoderProfile: existing.decoderProfile },
+      { cvNumber: 1, value: 3, indexCV31: 16, indexCV32: 0 }
+    ];
+    expect(buildCVImportPreview("pages.json", inputs, [existing]).rows.map((row) => row.status))
+      .toEqual(["new", "invalid", "invalid"]);
+    expect(isValidCVValueInput({ cvNumber: 257, value: 0, indexCV31: 0, indexCV32: 0 })).toBe(true);
+  });
 });

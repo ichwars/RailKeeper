@@ -1,12 +1,13 @@
 import { useMemo, useRef, useState } from "react";
 
-import { api, type Vehicle, type VehicleCVFile } from "../../shared/api";
+import { api, type Vehicle, type VehicleCVFile, type VehicleCVValueInput } from "../../shared/api";
 import {
   buildCVImportPreview,
   isValidFunctionMapping,
   type CVFileUploadPreview,
   type CVImportPreview
 } from "./cvImport";
+import { readCVImportFile } from "./cvFileImport";
 import { isBlockedCVFile } from "./vehicleFiles";
 
 type UseVehicleDecoderFilesControllerOptions = {
@@ -76,26 +77,34 @@ export function useVehicleDecoderFilesController({
     if (suggestion.suggestedDescription) setFileDescription(suggestion.suggestedDescription);
   };
 
-  const previewValuesForImport = () => {
+  const previewValuesForImport = async () => {
     if (!selected || !uploadPreview) return;
-    const values = uploadPreview.previews.flatMap((preview) =>
-      (preview.suggestedCvValues || []).map((value) => ({
-        cvNumber: value.cvNumber,
-        value: value.value,
-        description: value.description || "",
-        category: value.category || "",
-        protocol: value.protocol || "",
-        decoderProfile: preview.suggestedDecoderProfile || fileProfile || preview.decoder || preview.projectName || "",
-        sourceFileId: ""
-      }))
-    );
-    const preview = buildCVImportPreview("Decoder-Datei-Vorschau", values, selected.cvValues || []);
-    if (!preview.rows.some((row) => row.status !== "invalid")) {
-      onMessage("Keine gültigen CV-Werte in der Decoder-Vorschau gefunden.");
-      return;
+    setSaving(true);
+    onMessage("");
+    try {
+      const batches = await Promise.all(uploadPreview.files.map(async (file, index) => {
+        const preview = uploadPreview.previews[index];
+        if (preview.cvImportError) throw new Error(preview.cvImportError);
+        const rows: VehicleCVValueInput[] = /\.(txt|csv|json)$/i.test(file.name) ? await readCVImportFile(file) : preview.suggestedCvValues || [];
+        return rows.map((value) => ({
+          ...value,
+          decoderProfile: fileProfile || value.decoderProfile || preview.suggestedDecoderProfile || preview.decoder || preview.projectName || "",
+          sourceFileId: ""
+        }));
+      }));
+      const values = batches.flat();
+      const preview = buildCVImportPreview("Decoder-Datei-Vorschau", values, selected.cvValues || []);
+      if (!preview.rows.some((row) => row.status !== "invalid")) {
+        onMessage("Keine gültigen CV-Werte in der Decoder-Vorschau gefunden.");
+        return;
+      }
+      onImportPreview({ ...preview, vehicleId: selected.id });
+      onMessage(`${values.length} erkannte CV-Werte für die Prüfung vorbereitet.`);
+    } catch (error) {
+      onMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSaving(false);
     }
-    onImportPreview(preview);
-    onMessage(`${values.length} erkannte CV-Werte für die Prüfung vorbereitet.`);
   };
 
   const applyFunctionSuggestions = () => {

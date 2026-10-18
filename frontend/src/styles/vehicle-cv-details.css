@@ -1,0 +1,60 @@
+/* CV source details follow the approved right-hand panel; the vehicle list stays in place. */
+.cv-detail-layer { position: fixed; inset: 0; z-index: 170; }
+.cv-detail-backdrop { position: absolute; inset: 0; background: rgb(11 30 38 / 40%); }
+.cv-detail-drawer {
+  position: absolute;
+  inset: 0 0 0 auto;
+  box-sizing: border-box;
+  width: min(500px, 100%);
+  padding: var(--space-xl);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: -20px 0 40px rgb(0 0 0 / 8%);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
+}
+.cv-detail-head { display: flex; align-items: start; justify-content: space-between; gap: var(--space-lg); margin-bottom: 20px; }
+.cv-detail-head > div { min-width: 0; }
+.cv-detail-head span { color: var(--muted); font-size: var(--font-size-caption); }
+.cv-detail-head h2 { margin: var(--space-xs) 0 0; font-size: var(--font-size-title-base); line-height: 1.4; overflow-wrap: anywhere; }
+.cv-detail-head button { flex: 0 0 auto; }
+.cv-detail-notice { display: flex; align-items: start; gap: var(--space-md); padding: var(--space-md) var(--space-lg); border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-strong); }
+.cv-detail-notice svg { flex: 0 0 auto; margin-top: 2px; }
+.cv-detail-notice p { margin: 0; font-size: var(--font-size-sm); }
+.cv-detail-values { display: grid; grid-template-columns: 130px minmax(0, 1fr); align-items: start; gap: var(--space-md); margin: 20px 0; }
+.cv-detail-values dt { color: var(--muted); }
+.cv-detail-values dd { margin: 0; overflow-wrap: anywhere; }
+.cv-detail-reading { font-size: var(--font-size-title-lg); font-weight: var(--font-weight-bold); }
+.cv-detail-code { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.cv-detail-bits h3 { font-size: var(--font-size-base); margin: 0 0 var(--space-lg); }
+.cv-detail-bits > div { display: grid; grid-template-columns: 45px minmax(0, 1fr); gap: var(--space-sm); padding: var(--space-sm) var(--space-md); background: var(--panel-subtle); border-radius: var(--radius-xs); margin-bottom: var(--space-sm); }
+.cv-detail-bits strong { font-weight: var(--font-weight-semibold); }
+.cv-detail-description { color: var(--muted); margin-top: var(--space-xl); }
+.cv-detail-description summary { cursor: pointer; }
+.cv-detail-description p { overflow-wrap: anywhere; }
+.cv-detail-footer { border-top: 1px solid var(--line); padding-top: var(--space-lg); }
+.cv-detail-footer p { margin: 0 0 var(--space-xl); color: var(--muted); font-size: var(--font-size-base); line-height: 1.6; }
+.cv-detail-footer button { min-height: 40px; border: 1px solid var(--line); background: var(--panel); box-shadow: none; font-size: var(--font-size-sm); }
+.cv-detail-footer button:hover { background: var(--panel-subtle); }
+.cv-detail-drawer :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cv-additional-readings { margin-top: var(--space-lg); color: var(--muted); }
+.cv-additional-readings summary { padding-block: var(--space-sm); cursor: pointer; font-size: var(--font-size-sm); }
+.cv-additional-readings[open] summary { margin-bottom: var(--space-sm); }
+.cv-source-link:disabled { color: var(--muted); text-decoration: none; cursor: default; }
+@media (max-width: 560px) {
+  .cv-detail-drawer { padding: var(--space-lg); }
+  .cv-detail-head button, .cv-detail-footer button, .cv-additional-readings summary { min-height: 44px; }
+  .cv-detail-head button { min-width: 44px; }
+  .cv-detail-values { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); }
+}
+
+.cv-detail-notice.unassigned { background: var(--info-bg); color: var(--info); }
+@media (min-width: 1440px) {
+  body:has(.cv-detail-layer) .vehicle-edit-modal { transform: translateX(max(-250px, calc(480px - 50vw))); }
+}
+.cv-detail-values dd small { display: block; font-size: var(--font-size-caption); margin-top: var(--space-xs); color: var(--muted); }
+.cv-detail-description dl { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: var(--space-md); }
+.cv-detail-description dd { margin: 0; }

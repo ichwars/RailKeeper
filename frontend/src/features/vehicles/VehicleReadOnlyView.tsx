@@ -1,3 +1,4 @@
+import { VehicleCVValuesTable } from "./VehicleCVValuesTable";
 import { Pencil, Printer, QrCode } from "lucide-react";
 import { Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -278,14 +279,7 @@ export function VehicleReadOnlyView({
           {cvValues.length > 0 && (
             <section className="vehicle-view-section">
               <h3>{t("vehicles.cv.values")}</h3>
-              <div className="vehicle-view-list compact">
-                {cvValues.slice(0, 12).map((item) => (
-                  <article key={item.id}>
-                    <strong>CV {item.cvNumber}</strong>
-                    <span>{[String(item.value), item.category, item.protocol, item.decoderProfile, item.description].filter(Boolean).join(separator)}</span>
-                  </article>
-                ))}
-              </div>
+              <VehicleCVValuesTable values={cvValues} readonly={true} saving={false} edit={() => undefined} remove={() => undefined} />
             </section>
           )}
           {cvFiles.length > 0 && (

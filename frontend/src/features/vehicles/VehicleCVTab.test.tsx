@@ -1,5 +1,5 @@
 import { createRef } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cvValueFixture, vehicleFixture } from "../../test/fixtures/vehicles";
@@ -96,6 +96,21 @@ describe("VehicleCVTab", () => {
     expect(toggleCVImportRow).toHaveBeenCalledWith("cv-1", false);
   });
 
+  it("opens a source in the side panel without inserting raw details into the list", () => {
+    const address = cvValueFixture({ id: "address", cvNumber: 1, value: 3, description: "" });
+    const config = cvValueFixture({ id: "config", cvNumber: 29, value: 14, description: "" });
+    const props = renderTab({ selected: vehicleFixture({ cvValues: [address, config] }) });
+    fireEvent.click(screen.getByRole("button", { name: "CV 1" }));
+    const panel = screen.getByRole("dialog");
+    expect(within(panel).getByText("0x03")).toBeVisible();
+    expect(document.querySelector(".cv-explain-detail")).toBeNull();
+    expect(within(panel).queryByText("Bit 0")).not.toBeInTheDocument();
+    fireEvent.click(within(panel).getByRole("button", { name: "CV-Wert bearbeiten" }));
+    expect(props.editCVValue).toHaveBeenCalledExactlyOnceWith(address);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Alle CV-Werte" })).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("confirms a decoder file from the upload preview", () => {
     const file = new File(["decoder"], "decoder.esux", { type: "application/octet-stream" });
     const uploadPreview: CVFileUploadPreview = {
@@ -122,8 +137,10 @@ describe("VehicleCVTab", () => {
   it("keeps write actions disabled in read-only mode", () => {
     renderTab({ readonly: true });
 
-    expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "CV-Liste importieren" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Alle CV-Werte" }));
+    fireEvent.click(screen.getByText("Einzelnen CV-Wert hinzufügen oder bearbeiten"));
     expect(screen.getByRole("button", { name: "CV hinzufügen" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "CV-Datei hochladen" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Decoderdatei hochladen" })).toBeDisabled();
   });
 });

@@ -1,5 +1,5 @@
-import type { ComponentProps, FormEventHandler } from "react";
-import { X } from "lucide-react";
+import { useLayoutEffect, useRef, type ComponentProps, type FormEventHandler } from "react";
+import { Save, X } from "lucide-react";
 
 import type { Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -79,9 +79,16 @@ export function VehicleEditorDialog({
   articleSearchController
 }: VehicleEditorDialogProps) {
   const { t } = useI18n();
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => { if (bodyRef.current) bodyRef.current.scrollTop = 0; }, [activeTab]);
 
   return (
-    <div className="modal-layer" role={mode === "create" ? undefined : "dialog"}
+    <div className="modal-layer" onKeyDown={(event) => {
+      if (event.key === "Escape" && !event.defaultPrevented && mode !== "create" && !saving) {
+        event.stopPropagation();
+        onClose();
+      }
+    }} role={mode === "create" ? undefined : "dialog"}
       aria-modal={mode === "create" ? undefined : "true"}
       aria-label={mode === "create" ? undefined : t("vehicles.modal.aria")}>
       {mode === "create" ? (
@@ -100,7 +107,7 @@ export function VehicleEditorDialog({
       ) : (
         <form
           key={`${mode}-${selected?.id || "new"}`}
-          className={mode === "view" ? "vehicle-modal vehicle-read-modal-shell" : "vehicle-modal"}
+          className={mode === "view" ? "vehicle-modal vehicle-read-modal-shell" : "vehicle-modal vehicle-edit-modal"}
           onSubmit={onSubmit}
         >
         <header className="modal-head">
@@ -143,7 +150,7 @@ export function VehicleEditorDialog({
               ))}
             </nav>
 
-            <div className="modal-body">
+            <div className="modal-body" ref={bodyRef}>
               {activeTab === "model" && <VehicleModelTab {...tabs.model} />}
               {activeTab === "control" && <VehicleFunctionsTab {...tabs.functions} />}
               {activeTab === "speedCurve" && <VehicleSpeedCurveTab {...tabs.speedCurve} />}
@@ -159,6 +166,7 @@ export function VehicleEditorDialog({
                 {t("vehicles.cancel")}
               </button>
               <button className="primary-button" disabled={saving}>
+                <Save size={16} aria-hidden="true" />
                 {saving
                   ? t("vehicles.saving")
                   : t("vehicles.saveChanges")}

@@ -10,10 +10,11 @@ import {
   buildCVImportPreview,
   commonDecoderProfiles,
   cvValueKey,
-  cvValuesFromImport,
   isValidCVValueInput,
   type CVImportPreview
 } from "./cvImport";
+import { readCVImportFile } from "./cvFileImport";
+import { useI18n } from "../../shared/i18n";
 import { emptyCVForm } from "./vehicleViewModel";
 
 type UseVehicleCVControllerOptions = {
@@ -31,8 +32,10 @@ export function useVehicleCVController({
   onMessage,
   refreshSelectedVehicle
 }: UseVehicleCVControllerOptions) {
+  const { t } = useI18n();
   const [form, setForm] = useState<VehicleCVValueInput>(emptyCVForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [lastImported, setLastImported] = useState(0);
   const [importPreview, setImportPreview] = useState<CVImportPreview | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -50,12 +53,13 @@ export function useVehicleCVController({
   }), [selected, storedDecoderProfiles]);
 
   const importStats = useMemo(() => ({
+    imported: lastImported,
     selected: importPreview?.rows.filter((row) => row.selected && row.status !== "invalid").length || 0,
     new: importPreview?.rows.filter((row) => row.status === "new").length || 0,
     changed: importPreview?.rows.filter((row) => row.status === "changed").length || 0,
     same: importPreview?.rows.filter((row) => row.status === "same").length || 0,
     invalid: importPreview?.rows.filter((row) => row.status === "invalid").length || 0
-  }), [importPreview]);
+  }), [importPreview, lastImported]);
 
   const decoderProfileOptions = useMemo(
     () => Array.from(new Set([...commonDecoderProfiles, ...storedDecoderProfiles])),
@@ -74,17 +78,21 @@ export function useVehicleCVController({
   const reset = () => {
     resetForm();
     setImportPreview(null);
+    setLastImported(0);
   };
 
   const edit = (value: VehicleCVValue) => {
     setForm({
       cvNumber: value.cvNumber,
+      indexCV31: value.indexCV31,
+      indexCV32: value.indexCV32,
       value: value.value,
       description: value.description || "",
       category: value.category || "",
       protocol: value.protocol || "",
       decoderProfile: value.decoderProfile || "",
-      sourceFileId: value.sourceFileId || ""
+      sourceFileId: value.sourceFileId || "",
+      sourceLine: value.sourceLine, sourceExportedAt: value.sourceExportedAt
     });
     setEditingId(value.id);
   };
@@ -93,7 +101,8 @@ export function useVehicleCVController({
     if (!selected) return;
     const payload = { ...form, cvNumber: Number(form.cvNumber), value: Number(form.value) };
     if (!isValidCVValueInput(payload)) {
-      onMessage("CV-Nummer muss 1-1024 und Wert 0-255 sein.");
+      onMessage(payload.indexCV31 != null || payload.indexCV32 != null
+        ? t("vehicles.cv.indexInvalid") : "CV-Nummer muss 1-1024 und Wert 0-255 sein.");
       return;
     }
     setSaving(true);
@@ -140,15 +149,20 @@ export function useVehicleCVController({
   const importValues = async (files: FileList | null) => {
     if (!selected || !files || files.length === 0) return;
     const [file] = Array.from(files);
+    setLastImported(0);
+    setImportPreview(null);
     setSaving(true);
     onMessage("");
     try {
-      const values = cvValuesFromImport(await file.text());
+      const values = (await readCVImportFile(file)).map((value) => ({ ...value,
+        decoderProfile: form.decoderProfile || value.decoderProfile || "",
+        sourceFileId: form.sourceFileId || ""
+      }));
       const preview = buildCVImportPreview(file.name, values, selected.cvValues || []);
       if (!preview.rows.some((row) => row.status !== "invalid")) {
         throw new Error("Keine gültigen CV-Werte gefunden.");
       }
-      setImportPreview(preview);
+      setImportPreview({ ...preview, vehicleId: selected.id });
     } catch (error) {
       onMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -175,7 +189,7 @@ export function useVehicleCVController({
   };
 
   const applyImportPreview = () => {
-    if (!selected || !importPreview) return;
+    if (!selected || !importPreview || (importPreview.vehicleId && importPreview.vehicleId !== selected.id)) return;
     const rows = importPreview.rows.filter((row) => row.selected && row.status !== "invalid");
     if (rows.length === 0) {
       onMessage("Keine CV-Werte für den Import ausgewählt.");
@@ -183,16 +197,12 @@ export function useVehicleCVController({
     }
     setSaving(true);
     onMessage("");
-    (async () => {
-      for (const row of rows) {
-        if (row.existing) await api.updateVehicleCVValue(selected.id, row.existing.id, row.input);
-        else await api.createVehicleCVValue(selected.id, row.input);
-      }
-    })()
+    api.importVehicleCVValues(selected.id, rows.map((row) => row.input))
       .then(() => refreshSelectedVehicle(selected.id))
       .then(() => {
         setImportPreview(null);
-        onMessage(`${rows.length} CV-Wert${rows.length === 1 ? "" : "e"} übernommen.`);
+        setLastImported(rows.length);
+        onMessage("");
       })
       .catch((error: Error) => onMessage(error.message))
       .finally(() => setSaving(false));

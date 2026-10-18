@@ -1,3 +1,4 @@
+import { validCVExportTimestamp } from "./cvProvenance";
 import { VehicleCVFilePreview, VehicleCVValue, VehicleCVValueInput, VehicleFunctionInput } from "../../shared/api";
 
 export type FunctionMappingImport = VehicleFunctionInput & { functionKey: string };
@@ -12,6 +13,7 @@ export type CVImportRow = {
 };
 export type CVImportPreview = {
   fileName: string;
+  vehicleId?: string;
   rows: CVImportRow[];
 };
 export type CVFileUploadPreview = {
@@ -26,40 +28,7 @@ export const commonDecoderProfiles = ["ESU LokPilot 5", "ESU LokSound 5", "Zimo 
 export const cvCategories = ["Adresse", "Fahrverhalten", "Motor", "Licht", "Sound", "Funktion", "Decoder", "Sonstiges"];
 export const cvProtocols = ["Motorola 14", "Motorola 27", "Motorola 28", "Motorola FX 14", "DCC 14", "DCC 28", "DCC 128", "LGB", "Selectrix"];
 
-export function cvValuesFromImport(text: string): VehicleCVValueInput[] {
-  const trimmed = text.trim();
-  if (!trimmed) return [];
-  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-    const parsed = JSON.parse(trimmed);
-    const rows = Array.isArray(parsed) ? parsed : parsed.cvValues || [];
-    return rows.map((row: Partial<VehicleCVValueInput>) => ({
-      cvNumber: Number(row.cvNumber),
-      value: Number(row.value),
-      description: String(row.description || ""),
-      category: String(row.category || ""),
-      protocol: String(row.protocol || ""),
-      decoderProfile: String(row.decoderProfile || ""),
-      sourceFileId: String(row.sourceFileId || "")
-    }));
-  }
-  return trimmed
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .filter((line) => !line.toLocaleLowerCase("de-DE").startsWith("cv"))
-    .map((line) => {
-      const [cvNumber, value, description = "", category = "", decoderProfile = ""] = line.split(/[;,]/).map((part) => part.trim());
-      return {
-        cvNumber: Number(cvNumber),
-        value: Number(value),
-        description,
-        category,
-        protocol: "",
-        decoderProfile,
-        sourceFileId: ""
-      };
-    });
-}
+export { cvValuesFromImport } from "./cvFileImport";
 
 export function functionMappingsFromImport(text: string): FunctionMappingImport[] {
   const trimmed = text.trim();
@@ -83,8 +52,8 @@ export function isValidFunctionMapping(value: FunctionMappingImport) {
     functionModes.includes(value.mode || "dauer");
 }
 
-export function cvValueKey(value: Pick<VehicleCVValueInput, "cvNumber" | "decoderProfile">) {
-  return `${Number(value.cvNumber)}::${(value.decoderProfile || "").trim().toLocaleLowerCase("de-DE")}`;
+export function cvValueKey(value: Pick<VehicleCVValueInput, "cvNumber" | "decoderProfile" | "indexCV31" | "indexCV32">) {
+  return `${Number(value.cvNumber)}::${(value.decoderProfile || "").trim()}::${value.indexCV31 ?? "base"}::${value.indexCV32 ?? "base"}`;
 }
 
 function normalizeCVText(value?: string) {
@@ -98,6 +67,8 @@ function cvImportChanges(existing: VehicleCVValue, input: VehicleCVValueInput) {
   if (normalizeCVText(existing.category) !== normalizeCVText(input.category)) changes.push("Kategorie");
   if (normalizeCVText(existing.protocol) !== normalizeCVText(input.protocol)) changes.push("Protokoll");
   if (normalizeCVText(existing.sourceFileId) !== normalizeCVText(input.sourceFileId)) changes.push("Quelldatei");
+  if (input.sourceLine != null && existing.sourceLine !== input.sourceLine) changes.push("Originalzeile");
+  if (input.sourceExportedAt && existing.sourceExportedAt !== input.sourceExportedAt) changes.push("Exportdatum");
   return changes;
 }
 
@@ -159,7 +130,13 @@ export function buildCVImportPreview(fileName: string, values: VehicleCVValueInp
 }
 
 export function isValidCVValueInput(value: VehicleCVValueInput) {
-  return Number.isInteger(Number(value.cvNumber)) &&
+  const hasIndex = value.indexCV31 != null || value.indexCV32 != null;
+  const validIndex = !hasIndex || (value.indexCV31 != null && value.indexCV32 != null &&
+    [value.indexCV31, value.indexCV32].every((index) => Number.isInteger(index) && index >= 0 && index <= 255) &&
+    value.cvNumber >= 257 && value.cvNumber <= 512);
+  const validSource = (value.sourceLine == null || (Number.isInteger(value.sourceLine) && value.sourceLine >= 1 && value.sourceLine <= 10000000))
+    && validCVExportTimestamp(value.sourceExportedAt);
+  return validSource && validIndex && Number.isInteger(Number(value.cvNumber)) &&
     Number(value.cvNumber) >= 1 &&
     Number(value.cvNumber) <= 1024 &&
     Number.isInteger(Number(value.value)) &&

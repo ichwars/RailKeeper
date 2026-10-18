@@ -670,7 +670,7 @@
 }
 
 .speed-point-list.compact {
-  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
 }
 
 .speed-point-list span {
@@ -688,12 +688,14 @@
 
 .speed-point-list strong {
   font-size: var(--font-size-sm);
+  white-space: nowrap;
 }
 
 .speed-point-list em {
   color: var(--accent-strong);
   font-style: normal;
   font-weight: var(--font-weight-heavy);
+  font-variant-numeric: tabular-nums;
 }
 
 .speed-missing {

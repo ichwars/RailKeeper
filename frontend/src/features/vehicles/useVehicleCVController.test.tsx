@@ -54,7 +54,7 @@ describe("useVehicleCVController", () => {
   });
 
   it("previews an import and applies selected new rows", async () => {
-    vi.spyOn(api, "createVehicleCVValue").mockResolvedValue(cvValueFixture({ id: "cv-2", cvNumber: 2 }));
+    vi.spyOn(api, "importVehicleCVValues").mockResolvedValue({ imported: 1 });
     const { result, refreshSelectedVehicle } = renderController();
     const file = new File(["CV;Wert;Beschreibung\n2;7;Startspannung"], "decoder.csv", { type: "text/csv" });
 
@@ -63,11 +63,27 @@ describe("useVehicleCVController", () => {
     expect(result.current.state.importStats).toMatchObject({ selected: 1, new: 1 });
 
     act(() => result.current.commands.applyImportPreview());
-    await waitFor(() => expect(api.createVehicleCVValue).toHaveBeenCalledWith(
+    await waitFor(() => expect(api.importVehicleCVValues).toHaveBeenCalledWith(
       "vehicle-1",
-      expect.objectContaining({ cvNumber: 2, value: 7 })
+      [expect.objectContaining({ cvNumber: 2, value: 7 })]
     ));
     expect(refreshSelectedVehicle).toHaveBeenCalledWith("vehicle-1");
     await waitFor(() => expect(result.current.state.importPreview).toBeNull());
   });
+  it("previews a full LokProgrammer export and sends one atomic request", async () => {
+    const values = Array.from({ length: 1367 }, (_, i) => ({ cvNumber: 257 + i % 256,
+      value: i % 256, indexCV31: 16, indexCV32: Math.floor(i / 256) }));
+    vi.spyOn(api, "previewVehicleCVFile").mockResolvedValue({ fileName: "full.txt", sizeBytes: 20000,
+      mimeType: "text/plain", hasMetadata: false, suggestedDecoderProfile: "LokPilot 5 micro DCC",
+      suggestedCvValues: values });
+    vi.spyOn(api, "importVehicleCVValues").mockResolvedValue({ imported: 1367 });
+    const { result } = renderController();
+    await act(() => result.current.commands.importValues(fileList(new File(["Decoder: LokPilot 5 micro DCC\nCV 1 = 3"], "full.txt"))));
+    expect(result.current.state.importStats).toMatchObject({ new: 1367, selected: 1367, invalid: 0 });
+    act(() => result.current.commands.applyImportPreview());
+    await waitFor(() => expect(api.importVehicleCVValues).toHaveBeenCalledOnce());
+    expect(vi.mocked(api.importVehicleCVValues).mock.calls[0][1]).toHaveLength(1367);
+    await waitFor(() => expect(result.current.state.importPreview).toBeNull());
+  });
+
 });
