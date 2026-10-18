@@ -10,8 +10,9 @@ import { cvValueInfo } from "./cvValueInfo";
 import { formatCVExportTimestamp } from "./cvProvenance";
 import { formatDateTime } from "./vehicleFormat";
 
-export function VehicleCVDetails({ value, values, files, readonly, saving, onClose, onEdit }: {
+export function VehicleCVDetails({ value, values, files, sourceLabel, readonly, saving, onClose, onEdit }: {
   value: VehicleCVValue; values: VehicleCVValue[]; files: VehicleCVFile[];
+  sourceLabel?: string;
   readonly: boolean; saving: boolean; onClose: () => void; onEdit: (value: VehicleCVValue) => void;
 }) {
   const { language, t } = useI18n();
@@ -39,7 +40,7 @@ export function VehicleCVDetails({ value, values, files, readonly, saving, onClo
           <dt>{t("vehicles.decoder.binary")}</dt><dd className="cv-detail-code">{value.value.toString(2).padStart(8, "0")}</dd>
           <dt>{t("vehicles.cv.index")}</dt><dd>{cvIndexLabel(value, t("vehicles.cv.base"))}</dd>
           <dt>{t("vehicle.field.decoderProfile")}</dt><dd>{value.decoderProfile || t("vehicles.cv.noProfile")}</dd>
-          <dt>{t("vehicles.decoder.source")}</dt><dd>{source?.originalName || t(value.sourceExportedAt || value.sourceLine != null ? "vehicles.decoder.importedSource" : "vehicles.decoder.sourceUnlinked")}
+          <dt>{t("vehicles.decoder.source")}</dt><dd>{source?.originalName || sourceLabel || t(value.sourceExportedAt || value.sourceLine != null ? "vehicles.decoder.importedSource" : "vehicles.decoder.sourceUnlinked")}
             <small>{t("vehicles.decoder.sourceLine")}: <span>{value.sourceLine ?? t("vehicles.decoder.notRecorded")}</span></small>
             <small>{t("vehicles.decoder.exportedAt")}: <span>{value.sourceExportedAt
               ? formatCVExportTimestamp(value.sourceExportedAt, language) : t("vehicles.decoder.notRecorded")}</span></small></dd>

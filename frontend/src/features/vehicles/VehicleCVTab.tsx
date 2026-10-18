@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Check, CircleHelp, Database, Download, FileCode, FileText, FolderOpen, Save, Trash2, Upload } from "lucide-react";
 import { DecoderProfileStrip } from "./DecoderProfileStrip";
 import { useDecoderProfile } from "./DecoderProfileSelect";
@@ -100,7 +100,17 @@ export function VehicleCVTab({
   const sectionRef = useRef<HTMLElement>(null);
   const editorRef = useRef<HTMLDetailsElement>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const detailValue = selected?.cvValues?.find(value => value.id === detailId);
+  const values = useMemo<VehicleCVValue[]>(() => {
+    if (selected) return selected.cvValues || [];
+    if (!ecosDraft) return [];
+    return ecosDraft.cvValues.map((value, index) => ({ ...value,
+      id: `draft-cv:${ecosDraft.sourceSummary.objectId}:${index}`,
+      vehicleId: "", createdAt: "", updatedAt: ""
+    }));
+  }, [selected, ecosDraft]);
+  const detailValue = values.find(value => value.id === detailId);
+  const draftSource = !selected && ecosDraft
+    ? `${ecosDraft.sourceSummary.name} · #${ecosDraft.sourceSummary.objectId}` : undefined;
   useEffect(() => {
     if (view === "raw" && editingCVID && editorRef.current) {
       editorRef.current.scrollIntoView({ block: "start" });
@@ -112,7 +122,7 @@ export function VehicleCVTab({
     if (body) body.scrollTop = 0;
   }, [view]);
   const activeView = view;
-  const decoder = useDecoderProfile(selected?.cvValues || []);
+  const decoder = useDecoderProfile(values);
   const viewIcons = { explained: CircleHelp, raw: Database, files: FolderOpen };
   return <section className="cv-tab" ref={sectionRef}>
     <div className="cv-entry-actions"><h3>{t("vehicles.decoder.dataTitle")}</h3><div className="cv-toolbar">
@@ -126,8 +136,11 @@ export function VehicleCVTab({
         <FileText size={15} />{t("vehicles.decoder.uploadProject")}</button>
 
     </div></div>
-    {!selected && <p className="empty-state compact">{t("vehicles.cv.emptyUntilSave")}</p>}
-    {!selected && ecosDraft && <p>{t("vehicles.ecosDraft.cvPreviewSubtitle", { count: ecosDraft.cvValues.length })}</p>}
+    {!selected && !ecosDraft && <p className="empty-state compact">{t("vehicles.cv.emptyUntilSave")}</p>}
+    {!selected && ecosDraft && <div className="ecos-draft-cv-preview">
+      <p>{t("vehicles.ecosDraft.cvPreviewSubtitle", { count: ecosDraft.cvValues.length })}</p>
+      <p>{t("vehicles.ecosDraft.mappingPreviewTitle")}: {draftSource}</p>
+    </div>}
     {!!cvImportStats.imported && <p className="cv-import-success" role="status">{t("vehicles.cv.imported", { count: cvImportStats.imported })}</p>}
                         {cvImportPreview && (
                           <section className="cv-import-preview" aria-label={t("vehicles.cv.importPreview")}>
@@ -169,14 +182,14 @@ export function VehicleCVTab({
     <nav className="cv-subtabs" aria-label={t("vehicles.decoder.cvViews")}>
       {(["explained", "raw", "files"] as const).map((tab) => { const Icon = viewIcons[tab]; return <button type="button" key={tab}
         className={activeView === tab ? "active" : ""} aria-pressed={activeView === tab} onClick={() => setView(tab)}>
-        <Icon size={16} aria-hidden="true" />{t(`vehicles.decoder.view.${tab}`)}{tab === "raw" && <span className="cv-tab-count" aria-hidden="true">{selected?.cvValues?.length || 0}</span>}</button>; })}
+        <Icon size={16} aria-hidden="true" />{t(`vehicles.decoder.view.${tab}`)}{tab === "raw" && <span className="cv-tab-count" aria-hidden="true">{values.length}</span>}</button>; })}
     </nav>
-    {activeView === "explained" && <VehicleCVExplained key={decoder.profile} analysis={decoder.analysis} values={selected?.cvValues || []} onOpenValue={value => setDetailId(value.id)} />}
-    {activeView === "raw" && selected && <section className="cv-table-section">
+    {activeView === "explained" && <VehicleCVExplained key={decoder.profile} analysis={decoder.analysis} values={values} onOpenValue={value => setDetailId(value.id)} />}
+    {activeView === "raw" && (selected || ecosDraft) && <section className="cv-table-section">
       <div className="cv-section-heading"><div><h3>{t("vehicles.decoder.view.raw")}</h3><p>{t("vehicles.decoder.rawIntro")}</p></div>
-        <button type="button" className="secondary-button" onClick={exportCVValues} disabled={!selected.cvValues?.length}>
+        <button type="button" className="secondary-button" onClick={exportCVValues} disabled={!selected?.cvValues?.length}>
           <Download size={15} aria-hidden="true" />{t("vehicles.decoder.exportValues")}</button></div>
-      <details ref={editorRef} className="cv-manual-editor" open={editingCVID ? true : undefined}><summary>{t("vehicles.decoder.manualCV")}</summary>
+      {selected && <details ref={editorRef} className="cv-manual-editor" open={editingCVID ? true : undefined}><summary>{t("vehicles.decoder.manualCV")}</summary>
                         <div className="cv-form">
                           <label>
                             CV-Nr.
@@ -245,8 +258,8 @@ export function VehicleCVTab({
                           </button>
                         </div>
 
-      </details>
-      <VehicleCVValuesTable values={selected.cvValues || []} readonly={readonly} saving={saving} edit={editCVValue} remove={deleteCVValue} onExplain={value => setDetailId(value.id)} />
+      </details>}
+      <VehicleCVValuesTable values={values} readonly={readonly || !selected} saving={saving} edit={editCVValue} remove={deleteCVValue} onExplain={value => setDetailId(value.id)} />
     </section>}
     <div hidden={activeView !== "files"} className="cv-files-view">
       <div className="cv-section-heading"><div><h3>{t("vehicles.decoder.view.files")}</h3><p>{t("vehicles.decoder.filesIntro")}</p></div></div>
@@ -375,8 +388,8 @@ export function VehicleCVTab({
                   </section>
 
     </div>
-    {detailValue && <VehicleCVDetails value={detailValue} values={selected?.cvValues || []} files={selected?.cvFiles || []}
-      readonly={readonly} saving={saving} onClose={() => setDetailId(null)}
-      onEdit={value => { setDetailId(null); setView("raw"); editCVValue(value); }} />}
+    {detailValue && <VehicleCVDetails value={detailValue} values={values} files={selected?.cvFiles || []}
+      sourceLabel={draftSource} readonly={readonly || !selected} saving={saving} onClose={() => setDetailId(null)}
+      onEdit={value => { if (!selected) return; setDetailId(null); setView("raw"); editCVValue(value); }} />}
   </section>;
 }
