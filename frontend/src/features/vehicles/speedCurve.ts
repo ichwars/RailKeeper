@@ -32,7 +32,7 @@ const threePointCVs = [2, 6, 5];
 function groupKey(value: SpeedCurveCVSource) {
   const decoderProfile = (value.decoderProfile || "").trim();
   const protocol = (value.protocol || "").trim();
-  return `${decoderProfile.toLocaleLowerCase("de-DE")}::${protocol.toLocaleLowerCase("de-DE")}`;
+  return `${decoderProfile}::${protocol.toLocaleLowerCase("de-DE")}`;
 }
 
 function groupLabel(decoderProfile: string, protocol: string, fallbackLabel: string) {

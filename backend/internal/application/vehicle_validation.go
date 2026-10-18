@@ -281,17 +281,29 @@ func cleanVehicleCVValueInput(input VehicleCVValueInput) VehicleCVValueInput {
 	input.Protocol = strings.TrimSpace(input.Protocol)
 	input.DecoderProfile = strings.TrimSpace(input.DecoderProfile)
 	input.SourceFileID = strings.TrimSpace(input.SourceFileID)
+	input.SourceExportedAt = strings.TrimSpace(input.SourceExportedAt)
 	return input
 }
 
 func isValidVehicleCVValueInput(input VehicleCVValueInput) bool {
-	return validCVNumber(input.CVNumber) &&
+	return validCVNumber(input.CVNumber) && validCVIndex(input) &&
+		(input.SourceLine == nil || (*input.SourceLine >= 1 && *input.SourceLine <= 10000000)) &&
+		validCVExportTimestamp(input.SourceExportedAt) &&
 		validCVValue(input.Value) &&
 		len(input.Description) <= 1000 &&
 		len(input.Category) <= 80 &&
 		len(input.Protocol) <= 80 &&
 		len(input.DecoderProfile) <= 160 &&
 		len(input.SourceFileID) <= 80
+}
+
+// LokProgrammer exports wall-clock time without a timezone. Do not invent an offset.
+func validCVExportTimestamp(value string) bool {
+	if value == "" {
+		return true
+	}
+	parsed, err := time.Parse("2006-01-02T15:04:05", value)
+	return err == nil && parsed.Year() >= 1 && parsed.Format("2006-01-02T15:04:05") == value
 }
 
 func cleanVehicleCVFileInput(input VehicleCVFileInput) VehicleCVFileInput {
@@ -340,4 +352,12 @@ func validCVNumber(value int) bool {
 
 func validCVValue(value int) bool {
 	return value >= 0 && value <= 255
+}
+
+func validCVIndex(input VehicleCVValueInput) bool {
+	if input.IndexCV31 == nil && input.IndexCV32 == nil {
+		return true
+	}
+	return input.IndexCV31 != nil && input.IndexCV32 != nil &&
+		validCVValue(*input.IndexCV31) && validCVValue(*input.IndexCV32) && input.CVNumber >= 257 && input.CVNumber <= 512
 }

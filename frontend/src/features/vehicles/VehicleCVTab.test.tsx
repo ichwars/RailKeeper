@@ -1,5 +1,5 @@
 import { createRef } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cvValueFixture, vehicleFixture } from "../../test/fixtures/vehicles";
@@ -96,6 +96,21 @@ describe("VehicleCVTab", () => {
     expect(toggleCVImportRow).toHaveBeenCalledWith("cv-1", false);
   });
 
+  it("opens a source in the side panel without inserting raw details into the list", () => {
+    const address = cvValueFixture({ id: "address", cvNumber: 1, value: 3, description: "" });
+    const config = cvValueFixture({ id: "config", cvNumber: 29, value: 14, description: "" });
+    const props = renderTab({ selected: vehicleFixture({ cvValues: [address, config] }) });
+    fireEvent.click(screen.getByRole("button", { name: "CV 1" }));
+    const panel = screen.getByRole("dialog");
+    expect(within(panel).getByText("0x03")).toBeVisible();
+    expect(document.querySelector(".cv-explain-detail")).toBeNull();
+    expect(within(panel).queryByText("Bit 0")).not.toBeInTheDocument();
+    fireEvent.click(within(panel).getByRole("button", { name: "CV-Wert bearbeiten" }));
+    expect(props.editCVValue).toHaveBeenCalledExactlyOnceWith(address);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Alle CV-Werte" })).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("confirms a decoder file from the upload preview", () => {
     const file = new File(["decoder"], "decoder.esux", { type: "application/octet-stream" });
     const uploadPreview: CVFileUploadPreview = {
@@ -119,11 +134,63 @@ describe("VehicleCVTab", () => {
     expect(confirmCVFileUpload).toHaveBeenCalledOnce();
   });
 
+  it("shows unsaved ECoS CVs in explained, raw and detail views without enabling writes", () => {
+    const ecosDraft = {
+      sourceSummary: { name: "Test-Zentrale", objectId: 42 },
+      cvValues: [
+        { cvNumber: 1, value: 17, decoderProfile: "ECoS DCC", description: "Importvorschau" },
+        { cvNumber: 29, value: 2, decoderProfile: "ECoS DCC" },
+        { cvNumber: 257, value: 91, indexCV31: 16, indexCV32: 3, decoderProfile: "ECoS DCC" }
+      ]
+    };
+    const original = structuredClone(ecosDraft);
+    const props = renderTab({ selected: null, ecosDraft });
+    expect(screen.getByText("ECoS DCC")).toBeVisible();
+    expect(screen.getByText(/3 CV-Werte werden beim Speichern/)).toBeVisible();
+    expect(screen.getByText(/Test-Zentrale · #42/)).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "CV 1" }));
+    const panel = within(screen.getByRole("dialog"));
+    expect(panel.getByText("17", { exact: true })).toBeVisible();
+    expect(panel.getByText("Test-Zentrale · #42", { exact: true })).toBeVisible();
+    expect(panel.getByRole("button", { name: "CV-Wert bearbeiten" })).toBeDisabled();
+    fireEvent.click(panel.getByRole("button", { name: "Details schließen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Alle CV-Werte" }));
+    const rows = document.querySelectorAll<HTMLTableRowElement>(".cv-values-table tbody tr");
+    expect(rows).toHaveLength(3);
+    expect(within(rows[0]).getByText("17", { exact: true })).toBeVisible();
+    expect(rows[0]).toHaveTextContent("Importvorschau");
+    expect(rows[2]).toHaveTextContent("CV31=16 / CV32=3");
+    for (const button of screen.getAllByRole("button", { name: /CV bearbeiten|CV löschen/ })) {
+      expect(button).toBeDisabled();
+    }
+    expect(screen.queryByText("Einzelnen CV-Wert hinzufügen oder bearbeiten")).not.toBeInTheDocument();
+    for (const name of ["CV-Liste importieren", "Decoderdatei hochladen", "CV-Werte exportieren"]) {
+      expect(screen.getByRole("button", { name })).toBeDisabled();
+    }
+    expect(props.editCVValue).not.toHaveBeenCalled();
+    expect(props.deleteCVValue).not.toHaveBeenCalled();
+    expect(props.saveCVValue).not.toHaveBeenCalled();
+    expect(ecosDraft).toEqual(original);
+  });
+
+  it("keeps a saved vehicle separate from a simultaneous draft", () => {
+    renderTab({ selected: vehicleFixture({ cvValues: [] }), ecosDraft: {
+      sourceSummary: { name: "Test-Zentrale", objectId: 42 },
+      cvValues: [{ cvNumber: 1, value: 17, decoderProfile: "ECoS DCC" }]
+    } });
+    expect(screen.queryByText("ECoS DCC")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Alle CV-Werte" }));
+    expect(document.querySelectorAll(".cv-values-table tbody tr")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "CV-Werte exportieren" })).toBeDisabled();
+  });
+
   it("keeps write actions disabled in read-only mode", () => {
     renderTab({ readonly: true });
 
-    expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "CV-Liste importieren" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Alle CV-Werte" }));
+    fireEvent.click(screen.getByText("Einzelnen CV-Wert hinzufügen oder bearbeiten"));
     expect(screen.getByRole("button", { name: "CV hinzufügen" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "CV-Datei hochladen" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Decoderdatei hochladen" })).toBeDisabled();
   });
 });

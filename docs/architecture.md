@@ -66,12 +66,31 @@ Node.js is only used to build the frontend.
 - Z21 locomotive reads are targeted status polls for decoder addresses already known to RailKeeper, not a
   roster import. Only the confirmed address enters the comparison workspace; driving and function state is
   discarded. See `docs/architecture/z21-read-scope.md` for protocol evidence, bounds, and hardware gaps.
+- Decoder CV identity is vehicle + exact trimmed decoder profile + CV number + optional CV31/CV32 pair.
+  Unindexed values and zero index pages remain distinct. Reviewed CV selections commit atomically.
+- Maintainer tests can use `RAILKEEPER_CV_FIXTURE` to read a local LokProgrammer TXT export instead
+  of the synthetic full-list fixture. This optional test setting is not runtime configuration;
+  private exports stay outside version control.
 - SQLite remains the default database because it keeps local installation, backup, and restore simple.
 - Attachments are stored on the filesystem below the configured data directory; metadata stays in SQLite.
-- Backup version 20 covers vehicle sets and their main-image assignments, vehicles, accessories, storage,
+- CV provenance stores the physical source line and source export wall-clock timestamp without an inferred timezone. Missing provenance on edits/imports preserves existing metadata. Legacy records remain unknown until matched to an original source.
+- Backup version 22 preserves CV provenance and indexed CV identities and covers vehicle sets and their main-image assignments, vehicles, accessories, storage,
   layouts, plan revisions, setups, reservations, installations, exhibitions, transfer profiles, conflict
   exceptions, and uploads. Older supported versions remain importable; tables introduced later are
   restored empty. Restore defers foreign-key checks inside its transaction so self-references can be
   replaced atomically and are still validated at commit.
 - Backup and restore intentionally exclude local authentication and installation data such as users,
   roles, sessions, password hashes, audit logs, SMTP settings, and user UI settings.
+
+
+### Gemeinsame Typografie und Decoderanzeige
+
+Die Oberfläche bevorzugt wie der bestätigte Entwurf Segoe UI. Für Systeme ohne diese Schrift
+wird Microsoft Selawik lokal als `RailKeeper Sans` gebündelt (OFL-Lizenz unter
+`frontend/public/fonts/`, Quelle: https://github.com/microsoft/Selawik). Schriftgrößen, Gewichte und Abstände bleiben über die gemeinsamen
+Design-Tokens steuerbar; externe Schriftanbieter sind nicht erforderlich. Der Fahrzeugdialog
+behält seine Popup-Struktur und ergänzt unter Modell den Bereich Digital. Die Auswertung in
+`decoderAnalysis.ts` trennt Decoderprofile, Basis-CVs und Indexseiten. Herstellerspezifische
+Brems- und Mappingdeutungen benötigen die verifizierte ESU-Kennung und ein LokPilot-5-Profil.
+Abgeleitete Anzeigen ersetzen keine Live-Abfrage und überschreiben keine Fahrzeug- oder
+Funktionsangaben ohne ausdrückliche Übernahme im Formular.

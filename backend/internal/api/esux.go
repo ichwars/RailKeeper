@@ -41,16 +41,23 @@ type vehicleCVFilePreviewResponse struct {
 	LokProgrammer           string                   `json:"lokProgrammer,omitempty"`
 	SuggestedDecoderProfile string                   `json:"suggestedDecoderProfile,omitempty"`
 	SuggestedDescription    string                   `json:"suggestedDescription,omitempty"`
+	CVImportError           string                   `json:"cvImportError,omitempty"`
 	SuggestedCVValues       []cvValuePreview         `json:"suggestedCvValues,omitempty"`
 	SuggestedFunctions      []functionMappingPreview `json:"suggestedFunctions,omitempty"`
 	SuggestedPreviewImage   *decoderPreviewImage     `json:"suggestedPreviewImage,omitempty"`
 }
 
 type cvValuePreview struct {
-	CVNumber    int    `json:"cvNumber"`
-	Value       int    `json:"value"`
-	Description string `json:"description,omitempty"`
-	Category    string `json:"category,omitempty"`
+	SourceLine       *int   `json:"sourceLine,omitempty"`
+	SourceExportedAt string `json:"sourceExportedAt,omitempty"`
+	DecoderProfile   string `json:"decoderProfile,omitempty"`
+	Protocol         string `json:"protocol,omitempty"`
+	IndexCV31        *int   `json:"indexCV31,omitempty"`
+	IndexCV32        *int   `json:"indexCV32,omitempty"`
+	CVNumber         int    `json:"cvNumber"`
+	Value            int    `json:"value"`
+	Description      string `json:"description,omitempty"`
+	Category         string `json:"category,omitempty"`
 }
 
 type functionMappingPreview struct {
@@ -100,6 +107,13 @@ func parseESUXMetadata(filename string, data []byte) (*esuxMetadata, error) {
 func applyESUXMetadata(filename string, data []byte, decoderProfile string, description string) (string, string) {
 	metadata, err := parseESUXMetadata(filename, data)
 	if err != nil {
+		if strings.TrimSpace(decoderProfile) == "" {
+			if text, ok := decoderPreviewText(filename, data); ok {
+				if _, profile, recognized, parseErr := parseLokProgrammerCVList(text); recognized && parseErr == nil {
+					decoderProfile = profile
+				}
+			}
+		}
 		return decoderProfile, description
 	}
 	if strings.TrimSpace(decoderProfile) == "" {
@@ -118,6 +132,25 @@ func esuxPreviewResponse(filename string, sizeBytes int64, mimeType string, data
 		MimeType:  mimeType,
 	}
 	response.SuggestedCVValues = previewCVValues(filename, data)
+	if text, ok := decoderPreviewText(filename, data); ok {
+		if rows, profile, recognized, err := parseLokProgrammerCVList(text); recognized {
+			response.SuggestedCVValues = rows
+			response.SuggestedDecoderProfile = profile
+			if err != nil {
+				response.CVImportError = err.Error()
+			} else if profile != "" {
+				response.HasMetadata = true
+				response.Decoder = profile
+			}
+		}
+	}
+	if strings.EqualFold(filepath.Ext(filename), ".json") && len(data) <= 2*1024*1024 {
+		rows, err := previewCVJSON(data)
+		response.SuggestedCVValues = rows
+		if err != nil {
+			response.CVImportError = err.Error()
+		}
+	}
 	response.SuggestedFunctions = previewFunctionMappings(filename, data)
 	response.SuggestedPreviewImage = previewDecoderImage(filename, data)
 	metadata, err := parseESUXMetadata(filename, data)
@@ -395,7 +428,7 @@ func previewCVValuesTable(text string) []cvValuePreview {
 			continue
 		}
 		rows = append(rows, cvValuePreview{CVNumber: cvNumber, Value: value})
-		if len(rows) >= maxDecoderPreviewRows {
+		if len(rows) >= maxDecoderCVImportRows {
 			break
 		}
 	}
@@ -412,6 +445,10 @@ func cvValuesFromRecords(records [][]string) []cvValuePreview {
 	valueIndex := firstHeaderIndex(header, "value", "wert", "cvvalue")
 	descriptionIndex := firstHeaderIndex(header, "description", "beschreibung", "name", "bezeichnung")
 	categoryIndex := firstHeaderIndex(header, "category", "kategorie")
+	highIndex := firstHeaderIndex(header, "indexcv31", "cv31")
+	lowIndex := firstHeaderIndex(header, "indexcv32", "cv32")
+	sourceLineIndex := firstHeaderIndex(header, "sourceline", "originalzeile")
+	exportIndex := firstHeaderIndex(header, "sourceexportedat", "exportdatum")
 	if cvIndex < 0 || valueIndex < 0 {
 		start = 0
 		cvIndex = 0
@@ -427,13 +464,38 @@ func cvValuesFromRecords(records [][]string) []cvValuePreview {
 		if !cvOK || !valueOK {
 			continue
 		}
+		var high, low *int
+		if text := cell(record, highIndex); text != "" {
+			v, err := strconv.Atoi(text)
+			if err != nil {
+				return nil
+			}
+			high = &v
+		}
+		if text := cell(record, lowIndex); text != "" {
+			v, err := strconv.Atoi(text)
+			if err != nil {
+				return nil
+			}
+			low = &v
+		}
+		var sourceLine *int
+		if cell(record, sourceLineIndex) != "" {
+			n, ok := cellInt(record, sourceLineIndex, 1, 10000000)
+			if !ok {
+				return nil
+			}
+			sourceLine = &n
+		}
 		rows = append(rows, cvValuePreview{
+			SourceLine: sourceLine, SourceExportedAt: cell(record, exportIndex),
+			IndexCV31: high, IndexCV32: low,
 			CVNumber:    cvNumber,
 			Value:       value,
 			Description: cell(record, descriptionIndex),
 			Category:    cell(record, categoryIndex),
 		})
-		if len(rows) >= maxDecoderPreviewRows {
+		if len(rows) >= maxDecoderCVImportRows {
 			break
 		}
 	}
@@ -560,7 +622,7 @@ func previewCVValuesXML(text string) []cvValuePreview {
 			Description: firstAttr(attrs, "description", "beschreibung", "name"),
 			Category:    firstAttr(attrs, "category", "kategorie"),
 		})
-		if len(rows) >= maxDecoderPreviewRows {
+		if len(rows) >= maxDecoderCVImportRows {
 			break
 		}
 	}

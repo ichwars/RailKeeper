@@ -915,6 +915,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
           tabs={{
             model: {
               form,
+              cvValues: selected?.cvValues || [],
+              onOpenCV: () => setActiveTab("cv"),
               externalMappings: selected?.externalMappings || [],
               readonly,
               hideAcquisitionDetails: Boolean(selected?.vehicleSetId),

@@ -73,6 +73,7 @@ describe("VehicleCreateStepDetails", () => {
     rerender(<VehicleCreateStepDetails state={{ ...state, activeDetailsTab: "member:0" }}
       dispatch={vi.fn()} model={model} />);
     expect(screen.getByText("Höchstgeschwindigkeit")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Digital" }));
     expect(screen.getByLabelText("Digital")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Kategorie: Ausgefüllt" })).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "Details" }));

@@ -62,7 +62,7 @@ describe("useVehicleDecoderFilesController", () => {
     const file = new File(["decoder"], "decoder.esux", { type: "application/octet-stream" });
 
     await act(() => result.current.commands.uploadFiles(fileList(file)));
-    act(() => result.current.commands.previewValuesForImport());
+    await act(() => result.current.commands.previewValuesForImport());
     expect(onImportPreview).toHaveBeenCalledWith(expect.objectContaining({
       fileName: "Decoder-Datei-Vorschau",
       rows: [expect.objectContaining({ input: expect.objectContaining({ cvNumber: 1, value: 3 }) })]
@@ -97,5 +97,34 @@ describe("useVehicleDecoderFilesController", () => {
     act(() => result.current.commands.remove(cvFileFixture()));
     await waitFor(() => expect(api.deleteVehicleCVFile).toHaveBeenCalledWith("vehicle-1", "cv-file-1"));
     expect(refreshSelectedVehicle).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps detected row and preview profiles separate from the file-storage profile", async () => {
+    vi.spyOn(api, "previewVehicleCVFile").mockResolvedValue({ ...preview,
+      suggestedCvValues: [
+        { cvNumber: 1, value: 17, decoderProfile: "LokPilot 5 micro DCC" },
+        { cvNumber: 29, value: 14 }
+      ]
+    });
+    const { result, onImportPreview } = renderController();
+    await act(() => result.current.commands.uploadFiles(fileList(new File(["decoder"], "decoder.esux"))));
+    act(() => result.current.commands.updateFileProfile("Eigenes Dateiprofil"));
+    await act(() => result.current.commands.previewValuesForImport());
+    expect(onImportPreview).toHaveBeenCalledWith(expect.objectContaining({ rows: [
+      expect.objectContaining({ input: expect.objectContaining({ decoderProfile: "LokPilot 5 micro DCC" }) }),
+      expect.objectContaining({ input: expect.objectContaining({ decoderProfile: "ESU LokPilot 5" }) })
+    ] }));
+    expect(result.current.state.fileProfile).toBe("Eigenes Dateiprofil");
+  });
+
+  it("uses the file profile only when no row or decoder profile was detected", async () => {
+    vi.spyOn(api, "previewVehicleCVFile").mockResolvedValue({ ...preview, suggestedDecoderProfile: "" });
+    const { result, onImportPreview } = renderController();
+    await act(() => result.current.commands.uploadFiles(fileList(new File(["decoder"], "decoder.esux"))));
+    act(() => result.current.commands.updateFileProfile("Eigenes Dateiprofil"));
+    await act(() => result.current.commands.previewValuesForImport());
+    expect(onImportPreview).toHaveBeenCalledWith(expect.objectContaining({ rows: [
+      expect.objectContaining({ input: expect.objectContaining({ decoderProfile: "Eigenes Dateiprofil" }) })
+    ] }));
   });
 });

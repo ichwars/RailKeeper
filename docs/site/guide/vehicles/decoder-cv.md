@@ -143,32 +143,62 @@ Common profile suggestions are ESU LokPilot 5, ESU LokSound 5, Zimo MS, Zimo MX,
 Märklin mLD3, Märklin mSD3, and Lenz Standard+. Profiles already used by CV values or files appear
 as shortcuts. A profile is descriptive free text, not validation of the physical decoder.
 
-RailKeeper identifies a CV row by CV number plus normalized decoder profile. Protocol is not part
-of that identity. **Add CV** updates an existing matching row instead of creating a duplicate.
-**Save CV**, **Edit CV**, and **Delete CV** act immediately and reload the complete vehicle.
-Deletion has no additional confirmation.
+A CV identity consists of vehicle, exact trimmed decoder profile (case-sensitive), CV number and
+an optional **CV31/CV32** pair. Protocol is descriptive. Unindexed values differ from page `0/0`.
+Indexed CVs 257–512 require both index fields in the range 0–255. Existing unindexed records remain
+unchanged. Give multiple physical decoders on one vehicle distinct profile labels, even if their
+decoder types are identical.
 
-When an update changes the numeric value, RailKeeper adds a history record. Metadata-only changes
-do not add history. The stable interface displays the five newest history entries for a row.
+**Add CV** updates a matching value. Editing and deletion act immediately; deletion has no extra
+confirmation. Only a numeric value change creates history. The table shows the five newest changes.
+
+The table displays index pages and supports profile, page and text filters with 50 rows per page.
+For one selected profile, **Key decoder values** derives DCC address, manufacturer ID, CV29 bits,
+analogue and RailCom flags from stored base CVs. These are recorded settings, not live status;
+vehicle address and function names remain unchanged. Select a profile first when several exist.
+
+## Files for a complete import
+
+Locomotives and cars with function decoders use the same workflow on the selected saved vehicle.
+
+| File | Required | Processing and display |
+| --- | --- | --- |
+| Complete LokProgrammer TXT CV list | For complete ESU CV import | All values and index pages in the preview and CV table |
+| CSV or RailKeeper CV JSON | Alternative to TXT | Structured values, profiles and optional index fields |
+| ESUX / ESU | Optional | Original project under CV files with safe metadata preview; proprietary CV payload is not decoded |
+| Copied decoder information text | Optional | Vehicle attachment documenting serial, firmware and raw identifiers; no automatic identity import |
+| Screenshot, photo, manual | Optional | Vehicle attachments/images as evidence; no automatic OCR or CV recognition |
+| Function JSON | Optional | Names, symbols and modes through the separate function import |
+
+TXT import does not require ESUX. Generic project names and a type such as `steam` cannot identify
+the actual locomotive. Raw CV mapping cannot confirm which lamps or couplers are wired to AUX outputs.
 
 ## Import and export CV values
 
-CV **Import** reads the first selected JSON, CSV, or TXT file.
+**Import** reads the first selected file: TXT/CSV up to 2 MiB, CV JSON up to 32 MiB,
+with at most 10,000 values. The larger local JSON limit accounts for exported record identities,
+timestamps and history. Only importable fields are sent to the server; the atomic import request
+remains limited to 8 MiB.
 
-- JSON may be a top-level array or an object with `cvValues`.
-- CSV or TXT uses one row per line in the order CV number, value, description, category, and
-  decoder profile.
-- Text separators may be semicolons or commas.
-- A line beginning with `cv` is treated as a header.
-- Text import leaves protocol and source file empty.
+- LokProgrammer TXT supports `Decoder:`, `CV 001 = 003` and
+  `Index: 4099 (CV31=16, CV32=3)`. The decoder header provides the profile without its firmware
+  suffix. Malformed or inconsistent index headers block the entire preview.
+- JSON may be an array or an object with `cvValues`. Optional fields are `indexCV31` and
+  `indexCV32`. Older unindexed JSON remains supported.
+- CSV supports named columns, e.g. `cvNumber;value;decoderProfile;indexCV31;indexCV32`, including
+  aliases `cv_number`, `cv31`, `cv32`, `CV` and `Wert`. Without headers, order is CV number, value,
+  description, category, decoder profile, CV31, CV32. Commas and semicolons are accepted.
+- Lists retain their own decoder profiles and provenance. Profile and attachment selections in
+  the single-value editor apply only to that edited value and are not inherited by list imports.
+  Attachment IDs from exported JSON are not automatically transferred.
 
-The preview marks each row as **new**, **changed**, **same**, or **invalid**. New and changed rows
-start selected. Same and invalid rows do not. Duplicate CV-number/profile identities after the
-first occurrence are invalid.
+Preview statuses are **new**, **changed**, **same** and **invalid**. New and changed rows start
+selected. Only repeated complete identities are duplicates; CV257 on page 16/3 and CV257 on page
+16/4 remain separate values.
 
-Use **Only new**, **Select all**, **Select none**, or individual checkboxes, then **Apply selected
-fields**. Selected rows are written sequentially. A later failure does not roll back earlier rows
-and prevents the normal refresh. Reload, compare, and retry only missing rows.
+**Only new**, **Select all**, **Select none** and individual checkboxes apply across all preview
+pages. **Apply selected fields** commits the selected values and histories in one transaction.
+Any failure rolls back the whole import. The original file can be stored separately under CV files.
 
 **Export** downloads `<inventory-number>-cv.json` or `railkeeper-cv.json`. It contains the vehicle
 identity, preferred decoder number, and all CV records returned with the vehicle, including
@@ -199,10 +229,10 @@ Selection first creates an **Upload preview**. It can show size, MIME type, a pr
 project, decoder, address, type, manufacturer, LokProgrammer metadata, and counts of detected CV
 values and function keys. A preview does not store the original file.
 
-Each file preview returns at most 32 detected CV values and 32 detected functions. A displayed
-count of 32 can therefore mean that more entries exist in the source. Compare the preview with the
-project file. Import remaining CVs through the direct CV import and remaining functions through
-function JSON import or manual entry.
+LokProgrammer TXT supports up to 10,000 CV values with index pages. For JSON/CSV/TXT,
+**Review CVs** rereads the original file through the complete CV import path. Other preview
+formats provide extraction suggestions and may be incomplete. Function suggestions remain limited
+to 32. Binary ESUX supplies metadata, not a complete CV import.
 
 The preview actions are independent:
 
@@ -308,3 +338,41 @@ No failed later request rolls back an earlier successful request in the same seq
 ## Documented RailKeeper version
 
 This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
+
+
+## Digital settings in the vehicle dialog
+
+**Model → Digital** retains the editable digital address, separate DT double-heading address,
+decoder type and manual ABC setting. The selected decoder profile supplies the active DCC address,
+consist address/direction, enabled consist functions (CV21/CV22), ABC and constant braking distance,
+with their source CVs. Missing values stay unknown; profiles and indexed pages are never merged.
+**Use CV settings** copies the known address, recognized decoder type and ABC state into the form;
+**Save changes** persists these fields. DT is never copied from CV19.
+
+The **CV** tab separates **Explained**, **All CV values** and **Files & import**.
+**Import CV list** handles the complete structured values; **Upload decoder project** stores the
+original ESUX or other project file. The raw table supports profile, index and nonzero filters;
+`CV29` searches for that exact CV number; meanings are also searchable. **Export CV values** is
+available in this view. The shared decoder strip shows profile, active address, value count and
+index pages. **Explained** aligns topic, description, reading and source; source links open a right-hand panel for exactly one CV. It shows decimal, hexadecimal and
+binary values, index page, decoder profile and actually stored provenance. Bit explanations appear
+only for base CV29. **Edit CV value** opens the same record, including its index page, in the editor.
+CV imports preserve the physical source line (including headers and blank lines) and the export
+timestamp from the TXT header, shown in the detail panel. The timestamp retains its source wall-clock
+time without an assumed timezone. JSON exports and backups include these fields; edits or imports
+without provenance preserve existing metadata. Older records without a source still show “Not recorded”;
+the record timestamp is never used as the export date. Backup format 22 preserves provenance and older
+backups remain readable. Additional consist/decoder settings are collapsed. ESU DC
+analog permission is derived from CV29 and CV50 together. **Files & import** explains the two file types and lists imported records and
+stored original files. Basic explanations and individual CV29 bits complement
+the raw values. On reimport, the TXT decoder header is preserved as CV7 provenance and supplies
+the full firmware version; CV7=255 alone is never treated as a firmware version.
+
+For recognized ESU LokPilot 5 profiles (manufacturer 151), **Control** displays simple positive
+key mappings from the indexed mapping pages, including direction, output and CV source. Suggestions
+fill empty function entries and must then be saved individually. Missing fields and complex
+conditions are not guessed. AUX3 output mode 31 is identified as PowerPack Control without claiming
+that a PowerPack is installed; the actual consumers on AUX outputs require confirmation.
+
+References: [ESU LokPilot 5, 8th edition](https://www.esu.eu/en/downloads/instruction-manuals/digital-decoders/?tx_esudownloads_pi1%5BdownloadItem%5D=0318b68e0cb850d9101947622d1041ea)
+and [NMRA S-9.2.2](https://www.nmra.org/sites/default/files/s-9.2.2_2012_10.pdf).

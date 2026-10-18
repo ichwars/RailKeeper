@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 20
+	backupVersion = 22
 )
 
 var (
@@ -743,6 +743,9 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 			}
 		}
 		item.UnknownColumns = sortedKeys(unknownColumns)
+		if table == "vehicle_cv_values" {
+			result.Errors = append(result.Errors, validateBackupCVProvenance(rows)...)
+		}
 		if len(item.UnknownColumns) > 0 {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Tabelle %s enthält unbekannte Spalten, die beim Restore ignoriert werden.", table))
 		}

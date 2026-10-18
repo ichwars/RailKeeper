@@ -175,7 +175,7 @@ function vehicleDetailReport(vehicle: Vehicle, assets: InventoryReportAssets, in
   const attachments = (vehicle.attachments || [])
     .map((item) => reportField(item.originalName || item.fileName, [item.category, item.description, formatFileSize(item.sizeBytes)].filter(Boolean).join(" · ")));
   const cvValues = (vehicle.cvValues || [])
-    .map((item) => reportField(`CV ${item.cvNumber}`, [String(item.value), item.category, item.protocol, item.decoderProfile, item.description].filter(Boolean).join(" · ")));
+    .map((item) => reportField(`CV ${item.cvNumber}${item.indexCV31 == null ? "" : ` [CV31=${item.indexCV31}, CV32=${item.indexCV32}]`}`, [String(item.value), item.category, item.protocol, item.decoderProfile, item.description].filter(Boolean).join(" · ")));
   const cvFiles = (vehicle.cvFiles || [])
     .map((item) => reportField(item.originalName || item.fileName, [item.decoderProfile, item.description, formatFileSize(item.sizeBytes)].filter(Boolean).join(" · ")));
   const externalMappings = (vehicle.externalMappings || [])

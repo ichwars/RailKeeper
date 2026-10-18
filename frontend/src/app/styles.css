@@ -12,6 +12,7 @@
 @import "../styles/vehicle-dialogs.css";
 @import "../styles/vehicle-uploads.css";
 @import "../styles/vehicle-functions-cv-maintenance.css";
+@import "../styles/vehicle-cv-indexed.css";
 @import "../styles/vehicle-image-preview.css";
 @import "../styles/exhibition.css";
 @import "../styles/accessories.css";
@@ -22,3 +23,9 @@
 @import "../styles/digital-centers.css";
 @import "../styles/overrides-responsive.css";
 @import "../styles/vehicle-inventory-responsive.css";
+
+@import "../styles/vehicle-decoder.css";
+@import "../styles/vehicle-digital.css";
+
+@import "../styles/vehicle-cv-explained.css";
+@import "../styles/vehicle-cv-details.css";

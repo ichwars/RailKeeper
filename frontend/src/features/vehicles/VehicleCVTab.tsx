@@ -1,5 +1,11 @@
-﻿import { Fragment, RefObject } from "react";
-import { Check, Download, FileText, Pencil, Save, Trash2, Upload } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { Check, CircleHelp, Database, Download, FileCode, FileText, FolderOpen, Save, Trash2, Upload } from "lucide-react";
+import { DecoderProfileStrip } from "./DecoderProfileStrip";
+import { useDecoderProfile } from "./DecoderProfileSelect";
+import { VehicleCVDetails } from "./VehicleCVDetails";
+import { VehicleCVExplained } from "./VehicleCVExplained";
+import { CVImportRowsTable } from "./CVImportRowsTable";
+import { VehicleCVValuesTable } from "./VehicleCVValuesTable";
 import { api, Vehicle, VehicleCVFile, VehicleCVValue, VehicleCVValueInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { CVFileUploadPreview, CVImportPreview, cvCategories, cvProtocols } from "./cvImport";
@@ -22,13 +28,10 @@ export function VehicleCVTab({
   saving,
   cvImportInputRef,
   cvFileInputRef,
-  cvSummary,
   cvImportPreview,
   cvImportStats,
   cvForm,
   editingCVID,
-  decoderProfileOptions,
-  storedDecoderProfiles,
   cvFileProfile,
   cvFileDescription,
   cvFileUploadPreview,
@@ -62,7 +65,7 @@ export function VehicleCVTab({
   cvFileInputRef: RefObject<HTMLInputElement | null>;
   cvSummary: { values: number; profiles: number; files: number };
   cvImportPreview: CVImportPreview | null;
-  cvImportStats: { selected: number; new: number; changed: number; same: number; invalid: number };
+  cvImportStats: { imported?: number; selected: number; new: number; changed: number; same: number; invalid: number };
   cvForm: VehicleCVValueInput;
   editingCVID: string | null;
   decoderProfileOptions: string[];
@@ -93,69 +96,52 @@ export function VehicleCVTab({
   deleteCVFile: (file: VehicleCVFile) => void;
 }) {
   const { language, t } = useI18n();
-  return (                <section className="cv-tab">
-                  <section className="cv-editor">
-                    <div className="upload-head">
-                      <div>
-                        <h3>{t("vehicles.cv.title")}</h3>
-                        <p>{t("vehicles.cv.subtitle")}</p>
-                      </div>
-                      <div className="cv-toolbar">
-                        <input
-                          ref={cvImportInputRef}
-                          type="file"
-                          accept=".json,.csv,.txt"
-                          className="visually-hidden"
-                          onChange={(event) => importCVValues(event.target.files)}
-                          disabled={readonly || !selected || saving}
-                        />
-                        <button type="button" className="secondary-button" onClick={() => cvImportInputRef.current?.click()} disabled={readonly || !selected || saving}>
-                          <Upload size={15} aria-hidden="true" />
-                          Import
-                        </button>
-                        <button type="button" className="secondary-button" onClick={exportCVValues} disabled={!selected || !(selected.cvValues || []).length}>
-                          <Download size={15} aria-hidden="true" />
-                          Export
-                        </button>
-                      </div>
-                    </div>
-                    {!selected && !ecosDraft && <p className="empty-state compact">{t("vehicles.cv.emptyUntilSave")}</p>}
-                    {!selected && ecosDraft && (
-                      <section className="ecos-draft-cv-preview">
-                        <div>
-                          <h4>{t("vehicles.ecosDraft.cvPreviewTitle")}</h4>
-                          <p>{t("vehicles.ecosDraft.cvPreviewSubtitle", { count: ecosDraft.cvValues.length })}</p>
-                        </div>
-                        <div className="ecos-draft-cv-grid">
-                          {ecosDraft.cvValues.slice(0, 18).map((cvValue) => (
-                            <span key={`${cvValue.cvNumber}-${cvValue.protocol || ""}-${cvValue.decoderProfile || ""}`}>
-                              <strong>CV {cvValue.cvNumber}</strong>
-                              {cvValue.value}
-                            </span>
-                          ))}
-                          {ecosDraft.cvValues.length > 18 && <em>+{ecosDraft.cvValues.length - 18}</em>}
-                        </div>
-                        <p className="ecos-draft-mapping-preview">
-                          {t("vehicles.ecosDraft.mappingPreviewTitle")}: {ecosDraft.sourceSummary.name} · #{ecosDraft.sourceSummary.objectId}
-                        </p>
-                      </section>
-                    )}
-                    {selected && (
-                      <>
-                        <div className="cv-summary">
-                          <div>
-                            <span>{t("vehicles.cv.values")}</span>
-                            <strong>{cvSummary.values}</strong>
-                          </div>
-                          <div>
-                            <span>{t("vehicles.cv.profiles")}</span>
-                            <strong>{cvSummary.profiles}</strong>
-                          </div>
-                          <div>
-                            <span>{t("vehicles.cv.files")}</span>
-                            <strong>{cvSummary.files}</strong>
-                          </div>
-                        </div>
+  const [view, setView] = useState(cvFileUploadPreview ? "files" : "explained");
+  const sectionRef = useRef<HTMLElement>(null);
+  const editorRef = useRef<HTMLDetailsElement>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const values = useMemo<VehicleCVValue[]>(() => {
+    if (selected) return selected.cvValues || [];
+    if (!ecosDraft) return [];
+    return ecosDraft.cvValues.map((value, index) => ({ ...value,
+      id: `draft-cv:${ecosDraft.sourceSummary.objectId}:${index}`,
+      vehicleId: "", createdAt: "", updatedAt: ""
+    }));
+  }, [selected, ecosDraft]);
+  const detailValue = values.find(value => value.id === detailId);
+  const draftSource = !selected && ecosDraft
+    ? `${ecosDraft.sourceSummary.name} · #${ecosDraft.sourceSummary.objectId}` : undefined;
+  useEffect(() => {
+    if (view === "raw" && editingCVID && editorRef.current) {
+      editorRef.current.scrollIntoView({ block: "start" });
+      editorRef.current.querySelector("input")?.focus();
+    }
+  }, [view, editingCVID]);
+  useLayoutEffect(() => {
+    const body = sectionRef.current?.closest(".modal-body");
+    if (body) body.scrollTop = 0;
+  }, [view]);
+  const activeView = view;
+  const decoder = useDecoderProfile(values);
+  const viewIcons = { explained: CircleHelp, raw: Database, files: FolderOpen };
+  return <section className="cv-tab" ref={sectionRef}>
+    <div className="cv-entry-actions"><h3>{t("vehicles.decoder.dataTitle")}</h3><div className="cv-toolbar">
+      <input ref={cvImportInputRef} type="file" accept=".json,.csv,.txt" className="visually-hidden"
+        onChange={(event) => importCVValues(event.target.files)} disabled={readonly || !selected || saving} />
+      <input ref={cvFileInputRef} type="file" multiple accept={cvFileAccept} className="visually-hidden"
+        onChange={(event) => uploadCVFiles(event.target.files)} disabled={readonly || !selected || saving} />
+      <button type="button" className="primary-button" onClick={() => cvImportInputRef.current?.click()} disabled={readonly || !selected || saving}>
+        <Upload size={15} />{t("vehicles.decoder.importList")}</button>
+      <button type="button" className="secondary-button" onClick={() => { setView("files"); cvFileInputRef.current?.click(); }} disabled={readonly || !selected || saving}>
+        <FileText size={15} />{t("vehicles.decoder.uploadProject")}</button>
+
+    </div></div>
+    {!selected && !ecosDraft && <p className="empty-state compact">{t("vehicles.cv.emptyUntilSave")}</p>}
+    {!selected && ecosDraft && <div className="ecos-draft-cv-preview">
+      <p>{t("vehicles.ecosDraft.cvPreviewSubtitle", { count: ecosDraft.cvValues.length })}</p>
+      <p>{t("vehicles.ecosDraft.mappingPreviewTitle")}: {draftSource}</p>
+    </div>}
+    {!!cvImportStats.imported && <p className="cv-import-success" role="status">{t("vehicles.cv.imported", { count: cvImportStats.imported })}</p>}
                         {cvImportPreview && (
                           <section className="cv-import-preview" aria-label={t("vehicles.cv.importPreview")}>
                             <div className="cv-import-head">
@@ -180,7 +166,7 @@ export function VehicleCVTab({
                               <button type="button" className="secondary-button" onClick={() => selectCVImportRows("none")} disabled={saving}>
                                 {t("vehicles.articleSearch.selectNone")}
                               </button>
-                              <button type="button" className="primary-button" onClick={applyCVImportPreview} disabled={saving || cvImportStats.selected === 0}>
+                              <button type="button" className="primary-button" onClick={applyCVImportPreview} disabled={readonly || saving || cvImportStats.selected === 0}>
                                 <Check size={15} aria-hidden="true" />
                                 {t("vehicles.articleSearch.applySelected")}
                               </button>
@@ -188,62 +174,34 @@ export function VehicleCVTab({
                                 {t("vehicles.cv.discard")}
                               </button>
                             </div>
-                            <div className="table-wrap compact-table cv-import-table">
-                              <table>
-                                <thead>
-                                  <tr>
-                                    <th>{t("vehicles.articleSearch.apply")}</th>
-                                    <th>CV</th>
-                                    <th>{t("vehicles.articleSearch.current")}</th>
-                                    <th>Import</th>
-                                    <th>{t("vehicle.field.protocol")}</th>
-                                    <th>{t("vehicles.cv.profiles")}</th>
-                                    <th>{t("vehicles.articleSearch.status")}</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {cvImportPreview.rows.map((row) => (
-                                    <tr key={row.id} className={`cv-import-${row.status}`}>
-                                      <td>
-                                        <input
-                                          type="checkbox"
-                                          checked={row.selected}
-                                          onChange={(event) => toggleCVImportRow(row.id, event.target.checked)}
-                                          disabled={row.status === "invalid" || saving}
-                                          aria-label={t("vehicles.cv.applyCv", { cv: row.input.cvNumber })}
-                                        />
-                                      </td>
-                                      <td>{row.input.cvNumber || "-"}</td>
-                                      <td>{row.existing ? row.existing.value : "-"}</td>
-                                      <td>{Number.isFinite(Number(row.input.value)) ? row.input.value : "-"}</td>
-                                      <td>{row.input.protocol || row.existing?.protocol || "-"}</td>
-                                      <td>{row.input.decoderProfile || row.existing?.decoderProfile || "-"}</td>
-                                      <td>{row.message}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
+                            <CVImportRowsTable key={cvImportPreview.fileName} preview={cvImportPreview} saving={saving} readonly={readonly} toggle={toggleCVImportRow} />
                           </section>
                         )}
-                        {storedDecoderProfiles.length > 0 && (
-                          <div className="decoder-profile-list" aria-label="Decoderprofile">
-                            {storedDecoderProfiles.map((profile) => {
-                              const valueCount = (selected.cvValues || []).filter((value) => value.decoderProfile === profile).length;
-                              const fileCount = (selected.cvFiles || []).filter((file) => file.decoderProfile === profile).length;
-                              return (
-                                <button type="button" key={profile} onClick={() => updateCVForm({ decoderProfile: profile })} disabled={readonly || saving} title={t("vehicles.cv.useProfile", { profile })}>
-                                  <strong>{profile}</strong>
-                                  <span>{valueCount} CV · {fileCount} {t("vehicles.cv.files").toLocaleLowerCase()}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
+
+    <DecoderProfileStrip state={decoder} />
+    <nav className="cv-subtabs" aria-label={t("vehicles.decoder.cvViews")}>
+      {(["explained", "raw", "files"] as const).map((tab) => { const Icon = viewIcons[tab]; return <button type="button" key={tab}
+        className={activeView === tab ? "active" : ""} aria-pressed={activeView === tab} onClick={() => setView(tab)}>
+        <Icon size={16} aria-hidden="true" />{t(`vehicles.decoder.view.${tab}`)}{tab === "raw" && <span className="cv-tab-count" aria-hidden="true">{values.length}</span>}</button>; })}
+    </nav>
+    {activeView === "explained" && <VehicleCVExplained key={decoder.profile} analysis={decoder.analysis} values={values} onOpenValue={value => setDetailId(value.id)} />}
+    {activeView === "raw" && (selected || ecosDraft) && <section className="cv-table-section">
+      <div className="cv-section-heading"><div><h3>{t("vehicles.decoder.view.raw")}</h3><p>{t("vehicles.decoder.rawIntro")}</p></div>
+        <button type="button" className="secondary-button" onClick={exportCVValues} disabled={!selected?.cvValues?.length}>
+          <Download size={15} aria-hidden="true" />{t("vehicles.decoder.exportValues")}</button></div>
+      {selected && <details ref={editorRef} className="cv-manual-editor" open={editingCVID ? true : undefined}><summary>{t("vehicles.decoder.manualCV")}</summary>
                         <div className="cv-form">
                           <label>
                             CV-Nr.
                             <input type="number" min={1} max={1024} value={cvForm.cvNumber} onChange={(event) => updateCVForm({ cvNumber: Number(event.target.value) })} disabled={readonly || saving} />
+                          </label>
+                          <label>CV31
+                            <input aria-label="CV31" type="number" min={0} max={255} value={cvForm.indexCV31 ?? ""}
+                              onChange={(event) => updateCVForm({ indexCV31: event.target.value === "" ? null : Number(event.target.value) })} disabled={readonly || saving} />
+                          </label>
+                          <label>CV32
+                            <input aria-label="CV32" type="number" min={0} max={255} value={cvForm.indexCV32 ?? ""}
+                              onChange={(event) => updateCVForm({ indexCV32: event.target.value === "" ? null : Number(event.target.value) })} disabled={readonly || saving} />
                           </label>
                           <label>
                             {t("vehicle.field.value")}
@@ -287,6 +245,7 @@ export function VehicleCVTab({
                             <input value={cvForm.description || ""} onChange={(event) => updateCVForm({ description: event.target.value })} disabled={readonly || saving} />
                           </label>
                         </div>
+                        <p className="cv-import-help">{t("vehicles.cv.indexHelp")}</p>
                         <div className="cv-actions">
                           {editingCVID && (
                             <button type="button" className="secondary-button" onClick={resetCVForm} disabled={readonly || saving}>
@@ -298,99 +257,32 @@ export function VehicleCVTab({
                             {editingCVID ? t("vehicles.cv.saveCv") : t("vehicles.cv.addCv")}
                           </button>
                         </div>
-                      </>
-                    )}
-                  </section>
 
-                  <section className="cv-table-section">
-                    {selected && (!selected.cvValues || selected.cvValues.length === 0) && (
-                      <p className="empty-state compact">{t("vehicles.cv.empty")}</p>
-                    )}
-                    {selected && selected.cvValues && selected.cvValues.length > 0 && (
-                      <div className="table-wrap compact-table">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>CV</th>
-                              <th>{t("vehicle.field.value")}</th>
-                              <th>{t("vehicle.field.category")}</th>
-                              <th>{t("vehicle.field.protocol")}</th>
-                              <th>{t("vehicle.field.decoderProfile")}</th>
-                              <th>{t("vehicles.cv.description")}</th>
-                              <th>{t("vehicles.actions")}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {selected.cvValues.map((value) => (
-                              <Fragment key={value.id}>
-                                <tr>
-                                  <td>{value.cvNumber}</td>
-                                  <td>{value.value}</td>
-                                  <td>{value.category || "-"}</td>
-                                  <td>{value.protocol || "-"}</td>
-                                  <td>{value.decoderProfile || "-"}</td>
-                                  <td>{value.description || "-"}</td>
-                                  <td>
-                                    <div className="table-actions">
-                                      <button type="button" className="icon-button" onClick={() => editCVValue(value)} disabled={readonly || saving} aria-label={t("vehicles.cv.edit")} title={t("vehicles.cv.edit")}>
-                                        <Pencil size={15} />
-                                      </button>
-                                      <button type="button" className="icon-button danger" onClick={() => deleteCVValue(value)} disabled={readonly || saving} aria-label={t("vehicles.cv.delete")} title={t("vehicles.cv.delete")}>
-                                        <Trash2 size={15} />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                                {value.history && value.history.length > 0 && (
-                                  <tr className="cv-history-row">
-                                    <td colSpan={7}>
-                                      <details>
-                                        <summary>{t("vehicles.cv.history", { count: value.history.length, suffix: value.history.length === 1 ? "" : language === "de" ? "en" : "s" })}</summary>
-                                        <div className="cv-history-list">
-                                          {value.history.slice(0, 5).map((entry) => (
-                                            <span key={entry.id}>
-                                              {formatDateTime(entry.changedAt)}: {entry.oldValue} -&gt; {entry.newValue}
-                                            </span>
-                                          ))}
-                                        </div>
-                                      </details>
-                                    </td>
-                                  </tr>
-                                )}
-                              </Fragment>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </section>
-
+      </details>}
+      <VehicleCVValuesTable values={values} readonly={readonly || !selected} saving={saving} edit={editCVValue} remove={deleteCVValue} onExplain={value => setDetailId(value.id)} />
+    </section>}
+    <div hidden={activeView !== "files"} className="cv-files-view">
+      <div className="cv-section-heading"><div><h3>{t("vehicles.decoder.view.files")}</h3><p>{t("vehicles.decoder.filesIntro")}</p></div></div>
+      <div className="cv-file-options"><article><Database className="cv-option-icon" size={36} aria-hidden="true" />
+        <span className="cv-file-types">TXT · CSV · JSON</span><h4>{t("vehicles.decoder.importList")}</h4>
+        <p>{t("vehicles.decoder.listHelp")}</p><ul>{["values", "digital", "functions"].map((key) => <li key={key}>{t(`vehicles.decoder.listFeature.${key}`)}</li>)}</ul>
+      </article><article><FileCode className="cv-option-icon project" size={36} aria-hidden="true" />
+        <span className="cv-file-types">ESUX · ESU · LokProgrammer</span><h4>{t("vehicles.decoder.uploadProject")}</h4>
+        <p>{t("vehicles.decoder.projectHelp")}</p><ul>{["original", "metadata", "values"].map((key) => <li key={key}>{t(`vehicles.decoder.projectFeature.${key}`)}</li>)}</ul>
+      </article></div>
                   <section className="cv-files-section">
                     <div className="upload-head">
                       <div>
-                        <h3>{t("vehicles.cv.filesTitle")}</h3>
+                        <h3>{t("vehicles.decoder.sourcesTitle")}</h3>
                         <p>{t("vehicles.cv.filesSubtitle")}</p>
                       </div>
-                      <input
-                        ref={cvFileInputRef}
-                        type="file"
-                        multiple
-                        accept={cvFileAccept}
-                        className="visually-hidden"
-                        onChange={(event) => uploadCVFiles(event.target.files)}
-                        disabled={readonly || !selected || saving}
-                      />
-                      <button type="button" className="primary-button" onClick={() => cvFileInputRef.current?.click()} disabled={readonly || !selected || saving}>
-                        <Upload size={16} aria-hidden="true" />
-                        {t("vehicles.cv.uploadFile")}
-                      </button>
                     </div>
                     {selected && (
-                      <div className="cv-file-controls">
+                      <details className="cv-upload-options"><summary>{t("vehicles.decoder.fileOptions")}</summary><div className="cv-file-controls">
                       <input value={cvFileProfile} onChange={(event) => setCVFileProfile(event.target.value)} disabled={readonly || saving} placeholder={t("vehicles.cv.fileProfilePlaceholder")} />
                         <input value={cvFileDescription} onChange={(event) => setCVFileDescription(event.target.value)} disabled={readonly || saving} placeholder={t("vehicles.cv.fileNotePlaceholder")} />
                         <span>{t("vehicles.cv.autoMetadata")}</span>
-                      </div>
+                      </div></details>
                     )}
                     {selected && cvFileUploadPreview && (
                       <section className="cv-file-preview">
@@ -403,7 +295,7 @@ export function VehicleCVTab({
                             <button type="button" className="secondary-button" onClick={applyFirstCVFileSuggestion} disabled={saving || !cvFileUploadPreview.previews.some((preview) => preview.hasMetadata)}>
                               {t("vehicles.cv.applySuggestion")}
                             </button>
-                            <button type="button" className="secondary-button" onClick={previewCVFileValuesForImport} disabled={saving || readonly || cvFilePreviewStats.cvValues === 0}>
+                            <button type="button" className="secondary-button" onClick={previewCVFileValuesForImport} disabled={saving || readonly || cvFilePreviewStats.cvValues === 0 || cvFileUploadPreview.previews.some((preview) => Boolean(preview.cvImportError))}>
                               {t("vehicles.cv.checkCvs")}
                             </button>
                             <button type="button" className="secondary-button" onClick={applyCVFileFunctionSuggestions} disabled={saving || readonly || cvFilePreviewStats.functions === 0}>
@@ -431,6 +323,7 @@ export function VehicleCVTab({
                                   <figcaption>{preview.suggestedPreviewImage.width} × {preview.suggestedPreviewImage.height}</figcaption>
                                 </figure>
                               )}
+                              {preview.cvImportError && <p role="alert">{t("vehicles.cv.invalidFile")} {preview.cvImportError}</p>}
                               {preview.hasMetadata ? (
                                 <dl>
                                   <div><dt>{t("vehicles.cv.project")}</dt><dd>{preview.projectName || "-"}</dd></div>
@@ -458,6 +351,7 @@ export function VehicleCVTab({
                         </div>
                       </section>
                     )}
+                    {!!selected?.cvValues?.length && <div className="cv-imported-source"><FileText size={18} aria-hidden="true" /><div><strong>{t("vehicles.decoder.importedValues", { count: selected.cvValues.length })}</strong><small>{t("vehicles.decoder.importedValuesHelp")}</small></div><button type="button" className="cv-source-link" onClick={() => setView("raw")}>{t("vehicles.decoder.showValues")}</button></div>}
                     {selected && (!selected.cvFiles || selected.cvFiles.length === 0) && (
                       <p className="empty-state compact">{t("vehicles.cv.filesEmpty")}</p>
                     )}
@@ -492,7 +386,10 @@ export function VehicleCVTab({
                       </div>
                     )}
                   </section>
-                </section>
 
-  );
+    </div>
+    {detailValue && <VehicleCVDetails value={detailValue} values={values} files={selected?.cvFiles || []}
+      sourceLabel={draftSource} readonly={readonly || !selected} saving={saving} onClose={() => setDetailId(null)}
+      onEdit={value => { if (!selected) return; setDetailId(null); setView("raw"); editCVValue(value); }} />}
+  </section>;
 }
