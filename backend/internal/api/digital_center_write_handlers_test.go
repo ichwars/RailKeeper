@@ -75,11 +75,11 @@ func TestDigitalCenterWriteRoutesRequireCSRFAndExplicitConfirmation(t *testing.T
 	admin := loginRouteTestUser(t, auth, "write-admin", "admin-password")
 	path := "/api/v1/digital-centers/read-sessions/session-1/items/item-1/write-confirm"
 
-	withoutCSRF := layoutRequest(t, router, admin, http.MethodPost, path,
+	withoutCSRF := authedJSONRequest(t, router, admin, http.MethodPost, path,
 		map[string]any{"token": "grant", "confirm": true}, false)
 	assertProblem(t, withoutCSRF, http.StatusForbidden, "csrf_required")
 
-	withoutConfirmation := layoutRequest(t, router, admin, http.MethodPost, path,
+	withoutConfirmation := authedJSONRequest(t, router, admin, http.MethodPost, path,
 		map[string]any{"token": "grant", "confirm": false}, true)
 	assertProblem(t, withoutConfirmation, http.StatusBadRequest, "digital_center_confirmation_required")
 }

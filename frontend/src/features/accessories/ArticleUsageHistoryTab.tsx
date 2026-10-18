@@ -20,11 +20,11 @@ export function ArticleUsageHistoryTab({ article, resources }: {
     <section className="article-editor-section">
       <h3>{t("accessories.editor.usage.current")}</h3>
       <AccessoryReservationsPanel article={article} reservations={currentReservations} assets={resources.assets}
-        locations={resources.locations} vehicles={resources.vehicles} layouts={resources.layouts} units={resources.units}
+        locations={resources.locations} vehicles={resources.vehicles}
         canReserve={false} onChanged={async () => undefined} onDirtyChange={() => undefined} />
       <AccessoryInstallationsPanel article={article} reservations={currentReservations}
         installations={currentInstallations} assets={resources.assets} locations={resources.locations}
-        vehicles={resources.vehicles} layouts={resources.layouts} units={resources.units}
+        vehicles={resources.vehicles}
         canInstall={false} onChanged={async () => undefined} onDirtyChange={() => undefined} />
     </section>
     <section className="article-editor-section">
@@ -36,7 +36,7 @@ export function ArticleUsageHistoryTab({ article, resources }: {
       </tr></thead><tbody>{history.map((event) => <tr key={event.id}>
         <td>{formatDateTime(event.occurredAt, language)}</td>
         <td>{t(`accessories.editor.usageEvent.${event.type}`)}</td><td>{event.quantity}</td>
-        <td>{accessoryTargetLabel(event, resources.vehicles, resources.layouts, resources.units) || "-"}</td>
+        <td>{accessoryTargetLabel(event, resources.vehicles) || "-"}</td>
         <td>{event.type === "removal" && event.removalDisposition
           ? t(`accessories.disposition.${event.removalDisposition}`)
           : "condition" in event && event.condition ? t(`accessories.condition.${event.condition}`) : "-"}</td>

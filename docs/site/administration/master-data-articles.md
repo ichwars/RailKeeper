@@ -11,7 +11,7 @@ lastReviewed: 2026-08-28
 
 Open **Settings > Data > Article data** for the controlled values used by accessory articles. The
 page separates stock units, article classification, custom fields, and storage locations. Admin and
-Editor can change them. Viewer and Planner receive an explicit read-only view.
+Editor can change them. Viewer users receive an explicit read-only view.
 
 ## Stock units
 

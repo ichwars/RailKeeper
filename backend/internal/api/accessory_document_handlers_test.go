@@ -20,19 +20,19 @@ func TestAccessoryImageImportRouteValidatesURLAndRole(t *testing.T) {
 	fixture := newAccessoryAPIFixture(t, 1024*1024)
 	path := "/api/v1/accessory-products/" + fixture.product.ID + "/documents/import-url"
 
-	missing := layoutRequest(t, fixture.router, fixture.sessions["editor"], http.MethodPost, path,
+	missing := authedJSONRequest(t, fixture.router, fixture.sessions["editor"], http.MethodPost, path,
 		map[string]any{"url": ""}, true)
 	assertProblem(t, missing, http.StatusBadRequest, "accessory_image_url_missing")
 
-	private := layoutRequest(t, fixture.router, fixture.sessions["editor"], http.MethodPost, path,
+	private := authedJSONRequest(t, fixture.router, fixture.sessions["editor"], http.MethodPost, path,
 		map[string]any{"url": "http://127.0.0.1/private.png", "idempotencyKey": "private-image"}, true)
 	assertProblem(t, private, http.StatusBadRequest, "accessory_image_url_invalid")
 
-	missingKey := layoutRequest(t, fixture.router, fixture.sessions["editor"], http.MethodPost, path,
+	missingKey := authedJSONRequest(t, fixture.router, fixture.sessions["editor"], http.MethodPost, path,
 		map[string]any{"url": "https://example.com/photo.png"}, true)
 	assertProblem(t, missingKey, http.StatusBadRequest, "accessory_image_idempotency_key_invalid")
 
-	viewer := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodPost, path,
+	viewer := authedJSONRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodPost, path,
 		map[string]any{"url": "https://example.com/photo.png"}, true)
 	assertStatus(t, viewer, http.StatusForbidden)
 }
@@ -60,7 +60,7 @@ func TestAccessoryImageImportRouteReturnsCommittedIdempotentResultWithoutRedownl
 		t.Fatal(err)
 	}
 
-	response := layoutRequest(t, fixture.router, fixture.sessions["editor"], http.MethodPost,
+	response := authedJSONRequest(t, fixture.router, fixture.sessions["editor"], http.MethodPost,
 		"/api/v1/accessory-products/"+fixture.product.ID+"/documents/import-url",
 		map[string]any{
 			"url": "https://unavailable.invalid/photo.png", "idempotencyKey": key, "isPrimary": true,
@@ -120,7 +120,7 @@ type accessoryAPIFixture struct {
 	hybridProduct *application.AccessoryProduct
 	locationA     *application.StorageLocation
 	locationB     *application.StorageLocation
-	layout        *application.Layout
+	layout        *application.Vehicle
 }
 
 func TestAccessoryDocumentRoutesRoundTripMultipartAndBlobDownload(t *testing.T) {
@@ -143,7 +143,7 @@ func TestAccessoryDocumentRoutesRoundTripMultipartAndBlobDownload(t *testing.T) 
 		t.Fatalf("unexpected document: %#v", document)
 	}
 
-	list := layoutRequest(t, fixture.router, editor, http.MethodGet, path, nil, true)
+	list := authedJSONRequest(t, fixture.router, editor, http.MethodGet, path, nil, true)
 	assertStatus(t, list, http.StatusOK)
 	var documents []application.AccessoryDocument
 	decodeResponse(t, list, &documents)
@@ -152,13 +152,13 @@ func TestAccessoryDocumentRoutesRoundTripMultipartAndBlobDownload(t *testing.T) 
 	}
 
 	documentPath := path + "/" + document.ID
-	get := layoutRequest(t, fixture.router, editor, http.MethodGet, documentPath, nil, true)
+	get := authedJSONRequest(t, fixture.router, editor, http.MethodGet, documentPath, nil, true)
 	assertStatus(t, get, http.StatusOK)
-	update := layoutRequest(t, fixture.router, editor, http.MethodPut, documentPath,
+	update := authedJSONRequest(t, fixture.router, editor, http.MethodPut, documentPath,
 		map[string]any{"category": "image", "description": "Updated", "isPrimary": true}, true)
 	assertStatus(t, update, http.StatusOK)
 
-	download := layoutRequest(t, fixture.router, editor, http.MethodGet, documentPath+"/download", nil, true)
+	download := authedJSONRequest(t, fixture.router, editor, http.MethodGet, documentPath+"/download", nil, true)
 	assertStatus(t, download, http.StatusOK)
 	if got := download.Header().Get("Content-Type"); got != "image/png" {
 		t.Fatalf("Content-Type=%q, want image/png", got)
@@ -179,7 +179,7 @@ func TestAccessoryDocumentRoutesRoundTripMultipartAndBlobDownload(t *testing.T) 
 		Scan(&blobID); err != nil {
 		t.Fatal(err)
 	}
-	deleted := layoutRequest(t, fixture.router, editor, http.MethodDelete, documentPath, nil, true)
+	deleted := authedJSONRequest(t, fixture.router, editor, http.MethodDelete, documentPath, nil, true)
 	assertStatus(t, deleted, http.StatusNoContent)
 	var blobCount int
 	if err := fixture.db.QueryRow(`SELECT COUNT(*) FROM file_blobs WHERE id=?`, blobID).Scan(&blobCount); err != nil {
@@ -330,13 +330,13 @@ func TestAccessoryDocumentDownloadUsesAttachmentForNonImagesAndChecksProduct(t *
 	decodeResponse(t, upload, &document)
 
 	downloadPath := path + "/" + document.ID + "/download"
-	download := layoutRequest(t, fixture.router, editor, http.MethodGet, downloadPath, nil, true)
+	download := authedJSONRequest(t, fixture.router, editor, http.MethodGet, downloadPath, nil, true)
 	assertStatus(t, download, http.StatusOK)
 	if disposition := download.Header().Get("Content-Disposition"); !strings.HasPrefix(disposition, "attachment;") {
 		t.Fatalf("PDF must download as attachment, got %q", disposition)
 	}
 
-	wrongProduct := layoutRequest(t, fixture.router, editor, http.MethodGet,
+	wrongProduct := authedJSONRequest(t, fixture.router, editor, http.MethodGet,
 		"/api/v1/accessory-products/"+fixture.hybridProduct.ID+"/documents/"+document.ID+"/download", nil, true)
 	assertProblem(t, wrongProduct, http.StatusNotFound, "accessory_not_found")
 }
@@ -350,7 +350,7 @@ func newAccessoryAPIFixture(t *testing.T, maxAttachmentBytes int64) *accessoryAP
 		{Username: "admin", Password: "admin-password", Roles: []string{"Admin"}},
 		{Username: "editor", Password: "editor-password", Roles: []string{"Editor"}},
 		{Username: "viewer", Password: "viewer-password", Roles: []string{"Viewer"}},
-		{Username: "planner", Password: "planner-password", Roles: []string{"Planner"}},
+		{Username: "planner", Password: "planner-password", Roles: []string{"Viewer"}},
 		{Username: "messe", Password: "messe-password", Roles: []string{"Messe"}},
 	} {
 		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
@@ -394,10 +394,7 @@ func newAccessoryAPIFixture(t *testing.T, maxAttachmentBytes int64) *accessoryAP
 			t.Fatal(err)
 		}
 	}
-	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
-	layout, err := layouts.CreateLayout(t.Context(), application.CreateLayoutInput{
-		Name: "Heimanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
-	}, "seed")
+	layout, err := application.NewVehicleService(db).Create(t.Context(), application.CreateVehicleInput{InventoryNumber: "RK-ALLOCATION-1", Manufacturer: "Tillig", Name: "Testlok", Gauge: "TT", Category: "Lokomotive", Gattung: "Dampflokomotive"}, "seed")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -28,8 +28,7 @@ func TestAPIRoutesDeclareAccess(t *testing.T) {
 			t.Fatalf("route %s %s has no handler", route.Method, route.Path)
 		}
 		switch route.Access {
-		case routeAccessPublic, routeAccessAdmin, routeAccessEditor, routeAccessViewer, routeAccessMesse,
-			routeAccessPlanner, routeAccessEditorOrPlanner:
+		case routeAccessPublic, routeAccessAdmin, routeAccessEditor, routeAccessViewer, routeAccessMesse:
 		default:
 			t.Fatalf("route %s %s has invalid access %q", route.Method, route.Path, route.Access)
 		}
@@ -45,7 +44,7 @@ func TestProtectedRoutesRejectUnauthorizedAndInsufficientRoles(t *testing.T) {
 	for _, user := range []application.CreateUserInput{
 		{Username: "viewer", Password: "viewer-password", Roles: []string{"Viewer"}},
 		{Username: "messe", Password: "messe-password", Roles: []string{"Messe"}},
-		{Username: "planner", Password: "planner-password", Roles: []string{"Planner"}},
+		{Username: "planner", Password: "planner-password", Roles: []string{"Viewer"}},
 	} {
 		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
 			t.Fatal(err)
@@ -55,12 +54,10 @@ func TestProtectedRoutesRejectUnauthorizedAndInsufficientRoles(t *testing.T) {
 	messe := loginRouteTestUser(t, auth, "messe", "messe-password")
 	planner := loginRouteTestUser(t, auth, "planner", "planner-password")
 	insufficient := map[routeAccess]*application.LoginResult{
-		routeAccessAdmin:           viewer,
-		routeAccessEditor:          planner,
-		routeAccessViewer:          messe,
-		routeAccessMesse:           viewer,
-		routeAccessPlanner:         viewer,
-		routeAccessEditorOrPlanner: viewer,
+		routeAccessAdmin:  viewer,
+		routeAccessEditor: planner,
+		routeAccessViewer: messe,
+		routeAccessMesse:  viewer,
 	}
 
 	app := &App{authService: auth, logger: slog.Default()}
@@ -119,7 +116,7 @@ func TestDataTransferJobCreationEnforcesViewerAndMesseScopes(t *testing.T) {
 	viewer := loginRouteTestUser(t, auth, "viewer-transfer", "viewer-password")
 	messe := loginRouteTestUser(t, auth, "messe-transfer", "messe-password")
 
-	viewerImport := layoutRequest(t, router, viewer, http.MethodPost, "/api/v1/data-transfer/jobs/import",
+	viewerImport := authedJSONRequest(t, router, viewer, http.MethodPost, "/api/v1/data-transfer/jobs/import",
 		map[string]any{"profileId": exhibitionImport.ID}, true)
 	assertProblem(t, viewerImport, http.StatusForbidden, "forbidden")
 
@@ -136,7 +133,7 @@ func TestDataTransferJobCreationEnforcesViewerAndMesseScopes(t *testing.T) {
 		{"exhibition export", "/api/v1/data-transfer/jobs/export", exhibitionExport.ID, http.StatusCreated, ""},
 	} {
 		t.Run("Messe "+test.name, func(t *testing.T) {
-			response := layoutRequest(t, router, messe, http.MethodPost, test.path,
+			response := authedJSONRequest(t, router, messe, http.MethodPost, test.path,
 				map[string]any{"profileId": test.profileID}, true)
 			if test.code != "" {
 				assertProblem(t, response, test.status, test.code)
@@ -262,12 +259,12 @@ func TestDigitalCenterMutationsRequireAdminSessionAndCSRF(t *testing.T) {
 			assertProblem(t, response, http.StatusForbidden, "csrf_required")
 		})
 		t.Run(path+" csrf", func(t *testing.T) {
-			response := layoutRequest(t, router, admin, http.MethodPost, path, map[string]any{}, false)
+			response := authedJSONRequest(t, router, admin, http.MethodPost, path, map[string]any{}, false)
 			assertProblem(t, response, http.StatusForbidden, "csrf_required")
 		})
 		for _, denied := range deniedRoles {
 			t.Run(path+" "+denied.name, func(t *testing.T) {
-				response := layoutRequest(t, router, denied.session, http.MethodPost, path, map[string]any{}, true)
+				response := authedJSONRequest(t, router, denied.session, http.MethodPost, path, map[string]any{}, true)
 				assertProblem(t, response, http.StatusForbidden, "forbidden")
 			})
 		}

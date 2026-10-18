@@ -209,7 +209,7 @@ Bestätigungen schützen den jeweils genannten Befehl, nicht ungespeicherte Arti
 Stelle im Dialog.
 
 Nach jeder erfolgreichen Unteraktion fragt RailKeeper Bestand, Journal, Einzelstücke, Käufe,
-Dokumente, Reservierungen, Einbauten, Verlauf, Lagerorte, Fahrzeuge und Anlagenressourcen erneut ab.
+Dokumente, Reservierungen, Einbauten, Verlauf, Lagerorte, Fahrzeuge erneut ab.
 Diese Lesevorgänge können teilweise fehlschlagen, nachdem der Schreibvorgang bereits bestätigt ist.
 Dann gilt:
 

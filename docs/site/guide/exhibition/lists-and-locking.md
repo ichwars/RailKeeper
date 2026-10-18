@@ -24,7 +24,7 @@ prepares and controls lists; Messe concentrates on operating entries inside an o
 | Delete an entry from an open list | No | Yes |
 
 Admin receives direct access to the exhibition workspace. It does not need an additional Messe
-role. Editor, Viewer, and Planner neither expose the workspace nor grant list management by
+role. Editor, Viewer users neither expose the workspace nor grant list management by
 themselves.
 
 ## Create a list

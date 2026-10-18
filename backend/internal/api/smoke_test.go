@@ -25,7 +25,6 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	exhibition := application.NewExhibitionService(db)
 	accessoryRepository := infrastructure.NewAccessoryRepository(db)
 	accessories := application.NewAccessoryService(accessoryRepository)
-	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
 	router := NewRouter(Config{
 		DataDir:                  dataDir,
 		SetupService:             setup,
@@ -40,7 +39,6 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 		AccessoryAllocationService: application.NewAccessoryAllocationService(
 			accessoryRepository,
 		),
-		LayoutService: layouts,
 	})
 
 	doJSON(t, router, http.MethodPost, "/api/v1/setup/admin", `{"username":"admin","email":"admin@example.test","password":"very-secure-password"}`, nil, http.StatusCreated)
@@ -60,7 +58,7 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users", `{"username":"viewer","email":"viewer@example.test","password":"viewer-secure-password","roles":["Viewer"]}`, adminSession, adminCookies, http.StatusCreated)
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users", `{"username":"editor","email":"editor@example.test","password":"editor-secure-password","roles":["Editor"]}`, adminSession, adminCookies, http.StatusCreated)
-	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users", `{"username":"planner","email":"planner@example.test","password":"planner-secure-password","roles":["Planner"]}`, adminSession, adminCookies, http.StatusCreated)
+	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users", `{"username":"planner","email":"planner@example.test","password":"planner-secure-password","roles":["Viewer"]}`, adminSession, adminCookies, http.StatusCreated)
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users", `{"username":"messe","email":"messe@example.test","password":"messe-secure-password","roles":["Messe"]}`, adminSession, adminCookies, http.StatusCreated)
 	createVehicleResponse := doAuthedJSON(t, router, http.MethodPost, "/api/v1/vehicles", `{"manufacturer":"Piko","name":"BR 118","gauge":"H0","category":"Lokomotive","gattung":"Diesellok","maximumSpeedKmh":120,"homeBase":"Bw Leipzig","listPrice":"129.90","purchasePrice":"99.00"}`, adminSession, adminCookies, http.StatusCreated)
 	var vehicle application.Vehicle
@@ -147,11 +145,11 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 		{name: "Admin", session: adminSession, cookies: adminCookies},
 		{name: "Editor", session: editorSession, cookies: editorCookies},
 		{name: "Viewer", session: viewerSession, cookies: viewerCookies},
-		{name: "Planner", session: plannerSession, cookies: plannerCookies},
+		{name: "Viewer", session: plannerSession, cookies: plannerCookies},
 	}
 	for _, path := range []string{
 		"/api/v1/vehicles", "/api/v1/accessory-products", "/api/v1/storage-locations",
-		"/api/v1/accessory-reservations", "/api/v1/accessory-installations", "/api/v1/layouts",
+		"/api/v1/accessory-reservations", "/api/v1/accessory-installations",
 	} {
 		for _, actor := range roleSessions {
 			t.Run(actor.name+" reads "+path, func(t *testing.T) {
@@ -163,16 +161,7 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/accessory-products",
 		`{"manufacturer":"Tillig","articleNumber":"83101","name":"Gerades Gleis","category":"Gleismaterial","trackingMode":"quantity"}`,
 		editorSession, editorCookies, http.StatusCreated)
-	doAuthedJSON(t, router, http.MethodPost, "/api/v1/layouts",
-		`{"name":"Clubanlage","kind":"club","gauge":"TT","scale":"1:120"}`,
-		plannerSession, plannerCookies, http.StatusCreated)
-	doAuthedJSON(t, router, http.MethodPost, "/api/v1/plan-revisions/missing/publish",
-		`{"expectedVersion":1}`, editorSession, editorCookies, http.StatusForbidden)
-	doAuthedJSON(t, router, http.MethodPost, "/api/v1/accessory-installations", `{}`,
-		plannerSession, plannerCookies, http.StatusForbidden)
-	doAuthedJSON(t, router, http.MethodPost, "/api/v1/layouts",
-		`{"name":"Viewer layout","kind":"private","gauge":"TT","scale":"1:120"}`,
-		viewerSession, viewerCookies, http.StatusForbidden)
+	doAuthedJSON(t, router, http.MethodPost, "/api/v1/accessory-installations", `{}`, plannerSession, plannerCookies, http.StatusForbidden)
 
 	doJSON(t, router, http.MethodGet, "/api/v1/exhibition-lists", "", messeCookies, http.StatusOK)
 	doJSON(t, router, http.MethodGet, "/api/v1/vehicles", "", messeCookies, http.StatusForbidden)

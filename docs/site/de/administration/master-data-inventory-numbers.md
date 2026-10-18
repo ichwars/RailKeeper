@@ -53,7 +53,7 @@ nicht in einem gemeinsamen globalen Namensraum geprüft.
 In v0.1.20.3 gibt es keinen Löschendpunkt. Ein ungenutztes Schema stattdessen deaktivieren. Das
 Bearbeiten oder Deaktivieren nummeriert vorhandene Datensätze niemals um.
 
-Nur Admin und Editor dürfen Schemata anlegen oder speichern. Viewer und Planner können die Tabelle
+Nur Admin und Editor dürfen Schemata anlegen oder speichern. Viewer können die Tabelle
 lesen. Die stabile Oberfläche kann ihnen trotzdem bearbeitbar wirkende Felder zeigen, der Server
 weist den Schreibvorgang jedoch ab.
 

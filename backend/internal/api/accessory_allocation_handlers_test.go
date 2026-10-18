@@ -20,7 +20,7 @@ func TestAccessoryAllocationRoutesEnforceMixedRolesAndCSRF(t *testing.T) {
 	}
 	for _, path := range readPaths {
 		for role, session := range sessions {
-			response := layoutRequest(t, router, session, http.MethodGet, path, nil, true)
+			response := authedJSONRequest(t, router, session, http.MethodGet, path, nil, true)
 			want := http.StatusOK
 			if role == "messe" {
 				want = http.StatusForbidden
@@ -33,12 +33,12 @@ func TestAccessoryAllocationRoutesEnforceMixedRolesAndCSRF(t *testing.T) {
 
 	reservationIDs := map[string]string{}
 	for role, session := range sessions {
-		response := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-reservations",
+		response := authedJSONRequest(t, router, session, http.MethodPost, "/api/v1/accessory-reservations",
 			map[string]any{
-				"productId": product.ID, "locationId": location.ID, "quantity": 1, "layoutId": layout.ID,
+				"productId": product.ID, "locationId": location.ID, "quantity": 1, "vehicleId": layout.ID,
 			}, true)
 		want := http.StatusForbidden
-		if role == "admin" || role == "editor" || role == "planner" {
+		if role == "admin" || role == "editor" {
 			want = http.StatusCreated
 		}
 		if response.Code != want {
@@ -51,28 +51,28 @@ func TestAccessoryAllocationRoutesEnforceMixedRolesAndCSRF(t *testing.T) {
 		}
 	}
 
-	withoutCSRF := layoutRequest(t, router, sessions["planner"], http.MethodPost,
+	withoutCSRF := authedJSONRequest(t, router, sessions["planner"], http.MethodPost,
 		"/api/v1/accessory-reservations", map[string]any{
-			"productId": product.ID, "locationId": location.ID, "quantity": 1, "layoutId": layout.ID,
+			"productId": product.ID, "locationId": location.ID, "quantity": 1, "vehicleId": layout.ID,
 		}, false)
 	assertProblem(t, withoutCSRF, http.StatusForbidden, "csrf_required")
 
-	for _, role := range []string{"admin", "editor", "planner"} {
+	for _, role := range []string{"admin", "editor"} {
 		path := "/api/v1/accessory-reservations/" + reservationIDs[role] + "/cancel"
-		assertStatus(t, layoutRequest(t, router, sessions[role], http.MethodPost, path, nil, true), http.StatusOK)
+		assertStatus(t, authedJSONRequest(t, router, sessions[role], http.MethodPost, path, nil, true), http.StatusOK)
 	}
 	for _, role := range []string{"viewer", "messe"} {
 		path := "/api/v1/accessory-reservations/not-allowed/cancel"
-		assertStatus(t, layoutRequest(t, router, sessions[role], http.MethodPost, path, nil, true),
+		assertStatus(t, authedJSONRequest(t, router, sessions[role], http.MethodPost, path, nil, true),
 			http.StatusForbidden)
 	}
 
 	installations := map[string]application.AccessoryInstallation{}
 	for role, session := range sessions {
-		response := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-installations",
+		response := authedJSONRequest(t, router, session, http.MethodPost, "/api/v1/accessory-installations",
 			map[string]any{
 				"productId": product.ID, "sourceLocationId": location.ID, "quantity": 1,
-				"layoutId": layout.ID, "condition": "ready",
+				"vehicleId": layout.ID, "condition": "ready",
 			}, true)
 		want := http.StatusForbidden
 		if role == "admin" || role == "editor" {
@@ -89,16 +89,16 @@ func TestAccessoryAllocationRoutesEnforceMixedRolesAndCSRF(t *testing.T) {
 	}
 
 	conditionPath := "/api/v1/accessory-installations/" + installations["admin"].ID + "/condition"
-	assertStatus(t, layoutRequest(t, router, sessions["admin"], http.MethodPut, conditionPath,
+	assertStatus(t, authedJSONRequest(t, router, sessions["admin"], http.MethodPut, conditionPath,
 		map[string]any{"condition": "maintenance_due"}, true), http.StatusOK)
 	removePath := "/api/v1/accessory-installations/" + installations["editor"].ID + "/remove"
-	assertStatus(t, layoutRequest(t, router, sessions["editor"], http.MethodPost, removePath,
+	assertStatus(t, authedJSONRequest(t, router, sessions["editor"], http.MethodPost, removePath,
 		map[string]any{"disposition": "stored", "storageLocationId": location.ID}, true), http.StatusOK)
 	for _, role := range []string{"planner", "viewer", "messe"} {
-		assertStatus(t, layoutRequest(t, router, sessions[role], http.MethodPut,
+		assertStatus(t, authedJSONRequest(t, router, sessions[role], http.MethodPut,
 			"/api/v1/accessory-installations/not-allowed/condition",
 			map[string]any{"condition": "ready"}, true), http.StatusForbidden)
-		assertStatus(t, layoutRequest(t, router, sessions[role], http.MethodPost,
+		assertStatus(t, authedJSONRequest(t, router, sessions[role], http.MethodPost,
 			"/api/v1/accessory-installations/not-allowed/remove",
 			map[string]any{"disposition": "maintenance"}, true), http.StatusForbidden)
 	}
@@ -108,30 +108,30 @@ func TestAccessoryAllocationRoutesCoverLifecycleAndSummary(t *testing.T) {
 	router, sessions, product, location, layout := accessoryAllocationRouter(t)
 	editor := sessions["editor"]
 
-	reservationResponse := layoutRequest(t, router, editor, http.MethodPost,
+	reservationResponse := authedJSONRequest(t, router, editor, http.MethodPost,
 		"/api/v1/accessory-reservations", map[string]any{
 			"productId": product.ID, "locationId": location.ID, "quantity": 4,
-			"layoutId": layout.ID, "note": "Bahnhof",
+			"vehicleId": layout.ID, "note": "Bahnhof",
 		}, true)
 	assertStatus(t, reservationResponse, http.StatusCreated)
 	var reservation application.AccessoryReservation
 	decodeResponse(t, reservationResponse, &reservation)
 
-	installResponse := layoutRequest(t, router, editor, http.MethodPost,
+	installResponse := authedJSONRequest(t, router, editor, http.MethodPost,
 		"/api/v1/accessory-installations", map[string]any{
 			"reservationId": reservation.ID, "productId": product.ID, "sourceLocationId": location.ID,
-			"quantity": 4, "layoutId": layout.ID, "condition": "ready", "notes": "Montiert",
+			"quantity": 4, "vehicleId": layout.ID, "condition": "ready", "notes": "Montiert",
 		}, true)
 	assertStatus(t, installResponse, http.StatusCreated)
 	var installation application.AccessoryInstallation
 	decodeResponse(t, installResponse, &installation)
 
-	assertStatus(t, layoutRequest(t, router, editor, http.MethodGet,
+	assertStatus(t, authedJSONRequest(t, router, editor, http.MethodGet,
 		"/api/v1/accessory-reservations?productId="+product.ID, nil, true), http.StatusOK)
-	assertStatus(t, layoutRequest(t, router, editor, http.MethodGet,
+	assertStatus(t, authedJSONRequest(t, router, editor, http.MethodGet,
 		"/api/v1/accessory-installations?productId="+product.ID, nil, true), http.StatusOK)
 
-	summaryResponse := layoutRequest(t, router, editor, http.MethodGet,
+	summaryResponse := authedJSONRequest(t, router, editor, http.MethodGet,
 		"/api/v1/accessory-products/"+product.ID+"/allocation-summary", nil, true)
 	assertStatus(t, summaryResponse, http.StatusOK)
 	var summary application.AccessoryAllocationSummary
@@ -141,12 +141,12 @@ func TestAccessoryAllocationRoutesCoverLifecycleAndSummary(t *testing.T) {
 		t.Fatalf("unexpected allocation summary: %#v", summary)
 	}
 
-	removeResponse := layoutRequest(t, router, editor, http.MethodPost,
+	removeResponse := authedJSONRequest(t, router, editor, http.MethodPost,
 		"/api/v1/accessory-installations/"+installation.ID+"/remove",
 		map[string]any{"disposition": "maintenance", "notes": "Prüfstand"}, true)
 	assertStatus(t, removeResponse, http.StatusOK)
 
-	historyResponse := layoutRequest(t, router, editor, http.MethodGet,
+	historyResponse := authedJSONRequest(t, router, editor, http.MethodGet,
 		"/api/v1/accessory-products/"+product.ID+"/usage-history", nil, true)
 	assertStatus(t, historyResponse, http.StatusOK)
 	var history application.AccessoryUsageHistory
@@ -162,7 +162,7 @@ func TestAccessoryAllocationRoutesCoverLifecycleAndSummary(t *testing.T) {
 		t.Fatalf("unexpected usage history: %#v", history)
 	}
 
-	invalid := layoutRequest(t, router, editor, http.MethodPost, "/api/v1/accessory-reservations",
+	invalid := authedJSONRequest(t, router, editor, http.MethodPost, "/api/v1/accessory-reservations",
 		map[string]any{"productId": product.ID, "locationId": location.ID, "quantity": 1}, true)
 	assertProblem(t, invalid, http.StatusBadRequest, "accessory_validation")
 }
@@ -172,7 +172,7 @@ func accessoryAllocationRouter(t *testing.T) (
 	map[string]*application.LoginResult,
 	*application.AccessoryProduct,
 	*application.StorageLocation,
-	*application.Layout,
+	*application.Vehicle,
 ) {
 	t.Helper()
 	db := testRouterDB(t)
@@ -181,7 +181,7 @@ func accessoryAllocationRouter(t *testing.T) (
 		{Username: "admin", Password: "admin-password", Roles: []string{"Admin"}},
 		{Username: "editor", Password: "editor-password", Roles: []string{"Editor"}},
 		{Username: "viewer", Password: "viewer-password", Roles: []string{"Viewer"}},
-		{Username: "planner", Password: "planner-password", Roles: []string{"Planner"}},
+		{Username: "planner", Password: "planner-password", Roles: []string{"Viewer"}},
 		{Username: "messe", Password: "messe-password", Roles: []string{"Messe"}},
 	} {
 		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
@@ -214,10 +214,7 @@ func accessoryAllocationRouter(t *testing.T) (
 	}, "seed"); err != nil {
 		t.Fatal(err)
 	}
-	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
-	layout, err := layouts.CreateLayout(t.Context(), application.CreateLayoutInput{
-		Name: "Heimanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
-	}, "seed")
+	layout, err := application.NewVehicleService(db).Create(t.Context(), application.CreateVehicleInput{InventoryNumber: "RK-ALLOCATION-1", Manufacturer: "Tillig", Name: "Testlok", Gauge: "TT", Category: "Lokomotive", Gattung: "Dampflokomotive"}, "seed")
 	if err != nil {
 		t.Fatal(err)
 	}

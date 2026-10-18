@@ -8,8 +8,6 @@ import {
   type AccessoryArticle,
   type AccessoryReservation,
   type AccessoryTechnicalPlacement,
-  type Layout,
-  type LayoutUnit,
   type StorageLocation,
   type Vehicle
 } from "../../shared/api";
@@ -27,15 +25,13 @@ import {
 import { activeStorageLocations, storageLocationPath } from "../../shared/storageLocations";
 import { AccessoryTechnicalFields, emptyTechnicalPlacement } from "./AccessoryTechnicalFields";
 
-export function AccessoryReservationsPanel({ article, reservations, assets, locations, vehicles, layouts, units,
+export function AccessoryReservationsPanel({ article, reservations, assets, locations, vehicles,
   canReserve, onChanged, onDirtyChange }: {
   article: AccessoryArticle;
   reservations: AccessoryReservation[];
   assets: AccessoryAsset[];
   locations: StorageLocation[];
   vehicles: Vehicle[];
-  layouts: Layout[];
-  units: LayoutUnit[];
   canReserve: boolean;
   onChanged: () => Promise<void>;
   onDirtyChange: (dirty: boolean) => void;
@@ -45,7 +41,7 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
   const [allocationMode, setAllocationMode] = useState<"quantity" | "asset">("quantity");
   const [quantity, setQuantity] = useState("1");
   const [note, setNote] = useState("");
-  const [target, setTarget] = useState<AccessoryTargetSelection>({ kind: "layout", id: "" });
+  const [target, setTarget] = useState<AccessoryTargetSelection>({ kind: "vehicle", id: "" });
   const [technical, setTechnical] = useState<AccessoryTechnicalPlacement>(emptyTechnicalPlacement);
   const [action, setAction] = useState<AccessoryPendingAction | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
@@ -56,7 +52,7 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
   const availableAssets = assets.filter((asset) => asset.lifecycle === "stored");
   const effectiveAssetID = availableAssets.some((asset) => asset.id === assetID)
     ? assetID : availableAssets[0]?.id || "";
-  const resolvedTarget = resolveAccessoryTargetSelection(target, vehicles, layouts, units);
+  const resolvedTarget = resolveAccessoryTargetSelection(target, vehicles);
   const targetInput = accessoryTargetInput(resolvedTarget);
   const isHybrid = article.inventoryStrategy === "quantity_later_individual";
   const isIndividual = article.inventoryStrategy === "individual" || (isHybrid && allocationMode === "asset");
@@ -83,7 +79,7 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
           note: note || undefined
         });
         setLocationID(""); setAssetID(""); setAllocationMode("quantity"); setQuantity("1"); setNote("");
-        setTarget({ kind: "layout", id: "" });
+        setTarget({ kind: "vehicle", id: "" });
         setTechnical(emptyTechnicalPlacement());
       },
       afterSuccess: onChanged
@@ -108,14 +104,14 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
           <th>{t("accessories.field.target")}</th><th>{t("accessories.field.quantity")}</th>
           <th>{t("accessories.field.status")}</th><th><span className="sr-only">{t("accessories.field.actions")}</span></th>
         </tr></thead><tbody>{reservations.map((reservation) => <tr key={reservation.id}>
-          <td>{accessoryTargetLabel(reservation, vehicles, layouts, units)}</td>
+          <td>{accessoryTargetLabel(reservation, vehicles)}</td>
           <td>{reservation.quantity}</td><td>{t(`accessories.reservationStatus.${reservation.status}`)}</td>
           <td>{canReserve && reservation.status === "active" ? <button type="button" className="text-button"
             onClick={() => cancel(reservation)}>{t("accessories.reservations.cancel")}</button> : null}</td>
         </tr>)}</tbody></table></div>
         {canReserve ? <form className="accessory-form accessory-allocation-form" onSubmit={submit}>
           <h3>{t("accessories.reservations.create")}</h3>
-          <AccessoryTargetFields target={resolvedTarget} vehicles={vehicles} layouts={layouts} units={units}
+          <AccessoryTargetFields target={resolvedTarget} vehicles={vehicles}
             onChange={setTarget} />
           <AccessoryTechnicalFields value={technical} onChange={setTechnical} />
           {isHybrid ? <label>{t("accessories.field.allocationSource")}<AppSelect value={allocationMode}

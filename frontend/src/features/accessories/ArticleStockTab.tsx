@@ -44,12 +44,12 @@ export function ArticleStockTab({ article, form, errors, resources, disabled, ca
       : <p className="article-editor-hint">{t("accessories.editor.saveBeforeStock")}</p>}
     {article ? <>
       <AccessoryReservationsPanel article={article} reservations={resources.reservations} assets={resources.assets}
-        locations={resources.locations} vehicles={resources.vehicles} layouts={resources.layouts} units={resources.units}
+        locations={resources.locations} vehicles={resources.vehicles}
         canReserve={canReserve} onChanged={onChanged}
         onDirtyChange={(dirty) => onDirtyChange("reservation", dirty)} />
       <AccessoryInstallationsPanel article={article} reservations={resources.reservations}
         installations={resources.installations} assets={resources.assets} locations={resources.locations}
-        vehicles={resources.vehicles} layouts={resources.layouts} units={resources.units} canInstall={canInstall}
+        vehicles={resources.vehicles}  canInstall={canInstall}
         onChanged={onChanged} onDirtyChange={(dirty) => onDirtyChange("installation", dirty)} />
     </> : null}
   </section>;

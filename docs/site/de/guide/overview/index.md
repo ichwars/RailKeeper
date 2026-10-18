@@ -14,11 +14,11 @@ Digitalisierung, Wartung und Datenqualität. Dieses Kapitel erklärt die Bedeutu
 den Weg von einem Hinweis zu den betroffenen Fahrzeugen. Es beschreibt den stabilen
 RailKeeper-Stand v0.1.20.3.
 
-Benutzer mit den Rollen Admin, Editor, Viewer oder Planner können die Übersicht öffnen. Ein Konto,
+Benutzer mit den Rollen Admin, Editor, Viewer können die Übersicht öffnen. Ein Konto,
 das ausschließlich die Rolle Messe besitzt, startet unter **Ausstellung** und kann dieses Dashboard
 nicht aufrufen.
 
-Nur Benutzer mit der Rolle Admin oder Editor können Fahrzeugdaten ändern. Viewer und Planner
+Nur Benutzer mit der Rolle Admin oder Editor können Fahrzeugdaten ändern. Viewer
 können das Dashboard und gefilterte Ergebnisse prüfen, müssen fehlende Daten aber durch einen Admin
 oder Editor korrigieren lassen.
 
@@ -165,7 +165,7 @@ Das Anlegen, Importieren und Ändern von Fahrzeugen erfordert die Rolle Admin od
 3. RailKeeper öffnet den **Fahrzeugbestand** und aktiviert den zugehörigen Bestands- oder
    Qualitätsfilter.
 4. Öffne die betroffenen Datensätze. Ergänze oder korrigiere als Admin oder Editor die fehlenden
-   Angaben. Verwende als Viewer oder Planner das Ergebnis, um die Datensätze zu identifizieren, und
+   Angaben. Verwende als Viewer das Ergebnis, um die Datensätze zu identifizieren, und
    bitte einen Admin oder Editor um die Änderung.
 5. Kehre zur **Übersicht** zurück und aktualisiere das Dashboard.
 
@@ -196,7 +196,7 @@ gespeichert.
 
 | Situation | Anzeige in RailKeeper | Nächster Schritt |
 | --- | --- | --- |
-| Keine Fahrzeuge | Hauptkennzahlen mit null, leere Listen und Empfehlung zum Anlegen oder Importieren | Als Admin oder Editor Fahrzeuge anlegen oder eine Liste importieren. Als Viewer oder Planner eine dieser Rollen um das Befüllen des Bestands bitten. |
+| Keine Fahrzeuge | Hauptkennzahlen mit null, leere Listen und Empfehlung zum Anlegen oder Importieren | Als Admin oder Editor Fahrzeuge anlegen oder eine Liste importieren. Als Viewer eine dieser Rollen um das Befüllen des Bestands bitten. |
 | Keine offene Wartung mit Fälligkeitsdatum | Leerhinweis im Wartungsradar | Ein Fälligkeitsdatum ergänzen, wenn die Arbeit im Radar erscheinen soll |
 | Keine größeren Datenlücken | Bestätigung unter **Handlungsbedarf** | Mit Wartung oder weiteren Bestandsangaben fortfahren |
 | Alle Kacheln ausgeblendet | **Dashboard leer** mit **Layout zurücksetzen** | Layout zurücksetzen, um alle Kacheln wiederherzustellen |

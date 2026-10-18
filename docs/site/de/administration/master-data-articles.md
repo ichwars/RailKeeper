@@ -11,7 +11,7 @@ lastReviewed: 2026-08-28
 
 Unter **Einstellungen > Daten > Artikeldaten** stehen die kontrollierten Werte für Zubehörartikel.
 Die Seite trennt Bestandseinheiten, Artikelklassifizierung, eigene Felder und Lagerorte. Admin und
-Editor können sie ändern. Viewer und Planner sehen ausdrücklich eine Nur-Lese-Ansicht.
+Editor können sie ändern. Viewer sehen ausdrücklich eine Nur-Lese-Ansicht.
 
 ## Bestandseinheiten
 

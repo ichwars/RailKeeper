@@ -136,6 +136,7 @@ export function AppSelect({ value, children, onChange, className = "", disabled,
     if (option.disabled || disabled) return;
     onChange?.({ target: { value: option.value } });
     setOpen(false);
+    rootRef.current?.querySelector("button")?.focus();
   };
 
   const move = (direction: 1 | -1) => {
@@ -214,9 +215,11 @@ export function AppSelect({ value, children, onChange, className = "", disabled,
       if (open && options[activeIndex]) choose(options[activeIndex]);
       else if (options.length > 0) setOpen(true);
     }
-    if (event.key === "Escape") {
+    if (event.key === "Escape" && open) {
       event.preventDefault();
+      event.stopPropagation();
       setOpen(false);
+      rootRef.current?.querySelector("button")?.focus();
     }
     if (event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey && event.key !== " ") {
       event.preventDefault();

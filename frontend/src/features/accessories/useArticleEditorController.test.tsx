@@ -115,8 +115,6 @@ describe("useArticleEditorController", () => {
       ? [activeOtherArticleType]
       : []);
     vi.spyOn(api, "vehicles").mockResolvedValue([]);
-    vi.spyOn(api, "layouts").mockResolvedValue([]);
-    vi.spyOn(api, "layoutUnits").mockResolvedValue([]);
     vi.spyOn(api, "accessoryStock").mockResolvedValue(stock(article.id, 0));
     vi.spyOn(api, "accessoryStockMovements").mockResolvedValue([]);
     vi.spyOn(api, "accessoryAssets").mockResolvedValue([]);
@@ -511,11 +509,11 @@ describe("useArticleEditorController", () => {
 
   it("enforces editor, planner, viewer, and view-mode permissions", async () => {
     const editor = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
-    const planner = renderHook(() => useArticleEditorController({ roles: ["Planner"] }));
+    const planner = renderHook(() => useArticleEditorController({ roles: ["Viewer"] }));
     const viewer = renderHook(() => useArticleEditorController({ roles: ["Viewer"] }));
 
     expect(editor.result.current.permissions).toEqual({ canEdit: true, canManageStock: true, canReserve: true, canInstall: true });
-    expect(planner.result.current.permissions).toEqual({ canEdit: false, canManageStock: false, canReserve: true, canInstall: false });
+    expect(planner.result.current.permissions).toEqual({ canEdit: false, canManageStock: false, canReserve: false, canInstall: false });
     expect(viewer.result.current.permissions).toEqual({ canEdit: false, canManageStock: false, canReserve: false, canInstall: false });
 
     act(() => editor.result.current.openArticle("article-1", "view", false));
@@ -523,9 +521,9 @@ describe("useArticleEditorController", () => {
     expect(editor.result.current.isFormReadOnly).toBe(true);
   });
 
-  it("keeps a Planner reservation draft behind continue and discard close choices", async () => {
-    const { result } = renderHook(() => useArticleEditorController({ roles: ["Planner"] }));
-    act(() => result.current.openArticle("article-1", "view", false));
+  it("keeps a Editor reservation draft behind continue and discard close choices", async () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openArticle("article-1", "edit", false));
     await waitFor(() => expect(result.current.article).not.toBeNull());
 
     act(() => result.current.setSubdraftDirty("reservation", true));
@@ -542,9 +540,9 @@ describe("useArticleEditorController", () => {
     expect(result.current.isOpen).toBe(false);
   });
 
-  it("closes Planner view directly after a successful reservation resets its draft", async () => {
-    const { result } = renderHook(() => useArticleEditorController({ roles: ["Planner"] }));
-    act(() => result.current.openArticle("article-1", "view", false));
+  it("closes Editor view directly after a successful reservation resets its draft", async () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openArticle("article-1", "edit", false));
     await waitFor(() => expect(result.current.article).not.toBeNull());
 
     act(() => result.current.setSubdraftDirty("reservation", true));

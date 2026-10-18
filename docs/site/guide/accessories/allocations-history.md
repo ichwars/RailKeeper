@@ -16,20 +16,15 @@ movements, conditions, and usage history consistent in one local transaction.
 ## Roles and allocation targets
 
 Admin and Editor users can reserve, cancel, install, update conditions, and remove installations.
-A Planner can create and cancel reservations in the otherwise read-only article dialog, but cannot
-install, remove, change condition, or manage general stock. Viewer is read-only. Messe has no
-general accessories access.
+
 
 Every reservation and installation requires exactly one target:
 
 | Target | Selection shown by the stable dialog |
 | --- | --- |
 | Vehicle | Inventory number and vehicle name. |
-| Layout | One non-archived layout. |
-| Layout unit | One non-archived layout unit. |
 
-The dialog consumes existing targets but does not create or edit layouts. This chapter does not
-document layout creation or editing.
+The dialog uses existing vehicles as allocation targets.
 
 Five optional placement fields can accompany either workflow: **Placement**, **Digital address**,
 **Decoder output**, **Connection**, and **Wiring notes**. They describe where and how the accessory
@@ -53,7 +48,7 @@ individual item, maintenance and retired items remain owned but are not Stored o
 
 ## Reserve stock
 
-1. Select vehicle, layout, or layout unit and the exact target.
+1. Select vehicle and the exact target.
 2. Optionally enter the five technical placement fields.
 3. For a hybrid article, choose **Quantity** or **Individual item** as the source.
 4. Select an active storage location. For individual tracking, select a Stored item at that same
@@ -182,7 +177,7 @@ forcing a classification change.
 | Stored removal is disabled or rejected | Select an active destination whose parent chain is active. Other dispositions must not include a location. |
 | Condition or removal conflicts | Reload. Another action may already have closed or changed the installation. |
 | Write may have succeeded but refresh failed | Do not repeat it. Use **Retry**, then verify reservation status, installation, item lifecycle, stock journal, and history. |
-| Permission is denied | Planner can reserve and cancel only. Installation, condition, and removal require Admin or Editor. |
+| Permission is denied | Installation, condition, and removal require Admin or Editor. |
 
 A failed post-write resource reload marks the editor stale and disables further allocation and
 stock writes until a complete retry succeeds. This prevents a second command from using an old

@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 22
+	backupVersion = 23
 )
 
 var (
@@ -93,6 +93,7 @@ type BackupValidationTable struct {
 }
 
 var backupTableOrder = []string{
+	"retired_allocation_records",
 	"master_data_entries",
 	"master_data_relations",
 	"inventory_number_schemes",
@@ -155,6 +156,7 @@ type backupTableVersionPolicy struct {
 }
 
 var backupTableVersions = map[string]backupTableVersionPolicy{
+	"retired_allocation_records":               {introduced: 23, required: 23},
 	"master_data_entries":                      {introduced: 1, required: 1},
 	"master_data_relations":                    {introduced: 1, required: 1},
 	"inventory_number_schemes":                 {introduced: 1, required: 1},
@@ -403,6 +405,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 		return nil, err
 	}
 
+	if err := retireRestoredLegacyAllocations(ctx, tx); err != nil {
+		return nil, err
+	}
 	uploadsSwap, err := s.replaceUploadsWithStaged(stagedFiles)
 	if err != nil {
 		return nil, err
@@ -612,32 +617,6 @@ func backupRowsForRestore(doc *BackupDocument, table string) []map[string]any {
 	return normalized
 }
 
-func backfillRestoredTrackGeometrySnapshots(ctx context.Context, tx *sql.Tx) error {
-	if _, err := tx.ExecContext(ctx, `
-UPDATE plan_track_objects
-SET geometry_snapshot_json = (
-  SELECT json_object(
-    'id', geometry.id,
-    'libraryId', geometry.library_id,
-    'articleNumber', geometry.article_number,
-    'name', geometry.name,
-    'kind', geometry.kind,
-    'lengthMm', geometry.length_mm,
-    'minimumRadiusMm', geometry.minimum_radius_mm,
-    'geometry', json(geometry.geometry_json),
-    'sourceUrl', geometry.source_url,
-    'status', geometry.status,
-    'createdAt', geometry.created_at
-  )
-  FROM track_geometry_definitions geometry
-  WHERE geometry.id = plan_track_objects.geometry_id
-)
-WHERE geometry_snapshot_json IS NULL`); err != nil {
-		return fmt.Errorf("backfill restored track geometry snapshots: %w", err)
-	}
-	return nil
-}
-
 func restoreLegacyAccessoryProductDefaults(
 	ctx context.Context,
 	tx *sql.Tx,
@@ -713,6 +692,9 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	if len(doc.Tables["layouts"]) > 0 {
+		result.Warnings = append(result.Warnings, "Anlagenplanung ist entfernt. Planungsdaten bleiben archiviert; Anlagenreservierungen werden freigegeben und Anlageneinbauten ins Ursprungslager zurückgeführt. / Layout planning is retired; legacy data is archived, reservations released and installations returned to their source storage.")
+	}
 	knownTables := map[string]struct{}{}
 	for _, table := range backupTableOrder {
 		knownTables[table] = struct{}{}

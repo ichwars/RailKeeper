@@ -10,7 +10,7 @@ lastReviewed: 2026-08-16
 # Fahrzeugwartung und Zustand
 
 Der Tab **Wartung** erfasst Arbeiten, Reparaturen, Umbauten, Zustand, Termine und Kosten an einem
-Fahrzeug. Admin, Editor, Viewer und Planner können gespeicherte Einträge ansehen. Nur Admin und
+Fahrzeug. Admin, Editor, Viewer können gespeicherte Einträge ansehen. Nur Admin und
 Editor dürfen sie anlegen, ändern, abschließen oder löschen. Der Server erzwingt diese Grenze.
 
 ## Tab Wartung öffnen
@@ -133,7 +133,7 @@ gespeichert wurde.
 
 ## Rollen-, Speicher- und Sicherungsgrenzen
 
-Admin, Editor, Viewer und Planner können Wartungen lesen. Serverseitiges Anlegen, Ändern,
+Admin, Editor, Viewer können Wartungen lesen. Serverseitiges Anlegen, Ändern,
 Abschließen und Löschen erfordert Admin oder Editor. Deaktivierte Bedienelemente erklären den
 aktuellen Modus, ersetzen aber nicht die serverseitige Berechtigungsprüfung.
 

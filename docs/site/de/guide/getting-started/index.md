@@ -53,7 +53,7 @@ fünf Einrichtungsversuche pro Client-Adresse innerhalb von zehn Minuten.
    wähle erneut **Anmelden**.
 
 Eine erfolgreiche Anmeldung erzeugt eine serverseitige Sitzung mit einer Laufzeit von bis zu zwölf
-Stunden. Benutzer mit den Rollen Admin, Editor, Viewer oder Planner starten in der **Übersicht**.
+Stunden. Benutzer mit den Rollen Admin, Editor, Viewer starten in der **Übersicht**.
 Ein Konto, das ausschließlich die Rolle Messe besitzt, startet unter **Ausstellung**.
 
 RailKeeper akzeptiert höchstens zehn Anmeldeanfragen von einer Client-Adresse innerhalb von fünf

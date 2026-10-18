@@ -23,7 +23,7 @@ user profile to another browser or device. A browser without a stored choice sta
 ## Default view
 
 The default view is used when RailKeeper starts from its root address without a more specific path.
-Available choices are Overview, Vehicle inventory, Accessories, Layout, Exhibition, Import/Export,
+Available choices are Overview, Vehicle inventory, Accessories, Exhibition, Import/Export,
 and Settings.
 
 Keep these boundaries in mind:
@@ -32,8 +32,7 @@ Keep these boundaries in mind:
 - Signing in initially routes the account to its first permitted workspace. The default does not
   bypass that role-based decision.
 - A stored destination that the current role cannot open is replaced by the first allowed view.
-- **Layout** is selectable in v0.1.20.3 but remains an unpublished development workspace and is not
-  shown in the normal sidebar. Choose another start page for the stable user workflow.
+
 
 ## Date and time format
 
@@ -76,8 +75,7 @@ only its sidebar link. The underlying page can still be opened directly when the
 required role. Entries unavailable to the current role remain filtered out regardless of their
 saved position.
 
-The list can include **Layout** even though stable v0.1.20.3 does not publish that workspace in the
-normal sidebar. Ordering or showing it here does not turn it into a published user feature.
+
 
 Sidebar order and hidden entries are stored separately for each username and synchronized through
 that user's profile. The small arrow at the bottom of the sidebar only collapses or expands the

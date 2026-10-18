@@ -15,7 +15,7 @@ Lokomotiveinträge. Das Betriebspersonal kann eine offene Liste pflegen, ohne de
 Fahrzeugbestand zu öffnen.
 
 Dieses Kapitel dokumentiert RailKeeper v0.1.20.3. Benutzer- und Stammdatenverwaltung,
-Backup-Bedienung sowie der Anlagen-Arbeitsbereich gehören nicht zu diesem Kapitel.
+Backup-Bedienung gehören nicht zu diesem Kapitel.
 
 ## Zugriffsrechte und Trennung
 
@@ -26,7 +26,7 @@ RailKeeper stellt den Arbeitsbereich zwei Rollen mit unterschiedlichen Aufgaben 
 | Messe | Öffnet den getrennten Messearbeitsbereich. Die Rolle kann Listen lesen und drucken sowie Einträge pflegen, solange die Liste offen ist. |
 | Admin | Öffnet den Arbeitsbereich und kann zusätzlich Listen anlegen, bearbeiten, sperren, entsperren und löschen. Admin kann auch Einträge einer offenen Liste löschen. |
 
-Editor, Viewer und Planner öffnen den Messearbeitsbereich allein nicht. Wird eine dieser Rollen mit
+Editor, Viewer öffnen den Messearbeitsbereich allein nicht. Wird eine dieser Rollen mit
 Messe kombiniert, kann das Eintragsformular zusätzlich allgemeine Stammdatenauswahlen des
 Fahrzeugbestands laden. Ein reines Messekonto bleibt von diesen Auswahlen getrennt, kann jedoch die
 im Dialog vorhandenen Messefelder verwenden. Funktionssymbole stehen Messe weiterhin zur

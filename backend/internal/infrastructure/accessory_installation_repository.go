@@ -15,7 +15,7 @@ func (r *AccessoryRepository) ListInstallations(
 	productID string,
 ) ([]application.AccessoryInstallation, error) {
 	rows, err := r.db.QueryContext(ctx, accessoryInstallationSelect+`
-WHERE ?='' OR product_id=?
+WHERE vehicle_id IS NOT NULL AND (?='' OR product_id=?)
 ORDER BY installed_at DESC, id`, productID, productID)
 	if err != nil {
 		return nil, fmt.Errorf("list accessory installations: %w", err)
@@ -62,15 +62,7 @@ func (r *AccessoryRepository) Install(
 			if !reservationMatchesInstallation(reservation, input) {
 				return application.ErrAccessoryConflict
 			}
-			if input.TechnicalPositionID != "" && reservation.TechnicalPositionID != "" &&
-				input.TechnicalPositionID != reservation.TechnicalPositionID {
-				return application.ErrAccessoryConflict
-			}
 			inheritReservationTechnicalData(&input, reservation)
-		}
-		if err := requireTechnicalPosition(ctx, tx, input.TechnicalPositionID,
-			input.LayoutUnitID, input.ProductID); err != nil {
-			return err
 		}
 		usesAsset, err := accessoryAllocationUsesAsset(strategy, input.AssetID)
 		if err != nil {
@@ -116,24 +108,17 @@ UPDATE accessory_reservations SET status=?, updated_at=? WHERE id=? AND status=?
 		}
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO accessory_installations(
-  id, product_id, asset_id, source_location_id, quantity, vehicle_id, layout_id, layout_unit_id,
+  id, product_id, asset_id, source_location_id, quantity, vehicle_id,
   condition_state, installed_by, installed_at, notes, placement, digital_address, decoder_output,
   connection, wiring_notes
-) VALUES(?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+) VALUES(?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			installationID, input.ProductID, input.AssetID, input.SourceLocationID, input.Quantity,
-			input.VehicleID, input.LayoutID, input.LayoutUnitID, input.Condition, actor, now, input.Notes,
+			input.VehicleID, input.Condition, actor, now, input.Notes,
 			input.Placement, input.DigitalAddress, input.DecoderOutput, input.Connection, input.WiringNotes); err != nil {
 			if isSQLiteConstraint(err) {
 				return application.ErrAccessoryConflict
 			}
 			return fmt.Errorf("insert accessory installation: %w", err)
-		}
-		if input.TechnicalPositionID != "" {
-			if _, err := tx.ExecContext(ctx, `
-INSERT INTO accessory_installation_positions(installation_id, position_id) VALUES(?, ?)`,
-				installationID, input.TechnicalPositionID); err != nil {
-				return fmt.Errorf("link accessory installation position: %w", err)
-			}
 		}
 		if !usesAsset {
 			if err := insertAccessoryStockMovement(ctx, tx, input.ProductID, input.SourceLocationID,
@@ -363,17 +348,13 @@ func reservationMatchesInstallation(
 	return reservation.Status == domain.AccessoryReservationActive &&
 		reservation.ProductID == input.ProductID && reservation.AssetID == input.AssetID &&
 		reservation.LocationID == input.SourceLocationID && reservation.Quantity == input.Quantity &&
-		reservation.VehicleID == input.VehicleID && reservation.LayoutID == input.LayoutID &&
-		reservation.LayoutUnitID == input.LayoutUnitID
+		reservation.VehicleID == input.VehicleID
 }
 
 func inheritReservationTechnicalData(
 	input *application.CreateAccessoryInstallationInput,
 	reservation *application.AccessoryReservation,
 ) {
-	if input.TechnicalPositionID == "" {
-		input.TechnicalPositionID = reservation.TechnicalPositionID
-	}
 	if input.Placement == "" {
 		input.Placement = reservation.Placement
 	}
@@ -393,9 +374,7 @@ func inheritReservationTechnicalData(
 
 const accessoryInstallationSelect = `SELECT installation.id, installation.product_id,
 COALESCE(installation.asset_id, ''), installation.source_location_id,
-COALESCE((SELECT position_id FROM accessory_installation_positions WHERE installation_id=installation.id), ''),
-installation.quantity, COALESCE(installation.vehicle_id, ''), COALESCE(installation.layout_id, ''),
-COALESCE(installation.layout_unit_id, ''), condition_state,
+installation.quantity, COALESCE(installation.vehicle_id, ''), condition_state,
 installed_by, installed_at, COALESCE(removed_by, ''), COALESCE(removed_at, ''),
 COALESCE(removal_disposition, ''), notes, removal_notes, placement, digital_address, decoder_output,
 connection, wiring_notes FROM accessory_installations installation`
@@ -403,9 +382,9 @@ connection, wiring_notes FROM accessory_installations installation`
 func scanAccessoryInstallation(scanner rowScanner) (*application.AccessoryInstallation, error) {
 	installation := &application.AccessoryInstallation{}
 	err := scanner.Scan(&installation.ID, &installation.ProductID, &installation.AssetID,
-		&installation.SourceLocationID, &installation.TechnicalPositionID, &installation.Quantity,
+		&installation.SourceLocationID, &installation.Quantity,
 		&installation.VehicleID,
-		&installation.LayoutID, &installation.LayoutUnitID, &installation.Condition,
+		&installation.Condition,
 		&installation.InstalledBy, &installation.InstalledAt, &installation.RemovedBy,
 		&installation.RemovedAt, &installation.RemovalDisposition, &installation.Notes,
 		&installation.RemovalNotes, &installation.Placement, &installation.DigitalAddress,
@@ -426,7 +405,7 @@ func getInstallationWith(
 	id string,
 ) (*application.AccessoryInstallation, error) {
 	installation, err := scanAccessoryInstallation(queryer.QueryRowContext(
-		ctx, accessoryInstallationSelect+` WHERE id=?`, id,
+		ctx, accessoryInstallationSelect+` WHERE id=? AND vehicle_id IS NOT NULL`, id,
 	))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, application.ErrAccessoryNotFound

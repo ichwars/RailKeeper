@@ -31,9 +31,6 @@ type Config struct {
 	FileBlobService             *application.FileBlobService
 	DatabaseMaintenance         *application.DatabaseMaintenanceService
 	ExhibitionService           *application.ExhibitionService
-	LayoutService               *application.LayoutService
-	TrackPlannerService         *application.TrackPlannerService
-	TrackLibraryService         *application.TrackLibraryService
 	AccessoryService            *application.AccessoryService
 	AccessoryAllocationService  *application.AccessoryAllocationService
 	AccessoryDocumentService    *application.AccessoryDocumentService
@@ -71,9 +68,6 @@ type App struct {
 	fileBlobs                   *application.FileBlobService
 	databaseMaintenance         *application.DatabaseMaintenanceService
 	exhibitionService           *application.ExhibitionService
-	layoutService               *application.LayoutService
-	trackPlannerService         *application.TrackPlannerService
-	trackLibraryService         *application.TrackLibraryService
 	accessoryService            *application.AccessoryService
 	accessoryAllocationService  *application.AccessoryAllocationService
 	accessoryDocumentService    *application.AccessoryDocumentService
@@ -126,9 +120,6 @@ func NewRouter(config Config) http.Handler {
 		fileBlobs:                   config.FileBlobService,
 		databaseMaintenance:         config.DatabaseMaintenance,
 		exhibitionService:           config.ExhibitionService,
-		layoutService:               config.LayoutService,
-		trackPlannerService:         config.TrackPlannerService,
-		trackLibraryService:         config.TrackLibraryService,
 		accessoryService:            config.AccessoryService,
 		accessoryAllocationService:  config.AccessoryAllocationService,
 		accessoryDocumentService:    config.AccessoryDocumentService,

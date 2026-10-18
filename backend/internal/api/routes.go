@@ -10,13 +10,11 @@ import (
 type routeAccess string
 
 const (
-	routeAccessPublic          routeAccess = "public"
-	routeAccessAdmin           routeAccess = "Admin"
-	routeAccessEditor          routeAccess = "Editor"
-	routeAccessViewer          routeAccess = "Viewer"
-	routeAccessMesse           routeAccess = "Messe"
-	routeAccessPlanner         routeAccess = "Planner"
-	routeAccessEditorOrPlanner routeAccess = "EditorOrPlanner"
+	routeAccessPublic routeAccess = "public"
+	routeAccessAdmin  routeAccess = "Admin"
+	routeAccessEditor routeAccess = "Editor"
+	routeAccessViewer routeAccess = "Viewer"
+	routeAccessMesse  routeAccess = "Messe"
 )
 
 type routeHandler func(*App, http.ResponseWriter, *http.Request)
@@ -182,8 +180,8 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/accessory-products/{id}/allocation-summary", routeAccessViewer, (*App).getAccessoryAllocationSummary, nil},
 		{http.MethodGet, "/api/v1/accessory-products/{id}/usage-history", routeAccessViewer, (*App).getAccessoryUsageHistory, nil},
 		{http.MethodGet, "/api/v1/accessory-reservations", routeAccessViewer, (*App).listAccessoryReservations, nil},
-		{http.MethodPost, "/api/v1/accessory-reservations", routeAccessEditorOrPlanner, (*App).createAccessoryReservation, nil},
-		{http.MethodPost, "/api/v1/accessory-reservations/{id}/cancel", routeAccessEditorOrPlanner, (*App).cancelAccessoryReservation, nil},
+		{http.MethodPost, "/api/v1/accessory-reservations", routeAccessEditor, (*App).createAccessoryReservation, nil},
+		{http.MethodPost, "/api/v1/accessory-reservations/{id}/cancel", routeAccessEditor, (*App).cancelAccessoryReservation, nil},
 		{http.MethodGet, "/api/v1/accessory-installations", routeAccessViewer, (*App).listAccessoryInstallations, nil},
 		{http.MethodPost, "/api/v1/accessory-installations", routeAccessEditor, (*App).createAccessoryInstallation, nil},
 		{http.MethodPost, "/api/v1/accessory-installations/{id}/remove", routeAccessEditor, (*App).removeAccessoryInstallation, nil},
@@ -191,49 +189,6 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/storage-locations", routeAccessViewer, (*App).listStorageLocations, nil},
 		{http.MethodPost, "/api/v1/storage-locations", routeAccessEditor, (*App).createStorageLocation, nil},
 		{http.MethodPut, "/api/v1/storage-locations/{id}", routeAccessEditor, (*App).updateStorageLocation, nil},
-		{http.MethodGet, "/api/v1/layouts", routeAccessViewer, (*App).listLayouts, nil},
-		{http.MethodPost, "/api/v1/layouts", routeAccessPlanner, (*App).createLayout, nil},
-		{http.MethodGet, "/api/v1/layouts/{id}", routeAccessViewer, (*App).getLayout, nil},
-		{http.MethodGet, "/api/v1/layouts/{id}/twin", routeAccessViewer, (*App).getLayoutTwin, nil},
-		{http.MethodPut, "/api/v1/layouts/{id}", routeAccessPlanner, (*App).updateLayout, nil},
-		{http.MethodGet, "/api/v1/layouts/{id}/units", routeAccessViewer, (*App).listLayoutUnits, nil},
-		{http.MethodPost, "/api/v1/layouts/{id}/units", routeAccessPlanner, (*App).createLayoutUnit, nil},
-		{http.MethodPut, "/api/v1/layout-units/{id}", routeAccessPlanner, (*App).updateLayoutUnit, nil},
-		{http.MethodGet, "/api/v1/layout-units/{id}/ports", routeAccessViewer, (*App).listLayoutUnitPorts, nil},
-		{http.MethodPost, "/api/v1/layout-units/{id}/ports", routeAccessPlanner, (*App).createLayoutUnitPort, nil},
-		{http.MethodPut, "/api/v1/layout-unit-ports/{id}", routeAccessPlanner, (*App).updateLayoutUnitPort, nil},
-		{http.MethodPut, "/api/v1/layout-units/{id}/outline", routeAccessPlanner, (*App).updateLayoutUnitOutline, nil},
-		{http.MethodGet, "/api/v1/layout-units/{id}/technical-positions", routeAccessViewer, (*App).listLayoutTechnicalPositions, nil},
-		{http.MethodPost, "/api/v1/layout-units/{id}/technical-positions", routeAccessPlanner, (*App).createLayoutTechnicalPosition, nil},
-		{http.MethodPut, "/api/v1/layout-technical-positions/{id}", routeAccessPlanner, (*App).updateLayoutTechnicalPosition, nil},
-		{http.MethodGet, "/api/v1/layouts/{id}/configurations", routeAccessViewer, (*App).listLayoutConfigurations, nil},
-		{http.MethodPost, "/api/v1/layouts/{id}/configurations", routeAccessPlanner, (*App).createLayoutConfiguration, nil},
-		{http.MethodPut, "/api/v1/layout-configurations/{id}", routeAccessPlanner, (*App).updateLayoutConfiguration, nil},
-		{http.MethodGet, "/api/v1/layout-configurations/{id}/port-analysis", routeAccessViewer, (*App).analyzeLayoutConfigurationPorts, nil},
-		{http.MethodPost, "/api/v1/layout-configurations/{id}/unit-snap-preview", routeAccessPlanner, (*App).previewLayoutConfigurationUnitSnap, nil},
-		{http.MethodGet, "/api/v1/layout-units/{id}/plan-variants", routeAccessViewer, (*App).listPlanVariants, nil},
-		{http.MethodPost, "/api/v1/layout-units/{id}/plan-variants", routeAccessPlanner, (*App).createPlanVariant, nil},
-		{http.MethodPost, "/api/v1/plan-variants/{id}/revisions", routeAccessPlanner, (*App).createPlanRevision, nil},
-		{http.MethodPost, "/api/v1/plan-revisions/{id}/submit", routeAccessPlanner, (*App).submitPlanRevision, nil},
-		{http.MethodPost, "/api/v1/plan-revisions/{id}/publish", routeAccessPlanner, (*App).publishPlanRevision, nil},
-		{http.MethodGet, "/api/v1/track-geometries", routeAccessViewer, (*App).listTrackGeometries, nil},
-		{http.MethodGet, "/api/v1/track-libraries", routeAccessViewer, (*App).listTrackLibraries, nil},
-		{http.MethodGet, "/api/v1/track-libraries/{id}/export", routeAccessViewer, (*App).exportTrackLibrary, nil},
-		{http.MethodPost, "/api/v1/track-libraries/import/preview", routeAccessAdmin, (*App).previewTrackLibraryImport, nil},
-		{http.MethodPost, "/api/v1/track-libraries/import", routeAccessAdmin, (*App).importTrackLibrary, nil},
-		{http.MethodPut, "/api/v1/track-libraries/{id}/status", routeAccessAdmin, (*App).updateTrackLibraryStatus, nil},
-		{http.MethodGet, "/api/v1/plan-revisions/{id}/track-plan", routeAccessViewer, (*App).getTrackPlan, nil},
-		{http.MethodGet, "/api/v1/plan-revisions/{id}/track-analysis", routeAccessViewer, (*App).getTrackPlanAnalysis, nil},
-		{http.MethodGet, "/api/v1/plan-revisions/{id}/track-change-preview", routeAccessViewer, (*App).getTrackPlanChangePreview, nil},
-		{http.MethodPost, "/api/v1/plan-revisions/{id}/track-reservations", routeAccessPlanner, (*App).reserveTrackPlanMaterials, nil},
-		{http.MethodPost, "/api/v1/plan-revisions/{id}/track-objects", routeAccessPlanner, (*App).createPlanTrackObject, nil},
-		{http.MethodPost, "/api/v1/plan-revisions/{id}/free-objects", routeAccessPlanner, (*App).createFreePlanObject, nil},
-		{http.MethodPut, "/api/v1/plan-track-objects/{id}", routeAccessPlanner, (*App).updatePlanTrackObject, nil},
-		{http.MethodPut, "/api/v1/plan-free-objects/{id}", routeAccessPlanner, (*App).updateFreePlanObject, nil},
-		{http.MethodPost, "/api/v1/plan-track-objects/{id}/flex-preview", routeAccessPlanner, (*App).previewFlexTrackPath, nil},
-		{http.MethodPost, "/api/v1/plan-track-objects/{id}/transition-preview", routeAccessPlanner, (*App).previewTransitionCurve, nil},
-		{http.MethodDelete, "/api/v1/plan-track-objects/{id}", routeAccessPlanner, (*App).deletePlanTrackObject, nil},
-		{http.MethodDelete, "/api/v1/plan-free-objects/{id}", routeAccessPlanner, (*App).deleteFreePlanObject, nil},
 		{http.MethodGet, "/api/v1/inventory-number-schemes", routeAccessViewer, (*App).listInventoryNumberSchemes, nil},
 		{http.MethodPost, "/api/v1/inventory-number-schemes", routeAccessEditor, (*App).createInventoryNumberScheme, nil},
 		{http.MethodPut, "/api/v1/inventory-number-schemes/{category}", routeAccessEditor, (*App).updateInventoryNumberScheme, nil},
@@ -275,8 +230,6 @@ func (a *App) registerRoutes(mux *http.ServeMux) {
 		})
 		if route.Authorize != nil {
 			handler = route.Authorize(a, handler)
-		} else if route.Access == routeAccessEditorOrPlanner {
-			handler = a.requireAny([]string{"Editor", "Planner"}, handler)
 		} else if route.Access != routeAccessPublic {
 			handler = a.require(string(route.Access), handler)
 		}

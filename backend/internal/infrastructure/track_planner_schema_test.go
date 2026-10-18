@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"railkeeper/backend/internal/domain"
 	"railkeeper/backend/internal/infrastructure"
 )
 
@@ -42,7 +41,12 @@ WHERE article_number='83101'`).Scan(&articleNumber, &lengthMM, &sourceURL, &stat
 		sourceURL != "https://www.tillig.com/Produkte/produktinfo-83101.html" {
 		t.Fatalf("unexpected Tillig G1 seed: %q %v %q %q", articleNumber, lengthMM, sourceURL, status)
 	}
-	var geometry domain.TrackGeometry
+	var geometry struct {
+		SchemaVersion int `json:"schemaVersion"`
+		Ports         []struct {
+			XMM float64 `json:"xMm"`
+		} `json:"ports"`
+	}
 	if err := json.Unmarshal([]byte(geometryJSON), &geometry); err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +74,12 @@ WHERE id='tillig-tt-modellgleis-83125-v1'`).
 		t.Fatalf("unexpected Tillig 83125 seed: %q %v %v %q %q",
 			kind, lengthMM, minimumRadiusMM, sourceURL, status)
 	}
-	var geometry domain.TrackGeometry
+	var geometry struct {
+		SchemaVersion int `json:"schemaVersion"`
+		Ports         []struct {
+			XMM float64 `json:"xMm"`
+		} `json:"ports"`
+	}
 	if err := json.Unmarshal([]byte(geometryJSON), &geometry); err != nil {
 		t.Fatal(err)
 	}

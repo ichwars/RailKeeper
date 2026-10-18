@@ -51,7 +51,7 @@ attempts per client address within ten minutes.
    **Sign in** again.
 
 A successful sign-in creates a server-side session that lasts for up to 12 hours. Admin, Editor,
-Viewer, and Planner users start on **Overview**. An account that has only the Messe role starts on
+Viewer users start on **Overview**. An account that has only the Messe role starts on
 **Exhibition**.
 
 RailKeeper accepts at most ten sign-in requests from one client address within five minutes. Wait

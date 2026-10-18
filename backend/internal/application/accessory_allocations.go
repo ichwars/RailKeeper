@@ -8,9 +8,7 @@ import (
 )
 
 type AllocationTargetInput struct {
-	VehicleID    string `json:"vehicleId,omitempty"`
-	LayoutID     string `json:"layoutId,omitempty"`
-	LayoutUnitID string `json:"layoutUnitId,omitempty"`
+	VehicleID string `json:"vehicleId,omitempty"`
 }
 
 type AccessoryTechnicalPlacement struct {
@@ -22,12 +20,11 @@ type AccessoryTechnicalPlacement struct {
 }
 
 type AccessoryReservation struct {
-	ID                  string `json:"id"`
-	ProductID           string `json:"productId"`
-	AssetID             string `json:"assetId,omitempty"`
-	LocationID          string `json:"locationId"`
-	TechnicalPositionID string `json:"technicalPositionId,omitempty"`
-	Quantity            int    `json:"quantity"`
+	ID         string `json:"id"`
+	ProductID  string `json:"productId"`
+	AssetID    string `json:"assetId,omitempty"`
+	LocationID string `json:"locationId"`
+	Quantity   int    `json:"quantity"`
 	AllocationTargetInput
 	Placement      string                            `json:"placement,omitempty"`
 	DigitalAddress string                            `json:"digitalAddress,omitempty"`
@@ -42,11 +39,10 @@ type AccessoryReservation struct {
 }
 
 type CreateAccessoryReservationInput struct {
-	ProductID           string `json:"productId"`
-	AssetID             string `json:"assetId,omitempty"`
-	LocationID          string `json:"locationId"`
-	TechnicalPositionID string `json:"technicalPositionId,omitempty"`
-	Quantity            int    `json:"quantity"`
+	ProductID  string `json:"productId"`
+	AssetID    string `json:"assetId,omitempty"`
+	LocationID string `json:"locationId"`
+	Quantity   int    `json:"quantity"`
 	AllocationTargetInput
 	Placement      string `json:"placement,omitempty"`
 	DigitalAddress string `json:"digitalAddress,omitempty"`
@@ -57,12 +53,11 @@ type CreateAccessoryReservationInput struct {
 }
 
 type AccessoryInstallation struct {
-	ID                  string `json:"id"`
-	ProductID           string `json:"productId"`
-	AssetID             string `json:"assetId,omitempty"`
-	SourceLocationID    string `json:"sourceLocationId"`
-	TechnicalPositionID string `json:"technicalPositionId,omitempty"`
-	Quantity            int    `json:"quantity"`
+	ID               string `json:"id"`
+	ProductID        string `json:"productId"`
+	AssetID          string `json:"assetId,omitempty"`
+	SourceLocationID string `json:"sourceLocationId"`
+	Quantity         int    `json:"quantity"`
 	AllocationTargetInput
 	Placement          string                             `json:"placement,omitempty"`
 	DigitalAddress     string                             `json:"digitalAddress,omitempty"`
@@ -80,12 +75,11 @@ type AccessoryInstallation struct {
 }
 
 type CreateAccessoryInstallationInput struct {
-	ReservationID       string `json:"reservationId,omitempty"`
-	ProductID           string `json:"productId"`
-	AssetID             string `json:"assetId,omitempty"`
-	SourceLocationID    string `json:"sourceLocationId"`
-	TechnicalPositionID string `json:"technicalPositionId,omitempty"`
-	Quantity            int    `json:"quantity"`
+	ReservationID    string `json:"reservationId,omitempty"`
+	ProductID        string `json:"productId"`
+	AssetID          string `json:"assetId,omitempty"`
+	SourceLocationID string `json:"sourceLocationId"`
+	Quantity         int    `json:"quantity"`
 	AllocationTargetInput
 	Placement      string                    `json:"placement,omitempty"`
 	DigitalAddress string                    `json:"digitalAddress,omitempty"`
@@ -135,7 +129,6 @@ type AccessoryUsageEvent struct {
 	LocationID     string                  `json:"locationId,omitempty"`
 	Quantity       int                     `json:"quantity"`
 	AllocationTargetInput
-	TechnicalPositionID string `json:"technicalPositionId,omitempty"`
 	AccessoryTechnicalPlacement
 	Status             domain.AccessoryReservationStatus  `json:"status,omitempty"`
 	PreviousCondition  domain.AccessoryCondition          `json:"previousCondition,omitempty"`
@@ -291,7 +284,6 @@ func cleanReservationInput(input CreateAccessoryReservationInput) CreateAccessor
 	input.ProductID = strings.TrimSpace(input.ProductID)
 	input.AssetID = strings.TrimSpace(input.AssetID)
 	input.LocationID = strings.TrimSpace(input.LocationID)
-	input.TechnicalPositionID = strings.TrimSpace(input.TechnicalPositionID)
 	input.AllocationTargetInput = input.clean()
 	input.Placement = strings.TrimSpace(input.Placement)
 	input.DigitalAddress = strings.TrimSpace(input.DigitalAddress)
@@ -307,7 +299,6 @@ func cleanInstallationInput(input CreateAccessoryInstallationInput) CreateAccess
 	input.ProductID = strings.TrimSpace(input.ProductID)
 	input.AssetID = strings.TrimSpace(input.AssetID)
 	input.SourceLocationID = strings.TrimSpace(input.SourceLocationID)
-	input.TechnicalPositionID = strings.TrimSpace(input.TechnicalPositionID)
 	input.AllocationTargetInput = input.clean()
 	input.Placement = strings.TrimSpace(input.Placement)
 	input.DigitalAddress = strings.TrimSpace(input.DigitalAddress)
@@ -320,17 +311,9 @@ func cleanInstallationInput(input CreateAccessoryInstallationInput) CreateAccess
 
 func (target AllocationTargetInput) clean() AllocationTargetInput {
 	target.VehicleID = strings.TrimSpace(target.VehicleID)
-	target.LayoutID = strings.TrimSpace(target.LayoutID)
-	target.LayoutUnitID = strings.TrimSpace(target.LayoutUnitID)
 	return target
 }
 
 func (target AllocationTargetInput) valid() bool {
-	count := 0
-	for _, id := range []string{target.VehicleID, target.LayoutID, target.LayoutUnitID} {
-		if id != "" {
-			count++
-		}
-	}
-	return count == 1
+	return target.VehicleID != ""
 }

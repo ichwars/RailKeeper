@@ -26,16 +26,16 @@ This section documents stable RailKeeper v0.1.20.3. It separates four administra
 
 ## Access rights
 
-| Action | Admin | Editor | Viewer | Planner | Messe |
-| --- | --- | --- | --- | --- | --- |
-| Open Settings and read master data | Yes | Yes | Yes | Yes | No |
-| Create, edit, deactivate, or reactivate entries | Yes | Yes | No | No | No |
-| Permanently delete an eligible custom entry | Yes | Yes | No | No | No |
-| Manage storage locations | Yes | Yes | No | No | No |
-| Manage inventory-number schemes | Yes | Yes | No | No | No |
-| Export or import the master-data document | Yes | No | No | No | No |
+| Action | Admin | Editor | Viewer | Messe |
+| --- | --- | --- | --- | --- |
+| Open Settings and read master data | Yes | Yes | Yes | No |
+| Create, edit, deactivate, or reactivate entries | Yes | Yes | No | No |
+| Permanently delete an eligible custom entry | Yes | Yes | No | No |
+| Manage storage locations | Yes | Yes | No | No |
+| Manage inventory-number schemes | Yes | Yes | No | No |
+| Export or import the master-data document | Yes | No | No | No |
 
-Viewer and Planner inherit read access. Article management explicitly displays a read-only state.
+Viewer users inherit read access. Article management explicitly displays a read-only state.
 Some controls in the general master-data and inventory-number panels can still remain visible to
 those roles in v0.1.20.3, but the server rejects every write. Visible controls are never an access
 grant.

@@ -6,6 +6,10 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+### Removed
+
+- Removed the layout workspace, module and track planning, planning APIs and Planner role. Vehicle accessory reservations and installations remain available. Existing planning allocations are archived, released or returned to source storage without losing owned stock; legacy backups remain importable (backup version 23).
+
 ### Security
 
 - Raised the minimum Go version to 1.26.9 to address reachable standard-library vulnerabilities

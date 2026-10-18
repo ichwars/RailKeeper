@@ -39,7 +39,7 @@ func TestCS3ProbeRouteReturnsReadOnlyHTTPDiagnostics(t *testing.T) {
 	})
 	admin := loginRouteTestUser(t, auth, "cs3-admin", "admin-password")
 
-	response := layoutRequest(t, router, admin, http.MethodPost,
+	response := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/digital-centers/cs3/probe",
 		map[string]any{"host": "192.168.10.23", "port": 80}, true)
 	assertStatus(t, response, http.StatusOK)
@@ -54,7 +54,7 @@ func TestCS3ProbeRouteReturnsReadOnlyHTTPDiagnostics(t *testing.T) {
 		t.Fatalf("CS3 probe command = %#v, want bounded read-only HTTP diagnostics", command)
 	}
 
-	withoutCSRF := layoutRequest(t, router, admin, http.MethodPost,
+	withoutCSRF := authedJSONRequest(t, router, admin, http.MethodPost,
 		"/api/v1/digital-centers/cs3/probe",
 		map[string]any{"host": "192.168.10.23", "port": 80}, false)
 	assertProblem(t, withoutCSRF, http.StatusForbidden, "csrf_required")

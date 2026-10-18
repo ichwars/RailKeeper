@@ -16,7 +16,7 @@ func (r *AccessoryRepository) ListReservations(
 	productID string,
 ) ([]application.AccessoryReservation, error) {
 	rows, err := r.db.QueryContext(ctx, accessoryReservationSelect+`
-WHERE ?='' OR product_id=?
+WHERE vehicle_id IS NOT NULL AND (?='' OR product_id=?)
 ORDER BY created_at DESC, id`, productID, productID)
 	if err != nil {
 		return nil, fmt.Errorf("list accessory reservations: %w", err)
@@ -54,10 +54,6 @@ func (r *AccessoryRepository) CreateReservation(
 		if err := requireAllocationTarget(ctx, tx, input.AllocationTargetInput); err != nil {
 			return err
 		}
-		if err := requireTechnicalPosition(ctx, tx, input.TechnicalPositionID,
-			input.LayoutUnitID, input.ProductID); err != nil {
-			return err
-		}
 		usesAsset, err := accessoryAllocationUsesAsset(strategy, input.AssetID)
 		if err != nil {
 			return err
@@ -77,25 +73,18 @@ func (r *AccessoryRepository) CreateReservation(
 		}
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO accessory_reservations(
-  id, product_id, asset_id, location_id, quantity, vehicle_id, layout_id, layout_unit_id,
+  id, product_id, asset_id, location_id, quantity, vehicle_id,
   status, note, created_by, created_at, updated_at, placement, digital_address, decoder_output,
   connection, wiring_notes
-) VALUES(?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+) VALUES(?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			reservationID, input.ProductID, input.AssetID, input.LocationID, input.Quantity,
-			input.VehicleID, input.LayoutID, input.LayoutUnitID, domain.AccessoryReservationActive,
+			input.VehicleID, domain.AccessoryReservationActive,
 			input.Note, actor, now, now, input.Placement, input.DigitalAddress, input.DecoderOutput,
 			input.Connection, input.WiringNotes); err != nil {
 			if isSQLiteConstraint(err) {
 				return application.ErrAccessoryConflict
 			}
 			return fmt.Errorf("insert accessory reservation: %w", err)
-		}
-		if input.TechnicalPositionID != "" {
-			if _, err := tx.ExecContext(ctx, `
-INSERT INTO accessory_reservation_positions(reservation_id, position_id) VALUES(?, ?)`,
-				reservationID, input.TechnicalPositionID); err != nil {
-				return fmt.Errorf("link accessory reservation position: %w", err)
-			}
 		}
 		if input.AssetID != "" {
 			result, err := tx.ExecContext(ctx, `
@@ -298,17 +287,7 @@ func requireAllocationTarget(
 	tx *sql.Tx,
 	target application.AllocationTargetInput,
 ) error {
-	var query, id string
-	switch {
-	case target.VehicleID != "" && target.LayoutID == "" && target.LayoutUnitID == "":
-		query, id = `SELECT COUNT(*) FROM vehicles WHERE id=?`, target.VehicleID
-	case target.VehicleID == "" && target.LayoutID != "" && target.LayoutUnitID == "":
-		query, id = `SELECT COUNT(*) FROM layouts WHERE id=?`, target.LayoutID
-	case target.VehicleID == "" && target.LayoutID == "" && target.LayoutUnitID != "":
-		query, id = `SELECT COUNT(*) FROM layout_units WHERE id=?`, target.LayoutUnitID
-	default:
-		return application.ErrAccessoryValidation
-	}
+	query, id := `SELECT COUNT(*) FROM vehicles WHERE id=?`, target.VehicleID
 	var count int
 	if err := tx.QueryRowContext(ctx, query, id).Scan(&count); err != nil {
 		return fmt.Errorf("check allocation target: %w", err)
@@ -319,51 +298,17 @@ func requireAllocationTarget(
 	return nil
 }
 
-func requireTechnicalPosition(
-	ctx context.Context,
-	tx *sql.Tx,
-	positionID string,
-	layoutUnitID string,
-	productID string,
-) error {
-	if positionID == "" {
-		return nil
-	}
-	if layoutUnitID == "" {
-		return application.ErrAccessoryConflict
-	}
-	var storedUnitID, storedProductID string
-	var archived bool
-	err := tx.QueryRowContext(ctx, `
-SELECT layout_unit_id, COALESCE(product_id, ''), archived
-FROM layout_technical_positions WHERE id=?`, positionID).
-		Scan(&storedUnitID, &storedProductID, &archived)
-	if errors.Is(err, sql.ErrNoRows) {
-		return application.ErrAccessoryNotFound
-	}
-	if err != nil {
-		return fmt.Errorf("read allocation technical position: %w", err)
-	}
-	if archived || storedUnitID != layoutUnitID || (storedProductID != "" && storedProductID != productID) {
-		return application.ErrAccessoryConflict
-	}
-	return nil
-}
-
 const accessoryReservationSelect = `SELECT reservation.id, reservation.product_id,
 COALESCE(reservation.asset_id, ''), reservation.location_id,
-COALESCE((SELECT position_id FROM accessory_reservation_positions WHERE reservation_id=reservation.id), ''),
-reservation.quantity, COALESCE(reservation.vehicle_id, ''), COALESCE(reservation.layout_id, ''),
-COALESCE(reservation.layout_unit_id, ''),
+reservation.quantity, COALESCE(reservation.vehicle_id, ''),
 status, note, created_by, created_at, updated_at, placement, digital_address, decoder_output,
 connection, wiring_notes FROM accessory_reservations reservation`
 
 func scanAccessoryReservation(scanner rowScanner) (*application.AccessoryReservation, error) {
 	reservation := &application.AccessoryReservation{}
 	err := scanner.Scan(&reservation.ID, &reservation.ProductID, &reservation.AssetID,
-		&reservation.LocationID, &reservation.TechnicalPositionID, &reservation.Quantity,
-		&reservation.VehicleID, &reservation.LayoutID,
-		&reservation.LayoutUnitID, &reservation.Status, &reservation.Note, &reservation.CreatedBy,
+		&reservation.LocationID, &reservation.Quantity,
+		&reservation.VehicleID, &reservation.Status, &reservation.Note, &reservation.CreatedBy,
 		&reservation.CreatedAt, &reservation.UpdatedAt, &reservation.Placement,
 		&reservation.DigitalAddress, &reservation.DecoderOutput, &reservation.Connection,
 		&reservation.WiringNotes)
@@ -383,7 +328,7 @@ func getReservationWith(
 	id string,
 ) (*application.AccessoryReservation, error) {
 	reservation, err := scanAccessoryReservation(queryer.QueryRowContext(
-		ctx, accessoryReservationSelect+` WHERE id=?`, id,
+		ctx, accessoryReservationSelect+` WHERE id=? AND vehicle_id IS NOT NULL`, id,
 	))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, application.ErrAccessoryNotFound
@@ -403,10 +348,7 @@ func allocationAuditDetails(
 	switch {
 	case target.VehicleID != "":
 		details["targetType"], details["targetId"] = "vehicle", target.VehicleID
-	case target.LayoutID != "":
-		details["targetType"], details["targetId"] = "layout", target.LayoutID
-	case target.LayoutUnitID != "":
-		details["targetType"], details["targetId"] = "layout_unit", target.LayoutUnitID
+
 	}
 	if disposition != "" {
 		details["disposition"] = disposition

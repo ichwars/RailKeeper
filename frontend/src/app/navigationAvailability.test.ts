@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { availableStartView, isViewTemporarilyDisabled } from "./navigationAvailability";
+import { availableStartView } from "./navigationAvailability";
 
 describe("navigation availability", () => {
-  it("keeps the layout workspace available", () => {
-    expect(isViewTemporarilyDisabled("layouts")).toBe(false);
-    expect(isViewTemporarilyDisabled("accessories")).toBe(false);
+  it("rejects retired planning views while preserving accessories", () => {
+    expect(availableStartView("layouts")).toBe("overview");
+    expect(availableStartView("accessories")).toBe("accessories");
   });
 
   it.each([
-    ["layouts", "layouts"],
+    ["layouts", "overview"],
     ["inventory", "vehicles"],
     ["accessories", "accessories"],
     ["importExport", "importExport"],

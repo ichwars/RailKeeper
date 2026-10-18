@@ -52,9 +52,6 @@ Abdeckung wird in englischer und deutscher Sprache direkt gegen die Projektquell
 - Lokaler Bestand mit SQLite, Uploads und JSON-Backups
 - Fahrzeugdatensätze mit Modelldaten, technischen Feldern, Eigentumsangaben, Bildern, Anhängen, QR-Codes und übersichtlichen Leseansichten
 - Artikelbestand mit generierten Inventarnummern, sortierbarer Auswahlspalte, Mengen- oder Einzelverfolgung, Lagerortbeständen, Reservierungen, Einbauten, Dokumenten und Nutzungshistorie
-- Fundament für Anlagen, Module, Aufbauten und Planrevisionen mit Versionskonfliktschutz; der
-  Arbeitsbereich bleibt vorübergehend aus der Hauptnavigation ausgeblendet, solange er weiter
-  verfeinert wird
 - Websuche nach Artikeldaten mit konfigurierbaren Quellen, Barcode-/EAN-Eingabe,
   ZXing-Kamerascanner, typisierten Gleis-Fachangaben und ausdrücklicher feldweiser Prüfung
 - PDF-Berichtsdialog für Bestandsübersicht und Detaillisten mit auswählbaren Fahrzeugen, QR-Codes und Bildern

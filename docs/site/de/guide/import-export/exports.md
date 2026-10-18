@@ -13,7 +13,7 @@ Die Exportaktionen verwenden die vollständige Fahrzeugliste, die **Import/Expor
 übernehmen keine Suche oder Filter der Fahrzeugbestandsseite. Alle drei Bedienelemente bleiben
 deaktiviert, während die Liste geladen wird oder wenn keine Fahrzeuge vorhanden sind.
 
-Admin, Editor, Viewer und Planner dürfen exportieren. Der Export verändert keine RailKeeper-Daten.
+Admin, Editor, Viewer dürfen exportieren. Der Export verändert keine RailKeeper-Daten.
 
 ## CSV-Export
 

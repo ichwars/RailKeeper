@@ -5,7 +5,6 @@ import type { AppView } from "./App";
 import { api } from "../shared/api";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference, themePreferenceKey, type ThemePreference } from "../shared/theme";
-import { isViewTemporarilyDisabled } from "./navigationAvailability";
 import {
   readSidebarPrefs,
   sidebarOrderChangedEvent,
@@ -49,7 +48,7 @@ function readLocalBool(key: string, fallback: boolean) {
 
 function allowedNavItems(roles: string[]) {
   if (roles.includes("Admin")) return [...navItems];
-  const canUseInventory = roles.includes("Editor") || roles.includes("Viewer") || roles.includes("Planner");
+  const canUseInventory = roles.includes("Editor") || roles.includes("Viewer");
   const canUseExhibition = roles.includes("Messe");
   return navItems.filter((item) => {
     if (item.view === "exhibition") return canUseExhibition;
@@ -219,19 +218,6 @@ export function Shell({
           {orderedNavItems.map((item) => {
             const Icon = item.icon;
             const label = t(item.labelKey);
-            if (isViewTemporarilyDisabled(item.view)) {
-              return (
-                <span
-                  key={item.view}
-                  className="nav-entry disabled"
-                  aria-disabled="true"
-                  title={t("nav.layouts.disabled")}
-                >
-                  <Icon size={16} aria-hidden="true" />
-                  <span>{label}</span>
-                </span>
-              );
-            }
             return (
               <a
                 key={item.view}

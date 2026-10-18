@@ -30,12 +30,11 @@ Inventur entsteht nur während der Prüfung und wird nicht als zweite Wahrheitsq
 
 Ein Thema erhält erst dann den Status `documented`, wenn beide Zielseiten unter identischen relativen
 Pfaden liegen, übereinstimmende Prüfmetadaten tragen und die Dokumentationsprüfung bestehen. Die
-Anlagenplanung bleibt `not-published`, weil sie nicht zum stabilen, öffentlich dokumentierten
-Produktumfang gehört.
+Die entfernte Anlagenplanung gehört nicht zum aktuellen Produktumfang.
 
 ## Geprüfte Themen
 
-Die erste Matrix umfasst 21 Themen.
+Die erste Matrix umfasst 20 Themen.
 
 ### Benutzerabläufe
 
@@ -62,7 +61,6 @@ Die erste Matrix umfasst 21 Themen.
 
 ### Entwicklung
 
-- `layouts-unpublished`
 - `development-architecture`
 
 ### Gemeinsame Referenz

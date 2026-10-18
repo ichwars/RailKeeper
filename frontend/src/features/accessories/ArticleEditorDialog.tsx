@@ -121,7 +121,6 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   const confirmationPending = props.closeConfirmationOpen || props.duplicateCandidates.length > 0 ||
     pendingArticleType !== null;
   const readOnly = props.mode === "view" || !props.permissions.canEdit || props.saving || confirmationPending;
-  const plannerReservationMode = props.mode === "view" && !props.permissions.canEdit && props.permissions.canReserve;
   const title = props.mode === "create"
     ? t("accessories.editor.create")
     : props.mode === "edit" ? t("accessories.editor.edit") : t("accessories.editor.view");
@@ -267,7 +266,9 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
     const target = event.target as HTMLElement;
     if (props.mode !== "view" && !event.shiftKey && target.hasAttribute("data-article-dialog-close")) {
       event.preventDefault();
-      layerRef.current?.querySelector<HTMLElement>("[data-article-initial-focus]")?.focus();
+      const next = focusable.find((element) => element.hasAttribute("data-article-initial-focus"))
+        || focusable[1] || first;
+      next?.focus();
       return;
     }
     if ((!event.shiftKey && target === last) ||
@@ -330,7 +331,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
               resources={props.resources}
               disabled={readOnly || !props.permissions.canManageStock || props.resourcesStale}
               canReserve={!props.saving && !confirmationPending && props.permissions.canReserve &&
-                !props.resourcesStale && (props.mode !== "view" || plannerReservationMode)}
+                !props.resourcesStale && props.mode !== "view"}
               canInstall={!props.saving && !confirmationPending && !props.resourcesStale &&
                 props.permissions.canInstall && props.mode !== "view"}
               onChange={props.onChange} onChanged={props.onResourcesChanged}

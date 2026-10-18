@@ -22,7 +22,7 @@ A vehicle must normally be saved once before RailKeeper can persist functions, C
 An unsaved ECoS draft can preview CVs and a derived curve, but its normal write actions remain
 disabled.
 
-Admin, Editor, Viewer, and Planner can inspect stored decoder data. Viewer-level access can also
+Admin, Editor, Viewer users can inspect stored decoder data. Viewer-level access can also
 export functions and CV values and download decoder files. Only Admin and Editor can save, import,
 apply, upload, or delete data. The server enforces this boundary.
 

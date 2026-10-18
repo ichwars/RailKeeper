@@ -21,12 +21,12 @@ Anwendungssicherung und Wiederherstellung bleiben getrennte Abläufe.
 
 ## Zugriffsrechte
 
-Admin, Editor, Viewer, Planner und Messe können **Import/Export** öffnen. Reine Messe-Konten sehen
+Admin, Editor, Viewer und Messe können **Import/Export** öffnen. Reine Messe-Konten sehen
 und verwenden ausschließlich Profile und Aufträge für Messelisten. Der Server erzwingt diesen
 Umfang unabhängig von der Oberfläche.
 
 Admin und Editor können vollständige Transferprofile anlegen oder ändern und Importe übernehmen.
-Viewer und Planner können Aufträge prüfen und Exporte erzeugen, aber keine importierten Daten
+Viewer können Aufträge prüfen und Exporte erzeugen, aber keine importierten Daten
 übernehmen. Messe darf Messelistentransfers im isolierten Umfang exportieren, prüfen und übernehmen.
 Nur Admin darf Profile deaktivieren, Artefakte löschen oder deren Serverordner durch RailKeeper
 öffnen lassen.

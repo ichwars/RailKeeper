@@ -488,7 +488,7 @@ func dataTransferMesseScope(roles []string) bool {
 	hasMesse := false
 	for _, role := range roles {
 		switch role {
-		case "Admin", "Editor", "Planner", "Viewer":
+		case "Admin", "Editor", "Viewer":
 			return false
 		case "Messe":
 			hasMesse = true

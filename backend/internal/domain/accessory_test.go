@@ -92,8 +92,6 @@ func TestAccessoryArticleEnumsAcceptOnlyDefinedValues(t *testing.T) {
 func TestValidateAllocationTargetRequiresExactlyOneTarget(t *testing.T) {
 	valid := []domain.AllocationTarget{
 		{VehicleID: "vehicle-1"},
-		{LayoutID: "layout-1"},
-		{LayoutUnitID: "unit-1"},
 	}
 	for _, target := range valid {
 		if err := target.Validate(); err != nil {
@@ -103,9 +101,6 @@ func TestValidateAllocationTargetRequiresExactlyOneTarget(t *testing.T) {
 
 	invalid := []domain.AllocationTarget{
 		{},
-		{VehicleID: "vehicle-1", LayoutID: "layout-1"},
-		{VehicleID: "vehicle-1", LayoutUnitID: "unit-1"},
-		{LayoutID: "layout-1", LayoutUnitID: "unit-1"},
 	}
 	for _, target := range invalid {
 		if err := target.Validate(); err == nil {

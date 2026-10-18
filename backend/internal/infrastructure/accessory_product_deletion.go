@@ -28,6 +28,7 @@ func (r *AccessoryRepository) DeleteProduct(
 			return application.ErrAccessoryNotFound
 		}
 
+		// Dormant legacy positions still protect archived references from data loss.
 		var blocked bool
 		err = tx.QueryRowContext(ctx, `
 SELECT

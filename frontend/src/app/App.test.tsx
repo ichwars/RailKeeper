@@ -18,16 +18,16 @@ describe("App navigation availability", () => {
     window.history.replaceState(null, "", "/");
   });
 
-  it("uses a stored layout start view", () => {
+  it("falls back from a retired layout start view", () => {
     window.localStorage.setItem("railkeeper.settings.defaultView", "layouts");
 
-    expect(configuredStartView()).toBe("layouts");
+    expect(configuredStartView()).toBe("overview");
     expect(window.localStorage.getItem("railkeeper.settings.defaultView")).toBe("layouts");
   });
 
-  it("keeps the direct layout route available", () => {
+  it("falls back from the retired layout route", () => {
     window.history.replaceState(null, "", "/layouts");
-    expect(currentView()).toBe("layouts");
+    expect(currentView()).toBe("overview");
   });
 
   it("uses the query-free Digital Centers history path", () => {

@@ -28,12 +28,11 @@ inventory is generated during validation and is not committed as a second source
 - `not-published`: The source exists, but it must not be presented as a stable public feature.
 
 A topic can move to `documented` only after both destination pages use identical relative paths,
-carry matching review metadata, and pass the documentation check. Layout planning remains
-`not-published` because it is not part of the stable user-facing product scope.
+carry matching review metadata, and pass the documentation check. Removed layout planning is outside the current product scope.
 
 ## Reviewed topics
 
-The initial matrix contains 21 topics.
+The initial matrix contains 20 topics.
 
 ### User workflows
 
@@ -60,7 +59,6 @@ The initial matrix contains 21 topics.
 
 ### Development
 
-- `layouts-unpublished`
 - `development-architecture`
 
 ### Shared reference

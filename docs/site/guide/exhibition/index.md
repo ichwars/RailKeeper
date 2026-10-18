@@ -14,7 +14,7 @@ one operational view. Each list has a date, an open or locked state, and its own
 entries. Operators can maintain an open list without entering the general vehicle inventory.
 
 This chapter documents stable RailKeeper v0.1.20.3. It does not explain user administration,
-master-data administration, backup operation, or the layout workspace.
+master-data administration, backup operation.
 
 ## Access rights and isolation
 
@@ -25,7 +25,7 @@ RailKeeper exposes the workspace to two roles with different purposes:
 | Messe | Opens the isolated exhibition workspace. It can read and print lists and maintain entries while a list is open. |
 | Admin | Opens the workspace and additionally creates, edits, locks, unlocks, and deletes lists. Admin can also delete entries from an open list. |
 
-Editor, Viewer, and Planner do not open the exhibition workspace on their own. When one of these
+Editor, Viewer users do not open the exhibition workspace on their own. When one of these
 roles is combined with Messe, the entry form can also load general inventory master-data choices.
 A pure Messe account remains isolated from those choices, but it can still use the exhibition
 fields provided by the dialog. Function symbols remain available to Messe.

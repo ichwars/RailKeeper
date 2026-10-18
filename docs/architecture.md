@@ -48,12 +48,10 @@ Node.js is only used to build the frontend.
   maintenance, CV values, uploads, and exhibition assignments.
 - Accessories are a separate catalogue and inventory area. Quantity stock and individually tracked assets
   share storage locations, reservations, installations, condition, and history workflows.
-- Private and club layouts contain modules, segments, baseboards, areas, setup configurations, plan
-  variants, and immutable published plan revisions.
-- The Planner role owns layout structure and plan publication. Editors manage inventory and physical
-  installations. Viewers have read access. Messe remains isolated from general inventory and layout APIs.
-- The Stage 1 layout workspace uses structured forms. Graphical track planning and digital control are not
-  part of this stage.
+- Accessories may be reserved and installed in vehicles. The layout workspace and track planner
+  have been removed. The retired Planner role becomes Viewer without gaining write access.
+  Legacy planning tables are dormant archives for backup compatibility; see
+  [Retired layout planning](architecture/retired-layout-planning.md).
 - Article data web search is a core module. It already uses an adapter boundary so provider-specific logic
   can be replaced later. It remains a synchronous request with one truthful in-progress state; simulated
   phases and polling are not part of the current contract. See `docs/architecture/article-search-progress.md`.
@@ -74,11 +72,11 @@ Node.js is only used to build the frontend.
 - SQLite remains the default database because it keeps local installation, backup, and restore simple.
 - Attachments are stored on the filesystem below the configured data directory; metadata stays in SQLite.
 - CV provenance stores the physical source line and source export wall-clock timestamp without an inferred timezone. Missing provenance on edits/imports preserves existing metadata. Legacy records remain unknown until matched to an original source.
-- Backup version 22 preserves CV provenance and indexed CV identities and covers vehicle sets and their main-image assignments, vehicles, accessories, storage,
-  layouts, plan revisions, setups, reservations, installations, exhibitions, transfer profiles, conflict
-  exceptions, and uploads. Older supported versions remain importable; tables introduced later are
-  restored empty. Restore defers foreign-key checks inside its transaction so self-references can be
-  replaced atomically and are still validated at commit.
+- Backup version 23 includes vehicle sets, vehicles, accessories, storage, maintenance, CVs,
+  exhibitions, transfer profiles, conflict exceptions, uploads, and archived legacy planning data.
+  Older supported backups remain importable. Legacy layout allocations are archived and retired
+  transactionally during restore; vehicle allocations remain unchanged. Restore defers foreign-key
+  checks and validates them at commit.
 - Backup and restore intentionally exclude local authentication and installation data such as users,
   roles, sessions, password hashes, audit logs, SMTP settings, and user UI settings.
 

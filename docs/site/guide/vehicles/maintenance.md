@@ -10,7 +10,7 @@ lastReviewed: 2026-08-16
 # Vehicle maintenance and condition
 
 The **Maintenance** tab records work, repairs, conversions, condition, dates, and costs for one
-vehicle. Admin, Editor, Viewer, and Planner can inspect stored entries. Only Admin and Editor can
+vehicle. Admin, Editor, Viewer users can inspect stored entries. Only Admin and Editor can
 create, change, complete, or delete them, and the server enforces that boundary.
 
 ## Open the Maintenance tab
@@ -125,7 +125,7 @@ ID can later prevent image deletion until the link is cleared and saved.
 
 ## Roles, storage, and backup boundaries
 
-Admin, Editor, Viewer, and Planner can read maintenance. Server-side create, update, complete, and
+Admin, Editor, Viewer users can read maintenance. Server-side create, update, complete, and
 delete operations require Admin or Editor. Disabled controls help explain the current mode but do
 not replace server authorization.
 

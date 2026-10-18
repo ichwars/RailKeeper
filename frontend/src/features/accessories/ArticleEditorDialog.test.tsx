@@ -1,3 +1,4 @@
+import { vehicleFixture } from "../../test/fixtures/vehicles";
 import { useState } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -86,7 +87,7 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
     permissions: { canEdit: true, canManageStock: true, canReserve: true, canInstall: true },
     resources: {
       locations: [], stock: null, movements: [], assets: [], purchases: [], documents: [],
-      reservations: [], installations: [], usageHistory: null, vehicles: [], layouts: [], units: []
+      reservations: [], installations: [], usageHistory: null, vehicles: [],
     },
     resourcesStale: false,
     customFields: [],
@@ -721,25 +722,23 @@ describe("ArticleEditorDialog", () => {
     expect(footerClose).toHaveFocus();
   });
 
-  it("keeps the Planner reservation workflow reachable through the view focus trap", async () => {
+  it("keeps vehicle reservations reachable by keyboard while the article tab is hidden", async () => {
     const user = userEvent.setup();
     render(<ArticleEditorDialog {...props({
-      mode: "view",
+      mode: "edit",
       article: persistedArticle,
       activeTab: "stock",
-      permissions: { canEdit: false, canManageStock: false, canReserve: true, canInstall: false },
+      permissions: { canEdit: true, canManageStock: true, canReserve: true, canInstall: true },
       resources: {
-        ...props().resources,
+        ...props().resources, vehicles: [vehicleFixture()],
         locations: [{ id: "location-1", name: "Lager", archived: false,
           createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" }],
-        layouts: [{ id: "layout-1", name: "Vereinsanlage", kind: "club", gauge: "TT", scale: "1:120",
-          description: "", version: 1, archived: false,
-          createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" }]
+
       }
     })} />);
 
     const saveReservation = screen.getByRole("button", { name: "Reservierung anlegen" });
-    for (let index = 0; index < 30 && document.activeElement !== saveReservation; index += 1) {
+    for (let index = 0; index < 64 && document.activeElement !== saveReservation; index += 1) {
       await user.tab();
     }
     expect(saveReservation).toHaveFocus();
@@ -763,7 +762,7 @@ describe("ArticleEditorDialog", () => {
     expect(onConfirmDuplicate).toHaveBeenCalledOnce();
   });
 
-  it("allows Planner reservation controls but no other mutation in the read-only article shell", () => {
+  it("rejects reservation mutations in view mode even with stale reservation permissions", () => {
     render(<ArticleEditorDialog {...props({
       mode: "view",
       article: persistedArticle,
@@ -772,7 +771,7 @@ describe("ArticleEditorDialog", () => {
       permissions: { canEdit: false, canManageStock: false, canReserve: true, canInstall: false }
     })} />);
 
-    expect(screen.getByRole("button", { name: "Reservierung anlegen" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reservierung anlegen" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Einbau erfassen" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Änderungen speichern" })).not.toBeInTheDocument();
   });

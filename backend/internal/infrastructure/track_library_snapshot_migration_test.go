@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"railkeeper/backend/internal/domain"
 	"railkeeper/backend/internal/infrastructure"
 )
 
@@ -45,7 +44,14 @@ INSERT INTO plan_track_objects(
 SELECT geometry_snapshot_json FROM plan_track_objects WHERE id='existing-track'`).Scan(&snapshot); err != nil {
 		t.Fatal(err)
 	}
-	var geometry domain.TrackGeometryDefinition
+	var geometry struct {
+		ID            string `json:"id"`
+		ArticleNumber string `json:"articleNumber"`
+		Name          string `json:"name"`
+		Geometry      struct {
+			Ports []any `json:"ports"`
+		} `json:"geometry"`
+	}
 	if err := json.Unmarshal([]byte(snapshot), &geometry); err != nil {
 		t.Fatal(err)
 	}

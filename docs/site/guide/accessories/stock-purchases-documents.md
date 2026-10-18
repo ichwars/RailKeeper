@@ -14,8 +14,7 @@ units from counted stock into individual tracking when needed. Purchases and doc
 the same article but have their own immediate save actions. This chapter describes the stable
 behavior of RailKeeper v0.1.20.3.
 
-Admin and Editor users can manage these resources. Viewer and Planner users can inspect them, but a
-Planner's reservation authority does not include stock, purchase, item, or document changes. Save
+Admin and Editor users can manage these resources. Viewer users can inspect them. Save
 the article record once before creating any related resource.
 
 ## Choose an inventory strategy
@@ -199,7 +198,7 @@ deletion persist independently of the main article **Save changes** action. Thei
 command shown above, not unsaved article fields elsewhere in the dialog.
 
 After each successful sub-action, RailKeeper requests stock, journal, items, purchases, documents,
-reservations, installations, history, locations, vehicles, and layout resources again. Those reads
+reservations, installations, history, locations, and vehicles again. Those reads
 can partially fail after the write has already committed. In that case:
 
 1. Treat the command as potentially successful. Do not submit it again from stale data.

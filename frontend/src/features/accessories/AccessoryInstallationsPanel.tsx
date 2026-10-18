@@ -11,8 +11,6 @@ import {
   type AccessoryRemovalDisposition,
   type AccessoryReservation,
   type AccessoryTechnicalPlacement,
-  type Layout,
-  type LayoutUnit,
   type StorageLocation,
   type Vehicle
 } from "../../shared/api";
@@ -33,15 +31,13 @@ import { AccessoryTechnicalFields, emptyTechnicalPlacement } from "./AccessoryTe
 const conditions: AccessoryCondition[] = ["ready", "maintenance_due", "defective", "unknown"];
 
 export function AccessoryInstallationsPanel({ article, reservations, installations, assets, locations, vehicles,
-  layouts, units, canInstall, onChanged, onDirtyChange }: {
+  canInstall, onChanged, onDirtyChange }: {
   article: AccessoryArticle;
   reservations: AccessoryReservation[];
   installations: AccessoryInstallation[];
   assets: AccessoryAsset[];
   locations: StorageLocation[];
   vehicles: Vehicle[];
-  layouts: Layout[];
-  units: LayoutUnit[];
   canInstall: boolean;
   onChanged: () => Promise<void>;
   onDirtyChange: (dirty: boolean) => void;
@@ -54,7 +50,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
   const [condition, setCondition] = useState<AccessoryCondition>("ready");
   const [conditionDrafts, setConditionDrafts] = useState<Record<string, AccessoryCondition>>({});
   const [notes, setNotes] = useState("");
-  const [target, setTarget] = useState<AccessoryTargetSelection>({ kind: "layout", id: "" });
+  const [target, setTarget] = useState<AccessoryTargetSelection>({ kind: "vehicle", id: "" });
   const [technical, setTechnical] = useState<AccessoryTechnicalPlacement>(emptyTechnicalPlacement);
   const [removalID, setRemovalID] = useState("");
   const [disposition, setDisposition] = useState<AccessoryRemovalDisposition>("stored");
@@ -66,7 +62,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
   const activeReservations = reservations.filter((reservation) => reservation.status === "active");
   const activeLocations = activeStorageLocations(locations);
   const selectedReservation = activeReservations.find((reservation) => reservation.id === reservationID);
-  const resolvedTarget = resolveAccessoryTargetSelection(target, vehicles, layouts, units);
+  const resolvedTarget = resolveAccessoryTargetSelection(target, vehicles);
   const targetInput = selectedReservation || accessoryTargetInput(resolvedTarget);
   const sourceLocations = selectedReservation
     ? locations.filter((location) => location.id === selectedReservation.locationId) : activeLocations;
@@ -108,8 +104,8 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
     event.preventDefault();
     if (!targetInput || !canSubmit) return;
     const allocationTarget = accessoryTargetInput({
-      kind: targetInput.vehicleId ? "vehicle" : targetInput.layoutId ? "layout" : "layoutUnit",
-      id: targetInput.vehicleId || targetInput.layoutId || targetInput.layoutUnitId || ""
+      kind: "vehicle",
+      id: targetInput.vehicleId
     });
     if (!allocationTarget) return;
     setAction({
@@ -128,7 +124,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
           notes: notes || undefined
         });
         setReservationID(""); setLocationID(""); setAssetID(""); setAllocationMode("quantity"); setQuantity("1");
-        setCondition("ready"); setNotes(""); setTarget({ kind: "layout", id: "" });
+        setCondition("ready"); setNotes(""); setTarget({ kind: "vehicle", id: "" });
         setTechnical(emptyTechnicalPlacement());
       },
       afterSuccess: onChanged
@@ -179,11 +175,11 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
           <th>{t("accessories.field.condition")}</th><th>{t("accessories.field.installedAt")}</th>
           <th><span className="sr-only">{t("accessories.field.actions")}</span></th>
         </tr></thead><tbody>{installations.map((installation) => <tr key={installation.id}>
-          <td>{accessoryTargetLabel(installation, vehicles, layouts, units)}</td><td>{installation.quantity}</td>
+          <td>{accessoryTargetLabel(installation, vehicles)}</td><td>{installation.quantity}</td>
           <td>{installation.removedAt || !canInstall ? t(`accessories.condition.${installation.condition}`)
             : <AppSelect value={conditionDrafts[installation.id] || installation.condition}
               aria-label={t("accessories.installations.conditionFor", { target: accessoryTargetLabel(
-                installation, vehicles, layouts, units) })}
+                installation, vehicles) })}
               onChange={(event) => setConditionDrafts((current) => ({ ...current,
                 [installation.id]: event.target.value as AccessoryCondition }))}>
               {conditions.map((item) => <option key={item} value={item}>{t(`accessories.condition.${item}`)}</option>)}
@@ -204,11 +200,11 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
               onChange={(event) => selectReservation(event.target.value)}>
               <option value="">{t("accessories.installations.withoutReservation")}</option>
               {activeReservations.map((reservation) => <option key={reservation.id} value={reservation.id}>
-                {accessoryTargetLabel(reservation, vehicles, layouts, units)}</option>)}
+                {accessoryTargetLabel(reservation, vehicles)}</option>)}
             </AppSelect></label>
             {selectedReservation ? <p className="accessory-target-summary">{accessoryTargetLabel(
-              selectedReservation, vehicles, layouts, units)}</p>
-              : <AccessoryTargetFields target={resolvedTarget} vehicles={vehicles} layouts={layouts} units={units}
+              selectedReservation, vehicles)}</p>
+              : <AccessoryTargetFields target={resolvedTarget} vehicles={vehicles}
                 onChange={setTarget} />}
             <AccessoryTechnicalFields value={technical} onChange={setTechnical} />
             {!selectedReservation && isHybrid ? <label>{t("accessories.field.allocationSource")}

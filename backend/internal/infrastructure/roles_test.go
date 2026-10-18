@@ -8,7 +8,7 @@ import (
 	"railkeeper/backend/internal/infrastructure"
 )
 
-func TestSeedRolesIncludesPlannerAndIsIdempotent(t *testing.T) {
+func TestSeedRolesExcludesRetiredPlannerAndIsIdempotent(t *testing.T) {
 	db, err := infrastructure.OpenSQLite(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +43,7 @@ func TestSeedRolesIncludesPlannerAndIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := []string{"Admin", "Editor", "Messe", "Planner", "Viewer"}
+	want := []string{"Admin", "Editor", "Messe", "Viewer"}
 	if !slices.Equal(roles, want) {
 		t.Fatalf("unexpected roles: got %v, want %v", roles, want)
 	}

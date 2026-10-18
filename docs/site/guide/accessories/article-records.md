@@ -16,9 +16,8 @@ type-specific data in stable RailKeeper v0.1.20.3.
 
 ## Access rights and persistence
 
-Admin and Editor users can create and edit article records. Viewer and Planner users can inspect
-them, but article fields remain read-only. A Planner can create or cancel a reservation in the
-otherwise read-only dialog; that does not grant permission to change the article itself. The Messe
+Admin and Editor users can create and edit article records. Viewer users can inspect
+them, but article fields remain read-only. The Messe
 role has no general accessories access.
 
 The dialog separates **Article**, **Stock**, **Purchase & documents**, the article-type tab, and,
@@ -189,7 +188,7 @@ through the **Archived** status filter and can be restored.
 
 Only an Admin can permanently delete an article, and RailKeeper asks for confirmation. Deletion is
 blocked by non-zero stock, individual items, stock movements, purchases, reservations,
-installations, or layout technical positions that reference the article. Article documents alone
+installations, or archived legacy positions that reference the article. Article documents alone
 do not block deletion; their metadata is removed and RailKeeper then attempts to remove
 unreferenced stored blobs. Deletion has no undo, so validate a current backup first.
 
@@ -204,7 +203,7 @@ unreferenced stored blobs. Deletion has no undo, so validate a current backup fi
 | Strategy change reports a conflict | Resolve incompatible stock, items, reservations, installations, or condition history first. |
 | Search cannot start | Add EAN, or complete the required manufacturer/name/article-number/gauge criteria; also verify Settings. |
 | Search image import fails | The article may already be saved. Retry or discard only the failed pending images. |
-| Save is forbidden | Use an Admin or Editor account. Planner reservation authority is not article-edit authority. |
+| Save is forbidden | Use an Admin or Editor account. Viewer has no write permission. |
 
 ## Related pages
 

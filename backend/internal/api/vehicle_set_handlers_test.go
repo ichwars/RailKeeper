@@ -47,27 +47,27 @@ func TestVehicleSetRoutesEnforceReadWriteAndCSRFRules(t *testing.T) {
 		"gattung": "Reisezugwagen",
 	}
 
-	assertStatus(t, layoutRequest(t, router, viewer, http.MethodGet, path, nil, false), http.StatusOK)
-	assertProblem(t, layoutRequest(t, router, viewer, http.MethodPatch, path, update, true),
+	assertStatus(t, authedJSONRequest(t, router, viewer, http.MethodGet, path, nil, false), http.StatusOK)
+	assertProblem(t, authedJSONRequest(t, router, viewer, http.MethodPatch, path, update, true),
 		http.StatusForbidden, "forbidden")
-	assertProblem(t, layoutRequest(t, router, editor, http.MethodPatch, path, update, false),
+	assertProblem(t, authedJSONRequest(t, router, editor, http.MethodPatch, path, update, false),
 		http.StatusForbidden, "csrf_required")
-	updatedResponse := layoutRequest(t, router, editor, http.MethodPatch, path, update, true)
+	updatedResponse := authedJSONRequest(t, router, editor, http.MethodPatch, path, update, true)
 	assertStatus(t, updatedResponse, http.StatusOK)
 	var updated application.VehicleSet
 	decodeResponse(t, updatedResponse, &updated)
 	if updated.Name != "Rheingold neu" || updated.InventoryNumber != created.InventoryNumber {
 		t.Fatalf("unexpected updated set: %#v", updated)
 	}
-	assertProblem(t, layoutRequest(t, router, viewer, http.MethodGet,
+	assertProblem(t, authedJSONRequest(t, router, viewer, http.MethodGet,
 		"/api/v1/vehicle-sets/missing", nil, false), http.StatusNotFound, "vehicle_set_not_found")
 	mainImagePath := path + "/main-image"
 	selection := map[string]any{"mode": "member", "memberImageId": image.ID}
-	assertProblem(t, layoutRequest(t, router, viewer, http.MethodPut, mainImagePath, selection, true),
+	assertProblem(t, authedJSONRequest(t, router, viewer, http.MethodPut, mainImagePath, selection, true),
 		http.StatusForbidden, "forbidden")
-	assertProblem(t, layoutRequest(t, router, editor, http.MethodPut, mainImagePath, selection, false),
+	assertProblem(t, authedJSONRequest(t, router, editor, http.MethodPut, mainImagePath, selection, false),
 		http.StatusForbidden, "csrf_required")
-	selectedResponse := layoutRequest(t, router, editor, http.MethodPut, mainImagePath, selection, true)
+	selectedResponse := authedJSONRequest(t, router, editor, http.MethodPut, mainImagePath, selection, true)
 	assertStatus(t, selectedResponse, http.StatusOK)
 	var selected application.VehicleSet
 	decodeResponse(t, selectedResponse, &selected)
@@ -125,12 +125,12 @@ func TestVehicleSetDedicatedImageUploadDownloadAndDelete(t *testing.T) {
 		t.Fatalf("unexpected uploaded set image: %#v", uploaded)
 	}
 
-	download := layoutRequest(t, router, editor, http.MethodGet, imagePath+"/thumbnail", nil, false)
+	download := authedJSONRequest(t, router, editor, http.MethodGet, imagePath+"/thumbnail", nil, false)
 	assertStatus(t, download, http.StatusOK)
 	if contentType := download.Header().Get("Content-Type"); contentType != "image/jpeg" {
 		t.Fatalf("unexpected thumbnail content type %q", contentType)
 	}
-	assertStatus(t, layoutRequest(t, router, editor, http.MethodDelete, imagePath, nil, true), http.StatusNoContent)
+	assertStatus(t, authedJSONRequest(t, router, editor, http.MethodDelete, imagePath, nil, true), http.StatusNoContent)
 	loaded, err := service.GetSet(t.Context(), created.ID)
 	if err != nil {
 		t.Fatal(err)

@@ -351,7 +351,7 @@ export function ArticleManagementSettings({
   onConfirmAction
 }: ArticleManagementSettingsProps) {
   const { t } = useI18n();
-  const canRead = roles.some((role) => ["Admin", "Editor", "Planner", "Viewer"].includes(role));
+  const canRead = roles.some((role) => ["Admin", "Editor", "Viewer"].includes(role));
   const canEdit = roles.includes("Admin") || roles.includes("Editor");
   const [entriesByType, setEntriesByType] = useState<Record<string, MasterDataEntry[]>>({});
   const [loadedTypes, setLoadedTypes] = useState<Record<string, boolean>>({});

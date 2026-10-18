@@ -13,7 +13,7 @@ Der Dateiimport ist ein Prüfvorgang, kein direkter Datenbankimport. RailKeeper 
 Datei, ordnet ihre Spalten zu, prüft jede Zeile gegen die bereits geladenen Fahrzeuge und lässt
 einen berechtigten Benutzer auswählen, welche Zeilen angelegt oder aktualisiert werden.
 
-Zum Speichern ist ein Editor- oder Admin-Konto erforderlich. Viewer und Planner können die
+Zum Speichern ist ein Editor- oder Admin-Konto erforderlich. Viewer können die
 Vorschau prüfen, ihre Fahrzeug-Schreibvorgänge werden aber vom Server abgelehnt.
 
 ## Unterstützte Eingabeformate

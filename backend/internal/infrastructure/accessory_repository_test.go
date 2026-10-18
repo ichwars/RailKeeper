@@ -394,7 +394,7 @@ func TestAccessoryArticleHybridAggregationMatchesAllocationSummary(t *testing.T)
 	assetReservation, err := fixture.allocations.CreateReservation(ctx,
 		application.CreateAccessoryReservationInput{
 			ProductID: hybrid.ID, AssetID: assets[0].ID, LocationID: fixture.location.ID, Quantity: 1,
-			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+			AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		}, "planner-1")
 	if err != nil {
 		t.Fatal(err)
@@ -404,7 +404,7 @@ func TestAccessoryArticleHybridAggregationMatchesAllocationSummary(t *testing.T)
 	quantityReservation, err := fixture.allocations.CreateReservation(ctx,
 		application.CreateAccessoryReservationInput{
 			ProductID: hybrid.ID, LocationID: fixture.location.ID, Quantity: 2,
-			AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+			AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		}, "planner-1")
 	if err != nil {
 		t.Fatalf("asset reservation reduced remaining hybrid quantity: %v", err)
@@ -417,14 +417,14 @@ func TestAccessoryArticleHybridAggregationMatchesAllocationSummary(t *testing.T)
 	if _, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ReservationID: assetReservation.ID, ProductID: hybrid.ID, AssetID: assets[0].ID,
 		SourceLocationID: fixture.location.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 		Condition:             domain.AccessoryConditionReady,
 	}, "editor-1"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
 		ProductID: hybrid.ID, LocationID: fixture.location.ID, Quantity: 1,
-		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+		AllocationTargetInput: application.AllocationTargetInput{VehicleID: fixture.vehicle.ID},
 	}, "planner-1"); err != nil {
 		t.Fatal(err)
 	}

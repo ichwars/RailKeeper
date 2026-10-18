@@ -28,24 +28,10 @@ export async function fetchArticleEditorResourcePatch(
   const patch: ArticleEditorResourcePatch = {};
   const errors: Error[] = [];
   const shared = await Promise.allSettled([
-    api.storageLocations(), api.vehicles(), api.layouts()
+    api.storageLocations(), api.vehicles()
   ] as const);
   include(shared[0], "locations", patch, errors);
   include(shared[1], "vehicles", patch, errors);
-  include(shared[2], "layouts", patch, errors);
-
-  if (shared[2].status === "fulfilled") {
-    const unitResults = await Promise.allSettled(shared[2].value.map((layout) => api.layoutUnits(layout.id)));
-    const failedUnits = unitResults.filter((result) => result.status === "rejected");
-    if (failedUnits.length === 0) {
-      patch.units = unitResults.flatMap((result) => result.status === "fulfilled" ? result.value : []);
-    } else {
-      failedUnits.forEach((result) => {
-        if (result.status === "rejected") errors.push(asError(result.reason));
-      });
-    }
-  }
-
   const assets = article.inventoryStrategy === "quantity"
     ? Promise.resolve([])
     : api.accessoryAssets(article.id);

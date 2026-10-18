@@ -48,7 +48,7 @@ export function AccessoriesView({
   onCreateArticle,
   onOpenArticle
 }: AccessoriesViewProps) {
-  const canRead = roles.some((role) => ["Admin", "Editor", "Viewer", "Planner"].includes(role));
+  const canRead = roles.some((role) => ["Admin", "Editor", "Viewer"].includes(role));
   const canEdit = roles.includes("Admin") || roles.includes("Editor");
   const canDelete = roles.includes("Admin");
   const overview = useArticleOverview({ enabled: canRead });
@@ -136,8 +136,7 @@ export function AccessoriesView({
   return (
     <>
       <ArticleOverviewHeader canEdit={canEdit} onCreate={createArticle} />
-      {!canEdit ? <p className="article-read-only-note">{t(roles.includes("Planner")
-        ? "accessories.overview.plannerReadOnly" : "accessories.overview.readOnly")}</p> : null}
+      {!canEdit ? <p className="article-read-only-note">{t("accessories.overview.readOnly")}</p> : null}
       <ArticleMetrics
         metrics={overview.data.metrics}
         activeStatus={overview.filters.status}

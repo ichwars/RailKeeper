@@ -25,14 +25,14 @@ func TestCVImportRequiresEditorAndCSRF(t *testing.T) {
 	path := "/api/v1/vehicles/" + vehicle.ID + "/cv-values/import"
 	for _, role := range []string{"Editor", "Viewer", "Messe"} {
 		session := loginRouteTestUser(t, auth, "cv-"+role, "cv-test-password")
-		response := layoutRequest(t, router, session, http.MethodPost, path, body, true)
+		response := authedJSONRequest(t, router, session, http.MethodPost, path, body, true)
 		want := http.StatusForbidden
 		if role == "Editor" {
 			want = http.StatusOK
 		}
 		assertStatus(t, response, want)
 		if role == "Editor" {
-			assertProblem(t, layoutRequest(t, router, session, http.MethodPost, path, body, false), http.StatusForbidden, "csrf_required")
+			assertProblem(t, authedJSONRequest(t, router, session, http.MethodPost, path, body, false), http.StatusForbidden, "csrf_required")
 			for _, row := range []map[string]any{
 				{"cvNumber": 1},
 				{"cvNumber": 1, "value": nil},
@@ -41,7 +41,7 @@ func TestCVImportRequiresEditorAndCSRF(t *testing.T) {
 				{"cvNumber": 1, "value": 3, "sourceExportedAt": "2026-02-30T17:41:59"},
 			} {
 				invalid := map[string]any{"values": []map[string]any{row}}
-				assertProblem(t, layoutRequest(t, router, session, http.MethodPost, path, invalid, true), http.StatusBadRequest, "cv_import_invalid")
+				assertProblem(t, authedJSONRequest(t, router, session, http.MethodPost, path, invalid, true), http.StatusBadRequest, "cv_import_invalid")
 			}
 		}
 	}

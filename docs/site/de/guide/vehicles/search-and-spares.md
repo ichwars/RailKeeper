@@ -42,7 +42,7 @@ Standardkombinationen beim Lesen der Browsereinstellung auf die aktuellen Vorgab
 Eine reine EAN-Barcodesuche ist die Ausnahme und kann ohne diese Identitätswerte ausgeführt werden.
 
 Admin und Editor können den bearbeitbaren Fahrzeugdialog nutzen, Dateien importieren und
-Ersatzteile ändern. Viewer und Planner können gespeicherte Fahrzeuge, Beilagen und Ersatzteile
+Ersatzteile ändern. Viewer können gespeicherte Fahrzeuge, Beilagen und Ersatzteile
 ansehen. Die Artikelsuche-API erlaubt Lesezugriff ab Viewer, der schreibgeschützte Fahrzeugdialog
 deaktiviert Such- und Übernahmeaktionen dennoch. Schreibzugriffe auf Bilder, Beilagen und
 Ersatzteile benötigen serverseitig mindestens Editor. Messe erhält keinen allgemeinen

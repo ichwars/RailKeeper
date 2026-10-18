@@ -203,7 +203,7 @@ können wiederhergestellt werden.
 
 Nur ein Administrator kann einen Artikel endgültig löschen. RailKeeper verlangt dafür eine
 Bestätigung. Ein Bestand ungleich null, Einzelstücke, Bestandsbewegungen, Einkäufe, Reservierungen,
-Einbauten oder technische Anlagenpositionen mit Artikelverweis blockieren das Löschen.
+Einbauten oder archivierte Altpositionen mit Artikelverweis blockieren das Löschen.
 Artikeldokumente allein blockieren es nicht. Ihre Metadaten werden entfernt, anschließend versucht
 RailKeeper nicht mehr referenzierte gespeicherte Dateien zu entfernen. Das Löschen lässt sich nicht
 rückgängig machen. Prüfen Sie vorher eine aktuelle Sicherung.

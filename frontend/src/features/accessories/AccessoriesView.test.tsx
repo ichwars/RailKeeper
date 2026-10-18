@@ -1,3 +1,4 @@
+import { vehicleFixture } from "../../test/fixtures/vehicles";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,7 +12,7 @@ import {
   type AccessoryPurchase,
   type AccessoryReservation,
   type AccessoryUsageEvent,
-  type Layout,
+
   type MasterDataEntry,
   type StorageLocation
 } from "../../shared/api";
@@ -449,11 +450,11 @@ describe("AccessoriesView", () => {
     expect(onOpenArticle).toHaveBeenCalledWith("article-1", "edit");
     editorView.unmount();
 
-    const plannerView = render(<AccessoriesView roles={["Planner"]} />);
+    const plannerView = render(<AccessoriesView roles={["Viewer"]} />);
     await screen.findByText("Gerades Modellgleis");
     expect(screen.queryByRole("button", { name: "Neuer Artikel" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /bearbeiten/i })).not.toBeInTheDocument();
-    expect(screen.getByText("Planungszugriff: Sie können Artikel ansehen sowie Reservierungen anlegen und stornieren.")).toBeInTheDocument();
+    expect(screen.getByText("Schreibgeschützter Zugriff: Sie können Artikel ansehen, aber nicht ändern.")).toBeInTheDocument();
     plannerView.unmount();
 
     render(<AccessoriesView roles={["Viewer"]} />);
@@ -491,10 +492,8 @@ describe("AccessoriesView", () => {
     const location: StorageLocation = {
       id: "location-1", name: "Werkstatt", archived: false, createdAt: timestamp, updatedAt: timestamp
     };
-    const layout: Layout = {
-      id: "layout-1", name: "Testanlage", kind: "private", gauge: "TT", scale: "1:120", version: 1,
-      archived: false, createdAt: timestamp, updatedAt: timestamp
-    };
+    const vehicle = vehicleFixture({id: "vehicle-1", name: "Testlok"});
+    vi.spyOn(api, "vehicles").mockResolvedValue([vehicle]);
     let article: AccessoryArticle | null = null;
     let stockQuantity = 0;
     let assets: AccessoryAsset[] = [];
@@ -552,9 +551,7 @@ describe("AccessoriesView", () => {
       if (!article) throw new Error("article missing");
       return article;
     });
-    vi.spyOn(api, "vehicles").mockResolvedValue([]);
-    vi.spyOn(api, "layouts").mockResolvedValue([layout]);
-    vi.spyOn(api, "layoutUnits").mockResolvedValue([]);
+    vi.spyOn(api, "vehicles").mockResolvedValue([vehicle]);
     vi.spyOn(api, "accessoryStock").mockImplementation(async () => ({
       productId: "article-83101", trackingMode: "quantity", totalQuantity: stockQuantity,
       locations: [{ locationId: location.id, locationName: location.name, quantity: stockQuantity,
@@ -595,7 +592,7 @@ describe("AccessoriesView", () => {
       };
       reservations = [reservation];
       events = [{ id: "event-reservation", productId: input.productId, reservationId: reservation.id,
-        assetId: input.assetId, locationId: input.locationId, layoutId: layout.id, quantity: 1,
+        assetId: input.assetId, locationId: input.locationId, vehicleId: vehicle.id, quantity: 1,
         type: "reservation", occurredAt: timestamp }];
       return reservation;
     });
@@ -607,7 +604,7 @@ describe("AccessoriesView", () => {
       reservations = reservations.map((item) => ({ ...item, status: "fulfilled" }));
       assets = assets.map((item) => ({ ...item, lifecycle: "installed" }));
       events = [...events, { id: "event-installation", productId: input.productId,
-        installationId: installation.id, assetId: input.assetId, layoutId: layout.id, quantity: 1,
+        installationId: installation.id, assetId: input.assetId, vehicleId: vehicle.id, quantity: 1,
         type: "installation", condition: "ready", occurredAt: timestamp }];
       return installation;
     });
@@ -620,7 +617,7 @@ describe("AccessoriesView", () => {
       installations = [removed];
       assets = assets.map((item) => ({ ...item, lifecycle: "stored", storageLocationId: location.id }));
       events = [...events, { id: "event-removal", productId: current.productId,
-        installationId: current.id, assetId: current.assetId, layoutId: layout.id, quantity: 1,
+        installationId: current.id, assetId: current.assetId, vehicleId: vehicle.id, quantity: 1,
         type: "removal", removalDisposition: input.disposition, occurredAt: timestamp }];
       return removed;
     });
@@ -673,12 +670,12 @@ describe("AccessoriesView", () => {
     await user.click(within(screen.getByRole("dialog", { name: "Reservierung bestätigen" }))
       .getByRole("button", { name: "Bestätigen" }));
     await waitFor(() => expect(reserve).toHaveBeenCalledWith(expect.objectContaining({
-      productId: "article-83101", assetId: "asset-1", layoutId: layout.id, quantity: 1
+      productId: "article-83101", assetId: "asset-1", vehicleId: vehicle.id, quantity: 1
     })));
 
     expect(screen.getByRole("tab", { name: "Verwendung & Historie" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Reservierung" }));
-    await user.click(screen.getByRole("option", { name: "Testanlage" }));
+    await user.click(screen.getByRole("option", { name: "RK-LOK-000001 · Testlok" }));
     await user.click(screen.getByRole("button", { name: "Einbau erfassen" }));
     await user.click(within(screen.getByRole("dialog", { name: "Einbau bestätigen" }))
       .getByRole("button", { name: "Bestätigen" }));

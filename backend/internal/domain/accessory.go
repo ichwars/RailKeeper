@@ -145,19 +145,11 @@ func (disposition AccessoryRemovalDisposition) Valid() bool {
 }
 
 type AllocationTarget struct {
-	VehicleID    string
-	LayoutID     string
-	LayoutUnitID string
+	VehicleID string
 }
 
 func (target AllocationTarget) Validate() error {
-	count := 0
-	for _, value := range []string{target.VehicleID, target.LayoutID, target.LayoutUnitID} {
-		if strings.TrimSpace(value) != "" {
-			count++
-		}
-	}
-	if count != 1 {
+	if strings.TrimSpace(target.VehicleID) == "" {
 		return ErrAllocationTarget
 	}
 	return nil

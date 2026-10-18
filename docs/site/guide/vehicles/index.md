@@ -13,9 +13,8 @@ lastReviewed: 2026-08-17
 status, search, filters, table and card views, core vehicle data, QR labels, and printable reports.
 This chapter describes the vehicle workflow shipped with RailKeeper v0.1.20.3.
 
-Admin, Editor, Viewer, and Planner users can inspect the inventory. Creating, changing, and deleting
-vehicle records requires Admin or Editor. In v0.1.20.3, write controls can still be visible to Viewer
-and Planner users. The server rejects their write requests, and RailKeeper displays the error.
+Admin, Editor, Viewer users can inspect the inventory. Creating, changing, and deleting
+vehicle records requires Admin or Editor. In v0.1.20.3, write controls can still be visible to Viewer users. The server rejects their write requests, and RailKeeper displays the error.
 
 Media, maintenance, decoder/CV data, article-data lookup, and spare parts have their own workflows.
 This chapter explains their entry points but focuses on the core vehicle record.
@@ -304,7 +303,7 @@ and designation. There is no undo or typed confirmation in v0.1.20.3.
 
 Deletion removes the vehicle and cascades through its vehicle-owned database records, including
 inventory-number history, images, attachment metadata, maintenance, functions, CV data, external
-mappings, and spare parts. Layout or accessory allocation references can block deletion. RailKeeper
+mappings, and spare parts. Accessory allocation references can block deletion. RailKeeper
 writes a `VehicleDeleted` audit entry when deletion succeeds. Export a current backup before removing
 important records; the application does not promise physical cleanup of every referenced file.
 
@@ -324,7 +323,7 @@ important records; the application does not promise physical cleanup of every re
 | Delete fails | The error appears above the inventory and the confirmation remains open. Treat the vehicle as not deleted, resolve the reported cause, then retry. |
 | Report creation fails | The error appears above the inventory and the report dialog remains open. Check the connection and popup handling, then create it again. |
 | Report has no rows | Adjust search/filter or select at least one visible row. |
-| Delete is blocked | Remove or change the layout/accessory allocation that still references the vehicle, then retry. |
+| Delete is blocked | Remove or change the accessory allocation that still references the vehicle, then retry. |
 
 ## Related pages
 

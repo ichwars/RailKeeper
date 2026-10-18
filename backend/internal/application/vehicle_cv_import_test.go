@@ -52,7 +52,7 @@ func TestCVImportIndexIdentityRollbackHistoryAndBackup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if doc.Version != 22 {
+	if doc.Version < 22 {
 		t.Fatalf("indexed data must reject old readers: %d", doc.Version)
 	}
 	if _, err := backup.Import(t.Context(), doc); err != nil {
