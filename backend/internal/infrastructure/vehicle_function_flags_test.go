@@ -20,7 +20,11 @@ func TestFunctionFlagMigrationRetainsAmbiguousValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("close database: %v", err)
+		}
+	})
 	if err = infrastructure.Migrate(db, partial); err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +45,11 @@ func TestFunctionFlagMigrationRetainsAmbiguousValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	t.Cleanup(func() {
+		if err := rows.Close(); err != nil {
+			t.Errorf("close rows: %v", err)
+		}
+	})
 	count := 0
 	for rows.Next() {
 		var direction, inverted sql.NullBool
@@ -54,6 +62,9 @@ func TestFunctionFlagMigrationRetainsAmbiguousValues(t *testing.T) {
 			t.Fatalf("migration lost or guessed data: %v %v %d", direction, inverted, legacy)
 		}
 		count++
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
 	}
 	if count != 2 {
 		t.Fatal(count)
