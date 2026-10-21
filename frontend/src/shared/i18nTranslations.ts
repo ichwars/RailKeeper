@@ -3,6 +3,8 @@ import { pikoENTranslations } from "./i18n/piko.en";
 import type { Language } from "./i18n";
 import { deTranslations } from "./i18n/de";
 import { enTranslations } from "./i18n/en";
+import { locomotiveImageDETranslations } from "./i18n/locomotive-image.de";
+import { locomotiveImageENTranslations } from "./i18n/locomotive-image.en";
 
 import { decoderDETranslations } from "./i18n/decoder.de";
 import { decoderENTranslations } from "./i18n/decoder.en";
@@ -22,6 +24,6 @@ import { rocoDETranslations } from "./i18n/roco.de";
 import { rocoENTranslations } from "./i18n/roco.en";
 
 export const translations: Record<Language, Record<string, string>> = {
-  de: { ...deTranslations, ...decoderDETranslations, ...libraryDETranslations, ...railcomDETranslations, ...kuehnDETranslations, ...uhlenbrockDETranslations, ...rocoDETranslations, ...pikoDETranslations },
-  en: { ...enTranslations, ...decoderENTranslations, ...libraryENTranslations, ...railcomENTranslations, ...kuehnENTranslations, ...uhlenbrockENTranslations, ...rocoENTranslations, ...pikoENTranslations }
+  de: { ...locomotiveImageDETranslations, ...deTranslations, ...decoderDETranslations, ...libraryDETranslations, ...railcomDETranslations, ...kuehnDETranslations, ...uhlenbrockDETranslations, ...rocoDETranslations, ...pikoDETranslations },
+  en: { ...locomotiveImageENTranslations, ...enTranslations, ...decoderENTranslations, ...libraryENTranslations, ...railcomENTranslations, ...kuehnENTranslations, ...uhlenbrockENTranslations, ...rocoENTranslations, ...pikoENTranslations }
 };

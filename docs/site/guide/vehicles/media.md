@@ -4,7 +4,7 @@ description: Upload, organize, preview, download, and safely remove vehicle imag
 audience: user
 status: stable
 reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+lastReviewed: 2026-10-21
 ---
 
 # Vehicle images and attachments
@@ -43,6 +43,34 @@ also associate the image with an existing maintenance entry.
 Descriptions, order, main-image selection, and maintenance links are image metadata. They change
 in the editor first and persist only when you use **Save changes** for the vehicle. If saving fails,
 leave the editor open, read the error, and retry after checking the session and connection.
+
+## Create a locomotive image for a command station
+
+Choose **Create command station image** on an image card. One dialog loads the local original
+and checks resolution, crop and technical usability. It gives specific warnings about enlargement,
+poor use of the output area and large transparent margins. Invalid, oversized or fully transparent
+images cannot be exported.
+
+| Target | Output and use |
+| --- | --- |
+| ESU ECoS 50200 / 50210 / 50220 | Uncompressed RGB24 BMP, 190 × 40 pixels. Upload through the ECoS web interface; 50200 requires firmware 3.3.0 or later. |
+| Märklin CS3 / CS3 plus | PNG, preset 384 × 132 pixels. Upload through the CS3 web interface. The CS3 accepts other sizes; our preset is not a manufacturer limit. |
+| Uhlenbrock Intellibox 3 | PNG, 340 × 72 pixels, matching examples in manufacturer package 1.3.03. Open it in the **IB3 Configuration** image editor; that software converts it to the device format and transfers it. |
+| Z21 app | PNG, preset 960 × 400 pixels. Save it on the mobile device and select it in the app's image picker. The command station itself does not store these pictures. |
+
+Drag a rectangle around the locomotive or open **Set crop in pixels** for keyboard controls.
+**Whole image** resets the crop. **Remove transparent margins** proposes a tighter crop for suitable
+PNG/WebP images. Check fine details such as pantographs. Proportions are preserved. The selected
+background fills transparency and spare margins; a photographed background stays part of the image.
+
+Check the **Result at actual size**, especially whether the whole locomotive is recognizable.
+Larger previews scroll inside their frame. **Technically usable** means the file can be prepared;
+subject, perspective and sharpness are not detected automatically. The dialog links manufacturer evidence.
+
+**Download image** creates a separate file with a target suffix. Original, media metadata and vehicle
+data remain unchanged. The command station receives no automatic upload. Externally linked article
+images must first be imported or uploaded locally. Processing stays in the browser and does not
+send pictures to an image or AI service.
 
 ## Link an image to maintenance
 

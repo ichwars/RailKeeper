@@ -4,7 +4,7 @@ description: Fahrzeugbilder und Beilagen hochladen, ordnen, anzeigen, herunterla
 audience: user
 status: stable
 reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+lastReviewed: 2026-10-21
 ---
 
 # Fahrzeugbilder und Beilagen
@@ -47,6 +47,36 @@ Bildbeschreibung, Reihenfolge, Hauptbild-Auswahl und Wartungsverknüpfung sind B
 ändern sich zunächst nur im Bearbeitungsdialog und werden erst mit **Änderungen speichern** am
 Fahrzeug dauerhaft gespeichert. Schlägt das Speichern fehl, lasse den Dialog geöffnet, lies die
 Fehlermeldung und versuche es nach Prüfung von Sitzung und Verbindung erneut.
+
+## Lokbild für eine Digitalzentrale erstellen
+
+Wähle an einer Bildkarte **Zentralenbild erstellen**. Der gemeinsame Dialog lädt das lokale
+Original und prüft Auflösung, Ausschnitt und technische Verwendbarkeit. Bei nötiger Vergrößerung,
+wenig genutzter Bildfläche oder großen transparenten Rändern erscheinen konkrete Hinweise.
+Defekte, zu große oder vollständig transparente Bilder lassen sich nicht exportieren.
+
+| Ziel | Ausgabedatei und Verwendung |
+| --- | --- |
+| ESU ECoS 50200 / 50210 / 50220 | Unkomprimiertes BMP, 24 Bit RGB, 190 × 40 Pixel. Im ECoS-Webinterface unter Lokbilder hochladen; 50200 ab Firmware 3.3.0. |
+| Märklin CS3 / CS3 plus | PNG, Voreinstellung 384 × 132 Pixel. Im CS3-Webinterface hochladen. Die CS3 erlaubt andere Größen; unsere Voreinstellung ist keine Herstellergrenze. |
+| Uhlenbrock Intellibox 3 | PNG, 340 × 72 Pixel nach den Beispielen des Herstellerpakets 1.3.03. Im Lokbilder-Editor von **IB3 Konfiguration** öffnen; das Programm wandelt ins Geräteformat um und überträgt. |
+| Z21-App | PNG, Voreinstellung 960 × 400 Pixel. Auf dem Mobilgerät speichern und über die Bildauswahl der App zuordnen. Die Zentrale selbst speichert diese Bilder nicht. |
+
+Ziehe einen Rahmen um die Lok oder öffne **Ausschnitt in Pixeln einstellen** für die Tastaturbedienung.
+**Ganzes Bild** setzt den Ausschnitt zurück. **Transparente Ränder entfernen** schlägt bei geeigneten
+PNG/WebP-Bildern einen engeren Ausschnitt vor. Prüfe dabei auch feine Teile wie Pantographen.
+Die Proportionen bleiben erhalten. Der Hintergrund füllt transparente Bereiche und freien Rand;
+ein fotografierter Hintergrund wird dadurch nicht entfernt.
+
+Prüfe das **Ergebnis in Originalgröße**, besonders die vollständige Sichtbarkeit und Erkennbarkeit
+der Lok. Große Vorschauen können innerhalb ihres Rahmens gescrollt werden. **Technisch verwendbar**
+bedeutet, dass die Datei aufbereitet werden kann; Motiv, Perspektive und Schärfe werden nicht
+automatisch erkannt. Die Herstellerquelle ist im Dialog verlinkt.
+
+**Bild herunterladen** erstellt eine separate Datei mit Zielkürzel im Namen. Original, Bildmetadaten
+und Fahrzeugdaten bleiben erhalten. Es erfolgt keine automatische Übertragung an die Zentrale.
+Extern verlinkte Artikelbilder müssen zuerst lokal importiert oder hochgeladen werden.
+Die Aufbereitung läuft im Browser, ohne Übermittlung an einen Bild- oder KI-Dienst.
 
 ## Bild mit einer Wartung verknüpfen
 

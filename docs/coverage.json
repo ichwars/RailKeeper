@@ -201,6 +201,7 @@
       "vehicles.uploads.webDocument": "vehicle-search-spares",
       "vehicles.uploads.webDocuments": "vehicle-search-spares",
       "vehicles.uploads": "vehicle-media",
+      "locomotiveImage": "vehicle-media",
       "vehicles": "vehicles-core",
       "decoderLibrary": "vehicle-decoder-cv"
     },
