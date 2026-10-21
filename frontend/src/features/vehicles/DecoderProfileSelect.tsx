@@ -1,14 +1,18 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { DecoderCV } from "./decoderAnalysis";
 import { decoderAnalysis, decoderProfiles } from "./decoderAnalysis";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { useDecoderLibrary } from "../../shared/DecoderLibraryProvider";
 
 export function useDecoderProfile(values: DecoderCV[]) {
+  const library = useDecoderLibrary();
   const [requested, setProfile] = useState<string | null>(null);
   const profiles = decoderProfiles(values);
   const profile = requested != null && profiles.includes(requested) ? requested : profiles[0] || "";
-  return { profiles, profile, setProfile, analysis: decoderAnalysis(values, profile) };
+  const analysis = useMemo(() => decoderAnalysis(values, profile, library.profiles, library.inventory ?? null),
+    [values, profile, library.profiles, library.inventory]);
+  return { profiles, profile, setProfile, analysis, failed: library.failed, loading: !library.failed && library.profiles.length === 0 };
 }
 
 export function DecoderProfileSelect({ profiles, profile, setProfile }: {

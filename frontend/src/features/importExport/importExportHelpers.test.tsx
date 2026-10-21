@@ -111,6 +111,17 @@ describe("import/export helpers", () => {
     });
   });
 
+  it("uses documented ECoS fallback meanings when no library symbol matches", () => {
+    const suggestions = ecosFunctionSuggestions({ objectId: 1001,
+      functions: [7, 33, 38].map((description, index) => ({ index, description })) }, []);
+    expect(suggestions.map(({ name, symbolKey, functionType }) => ({ name, symbolKey, functionType })))
+      .toEqual([
+        { name: "Allgemeines Geräusch", symbolKey: "sound", functionType: "sound" },
+        { name: "Diesel Fahrstufe Ab", symbolKey: "drive", functionType: "standard" },
+        { name: "Kurvengeräusch", symbolKey: "sound", functionType: "sound" }
+      ]);
+  });
+
   it("keeps runtime and image attributes out of raw ECoS review", () => {
     const locomotive = {
       objectId: 1001,

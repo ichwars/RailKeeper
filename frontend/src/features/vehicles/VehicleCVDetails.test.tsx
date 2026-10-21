@@ -84,4 +84,38 @@ describe("CV detail side panel", () => {
     expect(button.closest("[role=dialog]")).not.toHaveAttribute("inert");
     expect(button).toHaveFocus();
   });
+
+  it("keeps the exported reading separate from the factory reference and shows the exact source", () => {
+    const decoderProfile = "LokPilot 5 micro DCC";
+    const value = cvValueFixture({ cvNumber: 112, value: 42, decoderProfile,
+      sourceLine: 72, sourceExportedAt: "2026-10-17T17:41:59" });
+    const rows = [value, cvValueFixture({ cvNumber: 8, value: 151, decoderProfile })];
+    const before = structuredClone(rows);
+    const edit = vi.fn();
+    render(<VehicleCVDetails value={value} values={rows} files={[]} readonly={false} saving={false}
+      onClose={vi.fn()} onEdit={edit} />);
+    expect(screen.getByText("0,065536 s je Schritt")).toBeVisible();
+    expect(screen.getByText("20")).toBeVisible();
+    expect(screen.getByText("Referenz laut Anleitung, kein ausgelesener Fahrzeugwert.")).toBeVisible();
+    expect(screen.getByText("S.85, CV112")).toBeVisible();
+    expect(screen.getByText("72")).toBeVisible();
+    expect(screen.getByText("17.10.2026 17:41:59")).toBeVisible();
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "CV-Wert bearbeiten" }));
+    expect(edit).toHaveBeenCalledExactlyOnceWith(value);
+    expect(rows).toEqual(before);
+  });
+
+  it("explains reserved registers neutrally and never invents unit, default or bit meanings", () => {
+    const decoderProfile = "LokPilot 5 micro DCC";
+    const value = cvValueFixture({ cvNumber: 141, value: 25, decoderProfile });
+    render(<VehicleCVDetails value={value} values={[value,
+      cvValueFixture({ cvNumber: 8, value: 151, decoderProfile })]} files={[]}
+      readonly={true} saving={false} onClose={vi.fn()} onEdit={vi.fn()} />);
+    expect(screen.getByRole("heading", { name: "CV 141 · Reserviert laut ESU-Handbuch" })).toBeVisible();
+    expect(screen.getByText(/Gespeicherte Werte bleiben erhalten/).closest("div")).toHaveClass("unassigned");
+    expect(screen.queryByText("Dokumentierte Einheit")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dokumentangabe ab Werk")).not.toBeInTheDocument();
+    expect(screen.queryByText("Bit 0")).not.toBeInTheDocument();
+  });
 });

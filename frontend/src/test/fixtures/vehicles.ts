@@ -43,6 +43,8 @@ export function functionFixture(overrides: Partial<VehicleFunction> = {}): Vehic
     functionType: "licht",
     mode: "dauer",
     directionDependent: true,
+    inverted: null,
+    flagsVersion: 2,
     sortOrder: 0,
     createdAt: timestamp,
     updatedAt: timestamp,

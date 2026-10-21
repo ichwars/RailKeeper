@@ -19,7 +19,10 @@ export type PendingArticleImage = ArticleSearchImage & {
 };
 
 export type AttachmentEditState = Record<string, { description: string; category: string; maintenanceId: string }>;
-export type FunctionEditState = Record<string, VehicleFunctionInput & { persisted?: boolean }>;
+export type FunctionEdit = VehicleFunctionInput & {
+  persisted?: boolean; modeAssigned?: boolean; dirty?: boolean; deleted?: boolean; revision?: string;
+};
+export type FunctionEditState = Record<string, FunctionEdit>;
 
 export function vehicleToForm(vehicle: Vehicle): CreateVehicleRequest {
   return {
@@ -140,9 +143,12 @@ export function functionsToEditState(functions?: VehicleFunction[]): FunctionEdi
         symbolKey: item.symbolKey || "",
         functionType: item.functionType || "standard",
         mode: item.mode || "dauer",
-        directionDependent: item.directionDependent,
+        directionDependent: item.directionDependent ?? null,
+        inverted: item.inverted ?? null,
+        legacyDirectionDependent: item.legacyDirectionDependent,
+        flagsVersion: 2,
         notes: item.notes || "",
-        persisted: true
+        persisted: true, revision: item.revision, dirty: false
       }
     ])
   );

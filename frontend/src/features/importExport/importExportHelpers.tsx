@@ -1,3 +1,4 @@
+import { exactECoSSymbol } from "../../shared/ecosSymbols";
 import { CreateVehicleRequest, ECoSLocomotiveSyncResult, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput, VehicleExternalMapping, VehicleExternalMappingInput, VehicleFunctionInput } from "../../shared/api";
 
 export type ImportRow = {
@@ -771,14 +772,7 @@ export function symbolCodeSignal(symbol: MasterDataEntry) {
 }
 
 export function findSymbolByECoSCode(code: number, symbols: MasterDataEntry[]) {
-  if (!code) return undefined;
-  const padded = normalizeECoSSymbolCode(code);
-  const codeText = String(code);
-  return symbols.find((symbol) => {
-    if (!symbol.active) return false;
-    const signal = symbolCodeSignal(symbol);
-    return new RegExp(`(^|\\D)${padded}(\\D|$)`).test(signal) || new RegExp(`(^|\\D)${codeText}(\\D|$)`).test(signal);
-  });
+  return exactECoSSymbol(code, symbols);
 }
 
 function findFallbackSymbolKey(...candidates: string[]) {
@@ -797,11 +791,11 @@ function eCoSFunctionFallbackByCode(index: number, code?: number): Partial<Vehic
     case 3:
       return { name: index === 0 ?"Fahrlicht" : "Licht", symbolKey: "light", functionType: "licht" };
     case 7:
-      return { name: "Rauch", symbolKey: "smoke", functionType: "rauch" };
+      return { name: "Allgemeines Geräusch", symbolKey: "sound", functionType: "sound" };
     case 33:
-      return { name: "Sound", symbolKey: "sound", functionType: "sound" };
+      return { name: "Diesel Fahrstufe Ab", symbolKey: "drive", functionType: "standard" };
     case 38:
-      return { name: "Horn", symbolKey: "horn", functionType: "sound" };
+      return { name: "Kurvengeräusch", symbolKey: "sound", functionType: "sound" };
     case 773:
       return { name: "Kupplung", symbolKey: "coupling", functionType: "kupplung" };
     default:
@@ -843,7 +837,8 @@ export function ecosFunctionSuggestions(locomotive: ECoSRawLocomotive, symbols: 
         symbolKey: symbolKey || fallbackKey || "",
         functionType,
         mode: "dauer",
-        directionDependent: false,
+        directionDependent: null,
+        inverted: null,
         notes: `Aus ECoS funcdesc ${fn.description}.`,
         ecosDescription: fn.description
       };

@@ -160,7 +160,7 @@ export function VehicleEditorDialog({
               {activeTab === "spareParts" && <VehicleSparePartsTab {...tabs.spareParts} />}
             </div>
 
-            <footer className="modal-actions">
+            <footer className={`modal-actions${activeTab === "control" ? " function-editor-footer" : ""}`}>
               {message && <p className="form-message">{message}</p>}
               <button type="button" className="secondary-button" onClick={onClose}>
                 {t("vehicles.cancel")}

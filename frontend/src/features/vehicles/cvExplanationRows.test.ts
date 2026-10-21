@@ -9,6 +9,23 @@ const values = [[1, 3], [8, 151], [17, 192], [18, 128], [19, 0], [21, 0], [22, 0
   .map(([cvNumber, value]) => ({ cvNumber, value, decoderProfile: "LokPilot 5 micro DCC" }));
 
 describe("CV explanations", () => {
+  it("uses DH characteristic and brake sources and explains only stored output registers", () => {
+    const dh = [[8, 97], [29, 30], [48, 5], [115, 2], [145, 1], [154, 24], [155, 0], [254, 0]]
+      .map(([cvNumber, value]) => ({ cvNumber, value, decoderProfile: "DH18A" }));
+    const a = decoderAnalysis(dh, "DH18A");
+    const motor = cvExplanationRows(a, "motor", t);
+    expect(motor[0].numbers).toEqual([48]);
+    expect(motor[0].reading).toBe(5);
+    expect(motor.some(row => row.key === "curve")).toBe(false);
+    expect(cvExplanationRows(a, "braking", t).find(row => row.key === "constantBrake")?.numbers).toEqual([154, 155]);
+    expect(a.constantBrake).toBe(true);
+    expect(cvExplanationRows(a, "outputs", t).map(row => row.key)).toEqual(["115", "145"]);
+    expect(cvExplanationRows(a, "outputs", t)[0].help).toContain("keine Dauer-/Moment-Einstellung");
+    expect(a.railComPlus).toBeUndefined();
+    const reverseOnly = decoderAnalysis(dh.map(v => v.cvNumber === 154 ? { ...v, value: 0 }
+      : v.cvNumber === 155 ? { ...v, value: 24 } : v), "DH18A");
+    expect(reverseOnly.constantBrake).toBe(false);
+  });
   it("distinguishes the active address, inactive long address and consist permissions", () => {
     const rows = cvExplanationRows(decoderAnalysis(values, "LokPilot 5 micro DCC"), "address", t);
     expect(rows.find(row => row.key === "address")?.reading).toBe(3);

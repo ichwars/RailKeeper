@@ -5,11 +5,14 @@ import {
   ApiError,
   type CreateVehicleRequest,
   type Vehicle,
+  type VehicleFunction,
+  type VehicleFunctionChange,
   type VehicleSparePartInput
 } from "../../shared/api";
 import { cvValueKey } from "./cvImport";
 import { clearVehicleCreateDraft } from "./vehicleCreateWizardState";
-import type { FunctionEditState, PendingArticleImage } from "./vehicleTransforms";
+import { invalidFunctionChanges } from "./functionDraft";
+import type { PendingArticleImage } from "./vehicleTransforms";
 import type { ECoSVehicleDraftPayload, ModalMode, ModalTab } from "./vehicleViewModel";
 
 type Translator = (key: string, values?: Record<string, string | number>) => string;
@@ -39,8 +42,8 @@ type VehicleMutationCommandsOptions = {
     clearSelected: () => void;
   };
   functions: {
-    configuredKeys: string[];
-    edit: (functionKey: string) => FunctionEditState[string];
+    changes: () => VehicleFunctionChange[];
+    acknowledgeSaved: (functions: VehicleFunction[] | undefined, vehicleID?: string) => void;
   };
   ecos: {
     draft: ECoSVehicleDraftPayload | null;
@@ -88,6 +91,14 @@ export function createVehicleMutationCommands({
       return;
     }
 
+    const functionChanges = functions.changes();
+    const invalidKeys = invalidFunctionChanges(functionChanges);
+    if (invalidKeys.length) {
+      editor.setActiveTab("control");
+      onMessage(t("vehicles.functions.invalidFields", { keys: invalidKeys.join(", ") }));
+      return;
+    }
+
     editor.setSaving(true);
     onMessage("");
     try {
@@ -102,11 +113,15 @@ export function createVehicleMutationCommands({
         isPrimary: Boolean(image.isPrimary),
         sortOrder: index
       }));
-      const payload = { ...editor.form, images };
+      const payload = { ...editor.form, images, ...(functionChanges.length ? { functionChanges } : {}) };
       let vehicle = editor.mode === "edit" && editor.selected
         ? await api.updateVehicle(editor.selected.id, payload)
         : await api.createVehicle(payload);
       if (editor.mode === "create") clearVehicleCreateDraft(draftOwner);
+      functions.acknowledgeSaved(vehicle.functions, vehicle.id);
+      // The core transaction succeeded. Retrying an ancillary image/import failure must not create a duplicate.
+      editor.setSelectedDetail(vehicle);
+      editor.setMode("edit");
 
       for (const [imageIndex, image] of remoteImages.entries()) {
         await api.importVehicleImageFromUrl(vehicle.id, {
@@ -139,18 +154,6 @@ export function createVehicleMutationCommands({
           if (existing) await api.updateVehicleCVValue(vehicle.id, existing.id, cvValue);
           else await api.createVehicleCVValue(vehicle.id, cvValue);
         }
-        for (const functionKey of functions.configuredKeys) {
-          const edit = functions.edit(functionKey);
-          if (!edit.name?.trim() && !edit.symbolKey && !edit.notes?.trim()) continue;
-          await api.updateVehicleFunction(vehicle.id, functionKey, {
-            name: edit.name || "",
-            symbolKey: edit.symbolKey || "",
-            functionType: edit.functionType || "standard",
-            mode: edit.mode || "dauer",
-            directionDependent: Boolean(edit.directionDependent),
-            notes: edit.notes || ""
-          });
-        }
         ecos.markSaved(savedDraft, vehicle.id);
         vehicle = await api.vehicle(vehicle.id);
         const returnsToSource = Boolean(savedDraft.returnToEcos || savedDraft.returnToDigitalCenters);
@@ -173,9 +176,12 @@ export function createVehicleMutationCommands({
         onMessage(t("vehicles.spareParts.importedCount", { count: sparePartsToImport.length }));
       }
     } catch (error) {
-      onMessage(error instanceof ApiError && error.code === "external_mapping_conflict"
-        ? t("vehicles.ecosDraft.mappingConflict")
-        : error instanceof Error ? error.message : String(error));
+      onMessage(error instanceof ApiError && error.code === "vehicle_function_conflict"
+        ? t("vehicles.functions.conflict")
+        : error instanceof ApiError && error.code === "vehicle_function_validation"
+        ? t("vehicles.functions.invalidFields", { keys: functionChanges.map(change => change.functionKey).join(", ") })
+        : error instanceof ApiError && error.code === "external_mapping_conflict"
+        ? t("vehicles.ecosDraft.mappingConflict") : error instanceof Error ? error.message : String(error));
     } finally {
       editor.setSaving(false);
     }

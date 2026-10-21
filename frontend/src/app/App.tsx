@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Shell } from "./Shell";
+import { DecoderLibraryProvider } from "../shared/DecoderLibraryProvider";
 import { LoginView } from "../features/auth/LoginView";
 import { SetupView } from "../features/setup/SetupView";
 import { api, Session } from "../shared/api";
@@ -176,7 +177,7 @@ export function App() {
   }
 
   return (
-    <Shell
+    <DecoderLibraryProvider enabled={session.roles.some(role => ["Admin", "Editor", "Viewer"].includes(role))}><Shell
       username={session.username}
       roles={session.roles}
       activeView={effectiveView}
@@ -193,6 +194,6 @@ export function App() {
         {effectiveView === "digitalCenters" && <DigitalCentersView roles={session.roles} />}
         {effectiveView === "settings" && <SettingsView username={session.username} />}
       </Suspense>
-    </Shell>
+    </Shell></DecoderLibraryProvider>
   );
 }

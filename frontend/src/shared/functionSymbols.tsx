@@ -1,4 +1,5 @@
 import { useRef, type ReactNode } from "react";
+import { TriangleAlert } from "lucide-react";
 import type { MasterDataEntry } from "./api";
 import { RailKeeperFunctionSymbolFallback } from "./functionSymbolFallbackIcons";
 import { functionSymbolImageData } from "./functionSymbolImages";
@@ -66,6 +67,7 @@ export function FunctionSymbolPicker({
   symbols,
   disabled,
   label,
+  markMissing = false,
   onChange
 }: {
   value?: string;
@@ -73,6 +75,7 @@ export function FunctionSymbolPicker({
   symbols: MasterDataEntry[];
   disabled?: boolean;
   label: string;
+  markMissing?: boolean;
   onChange: (value: string, label?: string) => void;
 }) {
   const { t } = useI18n();
@@ -87,15 +90,21 @@ export function FunctionSymbolPicker({
     detailsRef.current?.removeAttribute("open");
   };
   return (
-    <details ref={detailsRef} className="function-symbol-picker">
-      <summary aria-label={label}>
+    <details ref={detailsRef} className={`function-symbol-picker${markMissing && !value ? " missing-symbol" : ""}`}
+      onKeyDown={event => { if (event.key === "Escape" && detailsRef.current?.open) {
+        event.preventDefault(); event.stopPropagation();
+        detailsRef.current?.removeAttribute("open"); detailsRef.current?.querySelector("summary")?.focus();
+      } }}>
+      <summary aria-label={label} aria-disabled={disabled || undefined}
+        onClick={event => { if (disabled) event.preventDefault(); }}>
         {functionSymbolIcon(value, functionType, selected?.metadata)}
-        <span>{selected ? optionLabel(selected) : "Symbol"}</span>
+        {markMissing && !value && <TriangleAlert size={15} aria-hidden="true" />}
+        <span>{selected ? optionLabel(selected) : markMissing ? t("vehicles.functions.missingSymbol") : t("vehicles.functions.symbol")}</span>
       </summary>
       <div className="function-symbol-menu">
         <button type="button" className={!value ? "active" : ""} onClick={() => selectSymbol("")} disabled={disabled}>
           {functionSymbolTile(<RailKeeperFunctionSymbolFallback symbolKey="standard" />)}
-          <span>Kein Symbol</span>
+          <span>{t("vehicles.functions.noSymbol")}</span>
         </button>
         {options.map((symbol) => (
           <button type="button" key={symbol.key} className={value === symbol.key ? "active" : ""} onClick={() => selectSymbol(symbol.key, symbol.label)} disabled={disabled || !symbol.active} title={optionLabel(symbol)}>

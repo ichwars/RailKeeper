@@ -1,0 +1,326 @@
+/* One function draft, with a single save action in the vehicle modal footer. */
+.function-editor {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+}
+.function-editor h3 {
+  margin: 0;
+}
+.function-editor .function-list {
+  gap: var(--space-sm);
+}
+.function-editor-counts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+.function-editor-counts span + span::before {
+  content: "·";
+  margin-right: var(--space-md);
+}
+.function-supplement {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-lg);
+}
+.function-supplement p {
+  max-width: 370px;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+.function-supplement button {
+  flex: 0 0 auto;
+}
+.function-editor-columns, .function-editor-fields {
+  display: grid;
+  grid-template-columns: 40px minmax(130px, 1.25fr) minmax(145px, 1fr) minmax(112px, .65fr) 32px;
+  gap: var(--space-sm);
+  align-items: center;
+}
+.function-editor-columns {
+  padding: 0 calc(var(--space-md) + 1px);
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+.function-editor .function-row, .function-editor .function-row.persisted {
+  display: block;
+  min-width: 0;
+  padding: var(--space-md);
+  border-color: var(--line);
+  background: var(--panel);
+}
+.function-editor .function-key {
+  justify-content: flex-start;
+  padding: 0;
+  background: transparent;
+  color: var(--text);
+}
+.function-editor .function-editor-fields > *, .function-editor .app-select {
+  min-width: 0;
+}
+.function-editor .function-name-input, .function-editor .app-select-trigger,
+.function-editor .function-symbol-picker > summary {
+  height: 40px;
+  min-height: 40px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-weight: var(--font-weight-regular);
+}
+.function-editor .function-symbol-picker > summary {
+  padding: 3px var(--space-sm);
+}
+.function-editor .missing-symbol > summary {
+  border-color: color-mix(in srgb, var(--warm) 60%, var(--line));
+  background: color-mix(in srgb, var(--warm) 10%, var(--panel));
+}
+.function-editor .missing-symbol > summary > svg {
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--warm) 35%, var(--text));
+}
+.function-editor .function-symbol-menu {
+  left: auto;
+  right: 0;
+  width: min(540px, calc(100vw - 96px));
+}
+.function-editor .function-delete {
+  min-width: 32px;
+  min-height: 38px;
+  justify-self: end;
+}
+.function-editor .function-delete:disabled {
+  opacity: .45;
+}
+.function-row-details {
+  margin-top: var(--space-sm);
+}
+.function-row-details > summary {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: space-between;
+  align-items: center;
+  list-style: none;
+  cursor: pointer;
+  min-height: 28px;
+  margin-left: 48px;
+}
+.function-row-details > summary::-webkit-details-marker,
+.function-source-details > summary::-webkit-details-marker,
+.function-mapping-details > summary::-webkit-details-marker {
+  display: none;
+}
+.function-row-status, .function-details-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+.function-row-status {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.function-row-status > svg {
+  flex: 0 0 auto;
+}
+.function-details-label {
+  flex: 0 0 auto;
+}
+.function-row-details[open] > summary .function-details-label > svg,
+.function-source-details[open] > summary > svg:first-child,
+.function-mapping-details[open] > summary > svg:first-child {
+  transform: rotate(90deg);
+}
+.function-row-detail-content {
+  display: grid;
+  gap: var(--space-md);
+  margin: var(--space-md) 0 0 48px;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--line);
+}
+.function-editor .function-flags {
+  grid-column: auto;
+}
+.function-editor .function-flags label, .function-own-note {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+}
+.function-own-note {
+  display: grid;
+  gap: var(--space-xs);
+}
+.function-own-note textarea {
+  width: 100%;
+  min-height: 64px;
+  padding: var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--font-size-md);
+  resize: vertical;
+}
+.function-source-details > summary, .function-mapping-details > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  list-style: none;
+  cursor: pointer;
+  min-height: 36px;
+  font-size: var(--font-size-sm);
+}
+.function-source-records {
+  display: grid;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-subtle);
+  font-size: var(--font-size-sm);
+}
+.function-source-records p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: inherit;
+  line-height: var(--line-height-body);
+}
+.function-mapping-details {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-subtle);
+}
+.function-mapping-details > summary {
+  font-weight: var(--font-weight-semibold);
+}
+.function-mapping-details > summary > span {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+}
+.function-mapping-details > section {
+  margin-top: var(--space-md);
+}
+.function-missing-help {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+.function-missing-help > svg {
+  flex: 0 0 auto;
+}
+.function-editor .pending-delete {
+  border-style: dashed;
+}
+.function-row-details > summary:focus-visible, .function-source-details > summary:focus-visible,
+.function-mapping-details > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+@media (max-width: 720px) {
+  .function-editor-columns {
+    display: none;
+  }
+  .function-supplement {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .function-supplement p {
+    max-width: none;
+  }
+  .function-editor-fields {
+    grid-template-columns: 34px minmax(0, 1fr) 44px;
+  }
+  .function-editor-fields > .function-key {
+    grid-row: 1 / span 3;
+    align-self: start;
+  }
+  .function-editor-fields > .function-name-input, .function-editor-fields > .function-symbol-picker,
+  .function-editor-fields > .app-select {
+    grid-column: 2;
+  }
+  .function-editor-fields > .function-delete {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .function-editor .function-row {
+    padding: var(--space-sm);
+  }
+  .function-editor .function-symbol-menu {
+    width: min(360px, calc(100vw - 96px));
+  }
+  .function-row-details > summary {
+    margin-left: 42px;
+    min-height: 44px;
+  }
+  .function-row-detail-content {
+    margin-left: 0;
+  }
+  .function-editor .function-delete, .function-editor .function-name-input,
+  .function-editor .function-symbol-picker > summary, .function-editor .app-select-trigger,
+  .function-supplement button {
+    min-height: 44px;
+  }
+  .function-editor .function-delete {
+    min-width: 32px;
+  }
+  .function-mapping-details > summary > span {
+    display: none;
+  }
+}
+
+.vehicle-edit-modal .function-editor-footer {
+  flex-wrap: wrap;
+}
+.function-editor-footer .form-message {
+  flex: 1 1 100%;
+  order: -1;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 720px) {
+  .function-editor .function-name-input,
+  .function-editor .function-symbol-picker > summary,
+  .function-editor .app-select-trigger {
+    height: 44px;
+  }
+  .function-editor-counts {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+  .function-editor-counts span + span::before {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .function-editor .function-delete {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .function-editor .compact-switch,
+  .function-source-details > summary,
+  .function-mapping-details > summary,
+  .function-editor-footer > button {
+    min-height: 44px;
+  }
+}
