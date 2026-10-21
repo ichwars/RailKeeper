@@ -1,0 +1,477 @@
+{
+  "id": "esu-lokpilot-5-micro-dcc",
+  "name": "ESU LokPilot 5 micro DCC",
+  "nameEn": "ESU LokPilot 5 micro DCC",
+  "revision": "2026-10-18.3",
+  "protocol": "DCC",
+  "kind": "model",
+  "manufacturerId": 151,
+  "family": "LokPilot 5",
+  "model": "LokPilot 5 micro DCC",
+  "parentId": "dcc-basics",
+  "firmwareMin": "5.3.128",
+  "aliases": [
+    "LokPilot 5 micro DCC",
+    "ESU LokPilot 5 micro DCC"
+  ],
+  "familyAliases": [
+    "LokPilot 5",
+    "LokPilot 5 DCC",
+    "ESU LokPilot 5",
+    "ESU LokPilot 5 DCC"
+  ],
+  "sources": [
+    {
+      "title": "ESU LokPilot 5 Family",
+      "url": "https://www.esu.eu/en/downloads/instruction-manuals/digital-decoders/?tx_esudownloads_pi1%5BdownloadItem%5D=0318b68e0cb850d9101947622d1041ea",
+      "version": "8th edition, January 2023",
+      "scope": "From firmware 5.3.128; common LokPilot 5 family rules"
+    }
+  ],
+  "definitions": [
+    {
+      "cv": 253,
+      "name": {
+        "de": "Bremsmodus",
+        "en": "Braking mode"
+      },
+      "help": {
+        "de": "Auswahl des Bremsmodus; zusammen mit den Bremswegeinstellungen beurteilen.",
+        "en": "Braking mode selection; interpret together with braking distance settings."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 254,
+      "name": {
+        "de": "Bremsweg vorwärts",
+        "en": "Forward braking distance"
+      },
+      "help": {
+        "de": "Decoderwert für den konstanten Bremsweg vorwärts; keine direkte Angabe in Zentimetern.",
+        "en": "Decoder setting for forward constant braking distance; not a direct distance in centimetres."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 255,
+      "name": {
+        "de": "Bremsweg rückwärts",
+        "en": "Reverse braking distance"
+      },
+      "help": {
+        "de": "Decoderwert für den konstanten Bremsweg rückwärts.",
+        "en": "Decoder setting for reverse constant braking distance."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 257,
+      "name": {
+        "de": "Mapping-Bedingungen",
+        "en": "Mapping conditions"
+      },
+      "help": {
+        "de": "Bedingungsfelder einer ESU-Mappingzeile; mehrere CVs sind gemeinsam auszuwerten.",
+        "en": "Condition fields of an ESU mapping row; multiple CVs must be interpreted together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "cvEnd": 512,
+      "indexCV31": 16,
+      "indexCV32": 3,
+      "indexCV32End": 7
+    },
+    {
+      "cv": 257,
+      "name": {
+        "de": "Mapping-Aktionen",
+        "en": "Mapping actions"
+      },
+      "help": {
+        "de": "Ausgangs- und Logikaktionen einer ESU-Mappingzeile; keine sichere Aussage über die angeschlossene Fahrzeugfunktion.",
+        "en": "Output and logical actions of an ESU mapping row; the connected vehicle function still requires confirmation."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "cvEnd": 512,
+      "indexCV31": 16,
+      "indexCV32": 8,
+      "indexCV32End": 12
+    },
+    {
+      "cv": 291,
+      "name": {
+        "de": "AUX3-Ausgangskonfiguration",
+        "en": "AUX3 output configuration"
+      },
+      "help": {
+        "de": "Ausgangskonfiguration; Wert 31 kennzeichnet PowerPack Control bei passenden Decoder-Ausführungen.",
+        "en": "Output configuration; value 31 identifies PowerPack Control on compatible decoder variants."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 27,
+      "name": {
+        "de": "Bremsverfahren",
+        "en": "Braking methods"
+      },
+      "help": {
+        "de": "ABC: Bits 0/1. Weitere Bits wählen andere Bremsverfahren; sie aktivieren ABC nicht.",
+        "en": "ABC: bits 0/1. Other bits select different braking methods and do not enable ABC."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "ABC, rechte Schiene höher",
+            "en": "ABC, right rail higher"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "ABC, linke Schiene höher",
+            "en": "ABC, left rail higher"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "ZIMO HLU",
+            "en": "ZIMO HLU"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "DC-Bremsen, Polarität entgegen Fahrtrichtung",
+            "en": "DC braking, opposite polarity"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "DC-Bremsen, Polarität wie Fahrtrichtung",
+            "en": "DC braking, same polarity"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "SX-Bremsdiode, Gegenrichtung",
+            "en": "SX brake diode, opposite direction"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "SX-Bremsdiode, Fahrtrichtung",
+            "en": "SX brake diode, same direction"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Konstanter Bremsweg bei Fahrstufe 0",
+            "en": "Constant braking distance at speed step 0"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 28,
+      "name": {
+        "de": "RailCom-Konfiguration",
+        "en": "RailCom configuration"
+      },
+      "help": {
+        "de": "Kanal 1, Kanal 2 und RailComPlus sind getrennte Freigaben. CV29 muss Rückmeldung ebenfalls erlauben.",
+        "en": "Channel 1, channel 2 and RailComPlus have separate permissions. CV29 must also enable feedback."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Kanal 1: Adressmeldung",
+            "en": "Channel 1: address broadcast"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Kanal 2: Daten",
+            "en": "Channel 2: data"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "RailComPlus-Anmeldung",
+            "en": "RailComPlus registration"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 47,
+      "name": {
+        "de": "Protokollregister, DCC-Variante",
+        "en": "Protocol register, DCC variant"
+      },
+      "help": {
+        "de": "LokPilot 5 micro DCC unterstützt unabhängig vom gespeicherten Registerwert ausschließlich DCC. Andere Bits belegen keine Multiprotokoll-Fähigkeit.",
+        "en": "LokPilot 5 micro DCC supports only DCC regardless of the stored register value. Other bits do not establish multiprotocol support."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 50,
+      "name": {
+        "de": "DC-Analogbetrieb ESU",
+        "en": "ESU DC analog operation"
+      },
+      "help": {
+        "de": "Bit 1 erlaubt DC-Analogbetrieb; zusätzlich ist die Freigabe in CV29 erforderlich. Die reine DCC-Variante unterstützt kein AC-Analog.",
+        "en": "Bit 1 enables DC analog operation together with CV29. The DCC-only variant does not support AC analog."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 1,
+          "name": {
+            "de": "DC-Analogbetrieb",
+            "en": "DC analog operation"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 51,
+      "name": {
+        "de": "Grenze für K slow",
+        "en": "K slow cutoff"
+      },
+      "help": {
+        "de": "Interne Fahrstufe, bis zu der der langsame K-Regelparameter gilt.",
+        "en": "Internal speed step up to which the low-speed K parameter applies."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 52,
+      "name": {
+        "de": "Lastregelung K slow",
+        "en": "Low-speed load control K"
+      },
+      "help": {
+        "de": "Proportionalanteil der Motorregelung bei niedriger Geschwindigkeit.",
+        "en": "Proportional motor-control parameter at low speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 53,
+      "name": {
+        "de": "Motor-Referenzspannung",
+        "en": "Motor reference voltage"
+      },
+      "help": {
+        "de": "Referenz der Gegen-EMK-Regelung; keine direkt gemessene Motorspannung.",
+        "en": "Back-EMF control reference, not a measured motor voltage."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 54,
+      "name": {
+        "de": "Lastregelung K",
+        "en": "Load control K"
+      },
+      "help": {
+        "de": "Proportionalparameter der Motorregelung.",
+        "en": "Proportional motor-control parameter."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 55,
+      "name": {
+        "de": "Lastregelung I",
+        "en": "Load control I"
+      },
+      "help": {
+        "de": "Integralparameter der Motorregelung.",
+        "en": "Integral motor-control parameter."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 56,
+      "name": {
+        "de": "Lastregelung bei Minimalgeschwindigkeit",
+        "en": "Load control at minimum speed"
+      },
+      "help": {
+        "de": "Stärke der Gegen-EMK-Regelung an der kleinsten Fahrstufe; kein direkt gemessener Prozentwert.",
+        "en": "Back-EMF control strength at the lowest speed step, not a measured percentage."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 255
+    }
+  ],
+  "rules": {
+    "abc": {
+      "cv": 27,
+      "mask": 3
+    },
+    "dcAnalog": {
+      "cv": 50,
+      "mask": 2
+    },
+    "constantBrake": {
+      "forwardCV": 254,
+      "reverseCV": 255
+    }
+  },
+  "mapping": {
+    "rows": 72,
+    "rowsPerPage": 16,
+    "stride": 16,
+    "startCV": 257,
+    "indexCV31": 16,
+    "conditionPage": 3,
+    "actionPage": 8
+  },
+  "active": true
+}

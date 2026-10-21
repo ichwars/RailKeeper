@@ -1,0 +1,1384 @@
+{
+  "id": "piko-56500",
+  "name": "PIKO SmartDecoder XP 5.1 PluX22",
+  "nameEn": "PIKO SmartDecoder XP 5.1 PluX22",
+  "revision": "2026-10-20.1",
+  "protocol": "DCC",
+  "kind": "model",
+  "manufacturerId": 162,
+  "family": "SmartDecoder XP 5.1",
+  "model": "SmartDecoder XP 5.1 PluX22",
+  "parentId": "dcc-basics",
+  "aliases": [
+    "PIKO 56500",
+    "56500",
+    "SmartDecoder XP 5.1 PluX22",
+    "PIKO SmartDecoder XP 5.1 PluX22"
+  ],
+  "familyAliases": [],
+  "sources": [
+    {
+      "title": "PIKO 56500, ausführliche Anleitung",
+      "url": "https://www.piko-shop.de/is.php?id=28620",
+      "version": "56500, Hersteller-PDF ID28620, geprüft20.10.2026",
+      "scope": "CV-Tabellen S.7–12; Nicht-Sound PluX22. Doppelte CV101, widersprüchliche Bereiche und andere Decoder-Ausführungen werden nicht übertragen.",
+      "retrievedAt": "2026-10-20",
+      "sha256": "9d3c587b4f44b94f2c77821152ae20a3b267d99342dcd633c8c00e027ebf8d3a"
+    }
+  ],
+  "definitions": [
+    {
+      "cv": 1,
+      "name": {
+        "de": "Kurze DCC-Adresse",
+        "en": "Short DCC address"
+      },
+      "help": {
+        "de": "Kurze DCC-Adresse.",
+        "en": "Short DCC address."
+      },
+      "topic": "address",
+      "minimum": 1,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 2,
+      "name": {
+        "de": "Mindestgeschwindigkeit",
+        "en": "Minimum speed"
+      },
+      "help": {
+        "de": "Mindestgeschwindigkeit.",
+        "en": "Minimum speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 3,
+      "name": {
+        "de": "Beschleunigung",
+        "en": "Acceleration"
+      },
+      "help": {
+        "de": "Beschleunigung.",
+        "en": "Acceleration."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 30
+    },
+    {
+      "cv": 4,
+      "name": {
+        "de": "Bremsverzögerung",
+        "en": "Deceleration"
+      },
+      "help": {
+        "de": "Bremsverzögerung.",
+        "en": "Deceleration."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 30
+    },
+    {
+      "cv": 5,
+      "name": {
+        "de": "Höchstgeschwindigkeit",
+        "en": "Maximum speed"
+      },
+      "help": {
+        "de": "Höchstgeschwindigkeit.",
+        "en": "Maximum speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 200
+    },
+    {
+      "cv": 6,
+      "name": {
+        "de": "Mittengeschwindigkeit",
+        "en": "Mid speed"
+      },
+      "help": {
+        "de": "Mittengeschwindigkeit.",
+        "en": "Mid speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 100
+    },
+    {
+      "cv": 7,
+      "name": {
+        "de": "Softwarekennung",
+        "en": "Software identifier"
+      },
+      "help": {
+        "de": "Softwarekennung.",
+        "en": "Software identifier."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      }
+    },
+    {
+      "cv": 8,
+      "name": {
+        "de": "Herstellerkennung / Reset",
+        "en": "Manufacturer identifier / reset"
+      },
+      "help": {
+        "de": "Gelesen 162; Schreiben von 8 fordert Werksreset an. Keine Schreibaktion in RailKeeper.",
+        "en": "Reads 162; writing 8 requests a factory reset. RailKeeper performs no write."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "command",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 162
+    },
+    {
+      "cv": 12,
+      "name": {
+        "de": "Betriebsarten",
+        "en": "Operating modes"
+      },
+      "help": {
+        "de": "Betriebsarten.",
+        "en": "Operating modes."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 117,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 117,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "DC-Analogbetrieb",
+            "en": "DC analog"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "DCC",
+            "en": "DCC"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AC-Analogbetrieb",
+            "en": "AC analog"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Motorola",
+            "en": "Motorola"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "mfx",
+            "en": "mfx"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 13,
+      "name": {
+        "de": "Analogfunktionen F1–F8",
+        "en": "Analog functions F1–F8"
+      },
+      "help": {
+        "de": "Analogfunktionen F1–F8.",
+        "en": "Analog functions F1–F8."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 14,
+      "name": {
+        "de": "Weitere Analogfunktionen",
+        "en": "Additional analog functions"
+      },
+      "help": {
+        "de": "Weitere Analogfunktionen.",
+        "en": "Additional analog functions."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 15,
+      "name": {
+        "de": "Decoderschloss: Schlüssel",
+        "en": "Decoder lock: key"
+      },
+      "help": {
+        "de": "Decoderschloss: Schlüssel.",
+        "en": "Decoder lock: key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 16,
+      "name": {
+        "de": "Decoderschloss: Kennung",
+        "en": "Decoder lock: identifier"
+      },
+      "help": {
+        "de": "Decoderschloss: Kennung.",
+        "en": "Decoder lock: identifier."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 17,
+      "name": {
+        "de": "Lange Adresse: höheres Byte",
+        "en": "Long address: high byte"
+      },
+      "help": {
+        "de": "Lange Adresse: höheres Byte.",
+        "en": "Long address: high byte."
+      },
+      "topic": "address",
+      "minimum": 192,
+      "maximum": 231,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 195
+    },
+    {
+      "cv": 18,
+      "name": {
+        "de": "Lange Adresse: niederes Byte",
+        "en": "Long address: low byte"
+      },
+      "help": {
+        "de": "Lange Adresse: niederes Byte.",
+        "en": "Long address: low byte."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 232
+    },
+    {
+      "cv": 19,
+      "name": {
+        "de": "Verbundadresse",
+        "en": "Consist address"
+      },
+      "help": {
+        "de": "Verbundadresse.",
+        "en": "Consist address."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 21,
+      "name": {
+        "de": "Verbundfunktionen F1–F8",
+        "en": "Consist functions F1–F8"
+      },
+      "help": {
+        "de": "Verbundfunktionen F1–F8.",
+        "en": "Consist functions F1–F8."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 22,
+      "name": {
+        "de": "Weitere Verbundfunktionen",
+        "en": "Additional consist functions"
+      },
+      "help": {
+        "de": "Weitere Verbundfunktionen.",
+        "en": "Additional consist functions."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 27,
+      "name": {
+        "de": "Bremserkennung",
+        "en": "Brake detection"
+      },
+      "help": {
+        "de": "Bremserkennung.",
+        "en": "Brake detection."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 51,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "ABC rechts",
+            "en": "ABC right"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "ABC links",
+            "en": "ABC left"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "DC gegen Fahrtrichtung",
+            "en": "DC opposite direction"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "DC mit Fahrtrichtung",
+            "en": "DC same direction"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 28,
+      "name": {
+        "de": "RailCom-Konfiguration",
+        "en": "RailCom configuration"
+      },
+      "help": {
+        "de": "RailCom-Konfiguration.",
+        "en": "RailCom configuration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 151,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 151
+    },
+    {
+      "cv": 29,
+      "name": {
+        "de": "DCC-Konfiguration",
+        "en": "DCC configuration"
+      },
+      "help": {
+        "de": "DCC-Konfiguration.",
+        "en": "DCC configuration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 14
+    },
+    {
+      "cv": 30,
+      "name": {
+        "de": "Fehlerspeicher",
+        "en": "Fault register"
+      },
+      "help": {
+        "de": "Fehlerspeicher.",
+        "en": "Fault register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 7,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 47,
+      "name": {
+        "de": "Sonderausgänge / SUSI-Konfiguration",
+        "en": "Special outputs / SUSI configuration"
+      },
+      "help": {
+        "de": "Sonderausgänge / SUSI-Konfiguration.",
+        "en": "Special outputs / SUSI configuration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 48,
+      "name": {
+        "de": "ABC-Asymmetrieschwelle",
+        "en": "ABC asymmetry threshold"
+      },
+      "help": {
+        "de": "ABC-Asymmetrieschwelle.",
+        "en": "ABC asymmetry threshold."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 49,
+      "name": {
+        "de": "ABC-Zusatzfunktionen",
+        "en": "Additional ABC functions"
+      },
+      "help": {
+        "de": "ABC-Zusatzfunktionen.",
+        "en": "Additional ABC functions."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 50,
+      "name": {
+        "de": "ABC-Langsamgeschwindigkeit",
+        "en": "ABC slow speed"
+      },
+      "help": {
+        "de": "ABC-Langsamgeschwindigkeit.",
+        "en": "ABC slow speed."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 50
+    },
+    {
+      "cv": 51,
+      "name": {
+        "de": "Pendel-Stoppzeit",
+        "en": "Shuttle stop time"
+      },
+      "help": {
+        "de": "Pendel-Stoppzeit.",
+        "en": "Shuttle stop time."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 30,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 52,
+      "name": {
+        "de": "Stoppzeit beim Richtungswechsel",
+        "en": "Direction-change stop time"
+      },
+      "help": {
+        "de": "Stoppzeit beim Richtungswechsel.",
+        "en": "Direction-change stop time."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 50,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 53,
+      "name": {
+        "de": "Sanfte Anfahr-/Bremsrampe",
+        "en": "Smooth starting/braking ramp"
+      },
+      "help": {
+        "de": "Sanfte Anfahr-/Bremsrampe.",
+        "en": "Smooth starting/braking ramp."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 30
+    },
+    {
+      "cv": 54,
+      "name": {
+        "de": "Lasterkennung: Schwelle",
+        "en": "Load detection threshold"
+      },
+      "help": {
+        "de": "Lasterkennung: Schwelle.",
+        "en": "Load detection threshold."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 128
+    },
+    {
+      "cv": 55,
+      "name": {
+        "de": "Lasterkennung: Hysterese",
+        "en": "Load detection hysteresis"
+      },
+      "help": {
+        "de": "Lasterkennung: Hysterese.",
+        "en": "Load detection hysteresis."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 56,
+      "name": {
+        "de": "Lasterkennung: Steigung",
+        "en": "Load detection slope"
+      },
+      "help": {
+        "de": "Lasterkennung: Steigung.",
+        "en": "Load detection slope."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 128
+    },
+    {
+      "cv": 61,
+      "name": {
+        "de": "Zusätzliche Motorola-Adressen",
+        "en": "Additional Motorola addresses"
+      },
+      "help": {
+        "de": "Zusätzliche Motorola-Adressen.",
+        "en": "Additional Motorola addresses."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 3,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 62,
+      "name": {
+        "de": "Motorreglerkonfiguration",
+        "en": "Motor control configuration"
+      },
+      "help": {
+        "de": "Motorreglerkonfiguration.",
+        "en": "Motor control configuration."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 13,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 8
+    },
+    {
+      "cv": 66,
+      "name": {
+        "de": "Geschwindigkeitstrimm vorwärts",
+        "en": "Forward speed trim"
+      },
+      "help": {
+        "de": "Geschwindigkeitstrimm vorwärts.",
+        "en": "Forward speed trim."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 128
+    },
+    {
+      "cv": 67,
+      "name": {
+        "de": "Geschwindigkeitskennlinie",
+        "en": "Speed table"
+      },
+      "help": {
+        "de": "Geschwindigkeitskennlinie.",
+        "en": "Speed table."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.9, CV-Tabelle"
+      },
+      "cvEnd": 94
+    },
+    {
+      "cv": 95,
+      "name": {
+        "de": "Geschwindigkeitstrimm rückwärts",
+        "en": "Reverse speed trim"
+      },
+      "help": {
+        "de": "Geschwindigkeitstrimm rückwärts.",
+        "en": "Reverse speed trim."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 128
+    },
+    {
+      "cv": 96,
+      "name": {
+        "de": "Art der Funktionszuordnung",
+        "en": "Function-mapping mode"
+      },
+      "help": {
+        "de": "Nur 1 (einfach) oder 6 (erweitert) dokumentiert.",
+        "en": "Only 1 (simple) or 6 (extended) is documented."
+      },
+      "topic": "outputs",
+      "minimum": 1,
+      "maximum": 6,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 6,
+      "allowedValues": [
+        1,
+        6
+      ]
+    },
+    {
+      "cv": 97,
+      "name": {
+        "de": "Ausgänge aus bei Vorwärtsfahrt",
+        "en": "Outputs off when running forward"
+      },
+      "help": {
+        "de": "Ausgänge aus bei Vorwärtsfahrt.",
+        "en": "Outputs off when running forward."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 98,
+      "name": {
+        "de": "Ausgänge aus bei Rückwärtsfahrt",
+        "en": "Outputs off when running reverse"
+      },
+      "help": {
+        "de": "Ausgänge aus bei Rückwärtsfahrt.",
+        "en": "Outputs off when running reverse."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 102,
+      "name": {
+        "de": "Analoge Motorstartschwelle",
+        "en": "Analog motor-start threshold"
+      },
+      "help": {
+        "de": "Analoge Motorstartschwelle.",
+        "en": "Analog motor-start threshold."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 10
+    },
+    {
+      "cv": 103,
+      "name": {
+        "de": "Analogspannung für Höchstgeschwindigkeit",
+        "en": "Analog voltage at maximum speed"
+      },
+      "help": {
+        "de": "Analogspannung für Höchstgeschwindigkeit.",
+        "en": "Analog voltage at maximum speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 130
+    },
+    {
+      "cv": 115,
+      "name": {
+        "de": "SUSI-Sendeoptionen 1",
+        "en": "SUSI transmit options 1"
+      },
+      "help": {
+        "de": "SUSI-Sendeoptionen 1.",
+        "en": "SUSI transmit options 1."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 135,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 135
+    },
+    {
+      "cv": 116,
+      "name": {
+        "de": "SUSI-Sendeoptionen 2",
+        "en": "SUSI transmit options 2"
+      },
+      "help": {
+        "de": "SUSI-Sendeoptionen 2.",
+        "en": "SUSI transmit options 2."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 120,
+      "name": {
+        "de": "SUSI-Taktparameter",
+        "en": "SUSI clock parameter"
+      },
+      "help": {
+        "de": "SUSI-Taktparameter.",
+        "en": "SUSI clock parameter."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 130,
+      "name": {
+        "de": "Kupplung: Einschaltzeit",
+        "en": "Coupler on time"
+      },
+      "help": {
+        "de": "Kupplung: Einschaltzeit.",
+        "en": "Coupler on time."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 30,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 131,
+      "name": {
+        "de": "Kupplungsfahrt: Geschwindigkeit",
+        "en": "Coupling-move speed"
+      },
+      "help": {
+        "de": "Kupplungsfahrt: Geschwindigkeit.",
+        "en": "Coupling-move speed."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 132,
+      "name": {
+        "de": "Kupplung: Andrückzeit1",
+        "en": "Coupler push time1"
+      },
+      "help": {
+        "de": "Kupplung: Andrückzeit1.",
+        "en": "Coupler push time1."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 15,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 133,
+      "name": {
+        "de": "Kupplung: Andrückzeit2",
+        "en": "Coupler push time2"
+      },
+      "help": {
+        "de": "Kupplung: Andrückzeit2.",
+        "en": "Coupler push time2."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 40,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 134,
+      "name": {
+        "de": "Kupplung: Abrückzeit",
+        "en": "Coupler pull-away time"
+      },
+      "help": {
+        "de": "Kupplung: Abrückzeit.",
+        "en": "Coupler pull-away time."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 30,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 135,
+      "name": {
+        "de": "Kupplung: Halte-PWM",
+        "en": "Coupler holding PWM"
+      },
+      "help": {
+        "de": "Kupplung: Halte-PWM.",
+        "en": "Coupler holding PWM."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 141,
+      "name": {
+        "de": "Konstanter Bremsweg",
+        "en": "Constant braking distance"
+      },
+      "help": {
+        "de": "Konstanter Bremsweg.",
+        "en": "Constant braking distance."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.7–9, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 30,
+      "unit": {
+        "de": "cm",
+        "en": "cm"
+      }
+    },
+    {
+      "cv": 267,
+      "name": {
+        "de": "Licht hinten: Effekt A",
+        "en": "Rear light: effect A"
+      },
+      "help": {
+        "de": "Parameter A dieses Ausgangs. Zweiter Parametersatz B und weitere Bankseiten werden nicht daraus abgeleitet.",
+        "en": "Parameter set A for this output. Set B and other index pages are not inferred."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10, Effekt-CV-Tabelle; CV31=18/CV32=0"
+      },
+      "indexCV31": 18,
+      "indexCV32": 0,
+      "factoryDefault": 0
+    },
+    {
+      "cv": 268,
+      "name": {
+        "de": "Licht hinten: PWM A",
+        "en": "Rear light: PWM A"
+      },
+      "help": {
+        "de": "Parameter A dieses Ausgangs. Zweiter Parametersatz B und weitere Bankseiten werden nicht daraus abgeleitet.",
+        "en": "Parameter set A for this output. Set B and other index pages are not inferred."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 64,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10, Effekt-CV-Tabelle; CV31=18/CV32=0"
+      },
+      "indexCV31": 18,
+      "indexCV32": 0,
+      "factoryDefault": 64
+    },
+    {
+      "cv": 277,
+      "name": {
+        "de": "AUX1: Effekt A",
+        "en": "AUX1: effect A"
+      },
+      "help": {
+        "de": "Parameter A dieses Ausgangs. Zweiter Parametersatz B und weitere Bankseiten werden nicht daraus abgeleitet.",
+        "en": "Parameter set A for this output. Set B and other index pages are not inferred."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10, Effekt-CV-Tabelle; CV31=18/CV32=0"
+      },
+      "indexCV31": 18,
+      "indexCV32": 0,
+      "factoryDefault": 0
+    },
+    {
+      "cv": 278,
+      "name": {
+        "de": "AUX1: PWM A",
+        "en": "AUX1: PWM A"
+      },
+      "help": {
+        "de": "Parameter A dieses Ausgangs. Zweiter Parametersatz B und weitere Bankseiten werden nicht daraus abgeleitet.",
+        "en": "Parameter set A for this output. Set B and other index pages are not inferred."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 64,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10, Effekt-CV-Tabelle; CV31=18/CV32=0"
+      },
+      "indexCV31": 18,
+      "indexCV32": 0,
+      "factoryDefault": 64
+    },
+    {
+      "cv": 287,
+      "name": {
+        "de": "AUX2: Effekt A",
+        "en": "AUX2: effect A"
+      },
+      "help": {
+        "de": "Parameter A dieses Ausgangs. Zweiter Parametersatz B und weitere Bankseiten werden nicht daraus abgeleitet.",
+        "en": "Parameter set A for this output. Set B and other index pages are not inferred."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10, Effekt-CV-Tabelle; CV31=18/CV32=0"
+      },
+      "indexCV31": 18,
+      "indexCV32": 0,
+      "factoryDefault": 0
+    },
+    {
+      "cv": 288,
+      "name": {
+        "de": "AUX2: PWM A",
+        "en": "AUX2: PWM A"
+      },
+      "help": {
+        "de": "Parameter A dieses Ausgangs. Zweiter Parametersatz B und weitere Bankseiten werden nicht daraus abgeleitet.",
+        "en": "Parameter set A for this output. Set B and other index pages are not inferred."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 64,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10, Effekt-CV-Tabelle; CV31=18/CV32=0"
+      },
+      "indexCV31": 18,
+      "indexCV32": 0,
+      "factoryDefault": 64
+    }
+  ],
+  "active": true,
+  "rules": {
+    "abc": {
+      "cv": 27,
+      "mask": 3
+    },
+    "dcAnalog": {
+      "cv": 12,
+      "mask": 1
+    }
+  }
+}

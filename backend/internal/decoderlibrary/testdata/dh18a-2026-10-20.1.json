@@ -1,0 +1,1350 @@
+{
+  "id": "dh-dh18a",
+  "name": "Doehler & Haass DH18A",
+  "nameEn": "Doehler & Haass DH18A",
+  "revision": "2026-10-20.1",
+  "protocol": "DCC",
+  "kind": "model",
+  "manufacturerId": 97,
+  "family": "DH",
+  "model": "DH18A",
+  "parentId": "dcc-basics",
+  "aliases": [
+    "DH18A",
+    "Doehler & Haass DH18A"
+  ],
+  "familyAliases": [],
+  "sources": [
+    {
+      "title": "Doehler & Haass Fahrzeug- und Funktionsdecoder",
+      "url": "https://doehler-haass.de/cms/media/pdf/DH05C_DH10C_DH16A.pdf",
+      "version": "01/2026 · Firmware 3.15",
+      "scope": "CV table pp. 65–79; identification appendix 6; model restrictions pp. 5–9"
+    },
+    {
+      "title": "Doehler & Haass Decoder-CV-Tabelle",
+      "url": "https://doehler-haass.de/cms/pages/haeufige-fragen/decoder-cv-tabelle.php",
+      "version": "Firmware 3.15, geprüft 20.10.2026",
+      "scope": "Auswahl der für DH18A dokumentierten Register; Hardwareeinschränkungen und fehlende Ausgänge bleiben berücksichtigt.",
+      "retrievedAt": "2026-10-20",
+      "sha256": "f3443560778a2e43c036a071ad81f1d09fcdd5bf2aa3cb2e0147e9e481d855bb"
+    }
+  ],
+  "definitions": [
+    {
+      "cv": 1,
+      "name": {
+        "de": "Kurze DCC-Adresse",
+        "en": "Short DCC address"
+      },
+      "help": {
+        "de": "Kurze DCC-Adresse.",
+        "en": "Short DCC address."
+      },
+      "topic": "address",
+      "minimum": 1,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 2,
+      "name": {
+        "de": "Anfahr-EMK-Offset",
+        "en": "Starting back-EMF offset"
+      },
+      "help": {
+        "de": "Anfahr-EMK-Offset.",
+        "en": "Starting back-EMF offset."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 15,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 3,
+      "name": {
+        "de": "Beschleunigungszeit",
+        "en": "Acceleration time"
+      },
+      "help": {
+        "de": "Beschleunigungszeit.",
+        "en": "Acceleration time."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 3,
+      "unit": {
+        "de": "s",
+        "en": "s"
+      }
+    },
+    {
+      "cv": 4,
+      "name": {
+        "de": "Bremszeit",
+        "en": "Deceleration time"
+      },
+      "help": {
+        "de": "Bremszeit.",
+        "en": "Deceleration time."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 3,
+      "unit": {
+        "de": "s",
+        "en": "s"
+      }
+    },
+    {
+      "cv": 5,
+      "name": {
+        "de": "Motor-Regelungsreferenz",
+        "en": "Motor regulation reference"
+      },
+      "help": {
+        "de": "Motor-Regelungsreferenz.",
+        "en": "Motor regulation reference."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 92
+    },
+    {
+      "cv": 7,
+      "name": {
+        "de": "Versionskennung",
+        "en": "Version identifier"
+      },
+      "help": {
+        "de": "Kennzahl der Firmware; Zuordnung anhand der Versionstabelle des Herstellers, keine direkte Versionsnummer.",
+        "en": "Firmware identifier; consult the manufacturer version table rather than formatting it as a version."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 9,
+      "name": {
+        "de": "Motorfrequenz",
+        "en": "Motor frequency"
+      },
+      "help": {
+        "de": "Bit 0 wählt 32/16 kHz; Bit 1 aktiviert niederfrequenten Betrieb. Weitere Bits gemäß Handbuch.",
+        "en": "Bit 0 selects 32/16 kHz; bit 1 selects low-frequency operation. See manual for other bits."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 15
+    },
+    {
+      "cv": 12,
+      "name": {
+        "de": "Motorola-Einstellungen",
+        "en": "Motorola settings"
+      },
+      "help": {
+        "de": "Motorola-Einstellungen.",
+        "en": "Motorola settings."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 15,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 27,
+      "name": {
+        "de": "Bremserkennung",
+        "en": "Brake detection"
+      },
+      "help": {
+        "de": "Bits 0/1: DCC-Asymmetrie normal/invers; Bits 4/5: Gleichspannung; Bits 6/7: SX-Bremsdiode.",
+        "en": "Bits 0/1: normal/inverse DCC asymmetry; bits 4/5: DC; bits 6/7: SX brake diode."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 243
+    },
+    {
+      "cv": 33,
+      "name": {
+        "de": "Funktionszuordnung F0 vorwärts",
+        "en": "Function mapping F0 forward"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 34,
+      "name": {
+        "de": "Funktionszuordnung F0 rückwärts",
+        "en": "Function mapping F0 reverse"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 35,
+      "name": {
+        "de": "Funktionszuordnung F1",
+        "en": "Function mapping F1"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 4
+    },
+    {
+      "cv": 36,
+      "name": {
+        "de": "Funktionszuordnung F2",
+        "en": "Function mapping F2"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 8
+    },
+    {
+      "cv": 37,
+      "name": {
+        "de": "Funktionszuordnung F3",
+        "en": "Function mapping F3"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 16
+    },
+    {
+      "cv": 38,
+      "name": {
+        "de": "Funktionszuordnung F4",
+        "en": "Function mapping F4"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 128
+    },
+    {
+      "cv": 39,
+      "name": {
+        "de": "Funktionszuordnung F5",
+        "en": "Function mapping F5"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 32
+    },
+    {
+      "cv": 40,
+      "name": {
+        "de": "Funktionszuordnung F6",
+        "en": "Function mapping F6"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 41,
+      "name": {
+        "de": "Funktionszuordnung F7",
+        "en": "Function mapping F7"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 42,
+      "name": {
+        "de": "Funktionszuordnung F8",
+        "en": "Function mapping F8"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 64
+    },
+    {
+      "cv": 43,
+      "name": {
+        "de": "Funktionszuordnung F9",
+        "en": "Function mapping F9"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 44,
+      "name": {
+        "de": "Funktionszuordnung F10",
+        "en": "Function mapping F10"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 45,
+      "name": {
+        "de": "Funktionszuordnung F11",
+        "en": "Function mapping F11"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 46,
+      "name": {
+        "de": "Funktionszuordnung F12",
+        "en": "Function mapping F12"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 47,
+      "name": {
+        "de": "Funktionszuordnung F1 rückwärts",
+        "en": "Function mapping F1 reverse"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 4
+    },
+    {
+      "cv": 48,
+      "name": {
+        "de": "Krümmung der Motorkennlinie",
+        "en": "Motor curve shape"
+      },
+      "help": {
+        "de": "Krümmung der Motorkennlinie.",
+        "en": "Motor curve shape."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 7,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 5
+    },
+    {
+      "cv": 49,
+      "name": {
+        "de": "Motorimpulsbreite",
+        "en": "Motor pulse width"
+      },
+      "help": {
+        "de": "Motorimpulsbreite.",
+        "en": "Motor pulse width."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 3,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 50,
+      "name": {
+        "de": "Motor-Regelvariante",
+        "en": "Motor control preset"
+      },
+      "help": {
+        "de": "Motor-Regelvariante.",
+        "en": "Motor control preset."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 3,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 51,
+      "name": {
+        "de": "Anschlussvertauschungen",
+        "en": "Connection swaps"
+      },
+      "help": {
+        "de": "Bits vertauschen die logischen Zuordnungen, ohne die Verdrahtung zu ändern. Kein Lenz-ABC-Register.",
+        "en": "Bits swap logical assignments without rewiring. This is not the Lenz ABC register."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 7,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Motoranschlüsse vertauschen",
+            "en": "Swap motor connections"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Lichtanschlüsse vertauschen",
+            "en": "Swap light connections"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "Gleisanschlüsse vertauschen",
+            "en": "Swap track connections"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 52,
+      "name": {
+        "de": "Dimmung Licht vorn/hinten",
+        "en": "Front/rear light dimming"
+      },
+      "help": {
+        "de": "Dimmung Licht vorn/hinten.",
+        "en": "Front/rear light dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 31
+    },
+    {
+      "cv": 53,
+      "name": {
+        "de": "Dimmung Abblendlicht",
+        "en": "Dimmed-light level"
+      },
+      "help": {
+        "de": "Dimmung Abblendlicht.",
+        "en": "Dimmed-light level."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 15
+    },
+    {
+      "cv": 54,
+      "name": {
+        "de": "Dimmung AUX1",
+        "en": "AUX1 dimming"
+      },
+      "help": {
+        "de": "Dimmung AUX1.",
+        "en": "AUX1 dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 31
+    },
+    {
+      "cv": 55,
+      "name": {
+        "de": "Dimmung AUX2",
+        "en": "AUX2 dimming"
+      },
+      "help": {
+        "de": "Dimmung AUX2.",
+        "en": "AUX2 dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 31
+    },
+    {
+      "cv": 56,
+      "name": {
+        "de": "Motorregler: P-Anteil",
+        "en": "Motor control: P component"
+      },
+      "help": {
+        "de": "Nur bei CV50=0 wirksam.",
+        "en": "Effective only when CV50=0."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 7,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 57,
+      "name": {
+        "de": "Motorregler: I-Anteil",
+        "en": "Motor control: I component"
+      },
+      "help": {
+        "de": "Nur bei CV50=0 wirksam.",
+        "en": "Effective only when CV50=0."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 3,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 58,
+      "name": {
+        "de": "Motorregler: Messzeit",
+        "en": "Motor control: measurement interval"
+      },
+      "help": {
+        "de": "Nur bei CV50=0 wirksam.",
+        "en": "Effective only when CV50=0."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 3,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 59,
+      "name": {
+        "de": "Motorregler: Impulsbreite",
+        "en": "Motor control: pulse width"
+      },
+      "help": {
+        "de": "Nur bei CV50=0 wirksam.",
+        "en": "Effective only when CV50=0."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 7,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 61,
+      "name": {
+        "de": "Rangiergang: Regelungsreferenz",
+        "en": "Shunting: regulation reference"
+      },
+      "help": {
+        "de": "Rangiergang: Regelungsreferenz.",
+        "en": "Shunting: regulation reference."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 63
+    },
+    {
+      "cv": 62,
+      "name": {
+        "de": "Rangiergang: Verzögerungszeit",
+        "en": "Shunting: inertia time"
+      },
+      "help": {
+        "de": "Rangiergang: Verzögerungszeit.",
+        "en": "Shunting: inertia time."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 1,
+      "unit": {
+        "de": "s",
+        "en": "s"
+      }
+    },
+    {
+      "cv": 63,
+      "name": {
+        "de": "Anfahrwartezeit / Pendelaufenthalt",
+        "en": "Starting wait / shuttle stop"
+      },
+      "help": {
+        "de": "Die Bedeutung hängt vom Pendelbetrieb in CV60 ab.",
+        "en": "The meaning depends on shuttle settings in CV60."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 64,
+      "name": {
+        "de": "Funktionszuordnung F2 rückwärts",
+        "en": "Function mapping F2 reverse"
+      },
+      "help": {
+        "de": "Bitmaske nach D&H-Anhang 1. CV35 setzt auch CV47, CV36 auch CV64; getrennte Rückwärtswerte anschließend setzen. Ein Ausgangsbit bestätigt keine angeschlossene Last.",
+        "en": "Bit mask defined in D&H appendix 1. CV35 also sets CV47; CV36 also sets CV64. Separate reverse values follow afterwards. A bit does not establish a connected load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile, Anhang 1"
+      },
+      "factoryDefault": 8
+    },
+    {
+      "cv": 65,
+      "name": {
+        "de": "Fahrstufe im Bremsabschnitt",
+        "en": "Brake-section speed step"
+      },
+      "help": {
+        "de": "Abhängig von der Bremsrampe in CV60.",
+        "en": "Depends on the brake-ramp setting in CV60."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 12
+    },
+    {
+      "cv": 66,
+      "name": {
+        "de": "Geschwindigkeitstrimm vorwärts",
+        "en": "Forward speed trim"
+      },
+      "help": {
+        "de": "Geschwindigkeitstrimm vorwärts.",
+        "en": "Forward speed trim."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 95,
+      "name": {
+        "de": "Geschwindigkeitstrimm rückwärts",
+        "en": "Reverse speed trim"
+      },
+      "help": {
+        "de": "Geschwindigkeitstrimm rückwärts.",
+        "en": "Reverse speed trim."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 105,
+      "name": {
+        "de": "Benutzerkennung 1",
+        "en": "User identifier 1"
+      },
+      "help": {
+        "de": "Benutzerkennung 1.",
+        "en": "User identifier 1."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 106,
+      "name": {
+        "de": "Benutzerkennung 2",
+        "en": "User identifier 2"
+      },
+      "help": {
+        "de": "Benutzerkennung 2.",
+        "en": "User identifier 2."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 112,
+      "name": {
+        "de": "Analogbetrieb: Geschwindigkeitsminderung",
+        "en": "Analog speed reduction"
+      },
+      "help": {
+        "de": "Analogbetrieb: Geschwindigkeitsminderung.",
+        "en": "Analog speed reduction."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 15
+    },
+    {
+      "cv": 117,
+      "name": {
+        "de": "AUX1 Abschalttimer",
+        "en": "AUX1 off timer"
+      },
+      "help": {
+        "de": "AUX1 Abschalttimer.",
+        "en": "AUX1 off timer."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 118,
+      "name": {
+        "de": "AUX2 Abschalttimer",
+        "en": "AUX2 off timer"
+      },
+      "help": {
+        "de": "AUX2 Abschalttimer.",
+        "en": "AUX2 off timer."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 123,
+      "name": {
+        "de": "ABC-Langsamfahrt",
+        "en": "ABC slow speed"
+      },
+      "help": {
+        "de": "ABC-Langsamfahrt.",
+        "en": "ABC slow speed."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 63
+    },
+    {
+      "cv": 134,
+      "name": {
+        "de": "ABC-Asymmetrieschwelle",
+        "en": "ABC asymmetry threshold"
+      },
+      "help": {
+        "de": "ABC-Asymmetrieschwelle.",
+        "en": "ABC asymmetry threshold."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 15,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 6
+    },
+    {
+      "cv": 135,
+      "name": {
+        "de": "Geschwindigkeitsrückmeldung: Multiplikator",
+        "en": "Speed feedback multiplier"
+      },
+      "help": {
+        "de": "Geschwindigkeitsrückmeldung: Multiplikator.",
+        "en": "Speed feedback multiplier."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 136,
+      "name": {
+        "de": "Geschwindigkeitsrückmeldung: Teiler",
+        "en": "Speed feedback divisor"
+      },
+      "help": {
+        "de": "Geschwindigkeitsrückmeldung: Teiler.",
+        "en": "Speed feedback divisor."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 6,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 138,
+      "name": {
+        "de": "Entkuppeln: Andrückzeit",
+        "en": "Uncoupling: push time"
+      },
+      "help": {
+        "de": "Entkuppeln: Andrückzeit.",
+        "en": "Uncoupling: push time."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 139,
+      "name": {
+        "de": "Entkuppeln: Wartezeit",
+        "en": "Uncoupling: waiting time"
+      },
+      "help": {
+        "de": "Entkuppeln: Wartezeit.",
+        "en": "Uncoupling: waiting time."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 140,
+      "name": {
+        "de": "Entkuppeln: Abrückzeit",
+        "en": "Uncoupling: pull-away time"
+      },
+      "help": {
+        "de": "Entkuppeln: Abrückzeit.",
+        "en": "Uncoupling: pull-away time."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 141,
+      "name": {
+        "de": "Entkuppeln: Andrückfahrstufe",
+        "en": "Uncoupling: push speed step"
+      },
+      "help": {
+        "de": "Entkuppeln: Andrückfahrstufe.",
+        "en": "Uncoupling: push speed step."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 12
+    },
+    {
+      "cv": 142,
+      "name": {
+        "de": "Entkuppeln: Abrückfahrstufe",
+        "en": "Uncoupling: pull-away speed step"
+      },
+      "help": {
+        "de": "Entkuppeln: Abrückfahrstufe.",
+        "en": "Uncoupling: pull-away speed step."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 12
+    },
+    {
+      "cv": 154,
+      "name": {
+        "de": "Bremsrampe",
+        "en": "Braking ramp"
+      },
+      "help": {
+        "de": "0: aus. Herstellerparameter für die Bremsrampe aus höchster Fahrstufe; CV48 = 0 wird für konstanten Bremsweg empfohlen.",
+        "en": "0: off. Manufacturer ramp parameter at maximum speed; CV48 = 0 is recommended for constant braking distance."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 155,
+      "name": {
+        "de": "Bremsrampe rückwärts",
+        "en": "Reverse braking ramp"
+      },
+      "help": {
+        "de": "0 übernimmt den Wert aus CV154. Ein eigener Rückwärtswert ist optional.",
+        "en": "0 reuses CV154. A separate reverse setting is optional."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 260,
+      "name": {
+        "de": "Erweiterte Herstellerkennung",
+        "en": "Extended manufacturer ID"
+      },
+      "help": {
+        "de": "Nur lesen: 97 steht für Doehler & Haass.",
+        "en": "Read only: 97 identifies Doehler & Haass."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 261,
+      "name": {
+        "de": "Decoderkennzeichen",
+        "en": "Decoder type identifier"
+      },
+      "help": {
+        "de": "Nur lesen: 180 steht für DH18A. Nicht mit einer Indexseite gleichsetzen.",
+        "en": "Read only: 180 identifies DH18A. This is not an index-page selector."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 262,
+      "name": {
+        "de": "Versionskennung, erweitert",
+        "en": "Extended version identifier"
+      },
+      "help": {
+        "de": "Nur auslesen; vollständige Zuordnung nach Herstellerdokumentation.",
+        "en": "Read only; interpret using the manufacturer documentation."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 263,
+      "name": {
+        "de": "Versionsdatum",
+        "en": "Version date"
+      },
+      "help": {
+        "de": "Herstellerkodierung des Datums; nicht als allgemeiner Dezimalwert einer Jahreszahl auswerten.",
+        "en": "Manufacturer-encoded date; not a plain decimal year."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 264,
+      "name": {
+        "de": "Revisionskennung",
+        "en": "Revision identifier"
+      },
+      "help": {
+        "de": "Nur auslesen; ergänzt Versions- und Typkennungen.",
+        "en": "Read only; complements version and type identifiers."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 265,
+      "name": {
+        "de": "Revisionsdatum",
+        "en": "Revision date"
+      },
+      "help": {
+        "de": "Herstellerspezifische Datumskennung.",
+        "en": "Manufacturer-specific date identifier."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    }
+  ],
+  "active": true,
+  "rules": {
+    "abc": {
+      "cv": 27,
+      "mask": 3
+    }
+  },
+  "firmwareMin": "3.15"
+}

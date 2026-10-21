@@ -1,0 +1,40 @@
+[
+  {
+    "id": "cv-gap-roco-motor",
+    "revision": "2026-10-21.3",
+    "modelIds": [
+      "roco-motor-10734-h0e-n-dcc-decoder-mit-geraden-kontaktstiften",
+      "roco-motor-685404-6-poliger-decoder-mit-stecker-nem-651",
+      "roco-motor-685504-6-poliger-decoder-mit-stecker-nem-651",
+      "roco-motor-686101-6-poliger-decoder-gerade-stifte-nem-651",
+      "roco-motor-686201-8-poliger-decoder-nem-652"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: roco-motor",
+      "en": "CV documentation gap: roco-motor"
+    },
+    "note": {
+      "de": "Nachprüfung 21.10.2026: Für 10734 keine passende Tabelle erfasst. Die Produktseiten 685404/685504/686101/686201 verweisen allgemein auf eine ZIMO-Anleitung; ohne eindeutige Decoder-/Firmwarezuordnung werden daraus keine vollständigen OEM-CV-Belegungen abgeleitet. Gleichartige Stecker und Motorstromangaben reichen nicht aus.",
+      "en": "Rechecked 21 October 2026: no matching table was captured for 10734. Product pages for 685404/685504/686101/686201 link a general ZIMO manual, but no full OEM mappings are inferred without explicit decoder/firmware applicability. Similar plugs and current ratings are insufficient."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "10734 · H0e/N-DCC-Decoder mit geraden Kontaktstiften / Herstellerarchiv",
+        "url": "https://www.roco.cc/rde/produkte/steuerung/decoder/10734-h0en-dcc-decoder-mit-geraden-kontaktstiften.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "10734 · H0e/N-DCC-Decoder mit geraden Kontaktstiften / Herstellerarchiv",
+        "url": "https://www.roco.cc/rde/produkte/steuerung/decoder.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  }
+]

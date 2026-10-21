@@ -1,0 +1,4402 @@
+{
+  "id": "esu-lokpilot-5-micro-dcc",
+  "name": "ESU LokPilot 5 micro DCC",
+  "nameEn": "ESU LokPilot 5 micro DCC",
+  "revision": "2026-10-20.1",
+  "protocol": "DCC",
+  "kind": "model",
+  "manufacturerId": 151,
+  "family": "LokPilot 5",
+  "model": "LokPilot 5 micro DCC",
+  "parentId": "dcc-basics",
+  "firmwareMin": "5.3.128",
+  "aliases": [
+    "LokPilot 5 micro DCC",
+    "ESU LokPilot 5 micro DCC"
+  ],
+  "familyAliases": [
+    "LokPilot 5",
+    "LokPilot 5 DCC",
+    "ESU LokPilot 5",
+    "ESU LokPilot 5 DCC"
+  ],
+  "sources": [
+    {
+      "title": "ESU LokPilot 5 Family",
+      "url": "https://www.esu.eu/en/downloads/instruction-manuals/digital-decoders/?tx_esudownloads_pi1%5BdownloadItem%5D=0318b68e0cb850d9101947622d1041ea",
+      "version": "8th edition, January 2023",
+      "scope": "From firmware 5.3.128; common LokPilot 5 family rules"
+    },
+    {
+      "title": "ESU LokPilot 5 Familie, deutsche Anleitung",
+      "url": "https://www.esu.eu/download/betriebsanleitungen/digitaldecoder/?tx_esudownloads_pi1%5BdownloadItem%5D=803bc0046a0244b6416c82c6abfd385e",
+      "version": "8. Auflage, Januar 2023",
+      "scope": "Ab Firmware 5.3.128; CV-Tabelle S.80–89 und Kapitelverweise. Modellabhängige und widersprüchliche Angaben bleiben abgegrenzt.",
+      "retrievedAt": "2026-10-20",
+      "sha256": "9884a0a07adf4ac1843154d6898bb9a7a2f6a16e465502541c1aefade5e1ad2a"
+    },
+    {
+      "title": "ESU LokProgrammer software release notes",
+      "url": "https://www.esu.eu/en/downloads/software/lokprogrammer/",
+      "version": "5.1.4 / 5.1.7 / 5.2.4",
+      "scope": "Documented firmware additions: 5.4.139 (CV114/115/131), 5.6.142 (CV122 bit 4), 5.8.156 (CV199)."
+    },
+    {
+      "title": "ESU LokProgrammer 5.2.18, deutsche Versionshinweise",
+      "url": "https://www.esu.eu/download/software/lokprogrammer/",
+      "version": "5.2.18 / decoder firmware 5.14.183",
+      "scope": "CV11: DCC packet timeout introduced for LokPilot 5 from firmware 5.14.183; no complete value scale published. The English download page mistypes the firmware as 5.4.183."
+    },
+    {
+      "title": "ESU 41002 Digitalkupplung, Einbau- und Betriebsanleitung",
+      "url": "https://esu.eu/download/betriebsanleitungen/zubehoer/?tx_esudownloads_pi1%5BdownloadItem%5D=db7553a3b89dceb341d13f510ce0bb5e",
+      "version": "1. Auflage, August 2023",
+      "scope": "Section 7.4, page 4: CV245 waiting time between push and pull-away, explicitly covering LokPilot 5 and LokSound 5."
+    }
+  ],
+  "definitions": [
+    {
+      "cv": 1,
+      "name": {
+        "de": "Kurze DCC-Adresse",
+        "en": "Short DCC address"
+      },
+      "help": {
+        "de": "Kurze DCC-Adresse.",
+        "en": "Short DCC address."
+      },
+      "topic": "address",
+      "minimum": 1,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.80, CV-Tabelle"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 2,
+      "name": {
+        "de": "Anfahrspannung",
+        "en": "Starting voltage"
+      },
+      "help": {
+        "de": "Anfahrspannung.",
+        "en": "Starting voltage."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.80, CV-Tabelle"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 3,
+      "name": {
+        "de": "Beschleunigung",
+        "en": "Acceleration"
+      },
+      "help": {
+        "de": "Zeitfaktor ist modellabhängig. Die Tabelle nennt eine abweichende Einheit ausdrücklich für LokPilot 5 DCC; keine ungeprüfte Umrechnung für micro DCC.",
+        "en": "The time scale depends on the model. The table explicitly singles out LokPilot 5 DCC; no unverified conversion is applied to micro DCC."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.80, CV-Tabelle"
+      }
+    },
+    {
+      "cv": 4,
+      "name": {
+        "de": "Bremsverzögerung",
+        "en": "Deceleration"
+      },
+      "help": {
+        "de": "Zeitfaktor ist modellabhängig. Die Tabelle nennt eine abweichende Einheit ausdrücklich für LokPilot 5 DCC; keine ungeprüfte Umrechnung für micro DCC.",
+        "en": "The time scale depends on the model. The table explicitly singles out LokPilot 5 DCC; no unverified conversion is applied to micro DCC."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.80, CV-Tabelle"
+      }
+    },
+    {
+      "cv": 5,
+      "name": {
+        "de": "Höchstgeschwindigkeit",
+        "en": "Maximum speed"
+      },
+      "help": {
+        "de": "Höchstgeschwindigkeit.",
+        "en": "Maximum speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.80, CV-Tabelle"
+      },
+      "factoryDefault": 255
+    },
+    {
+      "cv": 7,
+      "name": {
+        "de": "Versionskennung",
+        "en": "Firmware identifier"
+      },
+      "help": {
+        "de": "Versionskennung.",
+        "en": "Firmware identifier."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.80, CV-Tabelle"
+      }
+    },
+    {
+      "cv": 8,
+      "name": {
+        "de": "Herstellerkennung / Reset",
+        "en": "Manufacturer identifier / reset"
+      },
+      "help": {
+        "de": "Gelesen: ESU-Kennung 151. Schreiben von 8 löst einen Werksreset aus; RailKeeper führt keinen Schreibvorgang aus.",
+        "en": "Read: ESU identifier 151. Writing 8 requests a factory reset; RailKeeper does not write it."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "command",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.80, CV-Tabelle"
+      },
+      "factoryDefault": 151
+    },
+    {
+      "cv": 9,
+      "name": {
+        "de": "Motor-PWM-Frequenz",
+        "en": "Motor PWM frequency"
+      },
+      "help": {
+        "de": "Wert × 1000 Hz; beschreibt die eingestellte PWM-Frequenz, keine Messung. Handbuch S. 80.",
+        "en": "Value × 1000 Hz: configured PWM frequency rather than a measurement. Manual CV table."
+      },
+      "topic": "motor",
+      "minimum": 10,
+      "maximum": 50,
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.80, CV-Tabelle"
+      },
+      "factoryDefault": 40,
+      "access": "read-write"
+    },
+    {
+      "cv": 11,
+      "name": {
+        "de": "Wartezeit bei fehlendem DCC-Datenempfang",
+        "en": "DCC packet timeout"
+      },
+      "help": {
+        "de": "Ab Firmware 5.14.183: Wartezeit ohne DCC-Datenempfang bis zur Reaktion nach den Analogbetriebseinstellungen. Das Verhalten hängt von Analogfreigabe und Timeout-Einstellung ab. Die Quelle nennt keine vollständige Werteskala; 0–255 ist der Rohbytebereich, keine Zeitangabe in Sekunden. Quelle: LokProgrammer 5.2.18, deutsche Versionshinweise.",
+        "en": "From firmware 5.14.183: Time without DCC packets before reacting according to the analog-mode settings. Behavior depends on analog enablement and timeout configuration. The source gives no complete value scale; 0–255 is the raw-byte range, not seconds. Source: LokProgrammer 5.2.18 German release notes."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "firmwareMin": "5.14.183"
+    },
+    {
+      "cv": 13,
+      "name": {
+        "de": "F1–F8 im Analogbetrieb",
+        "en": "F1–F8 in analog operation"
+      },
+      "help": {
+        "de": "Simuliert die gewählten Funktionstasten im Analogbetrieb. Die tatsächlichen Ausgänge hängen vom Mapping ab (Kap. 12.7).",
+        "en": "Simulates selected function keys in analog operation; actual outputs depend on mapping (section 12.7)."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.80, CV-Tabelle"
+      },
+      "factoryDefault": 1,
+      "access": "read-write"
+    },
+    {
+      "cv": 14,
+      "name": {
+        "de": "F0 und weitere Analogfunktionen",
+        "en": "F0 and additional analog functions"
+      },
+      "help": {
+        "de": "Kap. 12.7 nennt F0 sowie F9–F15. Die Bit-Tabelle und der Wertebereich in der CV-Übersicht widersprechen sich; daher keine eindeutige Bit-Auswertung. Nicht mit CV22 gleichsetzen.",
+        "en": "Section 12.7 lists F0 and F9–F15. Its bit table conflicts with the CV overview range, so no unambiguous bit decoding is applied. Do not equate this register with CV22."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.80, CV-Tabelle"
+      },
+      "access": "read-write"
+    },
+    {
+      "cv": 15,
+      "name": {
+        "de": "Decoderschloss: Schlüssel",
+        "en": "Decoder lock: key"
+      },
+      "help": {
+        "de": "Decoderschloss: Schlüssel.",
+        "en": "Decoder lock: key."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.80, CV-Tabelle"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 16,
+      "name": {
+        "de": "Decoderschloss: Kennung",
+        "en": "Decoder lock: identifier"
+      },
+      "help": {
+        "de": "Decoderschloss: Kennung.",
+        "en": "Decoder lock: identifier."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.80, CV-Tabelle"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 23,
+      "name": {
+        "de": "Beschleunigungsanpassung",
+        "en": "Acceleration adjustment"
+      },
+      "help": {
+        "de": "Bits 0–6: Betrag zur Anpassung von CV3; Bit 7 bestimmt das Vorzeichen (gesetzt: abziehen). Kein eigener Bremsweg.",
+        "en": "Bits 0–6 hold the adjustment magnitude for CV3; bit 7 selects subtraction when set. This is not a braking-distance setting."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 7,
+          "name": {
+            "de": "Anpassung abziehen",
+            "en": "Subtract adjustment"
+          },
+          "off": {
+            "de": "Addieren",
+            "en": "Add"
+          },
+          "on": {
+            "de": "Abziehen",
+            "en": "Subtract"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 24,
+      "name": {
+        "de": "Bremszeit-Anpassung",
+        "en": "Deceleration adjustment"
+      },
+      "help": {
+        "de": "Bits 0–6: Betrag zur Anpassung von CV4; Bit 7 bestimmt das Vorzeichen (gesetzt: abziehen). Kein eigener Bremsweg.",
+        "en": "Bits 0–6 hold the adjustment magnitude for CV4; bit 7 selects subtraction when set. This is not a braking-distance setting."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 7,
+          "name": {
+            "de": "Anpassung abziehen",
+            "en": "Subtract adjustment"
+          },
+          "off": {
+            "de": "Addieren",
+            "en": "Add"
+          },
+          "on": {
+            "de": "Abziehen",
+            "en": "Subtract"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 27,
+      "name": {
+        "de": "Bremsverfahren",
+        "en": "Braking methods"
+      },
+      "help": {
+        "de": "ABC: Bits 0/1. Weitere Bits wählen andere Bremsverfahren; sie aktivieren ABC nicht.",
+        "en": "ABC: bits 0/1. Other bits select different braking methods and do not enable ABC."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "ABC, rechte Schiene höher",
+            "en": "ABC, right rail higher"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "ABC, linke Schiene höher",
+            "en": "ABC, left rail higher"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "ZIMO HLU",
+            "en": "ZIMO HLU"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "DC-Bremsen, Polarität entgegen Fahrtrichtung",
+            "en": "DC braking, opposite polarity"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "DC-Bremsen, Polarität wie Fahrtrichtung",
+            "en": "DC braking, same polarity"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "SX-Bremsdiode, Gegenrichtung",
+            "en": "SX brake diode, opposite direction"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "SX-Bremsdiode, Fahrtrichtung",
+            "en": "SX brake diode, same direction"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Konstanter Bremsweg bei Fahrstufe 0",
+            "en": "Constant braking distance at speed step 0"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.81, CV-Tabelle"
+      },
+      "factoryDefault": 28,
+      "access": "read-write"
+    },
+    {
+      "cv": 28,
+      "name": {
+        "de": "RailCom-Konfiguration",
+        "en": "RailCom configuration"
+      },
+      "help": {
+        "de": "Kanal 1, Kanal 2 und RailComPlus sind getrennte Freigaben. CV29 muss Rückmeldung ebenfalls erlauben.",
+        "en": "Channel 1, channel 2 and RailComPlus have separate permissions. CV29 must also enable feedback."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Kanal 1: Adressmeldung",
+            "en": "Channel 1: address broadcast"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Kanal 2: Daten",
+            "en": "Channel 2: data"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "RailComPlus-Anmeldung",
+            "en": "RailComPlus registration"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.81, CV-Tabelle"
+      },
+      "factoryDefault": 131,
+      "access": "read-write"
+    },
+    {
+      "cv": 47,
+      "name": {
+        "de": "Protokollregister, DCC-Variante",
+        "en": "Protocol register, DCC variant"
+      },
+      "help": {
+        "de": "LokPilot 5 micro DCC unterstützt unabhängig vom gespeicherten Registerwert ausschließlich DCC. Andere Bits belegen keine Multiprotokoll-Fähigkeit.",
+        "en": "LokPilot 5 micro DCC supports only DCC regardless of the stored register value. Other bits do not establish multiprotocol support."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 49,
+      "name": {
+        "de": "Erweiterte Motoreinstellungen",
+        "en": "Extended motor settings"
+      },
+      "help": {
+        "de": "Bit 0 aktiviert die Lastregelung, Bit 4 die DCC-Fahrstufenerkennung, Bit 5 die LGB-Impulskettensteuerung. Aus den Motorola-Folgeadressbits wird bei diesem DCC-Modell keine Fähigkeit abgeleitet (deutsches Handbuch S. 83).",
+        "en": "Bit 0 enables load control, bit 4 DCC speed-step detection and bit 5 LGB pulse-chain control. Motorola address bits do not establish capabilities on this DCC model (German manual p. 83)."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Lastregelung",
+            "en": "Load control"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "DCC-Fahrstufenerkennung",
+            "en": "DCC speed-step detection"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "LGB-Impulskettensteuerung",
+            "en": "LGB pulse-chain control"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 50,
+      "name": {
+        "de": "DC-Analogbetrieb ESU",
+        "en": "ESU DC analog operation"
+      },
+      "help": {
+        "de": "Bit 1 erlaubt DC-Analogbetrieb; zusätzlich ist die Freigabe in CV29 erforderlich. Die reine DCC-Variante unterstützt kein AC-Analog.",
+        "en": "Bit 1 enables DC analog operation together with CV29. The DCC-only variant does not support AC analog."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 1,
+          "name": {
+            "de": "DC-Analogbetrieb",
+            "en": "DC analog operation"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 51,
+      "name": {
+        "de": "Grenze für K slow",
+        "en": "K slow cutoff"
+      },
+      "help": {
+        "de": "Interne Fahrstufe, bis zu der der langsame K-Regelparameter gilt.",
+        "en": "Internal speed step up to which the low-speed K parameter applies."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 52,
+      "name": {
+        "de": "Lastregelung K slow",
+        "en": "Low-speed load control K"
+      },
+      "help": {
+        "de": "Proportionalanteil der Motorregelung bei niedriger Geschwindigkeit.",
+        "en": "Proportional motor-control parameter at low speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 53,
+      "name": {
+        "de": "Motor-Referenzspannung",
+        "en": "Motor reference voltage"
+      },
+      "help": {
+        "de": "Referenz der Gegen-EMK-Regelung; keine direkt gemessene Motorspannung.",
+        "en": "Back-EMF control reference, not a measured motor voltage."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 54,
+      "name": {
+        "de": "Lastregelung K",
+        "en": "Load control K"
+      },
+      "help": {
+        "de": "Proportionalparameter der Motorregelung.",
+        "en": "Proportional motor-control parameter."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 55,
+      "name": {
+        "de": "Lastregelung I",
+        "en": "Load control I"
+      },
+      "help": {
+        "de": "Integralparameter der Motorregelung.",
+        "en": "Integral motor-control parameter."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 56,
+      "name": {
+        "de": "Lastregelung bei Minimalgeschwindigkeit",
+        "en": "Load control at minimum speed"
+      },
+      "help": {
+        "de": "Stärke der Gegen-EMK-Regelung an der kleinsten Fahrstufe; kein direkt gemessener Prozentwert.",
+        "en": "Back-EMF control strength at the lowest speed step, not a measured percentage."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 255
+    },
+    {
+      "cv": 66,
+      "name": {
+        "de": "Vorwärts-Trimm",
+        "en": "Forward trim"
+      },
+      "help": {
+        "de": "0 deaktiviert den Trimm; sonst ist Wert / 128 der Multiplikator für die Motorspannung. Kein gemessener Geschwindigkeitswert.",
+        "en": "0 disables trimming; otherwise value / 128 scales motor voltage. This is not a measured speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 95,
+      "name": {
+        "de": "Rückwärts-Trimm",
+        "en": "Reverse trim"
+      },
+      "help": {
+        "de": "0 deaktiviert den Trimm; sonst ist Wert / 128 der Multiplikator für die Motorspannung. Kein gemessener Geschwindigkeitswert.",
+        "en": "0 disables trimming; otherwise value / 128 scales motor voltage. This is not a measured speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 101,
+      "name": {
+        "de": "Geschwindigkeit im Rangiergang",
+        "en": "Shunting-speed trim"
+      },
+      "help": {
+        "de": "Wert / 128 skaliert die Motorspannung bei aktivem Rangiergang. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Value / 128 scales motor voltage while shunting mode is active. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 128
+    },
+    {
+      "cv": 102,
+      "name": {
+        "de": "Verzögerung beim Verlassen der Bremsstrecke",
+        "en": "Brake-section release delay"
+      },
+      "help": {
+        "de": "Wartezeit ohne erkanntes Bremssignal vor dem Wiederanfahren: Wert × 16 ms. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Delay without a detected braking signal before release: value × 16 ms. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 103,
+      "name": {
+        "de": "Faktor für alternative Last",
+        "en": "Alternative-load factor"
+      },
+      "help": {
+        "de": "Wert / 128 skaliert CV3 und CV4 bei aktiver Logikfunktion „Alternative Last“. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Value / 128 scales CV3 and CV4 while the Alternative Load logic function is active. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 104,
+      "name": {
+        "de": "Faktor für schwere Last",
+        "en": "Heavy-load factor"
+      },
+      "help": {
+        "de": "Wert / 128 skaliert CV3 und CV4 bei aktiver Logikfunktion „Schwere Last“. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Value / 128 scales CV3 and CV4 while the Heavy Load logic function is active. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 105,
+      "name": {
+        "de": "Eigene Kennung 1",
+        "en": "User identifier 1"
+      },
+      "help": {
+        "de": "Frei nutzbarer Anwenderwert; der Decoder wertet ihn nicht für das Fahrverhalten aus. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "User-defined value, not used by the decoder to control running behavior. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 106,
+      "name": {
+        "de": "Eigene Kennung 2",
+        "en": "User identifier 2"
+      },
+      "help": {
+        "de": "Frei nutzbarer Anwenderwert; kein automatisch erkannter Fahrzeugtyp. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "User-defined value, not an automatically detected vehicle type. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 111,
+      "name": {
+        "de": "Getriebespiel-Ausgleich",
+        "en": "Gearbox backlash compensation"
+      },
+      "help": {
+        "de": "Nach Richtungswechsel wird für Wert × 16 ms mit minimaler Geschwindigkeit gefahren. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "After reversing, the motor runs at minimum speed for value × 16 ms. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 112,
+      "name": {
+        "de": "Zeitparameter für Blinkeffekte",
+        "en": "Flashing-effect time parameter"
+      },
+      "help": {
+        "de": "Zeitbasis für Blink-/Strobeeffekte: Wert × 0,065536 s. Dies ist eine Zeitdauer, kein direkt in Hertz gespeicherter Wert. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Timing base for flashing/strobe effects: value × 0.065536 s, not a value stored directly in hertz. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 113,
+      "name": {
+        "de": "Überbrückungszeit mit PowerPack",
+        "en": "PowerPack bridging time"
+      },
+      "help": {
+        "de": "Eingestellte Überbrückungszeit bei Stromausfall: Wert × 0,032768 s. Ein angeschlossenes PowerPack wird dadurch nicht nachgewiesen. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Configured bridging time after power loss: value × 0.032768 s. This does not prove a PowerPack is installed. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 114,
+      "name": {
+        "de": "Einblendzeit der Lichtausgänge",
+        "en": "Light-output fade-in time"
+      },
+      "help": {
+        "de": "Ab Firmware 5.4.139: Zeitparameter für das Einblenden der Lichtausgänge; keine unbelegte Umrechnung in Sekunden. Quelle: LokProgrammer-Versionshinweise.",
+        "en": "From firmware 5.4.139: Timing parameter for fading light outputs in; no unsupported conversion to seconds. Source: LokProgrammer release notes."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "firmwareMin": "5.4.139"
+    },
+    {
+      "cv": 115,
+      "name": {
+        "de": "Ausblendzeit der Lichtausgänge",
+        "en": "Light-output fade-out time"
+      },
+      "help": {
+        "de": "Ab Firmware 5.4.139: Zeitparameter für das Ausblenden der Lichtausgänge; wirkt bei passenden Lichteffekten. Quelle: LokProgrammer-Versionshinweise.",
+        "en": "From firmware 5.4.139: Timing parameter for fading light outputs out, for applicable lighting effects. Source: LokProgrammer release notes."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "firmwareMin": "5.4.139"
+    },
+    {
+      "cv": 116,
+      "name": {
+        "de": "EMK-Abtastperiode bei Vmin",
+        "en": "Back-EMF sampling period at minimum speed"
+      },
+      "help": {
+        "de": "Zeit zwischen EMK-Messungen an der kleinsten Fahrstufe in Schritten von 0,1 ms. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Back-EMF sampling period at the lowest speed step, in 0.1 ms steps. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "motor",
+      "minimum": 25,
+      "maximum": 200
+    },
+    {
+      "cv": 117,
+      "name": {
+        "de": "EMK-Abtastperiode bei Vmax",
+        "en": "Back-EMF sampling period at maximum speed"
+      },
+      "help": {
+        "de": "Zeit zwischen EMK-Messungen an der höchsten internen Fahrstufe in Schritten von 0,1 ms. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Back-EMF sampling period at the highest internal speed step, in 0.1 ms steps. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "motor",
+      "minimum": 25,
+      "maximum": 200
+    },
+    {
+      "cv": 118,
+      "name": {
+        "de": "EMK-Messlücke bei Vmin",
+        "en": "Back-EMF measurement gap at minimum speed"
+      },
+      "help": {
+        "de": "Dauer der Messlücke an der kleinsten Fahrstufe: Wert × 0,1 ms. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Measurement-gap duration at the lowest speed step: value × 0.1 ms. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "motor",
+      "minimum": 3,
+      "maximum": 40
+    },
+    {
+      "cv": 119,
+      "name": {
+        "de": "EMK-Messlücke bei Vmax",
+        "en": "Back-EMF measurement gap at maximum speed"
+      },
+      "help": {
+        "de": "Dauer der Messlücke an der höchsten internen Fahrstufe: Wert × 0,1 ms. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Measurement-gap duration at the highest internal speed step: value × 0.1 ms. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "motor",
+      "minimum": 3,
+      "maximum": 40
+    },
+    {
+      "cv": 122,
+      "name": {
+        "de": "Zusätzliche Ausgangsoptionen",
+        "en": "Additional output options"
+      },
+      "help": {
+        "de": "Ab Firmware 5.6.142: Belegt ist Bit 4: SUSI-Slave-Kommunikation an AUX3/AUX4 erzwingen. Anschlussabhängig; weitere Bits werden hier nicht gedeutet. Quelle: LokProgrammer-Versionshinweise.",
+        "en": "From firmware 5.6.142: Documented bit 4 forces SUSI slave communication on AUX3/AUX4. Hardware dependent; other bits are not interpreted here. Source: LokProgrammer release notes."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "firmwareMin": "5.6.142",
+      "bits": [
+        {
+          "bit": 4,
+          "name": {
+            "de": "SUSI-Slave an AUX3/AUX4 erzwingen",
+            "en": "Force SUSI slave on AUX3/AUX4"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 123,
+      "name": {
+        "de": "ABC-Langsamfahrstufe",
+        "en": "ABC restricted-speed setting"
+      },
+      "help": {
+        "de": "Interne Geschwindigkeitsvorgabe für den ABC-Langsamfahrabschnitt; keine Geschwindigkeit in km/h. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Internal speed setting for an ABC restricted-speed section, not a speed in km/h. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 124,
+      "name": {
+        "de": "Erweiterte Decoderoptionen",
+        "en": "Extended decoder options"
+      },
+      "help": {
+        "de": "Bit 2: virtuelle Anfahrverzögerung; Bit 5: Motorschutz bei Blockierung; Bit 6: Parkbremse. SUSI-Optionen hängen von der Anschlussausführung ab. Die H0-/21MTC-Fx-spezifischen Bits 4 und 7 werden beim micro DCC nicht als Fähigkeiten ausgelegt.",
+        "en": "Bit 2: virtual start delay; bit 5: blocked-motor protection; bit 6: parking brake. SUSI options depend on hardware variant. H0/21MTC-Fx-specific bits 4 and 7 do not establish micro DCC capabilities."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 2,
+          "name": {
+            "de": "Virtuelle Anfahrverzögerung",
+            "en": "Virtual start delay"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Motorschutz bei Blockierung",
+            "en": "Blocked-motor protection"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Parkbremse bei Halt",
+            "en": "Parking brake while stopped"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 125,
+      "name": {
+        "de": "Anfahrspannung im DC-Analogbetrieb",
+        "en": "DC analog starting-voltage setting"
+      },
+      "help": {
+        "de": "Parameter für das Anfahren bei analoger Gleichspannung; keine direkt gemessene Spannung. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Starting parameter for analog DC operation, not a measured voltage. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 126,
+      "name": {
+        "de": "Höchstgeschwindigkeit im DC-Analogbetrieb",
+        "en": "DC analog maximum-speed setting"
+      },
+      "help": {
+        "de": "Parameter für die Höchstgeschwindigkeit im DC-Analogbetrieb, kein km/h-Wert. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Maximum-speed parameter for analog DC operation, not a speed in km/h. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 129,
+      "name": {
+        "de": "Analog-Hysterese der Funktionen",
+        "en": "Analog function hysteresis"
+      },
+      "help": {
+        "de": "Spannungsversatz für das Schalten der Funktionen im Analogbetrieb; keine automatische Volt-Umrechnung. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Voltage-offset parameter for analog function switching; no automatic conversion to volts. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 130,
+      "name": {
+        "de": "Analog-Hysterese des Motors",
+        "en": "Analog motor hysteresis"
+      },
+      "help": {
+        "de": "Spannungsversatz für den Motor im Analogbetrieb; getrennt von CV129. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Voltage-offset parameter for analog motor behavior, separate from CV129. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 131,
+      "name": {
+        "de": "Helligkeit bei aktivem Dimmer",
+        "en": "Brightness with dimmer active"
+      },
+      "help": {
+        "de": "Ab Firmware 5.4.139: Helligkeitsparameter bei aktiver Logikfunktion „Dimmer“; keine feste Prozentangabe ableiten. Quelle: LokProgrammer-Versionshinweise.",
+        "en": "From firmware 5.4.139: Brightness parameter while the Dimmer logic function is active; do not infer a fixed percentage. Source: LokProgrammer release notes."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "firmwareMin": "5.4.139"
+    },
+    {
+      "cv": 132,
+      "name": {
+        "de": "Grade-Crossing-Nachlauf",
+        "en": "Grade-crossing hold time"
+      },
+      "help": {
+        "de": "Nachlaufparameter der Grade-Crossing-Lichtfunktion nach dem Ausschalten; keine Aktivierung dieser Funktion. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Hold-time parameter for the grade-crossing lighting function after release; does not enable the function. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 134,
+      "name": {
+        "de": "ABC-Erkennungsschwelle",
+        "en": "ABC detection threshold"
+      },
+      "help": {
+        "de": "Schwelle für die Erkennung einer asymmetrischen Gleisspannung. ABC wird separat über CV27 freigegeben; kein direkter Volt-Wert. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Threshold for detecting asymmetric track voltage. ABC permission is separate in CV27; this is not a direct voltage reading. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "braking",
+      "minimum": 4,
+      "maximum": 32
+    },
+    {
+      "cv": 149,
+      "name": {
+        "de": "Aufenthalt beim ABC-Pendeln",
+        "en": "ABC shuttle dwell time"
+      },
+      "help": {
+        "de": "Sekunden bis zum Richtungswechsel beim ABC-Pendelbetrieb; 0 schaltet diesen Pendelbetrieb aus. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Seconds before reversing in ABC shuttle operation; 0 disables that shuttle mode. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 150,
+      "name": {
+        "de": "HLU-Geschwindigkeitsgrenze 1",
+        "en": "HLU speed limit 1"
+      },
+      "help": {
+        "de": "Interne Fahrstufe für die entsprechende HLU-Stufe; HLU wird separat mit CV27 Bit 2 erlaubt.",
+        "en": "Internal speed step for this HLU level; HLU permission is separate in CV27 bit 2."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 151,
+      "name": {
+        "de": "HLU-Geschwindigkeitsgrenze 2",
+        "en": "HLU speed limit 2"
+      },
+      "help": {
+        "de": "Interne Fahrstufe für die entsprechende HLU-Stufe; HLU wird separat mit CV27 Bit 2 erlaubt.",
+        "en": "Internal speed step for this HLU level; HLU permission is separate in CV27 bit 2."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 152,
+      "name": {
+        "de": "HLU-Geschwindigkeitsgrenze 3",
+        "en": "HLU speed limit 3"
+      },
+      "help": {
+        "de": "Interne Fahrstufe für die entsprechende HLU-Stufe; HLU wird separat mit CV27 Bit 2 erlaubt.",
+        "en": "Internal speed step for this HLU level; HLU permission is separate in CV27 bit 2."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 153,
+      "name": {
+        "de": "HLU-Geschwindigkeitsgrenze 4",
+        "en": "HLU speed limit 4"
+      },
+      "help": {
+        "de": "Interne Fahrstufe für die entsprechende HLU-Stufe; HLU wird separat mit CV27 Bit 2 erlaubt.",
+        "en": "Internal speed step for this HLU level; HLU permission is separate in CV27 bit 2."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 154,
+      "name": {
+        "de": "HLU-Geschwindigkeitsgrenze 5",
+        "en": "HLU speed limit 5"
+      },
+      "help": {
+        "de": "Interne Fahrstufe für die entsprechende HLU-Stufe; HLU wird separat mit CV27 Bit 2 erlaubt.",
+        "en": "Internal speed step for this HLU level; HLU permission is separate in CV27 bit 2."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 179,
+      "name": {
+        "de": "Bremsfunktion 1: Zeitverkürzung",
+        "en": "Brake function 1: deceleration reduction"
+      },
+      "help": {
+        "de": "Anteil von CV4, der bei aktiver Bremsfunktion abgezogen wird: 0 = 0 %, 255 = 100 %. Mehrere aktive Bremsfunktionen wirken gemeinsam.",
+        "en": "Portion subtracted from CV4 while this brake function is active: 0 = 0%, 255 = 100%. Active brake functions combine."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 180,
+      "name": {
+        "de": "Bremsfunktion 2: Zeitverkürzung",
+        "en": "Brake function 2: deceleration reduction"
+      },
+      "help": {
+        "de": "Anteil von CV4, der bei aktiver Bremsfunktion abgezogen wird: 0 = 0 %, 255 = 100 %. Mehrere aktive Bremsfunktionen wirken gemeinsam.",
+        "en": "Portion subtracted from CV4 while this brake function is active: 0 = 0%, 255 = 100%. Active brake functions combine."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 181,
+      "name": {
+        "de": "Bremsfunktion 3: Zeitverkürzung",
+        "en": "Brake function 3: deceleration reduction"
+      },
+      "help": {
+        "de": "Anteil von CV4, der bei aktiver Bremsfunktion abgezogen wird: 0 = 0 %, 255 = 100 %. Mehrere aktive Bremsfunktionen wirken gemeinsam.",
+        "en": "Portion subtracted from CV4 while this brake function is active: 0 = 0%, 255 = 100%. Active brake functions combine."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 182,
+      "name": {
+        "de": "Bremsfunktion 1: Geschwindigkeitsgrenze",
+        "en": "Brake function 1: speed limit"
+      },
+      "help": {
+        "de": "Höchste interne Fahrstufe bei aktiver Bremsfunktion; 0 fordert Stillstand an. Kein km/h-Wert.",
+        "en": "Highest internal speed step while this brake function is active; 0 requests a stop. Not a speed in km/h."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 126
+    },
+    {
+      "cv": 183,
+      "name": {
+        "de": "Bremsfunktion 2: Geschwindigkeitsgrenze",
+        "en": "Brake function 2: speed limit"
+      },
+      "help": {
+        "de": "Höchste interne Fahrstufe bei aktiver Bremsfunktion; 0 fordert Stillstand an. Kein km/h-Wert.",
+        "en": "Highest internal speed step while this brake function is active; 0 requests a stop. Not a speed in km/h."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 126
+    },
+    {
+      "cv": 184,
+      "name": {
+        "de": "Bremsfunktion 3: Geschwindigkeitsgrenze",
+        "en": "Brake function 3: speed limit"
+      },
+      "help": {
+        "de": "Höchste interne Fahrstufe bei aktiver Bremsfunktion; 0 fordert Stillstand an. Kein km/h-Wert.",
+        "en": "Highest internal speed step while this brake function is active; 0 requests a stop. Not a speed in km/h."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 126
+    },
+    {
+      "cv": 199,
+      "name": {
+        "de": "Anzahl der Class-Light-Lampen",
+        "en": "Class-light lamp count"
+      },
+      "help": {
+        "de": "Ab Firmware 5.8.156: Konfigurationsparameter der Class-Light-Logik für die Lampenanzahl. Die Veröffentlichung beschreibt keine weiteren Wertezuordnungen. Quelle: LokProgrammer-Versionshinweise. Der angezeigte Bereich ist die Rohbyte-Grenze, kein bestätigter Bereich sinnvoller Lampenanzahlen.",
+        "en": "From firmware 5.8.156: Lamp-count configuration parameter for class-light logic. The release notes do not define further value mappings. Source: LokProgrammer release notes. The displayed range is the raw-byte bound, not a verified range of meaningful lamp counts."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "firmwareMin": "5.8.156"
+    },
+    {
+      "cv": 245,
+      "name": {
+        "de": "Wartezeit beim Kupplungswalzer",
+        "en": "Uncoupling-cycle waiting time"
+      },
+      "help": {
+        "de": "Optionale Wartezeit nach dem Andrücken, bevor die Abrückzeit aus CV247 beginnt. Benötigt eine passende Kupplungs- und Mappingkonfiguration. 0–255 ist der Rohbytebereich; keine unbelegte Zeitumrechnung. Quelle: ESU-Digitalkupplung 41002, 1. Auflage August 2023, Abschnitt 7.4, S. 4; gilt ausdrücklich für LokPilot 5.",
+        "en": "Optional waiting time after pushing, before the pull-away period in CV247 starts. Requires suitable coupler and mapping configuration. 0–255 is the raw-byte range; no unsupported time conversion. Source: ESU digital coupler 41002, first edition August 2023, section 7.4, page 4, explicitly covering LokPilot 5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 246,
+      "name": {
+        "de": "Geschwindigkeit beim Entkuppeln",
+        "en": "Uncoupling-cycle speed"
+      },
+      "help": {
+        "de": "Geschwindigkeitsparameter der automatischen Entkupplungsfahrt; 0 schaltet die automatische Sequenz ab. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Speed parameter for the automatic uncoupling movement; 0 disables the automatic sequence. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 247,
+      "name": {
+        "de": "Abrückzeit beim Entkuppeln",
+        "en": "Uncoupling pull-away time"
+      },
+      "help": {
+        "de": "Dauer des Abrückens: Wert × 0,016 s. Benötigt eine passende Kupplungs- und Mappingkonfiguration. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Pull-away duration: value × 0.016 s. Requires suitable coupler and mapping configuration. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 248,
+      "name": {
+        "de": "Andrückzeit beim Entkuppeln",
+        "en": "Uncoupling push time"
+      },
+      "help": {
+        "de": "Dauer des Andrückens: Wert × 0,016 s; kein Weg in Zentimetern. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Push duration: value × 0.016 s, not a distance in centimetres. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 249,
+      "name": {
+        "de": "Mindestabstand der Dampfstoß-Trigger",
+        "en": "Minimum steam-trigger interval"
+      },
+      "help": {
+        "de": "Mindestabstand zwischen Dampfstoß-Triggern unabhängig von Sensordaten (CV-Tabelle S. 87). Keine Soundfunktion und kein Nachweis eines angeschlossenen Rauchgenerators; die Quelle nennt hier keine belastbare Zeiteinheit.",
+        "en": "Minimum spacing between steam triggers independent of sensor input (CV table). This is not a sound function or proof of an attached smoke generator; the source does not provide a reliable time unit here."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 252,
+      "name": {
+        "de": "Virtuelle Anfahrverzögerung",
+        "en": "Virtual prime-mover start delay"
+      },
+      "help": {
+        "de": "Wert × 65 ms Startverzögerung, wenn die Logikfunktion „Virtueller Fahrsound“ aktiv ist. Belegt keine Soundhardware. Vgl. ESU-Anleitung Kap. 10–13 / CV-Tabelle.",
+        "en": "Start delay of value × 65 ms while Virtual Driving Sound is active; does not establish sound hardware. See ESU manual sections 10–13 / CV table."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 253,
+      "name": {
+        "de": "Bremsmodus",
+        "en": "Braking mode"
+      },
+      "help": {
+        "de": "Nur bei CV254 > 0 aktiv: 0 bremst sofort linear; > 0 verzögert den Beginn und verwendet die hier eingestellte konstante Bremswirkung (Kap. 10.5).",
+        "en": "Only active with CV254 > 0: 0 brakes linearly immediately; > 0 delays braking onset and uses the configured constant braking behavior (section 10.5)."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 254,
+      "name": {
+        "de": "Bremsweg vorwärts",
+        "en": "Forward braking distance"
+      },
+      "help": {
+        "de": "0 schaltet konstanten Bremsweg aus. Ein größerer Wert legt den vorwärts genutzten Bremsweg fest; keine Zentimeterangabe.",
+        "en": "0 disables constant braking distance. A positive value configures the forward braking distance, not a distance in centimetres."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 255,
+      "name": {
+        "de": "Bremsweg rückwärts",
+        "en": "Reverse braking distance"
+      },
+      "help": {
+        "de": "Optionaler Rückwärts-Bremsweg bei aktivem konstantem Bremsweg. 0 verwendet rückwärts ebenfalls CV254; CV255 allein aktiviert den Modus nicht.",
+        "en": "Optional reverse distance with constant braking enabled. 0 reuses CV254 in reverse; CV255 alone does not enable this mode."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 258,
+      "name": {
+        "de": "Licht vorne (Konfig. 1): Effektparameter 3 / Servo-Laufzeit B",
+        "en": "Front light (configuration 1): Effect parameter 3 / servo time B"
+      },
+      "help": {
+        "de": "Bedeutung abhängig vom Ausgangsmodus; bei Servo die Laufzeit B in Schritten von 0,25 s. ESU Kap. 12.5.",
+        "en": "Meaning depends on output mode; for servo operation this is travel time B in 0.25 s steps. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 259,
+      "name": {
+        "de": "Licht vorne (Konfig. 1): Ausgangseffekt",
+        "en": "Front light (configuration 1): Output effect"
+      },
+      "help": {
+        "de": "Auswahl des Licht-/Spezialeffekts. 31 bezeichnet PowerPack Control bei passender Hardware; kein Nachweis eines angeschlossenen Geräts. ESU Kap. 12.5.",
+        "en": "Selects the light/special effect. 31 denotes PowerPack Control on compatible hardware, not proof of an attached device. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 260,
+      "name": {
+        "de": "Licht vorne (Konfig. 1): Ein-/Ausschaltverzögerung",
+        "en": "Front light (configuration 1): On/off delay"
+      },
+      "help": {
+        "de": "Bits 0–3: Einschaltverzögerung; Bits 4–7: Ausschaltverzögerung. Beide sind getrennte Werte von 0–15, nicht ein gemeinsamer Zeitwert. ESU Kap. 12.5.",
+        "en": "Bits 0–3 hold switch-on delay; bits 4–7 switch-off delay. Each is a separate 0–15 value, not one combined duration. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 261,
+      "name": {
+        "de": "Licht vorne (Konfig. 1): Automatische Abschaltung",
+        "en": "Front light (configuration 1): Automatic switch-off"
+      },
+      "help": {
+        "de": "0 deaktiviert die automatische Abschaltung; sonst maximale Einschaltzeit = Wert × 0,4 s. ESU Kap. 12.5.",
+        "en": "0 disables automatic switch-off; otherwise maximum on-time = value × 0.4 s. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 262,
+      "name": {
+        "de": "Licht vorne (Konfig. 1): Helligkeit / Servo-Laufzeit A",
+        "en": "Front light (configuration 1): Brightness / servo time A"
+      },
+      "help": {
+        "de": "Im Lichtmodus Helligkeit 0–31; im Servo-Modus Laufzeit A in 0,25-s-Schritten. Daher den Ausgangsmodus mitbeachten. ESU Kap. 12.5.",
+        "en": "For lighting, brightness 0–31; for servo operation, travel time A in 0.25 s steps. Interpret with the output mode. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 263,
+      "name": {
+        "de": "Licht vorne (Konfig. 1): Effektparameter 1",
+        "en": "Front light (configuration 1): Effect parameter 1"
+      },
+      "help": {
+        "de": "Modusabhängige Zusatzoptionen, beispielsweise LED-Anpassung bei Lichteffekten oder Servo-Endposition A. Keine pauschale Bit-Deutung für alle Modi. ESU Kap. 12.5.",
+        "en": "Mode-dependent options, such as LED adjustment for lighting or servo endpoint A. There is no universal bit interpretation across all modes. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 264,
+      "name": {
+        "de": "Licht vorne (Konfig. 1): Effektparameter 2",
+        "en": "Front light (configuration 1): Effect parameter 2"
+      },
+      "help": {
+        "de": "Modusabhängiger Zusatzparameter, beispielsweise Servo-Endposition B. Zusammen mit Ausgangseffekt und Anschlussvariante lesen. ESU Kap. 12.5.",
+        "en": "Mode-dependent parameter, such as servo endpoint B. Interpret with output effect and hardware variant. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 266,
+      "name": {
+        "de": "Licht hinten (Konfig. 1): Effektparameter 3 / Servo-Laufzeit B",
+        "en": "Rear light (configuration 1): Effect parameter 3 / servo time B"
+      },
+      "help": {
+        "de": "Bedeutung abhängig vom Ausgangsmodus; bei Servo die Laufzeit B in Schritten von 0,25 s. ESU Kap. 12.5.",
+        "en": "Meaning depends on output mode; for servo operation this is travel time B in 0.25 s steps. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 267,
+      "name": {
+        "de": "Licht hinten (Konfig. 1): Ausgangseffekt",
+        "en": "Rear light (configuration 1): Output effect"
+      },
+      "help": {
+        "de": "Auswahl des Licht-/Spezialeffekts. 31 bezeichnet PowerPack Control bei passender Hardware; kein Nachweis eines angeschlossenen Geräts. ESU Kap. 12.5.",
+        "en": "Selects the light/special effect. 31 denotes PowerPack Control on compatible hardware, not proof of an attached device. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 268,
+      "name": {
+        "de": "Licht hinten (Konfig. 1): Ein-/Ausschaltverzögerung",
+        "en": "Rear light (configuration 1): On/off delay"
+      },
+      "help": {
+        "de": "Bits 0–3: Einschaltverzögerung; Bits 4–7: Ausschaltverzögerung. Beide sind getrennte Werte von 0–15, nicht ein gemeinsamer Zeitwert. ESU Kap. 12.5.",
+        "en": "Bits 0–3 hold switch-on delay; bits 4–7 switch-off delay. Each is a separate 0–15 value, not one combined duration. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 269,
+      "name": {
+        "de": "Licht hinten (Konfig. 1): Automatische Abschaltung",
+        "en": "Rear light (configuration 1): Automatic switch-off"
+      },
+      "help": {
+        "de": "0 deaktiviert die automatische Abschaltung; sonst maximale Einschaltzeit = Wert × 0,4 s. ESU Kap. 12.5.",
+        "en": "0 disables automatic switch-off; otherwise maximum on-time = value × 0.4 s. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 270,
+      "name": {
+        "de": "Licht hinten (Konfig. 1): Helligkeit / Servo-Laufzeit A",
+        "en": "Rear light (configuration 1): Brightness / servo time A"
+      },
+      "help": {
+        "de": "Im Lichtmodus Helligkeit 0–31; im Servo-Modus Laufzeit A in 0,25-s-Schritten. Daher den Ausgangsmodus mitbeachten. ESU Kap. 12.5.",
+        "en": "For lighting, brightness 0–31; for servo operation, travel time A in 0.25 s steps. Interpret with the output mode. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 271,
+      "name": {
+        "de": "Licht hinten (Konfig. 1): Effektparameter 1",
+        "en": "Rear light (configuration 1): Effect parameter 1"
+      },
+      "help": {
+        "de": "Modusabhängige Zusatzoptionen, beispielsweise LED-Anpassung bei Lichteffekten oder Servo-Endposition A. Keine pauschale Bit-Deutung für alle Modi. ESU Kap. 12.5.",
+        "en": "Mode-dependent options, such as LED adjustment for lighting or servo endpoint A. There is no universal bit interpretation across all modes. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 274,
+      "name": {
+        "de": "AUX1 (Konfig. 1): Effektparameter 3 / Servo-Laufzeit B",
+        "en": "AUX1 (configuration 1): Effect parameter 3 / servo time B"
+      },
+      "help": {
+        "de": "Bedeutung abhängig vom Ausgangsmodus; bei Servo die Laufzeit B in Schritten von 0,25 s. ESU Kap. 12.5.",
+        "en": "Meaning depends on output mode; for servo operation this is travel time B in 0.25 s steps. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 275,
+      "name": {
+        "de": "AUX1 (Konfig. 1): Ausgangseffekt",
+        "en": "AUX1 (configuration 1): Output effect"
+      },
+      "help": {
+        "de": "Auswahl des Licht-/Spezialeffekts. 31 bezeichnet PowerPack Control bei passender Hardware; kein Nachweis eines angeschlossenen Geräts. ESU Kap. 12.5.",
+        "en": "Selects the light/special effect. 31 denotes PowerPack Control on compatible hardware, not proof of an attached device. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 276,
+      "name": {
+        "de": "AUX1 (Konfig. 1): Ein-/Ausschaltverzögerung",
+        "en": "AUX1 (configuration 1): On/off delay"
+      },
+      "help": {
+        "de": "Bits 0–3: Einschaltverzögerung; Bits 4–7: Ausschaltverzögerung. Beide sind getrennte Werte von 0–15, nicht ein gemeinsamer Zeitwert. ESU Kap. 12.5.",
+        "en": "Bits 0–3 hold switch-on delay; bits 4–7 switch-off delay. Each is a separate 0–15 value, not one combined duration. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 277,
+      "name": {
+        "de": "AUX1 (Konfig. 1): Automatische Abschaltung",
+        "en": "AUX1 (configuration 1): Automatic switch-off"
+      },
+      "help": {
+        "de": "0 deaktiviert die automatische Abschaltung; sonst maximale Einschaltzeit = Wert × 0,4 s. ESU Kap. 12.5.",
+        "en": "0 disables automatic switch-off; otherwise maximum on-time = value × 0.4 s. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 278,
+      "name": {
+        "de": "AUX1 (Konfig. 1): Helligkeit / Servo-Laufzeit A",
+        "en": "AUX1 (configuration 1): Brightness / servo time A"
+      },
+      "help": {
+        "de": "Im Lichtmodus Helligkeit 0–31; im Servo-Modus Laufzeit A in 0,25-s-Schritten. Daher den Ausgangsmodus mitbeachten. ESU Kap. 12.5.",
+        "en": "For lighting, brightness 0–31; for servo operation, travel time A in 0.25 s steps. Interpret with the output mode. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 279,
+      "name": {
+        "de": "AUX1 (Konfig. 1): Effektparameter 1",
+        "en": "AUX1 (configuration 1): Effect parameter 1"
+      },
+      "help": {
+        "de": "Modusabhängige Zusatzoptionen, beispielsweise LED-Anpassung bei Lichteffekten oder Servo-Endposition A. Keine pauschale Bit-Deutung für alle Modi. ESU Kap. 12.5.",
+        "en": "Mode-dependent options, such as LED adjustment for lighting or servo endpoint A. There is no universal bit interpretation across all modes. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 280,
+      "name": {
+        "de": "AUX1 (Konfig. 1): Effektparameter 2",
+        "en": "AUX1 (configuration 1): Effect parameter 2"
+      },
+      "help": {
+        "de": "Modusabhängiger Zusatzparameter, beispielsweise Servo-Endposition B. Zusammen mit Ausgangseffekt und Anschlussvariante lesen. ESU Kap. 12.5.",
+        "en": "Mode-dependent parameter, such as servo endpoint B. Interpret with output effect and hardware variant. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 282,
+      "name": {
+        "de": "AUX2 (Konfig. 1): Effektparameter 3 / Servo-Laufzeit B",
+        "en": "AUX2 (configuration 1): Effect parameter 3 / servo time B"
+      },
+      "help": {
+        "de": "Bedeutung abhängig vom Ausgangsmodus; bei Servo die Laufzeit B in Schritten von 0,25 s. ESU Kap. 12.5.",
+        "en": "Meaning depends on output mode; for servo operation this is travel time B in 0.25 s steps. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 283,
+      "name": {
+        "de": "AUX2 (Konfig. 1): Ausgangseffekt",
+        "en": "AUX2 (configuration 1): Output effect"
+      },
+      "help": {
+        "de": "Auswahl des Licht-/Spezialeffekts. 31 bezeichnet PowerPack Control bei passender Hardware; kein Nachweis eines angeschlossenen Geräts. ESU Kap. 12.5.",
+        "en": "Selects the light/special effect. 31 denotes PowerPack Control on compatible hardware, not proof of an attached device. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 284,
+      "name": {
+        "de": "AUX2 (Konfig. 1): Ein-/Ausschaltverzögerung",
+        "en": "AUX2 (configuration 1): On/off delay"
+      },
+      "help": {
+        "de": "Bits 0–3: Einschaltverzögerung; Bits 4–7: Ausschaltverzögerung. Beide sind getrennte Werte von 0–15, nicht ein gemeinsamer Zeitwert. ESU Kap. 12.5.",
+        "en": "Bits 0–3 hold switch-on delay; bits 4–7 switch-off delay. Each is a separate 0–15 value, not one combined duration. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 285,
+      "name": {
+        "de": "AUX2 (Konfig. 1): Automatische Abschaltung",
+        "en": "AUX2 (configuration 1): Automatic switch-off"
+      },
+      "help": {
+        "de": "0 deaktiviert die automatische Abschaltung; sonst maximale Einschaltzeit = Wert × 0,4 s. ESU Kap. 12.5.",
+        "en": "0 disables automatic switch-off; otherwise maximum on-time = value × 0.4 s. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 286,
+      "name": {
+        "de": "AUX2 (Konfig. 1): Helligkeit / Servo-Laufzeit A",
+        "en": "AUX2 (configuration 1): Brightness / servo time A"
+      },
+      "help": {
+        "de": "Im Lichtmodus Helligkeit 0–31; im Servo-Modus Laufzeit A in 0,25-s-Schritten. Daher den Ausgangsmodus mitbeachten. ESU Kap. 12.5.",
+        "en": "For lighting, brightness 0–31; for servo operation, travel time A in 0.25 s steps. Interpret with the output mode. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 287,
+      "name": {
+        "de": "AUX2 (Konfig. 1): Effektparameter 1",
+        "en": "AUX2 (configuration 1): Effect parameter 1"
+      },
+      "help": {
+        "de": "Modusabhängige Zusatzoptionen, beispielsweise LED-Anpassung bei Lichteffekten oder Servo-Endposition A. Keine pauschale Bit-Deutung für alle Modi. ESU Kap. 12.5.",
+        "en": "Mode-dependent options, such as LED adjustment for lighting or servo endpoint A. There is no universal bit interpretation across all modes. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 288,
+      "name": {
+        "de": "AUX2 (Konfig. 1): Effektparameter 2",
+        "en": "AUX2 (configuration 1): Effect parameter 2"
+      },
+      "help": {
+        "de": "Modusabhängiger Zusatzparameter, beispielsweise Servo-Endposition B. Zusammen mit Ausgangseffekt und Anschlussvariante lesen. ESU Kap. 12.5.",
+        "en": "Mode-dependent parameter, such as servo endpoint B. Interpret with output effect and hardware variant. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 290,
+      "name": {
+        "de": "AUX3: Effektparameter 3 / Servo-Laufzeit B",
+        "en": "AUX3: Effect parameter 3 / servo time B"
+      },
+      "help": {
+        "de": "Bedeutung abhängig vom Ausgangsmodus; bei Servo die Laufzeit B in Schritten von 0,25 s. ESU Kap. 12.5.",
+        "en": "Meaning depends on output mode; for servo operation this is travel time B in 0.25 s steps. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 291,
+      "name": {
+        "de": "AUX3: Ausgangseffekt",
+        "en": "AUX3: Output effect"
+      },
+      "help": {
+        "de": "Auswahl des Licht-/Spezialeffekts. 31 bezeichnet PowerPack Control bei passender Hardware; kein Nachweis eines angeschlossenen Geräts. ESU Kap. 12.5.",
+        "en": "Selects the light/special effect. 31 denotes PowerPack Control on compatible hardware, not proof of an attached device. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 292,
+      "name": {
+        "de": "AUX3: Ein-/Ausschaltverzögerung",
+        "en": "AUX3: On/off delay"
+      },
+      "help": {
+        "de": "Bits 0–3: Einschaltverzögerung; Bits 4–7: Ausschaltverzögerung. Beide sind getrennte Werte von 0–15, nicht ein gemeinsamer Zeitwert. ESU Kap. 12.5.",
+        "en": "Bits 0–3 hold switch-on delay; bits 4–7 switch-off delay. Each is a separate 0–15 value, not one combined duration. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 293,
+      "name": {
+        "de": "AUX3: Automatische Abschaltung",
+        "en": "AUX3: Automatic switch-off"
+      },
+      "help": {
+        "de": "0 deaktiviert die automatische Abschaltung; sonst maximale Einschaltzeit = Wert × 0,4 s. ESU Kap. 12.5.",
+        "en": "0 disables automatic switch-off; otherwise maximum on-time = value × 0.4 s. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 294,
+      "name": {
+        "de": "AUX3: Helligkeit / Servo-Laufzeit A",
+        "en": "AUX3: Brightness / servo time A"
+      },
+      "help": {
+        "de": "Im Lichtmodus Helligkeit 0–31; im Servo-Modus Laufzeit A in 0,25-s-Schritten. Daher den Ausgangsmodus mitbeachten. ESU Kap. 12.5.",
+        "en": "For lighting, brightness 0–31; for servo operation, travel time A in 0.25 s steps. Interpret with the output mode. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 295,
+      "name": {
+        "de": "AUX3: Effektparameter 1",
+        "en": "AUX3: Effect parameter 1"
+      },
+      "help": {
+        "de": "Modusabhängige Zusatzoptionen, beispielsweise LED-Anpassung bei Lichteffekten oder Servo-Endposition A. Keine pauschale Bit-Deutung für alle Modi. ESU Kap. 12.5.",
+        "en": "Mode-dependent options, such as LED adjustment for lighting or servo endpoint A. There is no universal bit interpretation across all modes. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 296,
+      "name": {
+        "de": "AUX3: Effektparameter 2",
+        "en": "AUX3: Effect parameter 2"
+      },
+      "help": {
+        "de": "Modusabhängiger Zusatzparameter, beispielsweise Servo-Endposition B. Zusammen mit Ausgangseffekt und Anschlussvariante lesen. ESU Kap. 12.5.",
+        "en": "Mode-dependent parameter, such as servo endpoint B. Interpret with output effect and hardware variant. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 298,
+      "name": {
+        "de": "AUX4: Effektparameter 3 / Servo-Laufzeit B",
+        "en": "AUX4: Effect parameter 3 / servo time B"
+      },
+      "help": {
+        "de": "Bedeutung abhängig vom Ausgangsmodus; bei Servo die Laufzeit B in Schritten von 0,25 s. ESU Kap. 12.5.",
+        "en": "Meaning depends on output mode; for servo operation this is travel time B in 0.25 s steps. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 299,
+      "name": {
+        "de": "AUX4: Ausgangseffekt",
+        "en": "AUX4: Output effect"
+      },
+      "help": {
+        "de": "Auswahl des Licht-/Spezialeffekts. 31 bezeichnet PowerPack Control bei passender Hardware; kein Nachweis eines angeschlossenen Geräts. ESU Kap. 12.5.",
+        "en": "Selects the light/special effect. 31 denotes PowerPack Control on compatible hardware, not proof of an attached device. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 300,
+      "name": {
+        "de": "AUX4: Ein-/Ausschaltverzögerung",
+        "en": "AUX4: On/off delay"
+      },
+      "help": {
+        "de": "Bits 0–3: Einschaltverzögerung; Bits 4–7: Ausschaltverzögerung. Beide sind getrennte Werte von 0–15, nicht ein gemeinsamer Zeitwert. ESU Kap. 12.5.",
+        "en": "Bits 0–3 hold switch-on delay; bits 4–7 switch-off delay. Each is a separate 0–15 value, not one combined duration. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 301,
+      "name": {
+        "de": "AUX4: Automatische Abschaltung",
+        "en": "AUX4: Automatic switch-off"
+      },
+      "help": {
+        "de": "0 deaktiviert die automatische Abschaltung; sonst maximale Einschaltzeit = Wert × 0,4 s. ESU Kap. 12.5.",
+        "en": "0 disables automatic switch-off; otherwise maximum on-time = value × 0.4 s. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 302,
+      "name": {
+        "de": "AUX4: Helligkeit / Servo-Laufzeit A",
+        "en": "AUX4: Brightness / servo time A"
+      },
+      "help": {
+        "de": "Im Lichtmodus Helligkeit 0–31; im Servo-Modus Laufzeit A in 0,25-s-Schritten. Daher den Ausgangsmodus mitbeachten. ESU Kap. 12.5.",
+        "en": "For lighting, brightness 0–31; for servo operation, travel time A in 0.25 s steps. Interpret with the output mode. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 303,
+      "name": {
+        "de": "AUX4: Effektparameter 1",
+        "en": "AUX4: Effect parameter 1"
+      },
+      "help": {
+        "de": "Modusabhängige Zusatzoptionen, beispielsweise LED-Anpassung bei Lichteffekten oder Servo-Endposition A. Keine pauschale Bit-Deutung für alle Modi. ESU Kap. 12.5.",
+        "en": "Mode-dependent options, such as LED adjustment for lighting or servo endpoint A. There is no universal bit interpretation across all modes. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 304,
+      "name": {
+        "de": "AUX4: Effektparameter 2",
+        "en": "AUX4: Effect parameter 2"
+      },
+      "help": {
+        "de": "Modusabhängiger Zusatzparameter, beispielsweise Servo-Endposition B. Zusammen mit Ausgangseffekt und Anschlussvariante lesen. ESU Kap. 12.5.",
+        "en": "Mode-dependent parameter, such as servo endpoint B. Interpret with output effect and hardware variant. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 418,
+      "name": {
+        "de": "Licht vorne (Konfig. 2): Effektparameter 3 / Servo-Laufzeit B",
+        "en": "Front light (configuration 2): Effect parameter 3 / servo time B"
+      },
+      "help": {
+        "de": "Bedeutung abhängig vom Ausgangsmodus; bei Servo die Laufzeit B in Schritten von 0,25 s. ESU Kap. 12.5.",
+        "en": "Meaning depends on output mode; for servo operation this is travel time B in 0.25 s steps. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 419,
+      "name": {
+        "de": "Licht vorne (Konfig. 2): Ausgangseffekt",
+        "en": "Front light (configuration 2): Output effect"
+      },
+      "help": {
+        "de": "Auswahl des Licht-/Spezialeffekts. 31 bezeichnet PowerPack Control bei passender Hardware; kein Nachweis eines angeschlossenen Geräts. ESU Kap. 12.5.",
+        "en": "Selects the light/special effect. 31 denotes PowerPack Control on compatible hardware, not proof of an attached device. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 420,
+      "name": {
+        "de": "Licht vorne (Konfig. 2): Ein-/Ausschaltverzögerung",
+        "en": "Front light (configuration 2): On/off delay"
+      },
+      "help": {
+        "de": "Bits 0–3: Einschaltverzögerung; Bits 4–7: Ausschaltverzögerung. Beide sind getrennte Werte von 0–15, nicht ein gemeinsamer Zeitwert. ESU Kap. 12.5.",
+        "en": "Bits 0–3 hold switch-on delay; bits 4–7 switch-off delay. Each is a separate 0–15 value, not one combined duration. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 421,
+      "name": {
+        "de": "Licht vorne (Konfig. 2): Automatische Abschaltung",
+        "en": "Front light (configuration 2): Automatic switch-off"
+      },
+      "help": {
+        "de": "0 deaktiviert die automatische Abschaltung; sonst maximale Einschaltzeit = Wert × 0,4 s. ESU Kap. 12.5.",
+        "en": "0 disables automatic switch-off; otherwise maximum on-time = value × 0.4 s. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 422,
+      "name": {
+        "de": "Licht vorne (Konfig. 2): Helligkeit / Servo-Laufzeit A",
+        "en": "Front light (configuration 2): Brightness / servo time A"
+      },
+      "help": {
+        "de": "Im Lichtmodus Helligkeit 0–31; im Servo-Modus Laufzeit A in 0,25-s-Schritten. Daher den Ausgangsmodus mitbeachten. ESU Kap. 12.5.",
+        "en": "For lighting, brightness 0–31; for servo operation, travel time A in 0.25 s steps. Interpret with the output mode. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 423,
+      "name": {
+        "de": "Licht vorne (Konfig. 2): Effektparameter 1",
+        "en": "Front light (configuration 2): Effect parameter 1"
+      },
+      "help": {
+        "de": "Modusabhängige Zusatzoptionen, beispielsweise LED-Anpassung bei Lichteffekten oder Servo-Endposition A. Keine pauschale Bit-Deutung für alle Modi. ESU Kap. 12.5.",
+        "en": "Mode-dependent options, such as LED adjustment for lighting or servo endpoint A. There is no universal bit interpretation across all modes. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 424,
+      "name": {
+        "de": "Licht vorne (Konfig. 2): Effektparameter 2",
+        "en": "Front light (configuration 2): Effect parameter 2"
+      },
+      "help": {
+        "de": "Modusabhängiger Zusatzparameter, beispielsweise Servo-Endposition B. Zusammen mit Ausgangseffekt und Anschlussvariante lesen. ESU Kap. 12.5.",
+        "en": "Mode-dependent parameter, such as servo endpoint B. Interpret with output effect and hardware variant. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 426,
+      "name": {
+        "de": "Licht hinten (Konfig. 2): Effektparameter 3 / Servo-Laufzeit B",
+        "en": "Rear light (configuration 2): Effect parameter 3 / servo time B"
+      },
+      "help": {
+        "de": "Bedeutung abhängig vom Ausgangsmodus; bei Servo die Laufzeit B in Schritten von 0,25 s. ESU Kap. 12.5.",
+        "en": "Meaning depends on output mode; for servo operation this is travel time B in 0.25 s steps. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 427,
+      "name": {
+        "de": "Licht hinten (Konfig. 2): Ausgangseffekt",
+        "en": "Rear light (configuration 2): Output effect"
+      },
+      "help": {
+        "de": "Auswahl des Licht-/Spezialeffekts. 31 bezeichnet PowerPack Control bei passender Hardware; kein Nachweis eines angeschlossenen Geräts. ESU Kap. 12.5.",
+        "en": "Selects the light/special effect. 31 denotes PowerPack Control on compatible hardware, not proof of an attached device. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 428,
+      "name": {
+        "de": "Licht hinten (Konfig. 2): Ein-/Ausschaltverzögerung",
+        "en": "Rear light (configuration 2): On/off delay"
+      },
+      "help": {
+        "de": "Bits 0–3: Einschaltverzögerung; Bits 4–7: Ausschaltverzögerung. Beide sind getrennte Werte von 0–15, nicht ein gemeinsamer Zeitwert. ESU Kap. 12.5.",
+        "en": "Bits 0–3 hold switch-on delay; bits 4–7 switch-off delay. Each is a separate 0–15 value, not one combined duration. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 429,
+      "name": {
+        "de": "Licht hinten (Konfig. 2): Automatische Abschaltung",
+        "en": "Rear light (configuration 2): Automatic switch-off"
+      },
+      "help": {
+        "de": "0 deaktiviert die automatische Abschaltung; sonst maximale Einschaltzeit = Wert × 0,4 s. ESU Kap. 12.5.",
+        "en": "0 disables automatic switch-off; otherwise maximum on-time = value × 0.4 s. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 430,
+      "name": {
+        "de": "Licht hinten (Konfig. 2): Helligkeit / Servo-Laufzeit A",
+        "en": "Rear light (configuration 2): Brightness / servo time A"
+      },
+      "help": {
+        "de": "Im Lichtmodus Helligkeit 0–31; im Servo-Modus Laufzeit A in 0,25-s-Schritten. Daher den Ausgangsmodus mitbeachten. ESU Kap. 12.5.",
+        "en": "For lighting, brightness 0–31; for servo operation, travel time A in 0.25 s steps. Interpret with the output mode. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 431,
+      "name": {
+        "de": "Licht hinten (Konfig. 2): Effektparameter 1",
+        "en": "Rear light (configuration 2): Effect parameter 1"
+      },
+      "help": {
+        "de": "Modusabhängige Zusatzoptionen, beispielsweise LED-Anpassung bei Lichteffekten oder Servo-Endposition A. Keine pauschale Bit-Deutung für alle Modi. ESU Kap. 12.5.",
+        "en": "Mode-dependent options, such as LED adjustment for lighting or servo endpoint A. There is no universal bit interpretation across all modes. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 432,
+      "name": {
+        "de": "Licht hinten (Konfig. 2): Effektparameter 2",
+        "en": "Rear light (configuration 2): Effect parameter 2"
+      },
+      "help": {
+        "de": "Modusabhängiger Zusatzparameter, beispielsweise Servo-Endposition B. Zusammen mit Ausgangseffekt und Anschlussvariante lesen. ESU Kap. 12.5.",
+        "en": "Mode-dependent parameter, such as servo endpoint B. Interpret with output effect and hardware variant. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 434,
+      "name": {
+        "de": "AUX1 (Konfig. 2): Effektparameter 3 / Servo-Laufzeit B",
+        "en": "AUX1 (configuration 2): Effect parameter 3 / servo time B"
+      },
+      "help": {
+        "de": "Bedeutung abhängig vom Ausgangsmodus; bei Servo die Laufzeit B in Schritten von 0,25 s. ESU Kap. 12.5.",
+        "en": "Meaning depends on output mode; for servo operation this is travel time B in 0.25 s steps. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 435,
+      "name": {
+        "de": "AUX1 (Konfig. 2): Ausgangseffekt",
+        "en": "AUX1 (configuration 2): Output effect"
+      },
+      "help": {
+        "de": "Auswahl des Licht-/Spezialeffekts. 31 bezeichnet PowerPack Control bei passender Hardware; kein Nachweis eines angeschlossenen Geräts. ESU Kap. 12.5.",
+        "en": "Selects the light/special effect. 31 denotes PowerPack Control on compatible hardware, not proof of an attached device. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 436,
+      "name": {
+        "de": "AUX1 (Konfig. 2): Ein-/Ausschaltverzögerung",
+        "en": "AUX1 (configuration 2): On/off delay"
+      },
+      "help": {
+        "de": "Bits 0–3: Einschaltverzögerung; Bits 4–7: Ausschaltverzögerung. Beide sind getrennte Werte von 0–15, nicht ein gemeinsamer Zeitwert. ESU Kap. 12.5.",
+        "en": "Bits 0–3 hold switch-on delay; bits 4–7 switch-off delay. Each is a separate 0–15 value, not one combined duration. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 437,
+      "name": {
+        "de": "AUX1 (Konfig. 2): Automatische Abschaltung",
+        "en": "AUX1 (configuration 2): Automatic switch-off"
+      },
+      "help": {
+        "de": "0 deaktiviert die automatische Abschaltung; sonst maximale Einschaltzeit = Wert × 0,4 s. ESU Kap. 12.5.",
+        "en": "0 disables automatic switch-off; otherwise maximum on-time = value × 0.4 s. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 438,
+      "name": {
+        "de": "AUX1 (Konfig. 2): Helligkeit / Servo-Laufzeit A",
+        "en": "AUX1 (configuration 2): Brightness / servo time A"
+      },
+      "help": {
+        "de": "Im Lichtmodus Helligkeit 0–31; im Servo-Modus Laufzeit A in 0,25-s-Schritten. Daher den Ausgangsmodus mitbeachten. ESU Kap. 12.5.",
+        "en": "For lighting, brightness 0–31; for servo operation, travel time A in 0.25 s steps. Interpret with the output mode. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 439,
+      "name": {
+        "de": "AUX1 (Konfig. 2): Effektparameter 1",
+        "en": "AUX1 (configuration 2): Effect parameter 1"
+      },
+      "help": {
+        "de": "Modusabhängige Zusatzoptionen, beispielsweise LED-Anpassung bei Lichteffekten oder Servo-Endposition A. Keine pauschale Bit-Deutung für alle Modi. ESU Kap. 12.5.",
+        "en": "Mode-dependent options, such as LED adjustment for lighting or servo endpoint A. There is no universal bit interpretation across all modes. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 440,
+      "name": {
+        "de": "AUX1 (Konfig. 2): Effektparameter 2",
+        "en": "AUX1 (configuration 2): Effect parameter 2"
+      },
+      "help": {
+        "de": "Modusabhängiger Zusatzparameter, beispielsweise Servo-Endposition B. Zusammen mit Ausgangseffekt und Anschlussvariante lesen. ESU Kap. 12.5.",
+        "en": "Mode-dependent parameter, such as servo endpoint B. Interpret with output effect and hardware variant. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 442,
+      "name": {
+        "de": "AUX2 (Konfig. 2): Effektparameter 3 / Servo-Laufzeit B",
+        "en": "AUX2 (configuration 2): Effect parameter 3 / servo time B"
+      },
+      "help": {
+        "de": "Bedeutung abhängig vom Ausgangsmodus; bei Servo die Laufzeit B in Schritten von 0,25 s. ESU Kap. 12.5.",
+        "en": "Meaning depends on output mode; for servo operation this is travel time B in 0.25 s steps. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 443,
+      "name": {
+        "de": "AUX2 (Konfig. 2): Ausgangseffekt",
+        "en": "AUX2 (configuration 2): Output effect"
+      },
+      "help": {
+        "de": "Auswahl des Licht-/Spezialeffekts. 31 bezeichnet PowerPack Control bei passender Hardware; kein Nachweis eines angeschlossenen Geräts. ESU Kap. 12.5.",
+        "en": "Selects the light/special effect. 31 denotes PowerPack Control on compatible hardware, not proof of an attached device. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 444,
+      "name": {
+        "de": "AUX2 (Konfig. 2): Ein-/Ausschaltverzögerung",
+        "en": "AUX2 (configuration 2): On/off delay"
+      },
+      "help": {
+        "de": "Bits 0–3: Einschaltverzögerung; Bits 4–7: Ausschaltverzögerung. Beide sind getrennte Werte von 0–15, nicht ein gemeinsamer Zeitwert. ESU Kap. 12.5.",
+        "en": "Bits 0–3 hold switch-on delay; bits 4–7 switch-off delay. Each is a separate 0–15 value, not one combined duration. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 445,
+      "name": {
+        "de": "AUX2 (Konfig. 2): Automatische Abschaltung",
+        "en": "AUX2 (configuration 2): Automatic switch-off"
+      },
+      "help": {
+        "de": "0 deaktiviert die automatische Abschaltung; sonst maximale Einschaltzeit = Wert × 0,4 s. ESU Kap. 12.5.",
+        "en": "0 disables automatic switch-off; otherwise maximum on-time = value × 0.4 s. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 446,
+      "name": {
+        "de": "AUX2 (Konfig. 2): Helligkeit / Servo-Laufzeit A",
+        "en": "AUX2 (configuration 2): Brightness / servo time A"
+      },
+      "help": {
+        "de": "Im Lichtmodus Helligkeit 0–31; im Servo-Modus Laufzeit A in 0,25-s-Schritten. Daher den Ausgangsmodus mitbeachten. ESU Kap. 12.5.",
+        "en": "For lighting, brightness 0–31; for servo operation, travel time A in 0.25 s steps. Interpret with the output mode. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 447,
+      "name": {
+        "de": "AUX2 (Konfig. 2): Effektparameter 1",
+        "en": "AUX2 (configuration 2): Effect parameter 1"
+      },
+      "help": {
+        "de": "Modusabhängige Zusatzoptionen, beispielsweise LED-Anpassung bei Lichteffekten oder Servo-Endposition A. Keine pauschale Bit-Deutung für alle Modi. ESU Kap. 12.5.",
+        "en": "Mode-dependent options, such as LED adjustment for lighting or servo endpoint A. There is no universal bit interpretation across all modes. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 448,
+      "name": {
+        "de": "AUX2 (Konfig. 2): Effektparameter 2",
+        "en": "AUX2 (configuration 2): Effect parameter 2"
+      },
+      "help": {
+        "de": "Modusabhängiger Zusatzparameter, beispielsweise Servo-Endposition B. Zusammen mit Ausgangseffekt und Anschlussvariante lesen. ESU Kap. 12.5.",
+        "en": "Mode-dependent parameter, such as servo endpoint B. Interpret with output effect and hardware variant. ESU section 12.5."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    {
+      "cv": 257,
+      "name": {
+        "de": "Mapping-Bedingung A: Fahrzustand, Richtung, F0/F1",
+        "en": "Mapping condition A: running state, direction, F0/F1"
+      },
+      "help": {
+        "de": "Bits 0/1: Fahrt/Stand; 2/3: vorwärts/rückwärts; 4/5: F0 ein/aus; 6/7: F1 ein/aus als Bedingungen. Null gesetzte Bits bedeuten keine Anforderung. Zusammen mit den übrigen Feldern derselben Mappingzeile lesen.",
+        "en": "Bits 0/1: moving/stopped; 2/3: forward/reverse; 4/5: F0 on/off; 6/7: F1 on/off requirements. No bits set means no requirement. Interpret with the other fields of the same mapping row."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 3,
+      "cvEnd": 497,
+      "cvStride": 16,
+      "indexCV32End": 6
+    },
+    {
+      "cv": 258,
+      "name": {
+        "de": "Mapping-Bedingung B: F2–F5",
+        "en": "Mapping condition B: F2–F5"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 3,
+      "cvEnd": 498,
+      "cvStride": 16,
+      "indexCV32End": 6
+    },
+    {
+      "cv": 259,
+      "name": {
+        "de": "Mapping-Bedingung C: F6–F9",
+        "en": "Mapping condition C: F6–F9"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 3,
+      "cvEnd": 499,
+      "cvStride": 16,
+      "indexCV32End": 6
+    },
+    {
+      "cv": 260,
+      "name": {
+        "de": "Mapping-Bedingung D: F10–F13",
+        "en": "Mapping condition D: F10–F13"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 3,
+      "cvEnd": 500,
+      "cvStride": 16,
+      "indexCV32End": 6
+    },
+    {
+      "cv": 261,
+      "name": {
+        "de": "Mapping-Bedingung E: F14–F17",
+        "en": "Mapping condition E: F14–F17"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 3,
+      "cvEnd": 501,
+      "cvStride": 16,
+      "indexCV32End": 6
+    },
+    {
+      "cv": 262,
+      "name": {
+        "de": "Mapping-Bedingung F: F18–F21",
+        "en": "Mapping condition F: F18–F21"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 3,
+      "cvEnd": 502,
+      "cvStride": 16,
+      "indexCV32End": 6
+    },
+    {
+      "cv": 264,
+      "name": {
+        "de": "Mapping-Bedingung H: F26–F29",
+        "en": "Mapping condition H: F26–F29"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 3,
+      "cvEnd": 504,
+      "cvStride": 16,
+      "indexCV32End": 6
+    },
+    {
+      "cv": 265,
+      "name": {
+        "de": "Mapping-Bedingung I: F30/F31 und Radsensor",
+        "en": "Mapping condition I: F30/F31 and wheel sensor"
+      },
+      "help": {
+        "de": "Bitpaare formulieren erforderliche Zustände; 0 bedeutet keine gesetzte Anforderung. Mehrere Felder derselben Mappingzeile gemeinsam prüfen; kein direkter Funktionsname.",
+        "en": "Bit pairs encode required states; 0 means no requirement set. Interpret fields of the same mapping row together; this is not a vehicle function name."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 3,
+      "cvEnd": 505,
+      "cvStride": 16,
+      "indexCV32End": 6
+    },
+    {
+      "cv": 266,
+      "name": {
+        "de": "Mapping-Bedingung J: Sensoreingänge",
+        "en": "Mapping condition J: sensor inputs"
+      },
+      "help": {
+        "de": "Bitpaare formulieren erforderliche Zustände; 0 bedeutet keine gesetzte Anforderung. Mehrere Felder derselben Mappingzeile gemeinsam prüfen; kein direkter Funktionsname.",
+        "en": "Bit pairs encode required states; 0 means no requirement set. Interpret fields of the same mapping row together; this is not a vehicle function name."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 3,
+      "cvEnd": 506,
+      "cvStride": 16,
+      "indexCV32End": 6
+    },
+    {
+      "cv": 279,
+      "name": {
+        "de": "Mapping-Bedingung G: F22–F25",
+        "en": "Mapping condition G: F22–F25"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen. Die widersprüchliche erste G-Adresse der Handbuchtabelle bleibt offen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together. The conflicting first G address in the manual table remains unassigned."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 3,
+      "cvEnd": 503,
+      "cvStride": 16,
+      "indexCV32End": 6
+    },
+    {
+      "cv": 257,
+      "name": {
+        "de": "Mapping-Bedingung A: Fahrzustand, Richtung, F0/F1",
+        "en": "Mapping condition A: running state, direction, F0/F1"
+      },
+      "help": {
+        "de": "Bits 0/1: Fahrt/Stand; 2/3: vorwärts/rückwärts; 4/5: F0 ein/aus; 6/7: F1 ein/aus als Bedingungen. Null gesetzte Bits bedeuten keine Anforderung. Zusammen mit den übrigen Feldern derselben Mappingzeile lesen.",
+        "en": "Bits 0/1: moving/stopped; 2/3: forward/reverse; 4/5: F0 on/off; 6/7: F1 on/off requirements. No bits set means no requirement. Interpret with the other fields of the same mapping row."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 7,
+      "cvEnd": 369,
+      "cvStride": 16
+    },
+    {
+      "cv": 258,
+      "name": {
+        "de": "Mapping-Bedingung B: F2–F5",
+        "en": "Mapping condition B: F2–F5"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 7,
+      "cvEnd": 370,
+      "cvStride": 16
+    },
+    {
+      "cv": 259,
+      "name": {
+        "de": "Mapping-Bedingung C: F6–F9",
+        "en": "Mapping condition C: F6–F9"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 7,
+      "cvEnd": 371,
+      "cvStride": 16
+    },
+    {
+      "cv": 260,
+      "name": {
+        "de": "Mapping-Bedingung D: F10–F13",
+        "en": "Mapping condition D: F10–F13"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 7,
+      "cvEnd": 372,
+      "cvStride": 16
+    },
+    {
+      "cv": 261,
+      "name": {
+        "de": "Mapping-Bedingung E: F14–F17",
+        "en": "Mapping condition E: F14–F17"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 7,
+      "cvEnd": 373,
+      "cvStride": 16
+    },
+    {
+      "cv": 262,
+      "name": {
+        "de": "Mapping-Bedingung F: F18–F21",
+        "en": "Mapping condition F: F18–F21"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 7,
+      "cvEnd": 374,
+      "cvStride": 16
+    },
+    {
+      "cv": 264,
+      "name": {
+        "de": "Mapping-Bedingung H: F26–F29",
+        "en": "Mapping condition H: F26–F29"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 7,
+      "cvEnd": 376,
+      "cvStride": 16
+    },
+    {
+      "cv": 265,
+      "name": {
+        "de": "Mapping-Bedingung I: F30/F31 und Radsensor",
+        "en": "Mapping condition I: F30/F31 and wheel sensor"
+      },
+      "help": {
+        "de": "Bitpaare formulieren erforderliche Zustände; 0 bedeutet keine gesetzte Anforderung. Mehrere Felder derselben Mappingzeile gemeinsam prüfen; kein direkter Funktionsname.",
+        "en": "Bit pairs encode required states; 0 means no requirement set. Interpret fields of the same mapping row together; this is not a vehicle function name."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 7,
+      "cvEnd": 377,
+      "cvStride": 16
+    },
+    {
+      "cv": 266,
+      "name": {
+        "de": "Mapping-Bedingung J: Sensoreingänge",
+        "en": "Mapping condition J: sensor inputs"
+      },
+      "help": {
+        "de": "Bitpaare formulieren erforderliche Zustände; 0 bedeutet keine gesetzte Anforderung. Mehrere Felder derselben Mappingzeile gemeinsam prüfen; kein direkter Funktionsname.",
+        "en": "Bit pairs encode required states; 0 means no requirement set. Interpret fields of the same mapping row together; this is not a vehicle function name."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 7,
+      "cvEnd": 378,
+      "cvStride": 16
+    },
+    {
+      "cv": 279,
+      "name": {
+        "de": "Mapping-Bedingung G: F22–F25",
+        "en": "Mapping condition G: F22–F25"
+      },
+      "help": {
+        "de": "Je Funktion ein Bitpaar: das erste Bit verlangt „ein“, das zweite „aus“. 0 bedeutet keine Anforderung. Felder derselben Mappingzeile gemeinsam prüfen. Die widersprüchliche erste G-Adresse der Handbuchtabelle bleibt offen.",
+        "en": "Each function uses a bit pair: the first requires on, the second off. 0 means no requirement. Interpret fields of the same mapping row together. The conflicting first G address in the manual table remains unassigned."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 7,
+      "cvEnd": 375,
+      "cvStride": 16
+    },
+    {
+      "cv": 257,
+      "name": {
+        "de": "Mapping-Aktion K: Ausgänge Licht/AUX1–AUX6, Konfig. 1",
+        "en": "Mapping action K: light/AUX1–AUX6, configuration 1"
+      },
+      "help": {
+        "de": "Bits 0/1: Licht vorne/hinten; Bits 2–7: AUX1–AUX6. Die verfügbare Hardware und die Fahrzeugverdrahtung bleiben separat zu prüfen.",
+        "en": "Bits 0/1: front/rear light; bits 2–7: AUX1–AUX6. Available hardware and vehicle wiring require separate confirmation."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 8,
+      "cvEnd": 497,
+      "cvStride": 16,
+      "indexCV32End": 11
+    },
+    {
+      "cv": 258,
+      "name": {
+        "de": "Mapping-Aktion L: Ausgänge AUX7–AUX14",
+        "en": "Mapping action L: outputs AUX7–AUX14"
+      },
+      "help": {
+        "de": "Bits 0–7 wählen AUX7–AUX14. Die verfügbare Hardware und die Fahrzeugverdrahtung bleiben separat zu prüfen.",
+        "en": "Bits 0–7 select AUX7–AUX14. Available hardware and vehicle wiring require separate confirmation."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 8,
+      "cvEnd": 498,
+      "cvStride": 16,
+      "indexCV32End": 11
+    },
+    {
+      "cv": 259,
+      "name": {
+        "de": "Mapping-Aktion M: AUX15–AUX18 und Konfiguration 2",
+        "en": "Mapping action M: AUX15–AUX18 and configuration 2"
+      },
+      "help": {
+        "de": "Bits 0–3: AUX15–AUX18; Bits 4–7: Licht vorne/hinten, AUX1/AUX2 in Konfiguration 2. Die verfügbare Hardware und die Fahrzeugverdrahtung bleiben separat zu prüfen.",
+        "en": "Bits 0–3: AUX15–AUX18; bits 4–7: front/rear light and AUX1/AUX2 in configuration 2. Available hardware and vehicle wiring require separate confirmation."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 8,
+      "cvEnd": 499,
+      "cvStride": 16,
+      "indexCV32End": 11
+    },
+    {
+      "cv": 260,
+      "name": {
+        "de": "Mapping-Aktion N: Last, Rangieren, Bremsen und Entkuppeln",
+        "en": "Mapping action N: load, shunting, braking and uncoupling"
+      },
+      "help": {
+        "de": "Bits 0–7: Alternative Last, Rangiergang, Bremsfunktion 1/2/3, Schwere Last, Entkuppelzyklus, Drive Hold. Die verfügbare Hardware und die Fahrzeugverdrahtung bleiben separat zu prüfen.",
+        "en": "Bits 0–7: Alternative Load, shunting, brake function 1/2/3, Heavy Load, uncoupling cycle, Drive Hold. Available hardware and vehicle wiring require separate confirmation."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 8,
+      "cvEnd": 500,
+      "cvStride": 16,
+      "indexCV32End": 11
+    },
+    {
+      "cv": 261,
+      "name": {
+        "de": "Mapping-Aktion O: Feuerbüchse, Dimmer und weitere Logik",
+        "en": "Mapping action O: firebox, dimmer and other logic"
+      },
+      "help": {
+        "de": "Bits 0–3: Feuerbüchse, Dimmer, Grade Crossing, Beschleunigungs-/Bremszeit aus. Bits 4–7 sind in dieser Quelle reserviert. Die verfügbare Hardware und die Fahrzeugverdrahtung bleiben separat zu prüfen.",
+        "en": "Bits 0–3: firebox, dimmer, grade crossing, acceleration/deceleration off. Bits 4–7 are reserved in this source. Available hardware and vehicle wiring require separate confirmation."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 8,
+      "cvEnd": 501,
+      "cvStride": 16,
+      "indexCV32End": 11
+    },
+    {
+      "cv": 263,
+      "cvEnd": 503,
+      "cvStride": 16,
+      "indexCV31": 16,
+      "indexCV32": 8,
+      "name": {
+        "de": "Mapping-Aktion Q: Virtueller Fahrsound",
+        "en": "Mapping action Q: virtual driving sound"
+      },
+      "help": {
+        "de": "Bit 0 schaltet den virtuellen Fahrsoundzustand und damit die zugehörige Anfahrverzögerung CV252. Es belegt keinen eingebauten Sounddecoder.",
+        "en": "Bit 0 switches virtual driving sound state and its associated start delay in CV252. It does not establish an installed sound decoder."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 279,
+      "cvEnd": 503,
+      "cvStride": 16,
+      "indexCV31": 16,
+      "indexCV32": 9,
+      "name": {
+        "de": "Mapping-Aktion Q: Virtueller Fahrsound",
+        "en": "Mapping action Q: virtual driving sound"
+      },
+      "help": {
+        "de": "Bit 0 schaltet den virtuellen Fahrsoundzustand und damit die zugehörige Anfahrverzögerung CV252. Es belegt keinen eingebauten Sounddecoder.",
+        "en": "Bit 0 switches virtual driving sound state and its associated start delay in CV252. It does not establish an installed sound decoder."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV32End": 11
+    },
+    {
+      "cv": 257,
+      "name": {
+        "de": "Mapping-Aktion K: Ausgänge Licht/AUX1–AUX6, Konfig. 1",
+        "en": "Mapping action K: light/AUX1–AUX6, configuration 1"
+      },
+      "help": {
+        "de": "Bits 0/1: Licht vorne/hinten; Bits 2–7: AUX1–AUX6. Die verfügbare Hardware und die Fahrzeugverdrahtung bleiben separat zu prüfen.",
+        "en": "Bits 0/1: front/rear light; bits 2–7: AUX1–AUX6. Available hardware and vehicle wiring require separate confirmation."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 12,
+      "cvEnd": 369,
+      "cvStride": 16
+    },
+    {
+      "cv": 258,
+      "name": {
+        "de": "Mapping-Aktion L: Ausgänge AUX7–AUX14",
+        "en": "Mapping action L: outputs AUX7–AUX14"
+      },
+      "help": {
+        "de": "Bits 0–7 wählen AUX7–AUX14. Die verfügbare Hardware und die Fahrzeugverdrahtung bleiben separat zu prüfen.",
+        "en": "Bits 0–7 select AUX7–AUX14. Available hardware and vehicle wiring require separate confirmation."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 12,
+      "cvEnd": 370,
+      "cvStride": 16
+    },
+    {
+      "cv": 259,
+      "name": {
+        "de": "Mapping-Aktion M: AUX15–AUX18 und Konfiguration 2",
+        "en": "Mapping action M: AUX15–AUX18 and configuration 2"
+      },
+      "help": {
+        "de": "Bits 0–3: AUX15–AUX18; Bits 4–7: Licht vorne/hinten, AUX1/AUX2 in Konfiguration 2. Die verfügbare Hardware und die Fahrzeugverdrahtung bleiben separat zu prüfen.",
+        "en": "Bits 0–3: AUX15–AUX18; bits 4–7: front/rear light and AUX1/AUX2 in configuration 2. Available hardware and vehicle wiring require separate confirmation."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 12,
+      "cvEnd": 371,
+      "cvStride": 16
+    },
+    {
+      "cv": 260,
+      "name": {
+        "de": "Mapping-Aktion N: Last, Rangieren, Bremsen und Entkuppeln",
+        "en": "Mapping action N: load, shunting, braking and uncoupling"
+      },
+      "help": {
+        "de": "Bits 0–7: Alternative Last, Rangiergang, Bremsfunktion 1/2/3, Schwere Last, Entkuppelzyklus, Drive Hold. Die verfügbare Hardware und die Fahrzeugverdrahtung bleiben separat zu prüfen.",
+        "en": "Bits 0–7: Alternative Load, shunting, brake function 1/2/3, Heavy Load, uncoupling cycle, Drive Hold. Available hardware and vehicle wiring require separate confirmation."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 12,
+      "cvEnd": 372,
+      "cvStride": 16
+    },
+    {
+      "cv": 261,
+      "name": {
+        "de": "Mapping-Aktion O: Feuerbüchse, Dimmer und weitere Logik",
+        "en": "Mapping action O: firebox, dimmer and other logic"
+      },
+      "help": {
+        "de": "Bits 0–3: Feuerbüchse, Dimmer, Grade Crossing, Beschleunigungs-/Bremszeit aus. Bits 4–7 sind in dieser Quelle reserviert. Die verfügbare Hardware und die Fahrzeugverdrahtung bleiben separat zu prüfen.",
+        "en": "Bits 0–3: firebox, dimmer, grade crossing, acceleration/deceleration off. Bits 4–7 are reserved in this source. Available hardware and vehicle wiring require separate confirmation."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 12,
+      "cvEnd": 373,
+      "cvStride": 16
+    },
+    {
+      "cv": 279,
+      "cvEnd": 375,
+      "cvStride": 16,
+      "indexCV31": 16,
+      "indexCV32": 12,
+      "name": {
+        "de": "Mapping-Aktion Q: Virtueller Fahrsound",
+        "en": "Mapping action Q: virtual driving sound"
+      },
+      "help": {
+        "de": "Bit 0 schaltet den virtuellen Fahrsoundzustand und damit die zugehörige Anfahrverzögerung CV252. Es belegt keinen eingebauten Sounddecoder.",
+        "en": "Bit 0 switches virtual driving sound state and its associated start delay in CV252. It does not establish an installed sound decoder."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 257,
+      "name": {
+        "de": "Zufallsfunktion 1: Taste und Bedingungen",
+        "en": "Random function 1: key and conditions"
+      },
+      "help": {
+        "de": "Bits 0–4 wählen F0–F31; Bit 5 verlangt virtuellen Fahrsound, Bit 6 erlaubt Auslösen im Stand und Bit 7 bei Fahrt (Kap. 14).",
+        "en": "Bits 0–4 select F0–F31; bit 5 requires virtual driving sound, bit 6 permits triggering while stopped and bit 7 while moving (section 13)."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13,
+      "bits": [
+        {
+          "bit": 5,
+          "name": {
+            "de": "Nur mit virtuellem Fahrsound",
+            "en": "Require virtual driving sound"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Auslösen im Stand",
+            "en": "Trigger while stopped"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Auslösen bei Fahrt",
+            "en": "Trigger while moving"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 258,
+      "name": {
+        "de": "Zufallsfunktion 1: minimale Einschaltzeit",
+        "en": "Random function 1: minimum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 259,
+      "name": {
+        "de": "Zufallsfunktion 1: maximale Einschaltzeit",
+        "en": "Random function 1: maximum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 260,
+      "name": {
+        "de": "Zufallsfunktion 1: minimale Pause",
+        "en": "Random function 1: minimum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 261,
+      "name": {
+        "de": "Zufallsfunktion 1: maximale Pause",
+        "en": "Random function 1: maximum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 265,
+      "name": {
+        "de": "Zufallsfunktion 2: Taste und Bedingungen",
+        "en": "Random function 2: key and conditions"
+      },
+      "help": {
+        "de": "Bits 0–4 wählen F0–F31; Bit 5 verlangt virtuellen Fahrsound, Bit 6 erlaubt Auslösen im Stand und Bit 7 bei Fahrt (Kap. 14).",
+        "en": "Bits 0–4 select F0–F31; bit 5 requires virtual driving sound, bit 6 permits triggering while stopped and bit 7 while moving (section 13)."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13,
+      "bits": [
+        {
+          "bit": 5,
+          "name": {
+            "de": "Nur mit virtuellem Fahrsound",
+            "en": "Require virtual driving sound"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Auslösen im Stand",
+            "en": "Trigger while stopped"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Auslösen bei Fahrt",
+            "en": "Trigger while moving"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 266,
+      "name": {
+        "de": "Zufallsfunktion 2: minimale Einschaltzeit",
+        "en": "Random function 2: minimum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 267,
+      "name": {
+        "de": "Zufallsfunktion 2: maximale Einschaltzeit",
+        "en": "Random function 2: maximum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 268,
+      "name": {
+        "de": "Zufallsfunktion 2: minimale Pause",
+        "en": "Random function 2: minimum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 269,
+      "name": {
+        "de": "Zufallsfunktion 2: maximale Pause",
+        "en": "Random function 2: maximum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 273,
+      "name": {
+        "de": "Zufallsfunktion 3: Taste und Bedingungen",
+        "en": "Random function 3: key and conditions"
+      },
+      "help": {
+        "de": "Bits 0–4 wählen F0–F31; Bit 5 verlangt virtuellen Fahrsound, Bit 6 erlaubt Auslösen im Stand und Bit 7 bei Fahrt (Kap. 14).",
+        "en": "Bits 0–4 select F0–F31; bit 5 requires virtual driving sound, bit 6 permits triggering while stopped and bit 7 while moving (section 13)."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13,
+      "bits": [
+        {
+          "bit": 5,
+          "name": {
+            "de": "Nur mit virtuellem Fahrsound",
+            "en": "Require virtual driving sound"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Auslösen im Stand",
+            "en": "Trigger while stopped"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Auslösen bei Fahrt",
+            "en": "Trigger while moving"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 274,
+      "name": {
+        "de": "Zufallsfunktion 3: minimale Einschaltzeit",
+        "en": "Random function 3: minimum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 275,
+      "name": {
+        "de": "Zufallsfunktion 3: maximale Einschaltzeit",
+        "en": "Random function 3: maximum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 276,
+      "name": {
+        "de": "Zufallsfunktion 3: minimale Pause",
+        "en": "Random function 3: minimum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 277,
+      "name": {
+        "de": "Zufallsfunktion 3: maximale Pause",
+        "en": "Random function 3: maximum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 281,
+      "name": {
+        "de": "Zufallsfunktion 4: Taste und Bedingungen",
+        "en": "Random function 4: key and conditions"
+      },
+      "help": {
+        "de": "Bits 0–4 wählen F0–F31; Bit 5 verlangt virtuellen Fahrsound, Bit 6 erlaubt Auslösen im Stand und Bit 7 bei Fahrt (Kap. 14).",
+        "en": "Bits 0–4 select F0–F31; bit 5 requires virtual driving sound, bit 6 permits triggering while stopped and bit 7 while moving (section 13)."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13,
+      "bits": [
+        {
+          "bit": 5,
+          "name": {
+            "de": "Nur mit virtuellem Fahrsound",
+            "en": "Require virtual driving sound"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Auslösen im Stand",
+            "en": "Trigger while stopped"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Auslösen bei Fahrt",
+            "en": "Trigger while moving"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 282,
+      "name": {
+        "de": "Zufallsfunktion 4: minimale Einschaltzeit",
+        "en": "Random function 4: minimum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 283,
+      "name": {
+        "de": "Zufallsfunktion 4: maximale Einschaltzeit",
+        "en": "Random function 4: maximum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 284,
+      "name": {
+        "de": "Zufallsfunktion 4: minimale Pause",
+        "en": "Random function 4: minimum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 285,
+      "name": {
+        "de": "Zufallsfunktion 4: maximale Pause",
+        "en": "Random function 4: maximum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 289,
+      "name": {
+        "de": "Zufallsfunktion 5: Taste und Bedingungen",
+        "en": "Random function 5: key and conditions"
+      },
+      "help": {
+        "de": "Bits 0–4 wählen F0–F31; Bit 5 verlangt virtuellen Fahrsound, Bit 6 erlaubt Auslösen im Stand und Bit 7 bei Fahrt (Kap. 14).",
+        "en": "Bits 0–4 select F0–F31; bit 5 requires virtual driving sound, bit 6 permits triggering while stopped and bit 7 while moving (section 13)."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13,
+      "bits": [
+        {
+          "bit": 5,
+          "name": {
+            "de": "Nur mit virtuellem Fahrsound",
+            "en": "Require virtual driving sound"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Auslösen im Stand",
+            "en": "Trigger while stopped"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Auslösen bei Fahrt",
+            "en": "Trigger while moving"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 290,
+      "name": {
+        "de": "Zufallsfunktion 5: minimale Einschaltzeit",
+        "en": "Random function 5: minimum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 291,
+      "name": {
+        "de": "Zufallsfunktion 5: maximale Einschaltzeit",
+        "en": "Random function 5: maximum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 292,
+      "name": {
+        "de": "Zufallsfunktion 5: minimale Pause",
+        "en": "Random function 5: minimum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 293,
+      "name": {
+        "de": "Zufallsfunktion 5: maximale Pause",
+        "en": "Random function 5: maximum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 297,
+      "name": {
+        "de": "Zufallsfunktion 6: Taste und Bedingungen",
+        "en": "Random function 6: key and conditions"
+      },
+      "help": {
+        "de": "Bits 0–4 wählen F0–F31; Bit 5 verlangt virtuellen Fahrsound, Bit 6 erlaubt Auslösen im Stand und Bit 7 bei Fahrt (Kap. 14).",
+        "en": "Bits 0–4 select F0–F31; bit 5 requires virtual driving sound, bit 6 permits triggering while stopped and bit 7 while moving (section 13)."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13,
+      "bits": [
+        {
+          "bit": 5,
+          "name": {
+            "de": "Nur mit virtuellem Fahrsound",
+            "en": "Require virtual driving sound"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Auslösen im Stand",
+            "en": "Trigger while stopped"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Auslösen bei Fahrt",
+            "en": "Trigger while moving"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 298,
+      "name": {
+        "de": "Zufallsfunktion 6: minimale Einschaltzeit",
+        "en": "Random function 6: minimum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 299,
+      "name": {
+        "de": "Zufallsfunktion 6: maximale Einschaltzeit",
+        "en": "Random function 6: maximum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 300,
+      "name": {
+        "de": "Zufallsfunktion 6: minimale Pause",
+        "en": "Random function 6: minimum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 301,
+      "name": {
+        "de": "Zufallsfunktion 6: maximale Pause",
+        "en": "Random function 6: maximum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 305,
+      "name": {
+        "de": "Zufallsfunktion 7: Taste und Bedingungen",
+        "en": "Random function 7: key and conditions"
+      },
+      "help": {
+        "de": "Bits 0–4 wählen F0–F31; Bit 5 verlangt virtuellen Fahrsound, Bit 6 erlaubt Auslösen im Stand und Bit 7 bei Fahrt (Kap. 14).",
+        "en": "Bits 0–4 select F0–F31; bit 5 requires virtual driving sound, bit 6 permits triggering while stopped and bit 7 while moving (section 13)."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13,
+      "bits": [
+        {
+          "bit": 5,
+          "name": {
+            "de": "Nur mit virtuellem Fahrsound",
+            "en": "Require virtual driving sound"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Auslösen im Stand",
+            "en": "Trigger while stopped"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Auslösen bei Fahrt",
+            "en": "Trigger while moving"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 306,
+      "name": {
+        "de": "Zufallsfunktion 7: minimale Einschaltzeit",
+        "en": "Random function 7: minimum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 307,
+      "name": {
+        "de": "Zufallsfunktion 7: maximale Einschaltzeit",
+        "en": "Random function 7: maximum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 308,
+      "name": {
+        "de": "Zufallsfunktion 7: minimale Pause",
+        "en": "Random function 7: minimum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 309,
+      "name": {
+        "de": "Zufallsfunktion 7: maximale Pause",
+        "en": "Random function 7: maximum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 313,
+      "name": {
+        "de": "Zufallsfunktion 8: Taste und Bedingungen",
+        "en": "Random function 8: key and conditions"
+      },
+      "help": {
+        "de": "Bits 0–4 wählen F0–F31; Bit 5 verlangt virtuellen Fahrsound, Bit 6 erlaubt Auslösen im Stand und Bit 7 bei Fahrt (Kap. 14).",
+        "en": "Bits 0–4 select F0–F31; bit 5 requires virtual driving sound, bit 6 permits triggering while stopped and bit 7 while moving (section 13)."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13,
+      "bits": [
+        {
+          "bit": 5,
+          "name": {
+            "de": "Nur mit virtuellem Fahrsound",
+            "en": "Require virtual driving sound"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Auslösen im Stand",
+            "en": "Trigger while stopped"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Auslösen bei Fahrt",
+            "en": "Trigger while moving"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 314,
+      "name": {
+        "de": "Zufallsfunktion 8: minimale Einschaltzeit",
+        "en": "Random function 8: minimum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 315,
+      "name": {
+        "de": "Zufallsfunktion 8: maximale Einschaltzeit",
+        "en": "Random function 8: maximum on-time"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 316,
+      "name": {
+        "de": "Zufallsfunktion 8: minimale Pause",
+        "en": "Random function 8: minimum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    {
+      "cv": 317,
+      "name": {
+        "de": "Zufallsfunktion 8: maximale Pause",
+        "en": "Random function 8: maximum pause"
+      },
+      "help": {
+        "de": "Zeit in Sekunden. Zusammen mit der zugehörigen unteren/oberen Grenze und der Konfigurations-CV beurteilen.",
+        "en": "Time in seconds. Interpret with the corresponding lower/upper bound and the configuration CV."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "indexCV31": 16,
+      "indexCV32": 13
+    }
+  ],
+  "rules": {
+    "abc": {
+      "cv": 27,
+      "mask": 3
+    },
+    "dcAnalog": {
+      "cv": 50,
+      "mask": 2
+    },
+    "constantBrake": {
+      "forwardCV": 254,
+      "reverseCV": 255,
+      "enableCV": 254
+    }
+  },
+  "mapping": {
+    "rows": 72,
+    "rowsPerPage": 16,
+    "stride": 16,
+    "startCV": 257,
+    "indexCV31": 16,
+    "conditionPage": 3,
+    "actionPage": 8
+  }
+}

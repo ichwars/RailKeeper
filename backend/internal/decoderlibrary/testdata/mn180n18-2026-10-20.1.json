@@ -1,0 +1,528 @@
+{
+  "id": "zimo-mn180n18",
+  "name": "ZIMO MN180N18",
+  "nameEn": "ZIMO MN180N18",
+  "revision": "2026-10-20.1",
+  "protocol": "DCC",
+  "kind": "model",
+  "manufacturerId": 145,
+  "family": "MN",
+  "model": "MN180N18",
+  "parentId": "dcc-basics",
+  "aliases": [
+    "MN180N18",
+    "ZIMO MN180N18"
+  ],
+  "familyAliases": [],
+  "sources": [
+    {
+      "title": "ZIMO MS / MN / FS",
+      "url": "https://www.zimo.at/web2010/documents/MS-MN-Decoders_EN.pdf",
+      "version": "2026-05-12",
+      "scope": "Types, CV identification and version registers; chapters 1–3"
+    },
+    {
+      "title": "ZIMO MS-/MN-/FS-Decoder",
+      "url": "https://www.zimo.at/web2010/documents/MS-MN-Decoder.pdf",
+      "version": "2026-07-24",
+      "scope": "Gemeinsame Nicht-Sound-Register für MN180; Sound-, Großbahn- und MX-Sonderfunktionen ausgenommen.",
+      "retrievedAt": "2026-10-20",
+      "sha256": "2e40762b6f4dcd5d761fe1507d70c8b997657b2fbe98d480ce63993f01f5ec43"
+    }
+  ],
+  "definitions": [
+    {
+      "cv": 1,
+      "name": {
+        "de": "Kurze DCC-Adresse",
+        "en": "Short DCC address"
+      },
+      "help": {
+        "de": "Kurze DCC-Adresse.",
+        "en": "Short DCC address."
+      },
+      "topic": "address",
+      "minimum": 1,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 2,
+      "name": {
+        "de": "Anfahrspannung",
+        "en": "Starting voltage"
+      },
+      "help": {
+        "de": "Anfahrspannung.",
+        "en": "Starting voltage."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 3,
+      "name": {
+        "de": "Beschleunigungszeit",
+        "en": "Acceleration time"
+      },
+      "help": {
+        "de": "Beschleunigungszeit.",
+        "en": "Acceleration time."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 2,
+      "unit": {
+        "de": "0,9 s je Wertschritt",
+        "en": "0.9 s per increment"
+      }
+    },
+    {
+      "cv": 4,
+      "name": {
+        "de": "Bremszeit",
+        "en": "Deceleration time"
+      },
+      "help": {
+        "de": "Bremszeit.",
+        "en": "Deceleration time."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 1,
+      "unit": {
+        "de": "0,9 s je Wertschritt",
+        "en": "0.9 s per increment"
+      }
+    },
+    {
+      "cv": 5,
+      "name": {
+        "de": "Höchstgeschwindigkeit",
+        "en": "Maximum speed"
+      },
+      "help": {
+        "de": "Die Werte 0 und 1 haben eine Sonderbedeutung; keine lineare Geschwindigkeitsangabe daraus ableiten.",
+        "en": "Values 0 and 1 have special meanings; do not treat them as a linear speed setting."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 6,
+      "name": {
+        "de": "Mittengeschwindigkeit",
+        "en": "Mid speed"
+      },
+      "help": {
+        "de": "Die Werte 0 und 1 haben eine Sonderbedeutung; keine lineare Geschwindigkeitsangabe daraus ableiten.",
+        "en": "Values 0 and 1 have special meanings; do not treat them as a linear speed setting."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 7,
+      "name": {
+        "de": "Softwareversion, Hauptkennung",
+        "en": "Software version, main identifier"
+      },
+      "help": {
+        "de": "Zusammen mit CV65 erfassen. Der einzelne Wert ist keine vollständige Firmwareangabe.",
+        "en": "Record together with CV65. This single value is not the complete firmware version."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 9,
+      "name": {
+        "de": "Motorabtastung",
+        "en": "Motor sampling"
+      },
+      "help": {
+        "de": "Mehrstelliger Parameter für Gegen-EMK-Abtastung und Motorsteuerung; kein direkter Frequenzwert in Hz.",
+        "en": "Multi-digit back-EMF sampling and motor-control parameter, not a direct frequency in Hz."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 199
+    },
+    {
+      "cv": 12,
+      "name": {
+        "de": "Betriebsartenfreigabe",
+        "en": "Operating-mode enablement"
+      },
+      "help": {
+        "de": "Betriebsartenfreigabe.",
+        "en": "Operating-mode enablement."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 117
+    },
+    {
+      "cv": 17,
+      "name": {
+        "de": "Lange Adresse: höheres Byte",
+        "en": "Long address: high byte"
+      },
+      "help": {
+        "de": "Lange Adresse: höheres Byte.",
+        "en": "Long address: high byte."
+      },
+      "topic": "address",
+      "minimum": 192,
+      "maximum": 231,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 192
+    },
+    {
+      "cv": 18,
+      "name": {
+        "de": "Lange Adresse: niederes Byte",
+        "en": "Long address: low byte"
+      },
+      "help": {
+        "de": "Lange Adresse: niederes Byte.",
+        "en": "Long address: low byte."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 128
+    },
+    {
+      "cv": 19,
+      "name": {
+        "de": "DCC-Verbundadresse",
+        "en": "DCC consist address"
+      },
+      "help": {
+        "de": "DCC-Verbundadresse.",
+        "en": "DCC consist address."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 21,
+      "name": {
+        "de": "Verbundfunktionen F1–F8",
+        "en": "Consist functions F1–F8"
+      },
+      "help": {
+        "de": "Verbundfunktionen F1–F8.",
+        "en": "Consist functions F1–F8."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 22,
+      "name": {
+        "de": "Weitere Verbundfunktionen",
+        "en": "Additional consist functions"
+      },
+      "help": {
+        "de": "Weitere Verbundfunktionen.",
+        "en": "Additional consist functions."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 27,
+      "name": {
+        "de": "Bremsverfahren",
+        "en": "Braking methods"
+      },
+      "help": {
+        "de": "Bremsverfahren.",
+        "en": "Braking methods."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 4,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "ABC rechts",
+            "en": "ABC right"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "ABC links",
+            "en": "ABC left"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "HLU",
+            "en": "HLU"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "DC gegen Fahrtrichtung",
+            "en": "DC opposite direction"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "DC mit Fahrtrichtung",
+            "en": "DC same direction"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 28,
+      "name": {
+        "de": "RailCom-Konfiguration",
+        "en": "RailCom configuration"
+      },
+      "help": {
+        "de": "RailCom-Konfiguration.",
+        "en": "RailCom configuration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 131
+    },
+    {
+      "cv": 29,
+      "name": {
+        "de": "DCC-Konfiguration",
+        "en": "DCC configuration"
+      },
+      "help": {
+        "de": "DCC-Konfiguration.",
+        "en": "DCC configuration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 14
+    },
+    {
+      "cv": 53,
+      "name": {
+        "de": "ABC-Langsamfahrstufe",
+        "en": "ABC slow speed step"
+      },
+      "help": {
+        "de": "ABC-Langsamfahrstufe.",
+        "en": "ABC slow speed step."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 70
+    },
+    {
+      "cv": 65,
+      "name": {
+        "de": "Softwareversion, Ergänzung",
+        "en": "Software version, additional identifier"
+      },
+      "help": {
+        "de": "Ergänzt CV7. Auswertung anhand des jeweiligen ZIMO-Handbuchstands.",
+        "en": "Complements CV7. Interpret using the applicable ZIMO manual revision."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 153,
+      "name": {
+        "de": "Nachlauf ohne Schienensignal",
+        "en": "Run-on without track signal"
+      },
+      "help": {
+        "de": "Nachlauf ohne Schienensignal.",
+        "en": "Run-on without track signal."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29–37, jeweilige CV-Zeile"
+      },
+      "factoryDefault": 100,
+      "unit": {
+        "de": "100 ms je Wertschritt; 0 deaktiviert",
+        "en": "100 ms per increment; 0 disables"
+      }
+    },
+    {
+      "cv": 250,
+      "name": {
+        "de": "Decodertyp",
+        "en": "Decoder base type"
+      },
+      "help": {
+        "de": "Nur lesen: 127 bezeichnet MN180. Die Anschlussvariante wird damit nicht eindeutig bestätigt.",
+        "en": "Read only: 127 identifies MN180. This does not uniquely confirm the interface variant."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    }
+  ],
+  "active": true,
+  "firmwareMin": "4.229",
+  "rules": {
+    "abc": {
+      "cv": 27,
+      "mask": 3
+    }
+  }
+}

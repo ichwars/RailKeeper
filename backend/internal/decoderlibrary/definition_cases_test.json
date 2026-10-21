@@ -1,0 +1,337 @@
+[
+  {
+    "name": "PWM is documented for this model",
+    "row": {
+      "cvNumber": 9,
+      "value": 0
+    },
+    "firmware": "",
+    "meaning": "Motor-PWM"
+  },
+  {
+    "name": "same CV is an output effect on page zero",
+    "row": {
+      "cvNumber": 291,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    "firmware": "",
+    "meaning": "AUX3: Ausgangseffekt"
+  },
+  {
+    "name": "same CV is a mapping condition",
+    "row": {
+      "cvNumber": 291,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "firmware": "",
+    "meaning": "Mapping-Bedingung C"
+  },
+  {
+    "name": "same CV is an output mapping action",
+    "row": {
+      "cvNumber": 291,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 8
+    },
+    "firmware": "",
+    "meaning": "Mapping-Aktion M"
+  },
+  {
+    "name": "same CV is a random-function timer",
+    "row": {
+      "cvNumber": 291,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 13
+    },
+    "firmware": "",
+    "meaning": "Zufallsfunktion 5: maximale Einschaltzeit"
+  },
+  {
+    "name": "manufacturer page remains undocumented",
+    "row": {
+      "cvNumber": 291,
+      "value": 0,
+      "indexCV31": 1,
+      "indexCV32": 1
+    },
+    "firmware": "",
+    "meaning": null
+  },
+  {
+    "name": "conflicting manual number stays unknown",
+    "row": {
+      "cvNumber": 272,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    "firmware": "",
+    "meaning": null
+  },
+  {
+    "name": "manual typo is not copied into a new definition",
+    "row": {
+      "cvNumber": 273,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 0
+    },
+    "firmware": "",
+    "meaning": null
+  },
+  {
+    "name": "mapping stride gap remains unknown",
+    "row": {
+      "cvNumber": 267,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "firmware": "",
+    "meaning": null
+  },
+  {
+    "name": "next mapping row uses the same column",
+    "row": {
+      "cvNumber": 273,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "firmware": "",
+    "meaning": "Mapping-Bedingung A"
+  },
+  {
+    "name": "last documented condition row",
+    "row": {
+      "cvNumber": 377,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 7
+    },
+    "firmware": "",
+    "meaning": "Mapping-Bedingung I"
+  },
+  {
+    "name": "no invented condition row 73",
+    "row": {
+      "cvNumber": 385,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 7
+    },
+    "firmware": "",
+    "meaning": null
+  },
+  {
+    "name": "virtual prime mover is not sound hardware",
+    "row": {
+      "cvNumber": 263,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 8
+    },
+    "firmware": "",
+    "meaning": "Mapping-Aktion Q"
+  },
+  {
+    "name": "last documented virtual prime mover row",
+    "row": {
+      "cvNumber": 375,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 12
+    },
+    "firmware": "",
+    "meaning": "Mapping-Aktion Q"
+  },
+  {
+    "name": "no invented action row 73",
+    "row": {
+      "cvNumber": 391,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 12
+    },
+    "firmware": "",
+    "meaning": null
+  },
+  {
+    "name": "no faded-light interpretation before addition",
+    "row": {
+      "cvNumber": 114,
+      "value": 0
+    },
+    "firmware": "5.3.128",
+    "meaning": null
+  },
+  {
+    "name": "faded light at documented firmware",
+    "row": {
+      "cvNumber": 114,
+      "value": 0
+    },
+    "firmware": "5.4.139",
+    "meaning": "Einblendzeit"
+  },
+  {
+    "name": "SUSI option before addition stays unknown",
+    "row": {
+      "cvNumber": 122,
+      "value": 0
+    },
+    "firmware": "5.4.139",
+    "meaning": null
+  },
+  {
+    "name": "SUSI option at documented firmware",
+    "row": {
+      "cvNumber": 122,
+      "value": 0
+    },
+    "firmware": "5.6.142",
+    "meaning": "Zusätzliche Ausgangsoptionen"
+  },
+  {
+    "name": "class-light count before addition stays unknown",
+    "row": {
+      "cvNumber": 199,
+      "value": 0
+    },
+    "firmware": "5.6.142",
+    "meaning": null
+  },
+  {
+    "name": "class-light count at documented firmware",
+    "row": {
+      "cvNumber": 199,
+      "value": 0
+    },
+    "firmware": "5.8.156",
+    "meaning": "Class-Light"
+  },
+  {
+    "name": "reserved register is labelled without functional meaning",
+    "row": {
+      "cvNumber": 57,
+      "value": 0
+    },
+    "firmware": "5.14.183",
+    "meaning": "Reserviert"
+  },
+  {
+    "name": "first G address conflicts in both manuals",
+    "row": {
+      "cvNumber": 263,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "firmware": "5.14.183",
+    "meaning": null
+  },
+  {
+    "name": "first Q address on later pages conflicts in source",
+    "row": {
+      "cvNumber": 263,
+      "value": 0,
+      "indexCV31": 16,
+      "indexCV32": 9
+    },
+    "firmware": "5.14.183",
+    "meaning": null
+  },
+  {
+    "name": "DCC timeout is unknown before firmware addition",
+    "row": {
+      "cvNumber": 11,
+      "value": 1
+    },
+    "firmware": "5.14.182",
+    "meaning": null
+  },
+  {
+    "name": "DCC timeout at documented firmware",
+    "row": {
+      "cvNumber": 11,
+      "value": 1
+    },
+    "firmware": "5.14.183",
+    "meaning": "fehlendem DCC-Datenempfang"
+  },
+  {
+    "name": "DCC timeout keeps firmware scope when version is missing",
+    "row": {
+      "cvNumber": 11,
+      "value": 1
+    },
+    "firmware": "",
+    "meaning": "fehlendem DCC-Datenempfang"
+  },
+  {
+    "name": "DCC timeout does not interpret indexed copy",
+    "row": {
+      "cvNumber": 11,
+      "value": 1,
+      "indexCV31": 0,
+      "indexCV32": 0
+    },
+    "firmware": "5.14.183",
+    "meaning": null
+  },
+  {
+    "name": "coupler waiting time is documented for LokPilot",
+    "row": {
+      "cvNumber": 245,
+      "value": 0
+    },
+    "firmware": "5.14.183",
+    "meaning": "Wartezeit beim Kupplungswalzer"
+  },
+  {
+    "name": "coupler waiting time does not interpret indexed copy",
+    "row": {
+      "cvNumber": 245,
+      "value": 0,
+      "indexCV31": 0,
+      "indexCV32": 0
+    },
+    "firmware": "5.14.183",
+    "meaning": null
+  },
+  {
+    "name": "reserved base CV does not label an indexed copy",
+    "row": {
+      "cvNumber": 141,
+      "value": 25,
+      "indexCV31": 1,
+      "indexCV32": 1
+    },
+    "firmware": "5.14.183",
+    "meaning": null
+  },
+  {
+    "name": "reserved range ends exactly at CV58",
+    "row": {
+      "cvNumber": 59,
+      "value": 0
+    },
+    "firmware": "5.14.183",
+    "meaning": null
+  },
+  {
+    "name": "LokSound smoke fields stay reserved in LokPilot",
+    "row": {
+      "cvNumber": 143,
+      "value": 100
+    },
+    "firmware": "5.14.183",
+    "meaning": "Reserviert"
+  }
+]

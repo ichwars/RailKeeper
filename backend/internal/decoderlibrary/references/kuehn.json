@@ -1,0 +1,866 @@
+[
+{
+  "id": "cv-gap-kuehn-t",
+  "revision": "2026-10-21.7",
+  "modelIds": [
+    "kuehn-t-t62"
+  ],
+  "title": {
+    "de": "CV-Dokumentation offen: kuehn-t",
+    "en": "CV documentation gap: kuehn-t"
+  },
+  "note": {
+    "de": "T62 mit allen vier Artikeln 82510/82520/82560/82570 nachgeprüft. Originalkatalog 2021 S.90–91 belegt T62 als Überarbeitung des T125 mit zusätzlichen Ausgängen und RailCom; er enthält keine T62-CV-Tabelle und keine Aussage identischer CV-Belegung. Hersteller-Downloadzugriff und weitere Originalkopien ergaben keinen passenden T62-Nachweis. T125-, T65- und N45-Tabellen werden nicht übertragen; Händlerdaten zu Anschlüssen sind kein CV-Nachweis.",
+    "en": "T62 and all four articles 82510/82520/82560/82570 rechecked. Original 2021 catalogue pp.90–91 identifies a T125 redesign with additional outputs and RailCom, but contains no T62 CV table or statement of identical CV mapping. Manufacturer download access and further original-copy research yielded no matching T62 evidence. T125/T65/N45 tables are not transferred; dealer connector data is not CV evidence."
+  },
+  "status": "unavailable",
+  "sources": [
+    {
+      "title": "T62 / Herstellerarchiv",
+      "url": "https://kuehn-digital.de/files/Katalog_2021_web.pdf",
+      "version": "Recherche 20.10.2026",
+      "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": []
+},
+{
+  "id": "cv-ref-kuehn-f060",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "kuehn-functions-f060"
+  ],
+  "title": {
+    "de": "Kühn F060: CV-Referenz",
+    "en": "Kühn F060: CV reference"
+  },
+  "note": {
+    "de": "Offizieller Tabellen- und Detailnachweis. Die Herstellerdomain war lokal nicht erreichbar; die Web-Lesefassung wurde geprüft, deshalb kein vorgetäuschter PDF-Dateihash. Modell- und Softwarebedingungen im Original beachten. Die doppelte CV58 in der Übersicht wird für Ausgang A durch die Detailtabelle auf Seite 9 als CV57 aufgelöst.",
+    "en": "Official table and detailed register evidence, with model/software conditions. Web-readable manufacturer copy reviewed; the PDF could not be downloaded, so no PDF hash is claimed."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Kühn F060 Anleitung",
+      "url": "https://www.kuehn-digital.de/files/F060_de_c.pdf",
+      "version": "Hersteller-Weblesefassung, geprüft 20.10.2026",
+      "scope": "Offizieller Tabellen- und Detailnachweis. Die Herstellerdomain war lokal nicht erreichbar; die Web-Lesefassung wurde geprüft, deshalb kein vorgetäuschter PDF-Dateihash. Modell- und Softwarebedingungen im Original beachten. Die doppelte CV58 in der Übersicht wird für Ausgang A durch die Detailtabelle auf Seite 9 als CV57 aufgelöst.",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":1,"label":"Basisadresse","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":7,"label":"Versionsnummer","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":8,"label":"Herstellerkennung","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":13,"label":"Funktionen im Analogbetrieb","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":17,"label":"Lange Adresse, oberes Byte","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":18,"label":"Lange Adresse, unteres Byte","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":19,"label":"Verbundadresse","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":29,"label":"Konfigurationsregister","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":49,"label":"Lichteffekt Ausgang A","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":50,"label":"Lichteffekt Ausgang B","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":51,"label":"Lichteffekt Ausgang C","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":52,"label":"Lichteffekt Ausgang D","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":53,"label":"Lichteffekt Ausgang E","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":54,"label":"Lichteffekt Ausgang F","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":55,"label":"Effektzyklus / Dimmung","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":56,"label":"Zusatzkonfiguration","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":57,"label":"Funktionszuordnung Ausgang A","page":9,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":58,"label":"Funktionszuordnung Ausgang B","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":59,"label":"Funktionszuordnung Ausgang C","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":60,"label":"Funktionszuordnung Ausgang D","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":61,"label":"Funktionszuordnung Ausgang E","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":62,"label":"Funktionszuordnung Ausgang F","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":63,"label":"Kupplungszeit / Halteleistung","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":105,"label":"Benutzerkennung 1","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":106,"label":"Benutzerkennung 2","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"}
+  ]
+},
+{
+  "id": "cv-ref-kuehn-n025",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "kuehn-n-n025"
+  ],
+  "title": {
+    "de": "Kühn N025: CV-Referenz",
+    "en": "Kühn N025: CV reference"
+  },
+  "note": {
+    "de": "Offizieller Tabellen- und Detailnachweis. Die Herstellerdomain war lokal nicht erreichbar; die Web-Lesefassung wurde geprüft, deshalb kein vorgetäuschter PDF-Dateihash. Modell- und Softwarebedingungen im Original beachten.",
+    "en": "Official table and detailed register evidence, with model/software conditions. Web-readable manufacturer copy reviewed; the PDF could not be downloaded, so no PDF hash is claimed."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Kühn N025 Anleitung",
+      "url": "https://www.kuehn-digital.de/files/N025_de_h.pdf",
+      "version": "Hersteller-Weblesefassung, geprüft 20.10.2026",
+      "scope": "Offizieller Tabellen- und Detailnachweis. Die Herstellerdomain war lokal nicht erreichbar; die Web-Lesefassung wurde geprüft, deshalb kein vorgetäuschter PDF-Dateihash. Modell- und Softwarebedingungen im Original beachten.",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":1,"label":"Basisadresse","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":2,"label":"Startspannung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":3,"label":"Beschleunigungsrate","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":4,"label":"Verzögerungsrate","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":5,"label":"Maximalspannung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":6,"label":"Mittelspannung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":7,"label":"Versionsnummer","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":8,"label":"Herstellerkennung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":9,"label":"Motorfrequenz","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":17,"label":"Lange Adresse, oberes Byte","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":18,"label":"Lange Adresse, unteres Byte","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":19,"label":"Verbundadresse","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":29,"label":"Konfigurationsregister","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":49,"label":"Lichteffekt Ausgang A","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":50,"label":"Lichteffekt Ausgang B","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":53,"label":"Lastregelung I-Anteil","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":54,"label":"Lastregelung P-Anteil","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":55,"label":"Effektzyklus / Dimmung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":56,"label":"Zusatzkonfiguration","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":58,"label":"Funktionszuordnung Ausgang B","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":67,"label":"Geschwindigkeitstabelle","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","cvEnd":94},
+    {"cv":95,"label":"Rückwärtstrimmung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":105,"label":"Benutzerkennung 1","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":106,"label":"Benutzerkennung 2","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"}
+  ]
+},
+{
+  "id": "cv-ref-kuehn-n45",
+  "revision": "2026-10-20.2",
+  "modelIds": [
+    "kuehn-n-n45"
+  ],
+  "title": {
+    "de": "Kühn N45: geprüfte CV-Tabelle",
+    "en": "Kühn N45: reviewed CV table"
+  },
+  "note": {
+    "de": "N45/N45-P/N45-P8: geprüfte Abschnitte4.3/4.4. CV55 und60–63 ergänzt. Die Detailtabelle belegt C/D als CV51/52 trotz wiederholter CV49 in der Übersicht. CV112-Bereich0–31 widerspricht dem ausdrücklich beschriebenen Bit5/Wert32; keine ungeprüfte Korrektur der Originalbereichsangabe. Keine vollständige Firmware- oder Next18-Abdeckung. Hersteller-Weblesefassung, PDF nicht abrufbar; kein Dateihash.",
+    "en": "N45/N45-P/N45-P8: reviewed sections4.3/4.4, adding CV55 and60–63. Details confirm C/D as CV51/52 despite repeated CV49 overview entries. The CV112 overview range0–31 conflicts with the documented bit5/value32; the original range is retained. Not full firmware or Next18 coverage. Manufacturer web-readable text; PDF unavailable, no file hash."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Kühn N45 Betriebsanleitung",
+      "url": "https://www.kuehn-digital.de/files/N45_de_b.pdf",
+      "version": "Revision b, Abschnitt 4.3/4.4",
+      "scope": "CV-Liste S.10–12; Registerdetails S.12–21. Next18-Erweiterung nicht aus dieser Anleitung abgeleitet.",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {
+      "cv": 1,
+      "label": "Kurze DCC-Adresse",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "1–127",
+      "factoryValue": "3"
+    },
+    {
+      "cv": 2,
+      "label": "Anfahrspannung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "3"
+    },
+    {
+      "cv": 3,
+      "label": "Beschleunigungsrate",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–63",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 4,
+      "label": "Bremsrate",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–63",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 5,
+      "label": "Maximalspannung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 6,
+      "label": "Mittelspannung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 7,
+      "label": "Software-Hauptkennung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255"
+    },
+    {
+      "cv": 8,
+      "label": "Herstellerkennung / Reset",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "157"
+    },
+    {
+      "cv": 9,
+      "label": "Motorfrequenzauswahl",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–2",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 13,
+      "label": "Analogfunktionen F1–F8",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255"
+    },
+    {
+      "cv": 14,
+      "label": "Analogfunktionen F9–F12",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255"
+    },
+    {
+      "cv": 17,
+      "label": "Lange Adresse: höheres Byte",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "192–231",
+      "factoryValue": "192"
+    },
+    {
+      "cv": 18,
+      "label": "Lange Adresse: niederes Byte",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 19,
+      "label": "Verbundadresse",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 27,
+      "label": "Bremserkennung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–63",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 28,
+      "label": "RailCom-Konfiguration",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–7",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 29,
+      "label": "DCC-Konfiguration",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–63",
+      "factoryValue": "14"
+    },
+    {
+      "cv": 33,
+      "label": "Ausgangszuordnung F0 vorwärts",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "1"
+    },
+    {
+      "cv": 34,
+      "label": "Ausgangszuordnung F0 rückwärts",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 35,
+      "label": "Ausgangszuordnung F1",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "4"
+    },
+    {
+      "cv": 36,
+      "label": "Ausgangszuordnung F2",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "8"
+    },
+    {
+      "cv": 37,
+      "label": "Ausgangszuordnung F3",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 38,
+      "label": "Ausgangszuordnung F4",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 39,
+      "label": "Ausgangszuordnung F5",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 40,
+      "label": "Ausgangszuordnung F6",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "4"
+    },
+    {
+      "cv": 41,
+      "label": "Ausgangszuordnung F7",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 42,
+      "label": "Ausgangszuordnung F8",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 43,
+      "label": "Ausgangszuordnung F9",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 44,
+      "label": "Ausgangszuordnung F10",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 45,
+      "label": "Ausgangszuordnung F11",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 46,
+      "label": "Ausgangszuordnung F12",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 47,
+      "label": "Ausgang E: Lichteffekt",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 48,
+      "label": "Ausgang F: Lichteffekt",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 49,
+      "label": "Ausgang A: Lichteffekt",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 50,
+      "label": "Ausgang B: Lichteffekt",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 51,
+      "label": "Ausgang C: Lichteffekt",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 52,
+      "label": "Ausgang D: Lichteffekt",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 53,
+      "label": "Motorregler: I-Anteil",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "1–63",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 54,
+      "label": "Motorregler: P-Anteil",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "2–63",
+      "factoryValue": "16"
+    },
+    {
+      "cv": 55,
+      "label": "Effekttakt / Abblend-Dimmwert",
+      "valueRange": "Zehner0–9 / Einer0–9",
+      "factoryValue": "0",
+      "page": 11,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model"
+    },
+    {
+      "cv": 56,
+      "label": "Decoderkonfiguration 1",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–31",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 57,
+      "label": "Rangierlicht-Ausgänge",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–127",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 58,
+      "label": "Funktionstasten für Rangiergang und ABV",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "72"
+    },
+    {
+      "cv": 59,
+      "label": "Funktionstasten für Abblendlicht",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 60,
+      "label": "Dimmwert Ausgang B/A",
+      "valueRange": "Zehner0–9 / Einer0–9",
+      "factoryValue": "0",
+      "page": 19,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model"
+    },
+    {
+      "cv": 61,
+      "label": "Dimmwert Ausgang D/C",
+      "valueRange": "Zehner0–9 / Einer0–9",
+      "factoryValue": "0",
+      "page": 19,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model"
+    },
+    {
+      "cv": 62,
+      "label": "Dimmwert Ausgang F/E",
+      "valueRange": "Zehner0–9 / Einer0–9",
+      "factoryValue": "0",
+      "page": 19,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model"
+    },
+    {
+      "cv": 63,
+      "label": "Kupplungs-Anzugszeit / Haltestufe",
+      "valueRange": "Zehner0–9 / Einer0–8",
+      "factoryValue": "48",
+      "page": 19,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model"
+    },
+    {
+      "cv": 67,
+      "label": "Geschwindigkeitskennlinie",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "cvEnd": 94
+    },
+    {
+      "cv": 95,
+      "label": "Rückwärtstrimmung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 105,
+      "label": "Benutzerkennung 1",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 106,
+      "label": "Benutzerkennung 2",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 112,
+      "label": "Decoderkonfiguration 2",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–31",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 113,
+      "label": "Zufallslicht-Häufigkeit",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–9",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 115,
+      "label": "ABC-Asymmetrieschwelle",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–9",
+      "factoryValue": "4"
+    },
+    {
+      "cv": 123,
+      "label": "Kupplungs-Abrückzeit",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–9",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 124,
+      "label": "Kupplungs-Abrückgeschwindigkeit",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 126,
+      "label": "Analoge Höchstgeschwindigkeit",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 127,
+      "label": "Software-Unterkennung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255"
+    }
+  ]
+},
+{
+  "id": "cv-ref-kuehn-t125",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "kuehn-t-t125",
+    "kuehn-t-t145"
+  ],
+  "title": {
+    "de": "Kühn T125: CV-Referenz",
+    "en": "Kühn T125: CV reference"
+  },
+  "note": {
+    "de": "Offizieller Tabellen- und Detailnachweis. Die Herstellerdomain war lokal nicht erreichbar; die Web-Lesefassung wurde geprüft, deshalb kein vorgetäuschter PDF-Dateihash. Modell- und Softwarebedingungen im Original beachten. CV51/52/59/60 betreffen nur T145.",
+    "en": "Official table and detailed register evidence, with model/software conditions. Web-readable manufacturer copy reviewed; the PDF could not be downloaded, so no PDF hash is claimed."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Kühn T125 Anleitung",
+      "url": "https://www.kuehn-digital.de/files/T125_de_e.pdf",
+      "version": "Hersteller-Weblesefassung, geprüft 20.10.2026",
+      "scope": "Offizieller Tabellen- und Detailnachweis. Die Herstellerdomain war lokal nicht erreichbar; die Web-Lesefassung wurde geprüft, deshalb kein vorgetäuschter PDF-Dateihash. Modell- und Softwarebedingungen im Original beachten. CV51/52/59/60 betreffen nur T145.",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":1,"label":"Basisadresse","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":2,"label":"Startspannung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":3,"label":"Beschleunigungsrate","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":4,"label":"Verzögerungsrate","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":5,"label":"Maximalspannung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":6,"label":"Mittelspannung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":7,"label":"Versionsnummer","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":8,"label":"Herstellerkennung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":9,"label":"Motorfrequenz","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":17,"label":"Lange Adresse, oberes Byte","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":18,"label":"Lange Adresse, unteres Byte","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":19,"label":"Verbundadresse","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":29,"label":"Konfigurationsregister","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":49,"label":"Lichteffekt Ausgang A","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":50,"label":"Lichteffekt Ausgang B","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":51,"label":"Lichteffekt Ausgang C (T145)","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":52,"label":"Lichteffekt Ausgang D (T145)","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":53,"label":"Lastregelung I-Anteil","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":54,"label":"Lastregelung P-Anteil","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":55,"label":"Effektzyklus / Dimmung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":56,"label":"Zusatzkonfiguration","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":58,"label":"Funktionszuordnung Ausgang B","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":59,"label":"Funktionszuordnung Ausgang C (T145)","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":60,"label":"Funktionszuordnung Ausgang D (T145)","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":63,"label":"Kupplungszeit / Halteleistung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":67,"label":"Geschwindigkeitstabelle","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","cvEnd":94},
+    {"cv":95,"label":"Rückwärtstrimmung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":105,"label":"Benutzerkennung 1","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":106,"label":"Benutzerkennung 2","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual"}
+  ]
+},
+{
+  "id": "cv-ref-kuehn-t65",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "kuehn-t-t65"
+  ],
+  "title": {
+    "de": "Kühn T65: CV-Tabellenauszug",
+    "en": "Kühn T65: CV table excerpt"
+  },
+  "note": {
+    "de": "Belegbarer Auszug aus der offiziellen Web-Lesefassung, Seite 11. Die mehrfache CV49-Zuordnung wird nicht übernommen. Vollständiger PDF-Abruf war wegen nicht erreichbarer Herstellerdomain nicht möglich; kein PDF-Dateihash behauptet.",
+    "en": "Verified excerpt of the official web-readable table, p.11. Duplicated CV49 output assignments are omitted. The manufacturer PDF could not be downloaded, so no PDF hash is claimed."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Kühn T65 Anleitung",
+      "url": "https://www.kuehn-digital.de/files/T65_de_b.pdf",
+      "version": "Revision b, Web-Lesefassung geprüft 20.10.2026",
+      "scope": "CV-Tabelle, Seite 11; nur widerspruchsfreie Kurzzuordnungen.",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":36,"label":"Funktionszuordnung F2","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":37,"label":"Funktionszuordnung F3","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":38,"label":"Funktionszuordnung F4","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":39,"label":"Funktionszuordnung F5","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":40,"label":"Funktionszuordnung F6","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":41,"label":"Funktionszuordnung F7","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":42,"label":"Funktionszuordnung F8","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":43,"label":"Funktionszuordnung F9","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":44,"label":"Funktionszuordnung F10","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":45,"label":"Funktionszuordnung F11","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":46,"label":"Funktionszuordnung F12","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":47,"label":"Lichteffekt Ausgang E","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":48,"label":"Lichteffekt Ausgang F","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":50,"label":"Lichteffekt Ausgang B","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":53,"label":"Lastregelung I-Anteil","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":54,"label":"Lastregelung P-Anteil","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":55,"label":"Effektzyklus / Abblend-Dimmung","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":56,"label":"Zusatzkonfiguration 1","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":57,"label":"Ausgänge für Rangierlicht","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":58,"label":"Funktion für Rangiergang","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":59,"label":"Funktion für Abblendlicht","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":60,"label":"Dimmung Ausgänge B/A","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":61,"label":"Dimmung Ausgänge D/C","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":62,"label":"Dimmung Ausgänge F/E","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":63,"label":"Kupplungszeit / Halteleistung","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":67,"label":"Geschwindigkeitstabelle","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual","cvEnd":94},
+    {"cv":95,"label":"Rückwärtstrimmung","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":105,"label":"Benutzerkennung 1","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":106,"label":"Benutzerkennung 2","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":112,"label":"Zusatzkonfiguration 2","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":113,"label":"Zufallsfunktion Häufigkeit","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":115,"label":"ABC-Erkennungsschwelle","page":11,"sourceIndex":0,"indexScope":"base","applicability":"manual"}
+  ]
+}
+]

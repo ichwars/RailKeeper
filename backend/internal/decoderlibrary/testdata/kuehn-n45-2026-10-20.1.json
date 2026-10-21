@@ -1,0 +1,1117 @@
+{
+  "id": "kuehn-n45",
+  "name": "Kühn N45",
+  "nameEn": "Kühn N45",
+  "revision": "2026-10-20.1",
+  "protocol": "DCC",
+  "kind": "model",
+  "manufacturerId": 157,
+  "family": "N45",
+  "model": "N45",
+  "parentId": "dcc-basics",
+  "aliases": [
+    "N45",
+    "Kühn N45",
+    "Kuehn N45"
+  ],
+  "familyAliases": [],
+  "sources": [
+    {
+      "title": "Kühn N45 Betriebsanleitung",
+      "url": "https://www.kuehn-digital.de/files/N45_de_b.pdf",
+      "version": "Revision b, Abschnitt 4.3/4.4",
+      "scope": "CV-Liste S.10–12; Registerdetails S.12–21. Next18-Erweiterung nicht aus dieser Anleitung abgeleitet.",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "definitions": [
+    {
+      "cv": 1,
+      "name": {
+        "de": "Kurze DCC-Adresse",
+        "en": "Short DCC address"
+      },
+      "help": {
+        "de": "Kurze DCC-Adresse.",
+        "en": "Short DCC address."
+      },
+      "topic": "address",
+      "minimum": 1,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 2,
+      "name": {
+        "de": "Anfahrspannung",
+        "en": "Starting voltage"
+      },
+      "help": {
+        "de": "Anfahrspannung.",
+        "en": "Starting voltage."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 3,
+      "name": {
+        "de": "Beschleunigungsrate",
+        "en": "Acceleration rate"
+      },
+      "help": {
+        "de": "Beschleunigungsrate.",
+        "en": "Acceleration rate."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 4,
+      "name": {
+        "de": "Bremsrate",
+        "en": "Deceleration rate"
+      },
+      "help": {
+        "de": "Bremsrate.",
+        "en": "Deceleration rate."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 5,
+      "name": {
+        "de": "Maximalspannung",
+        "en": "Maximum voltage"
+      },
+      "help": {
+        "de": "Maximalspannung.",
+        "en": "Maximum voltage."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 6,
+      "name": {
+        "de": "Mittelspannung",
+        "en": "Mid voltage"
+      },
+      "help": {
+        "de": "Mittelspannung.",
+        "en": "Mid voltage."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 7,
+      "name": {
+        "de": "Software-Hauptkennung",
+        "en": "Main software identifier"
+      },
+      "help": {
+        "de": "Software-Hauptkennung.",
+        "en": "Main software identifier."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      }
+    },
+    {
+      "cv": 8,
+      "name": {
+        "de": "Herstellerkennung / Reset",
+        "en": "Manufacturer identifier / reset"
+      },
+      "help": {
+        "de": "Gelesen 157; Schreiben von 8 fordert einen Reset an.",
+        "en": "Reads 157; writing 8 requests a reset."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "command",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 157
+    },
+    {
+      "cv": 9,
+      "name": {
+        "de": "Motorfrequenzauswahl",
+        "en": "Motor frequency selection"
+      },
+      "help": {
+        "de": "Motorfrequenzauswahl.",
+        "en": "Motor frequency selection."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 2,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0,
+      "allowedValues": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "cv": 13,
+      "name": {
+        "de": "Analogfunktionen F1–F8",
+        "en": "Analog functions F1–F8"
+      },
+      "help": {
+        "de": "Analogfunktionen F1–F8.",
+        "en": "Analog functions F1–F8."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      }
+    },
+    {
+      "cv": 14,
+      "name": {
+        "de": "Analogfunktionen F9–F12",
+        "en": "Analog functions F9–F12"
+      },
+      "help": {
+        "de": "Analogfunktionen F9–F12.",
+        "en": "Analog functions F9–F12."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      }
+    },
+    {
+      "cv": 17,
+      "name": {
+        "de": "Lange Adresse: höheres Byte",
+        "en": "Long address: high byte"
+      },
+      "help": {
+        "de": "Lange Adresse: höheres Byte.",
+        "en": "Long address: high byte."
+      },
+      "topic": "address",
+      "minimum": 192,
+      "maximum": 231,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 192
+    },
+    {
+      "cv": 18,
+      "name": {
+        "de": "Lange Adresse: niederes Byte",
+        "en": "Long address: low byte"
+      },
+      "help": {
+        "de": "Lange Adresse: niederes Byte.",
+        "en": "Long address: low byte."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 19,
+      "name": {
+        "de": "Verbundadresse",
+        "en": "Consist address"
+      },
+      "help": {
+        "de": "Verbundadresse.",
+        "en": "Consist address."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 27,
+      "name": {
+        "de": "Bremserkennung",
+        "en": "Brake detection"
+      },
+      "help": {
+        "de": "Bremserkennung.",
+        "en": "Brake detection."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 28,
+      "name": {
+        "de": "RailCom-Konfiguration",
+        "en": "RailCom configuration"
+      },
+      "help": {
+        "de": "RailCom-Konfiguration.",
+        "en": "RailCom configuration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 7,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 29,
+      "name": {
+        "de": "DCC-Konfiguration",
+        "en": "DCC configuration"
+      },
+      "help": {
+        "de": "DCC-Konfiguration.",
+        "en": "DCC configuration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 14
+    },
+    {
+      "cv": 33,
+      "name": {
+        "de": "Ausgangszuordnung F0 vorwärts",
+        "en": "Output assignment F0 forward"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 34,
+      "name": {
+        "de": "Ausgangszuordnung F0 rückwärts",
+        "en": "Output assignment F0 reverse"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 35,
+      "name": {
+        "de": "Ausgangszuordnung F1",
+        "en": "Output assignment F1"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 4
+    },
+    {
+      "cv": 36,
+      "name": {
+        "de": "Ausgangszuordnung F2",
+        "en": "Output assignment F2"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 8
+    },
+    {
+      "cv": 37,
+      "name": {
+        "de": "Ausgangszuordnung F3",
+        "en": "Output assignment F3"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 38,
+      "name": {
+        "de": "Ausgangszuordnung F4",
+        "en": "Output assignment F4"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 39,
+      "name": {
+        "de": "Ausgangszuordnung F5",
+        "en": "Output assignment F5"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 40,
+      "name": {
+        "de": "Ausgangszuordnung F6",
+        "en": "Output assignment F6"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 4
+    },
+    {
+      "cv": 41,
+      "name": {
+        "de": "Ausgangszuordnung F7",
+        "en": "Output assignment F7"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 42,
+      "name": {
+        "de": "Ausgangszuordnung F8",
+        "en": "Output assignment F8"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 43,
+      "name": {
+        "de": "Ausgangszuordnung F9",
+        "en": "Output assignment F9"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 44,
+      "name": {
+        "de": "Ausgangszuordnung F10",
+        "en": "Output assignment F10"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 45,
+      "name": {
+        "de": "Ausgangszuordnung F11",
+        "en": "Output assignment F11"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 46,
+      "name": {
+        "de": "Ausgangszuordnung F12",
+        "en": "Output assignment F12"
+      },
+      "help": {
+        "de": "Die Bitpositionen der Ausgänge verschieben sich je Funktionstastengruppe; keine einheitliche Bitmaske für alle Tasten.",
+        "en": "Output bit positions change between function-key groups; do not apply one mask to every key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11 und16, Abschnitt 4.3/4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 47,
+      "name": {
+        "de": "Ausgang E: Lichteffekt",
+        "en": "Output E: lighting effect"
+      },
+      "help": {
+        "de": "Effektcode und Richtungsbedingungen werden kombiniert. Die Detailtabelle bestätigt CV51/52 trotz Nummernfehlern in der Übersicht.",
+        "en": "Combines effect code and direction conditions. The detailed table confirms CV51/52 despite numbering errors in the overview."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.16, Abschnitt 4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 48,
+      "name": {
+        "de": "Ausgang F: Lichteffekt",
+        "en": "Output F: lighting effect"
+      },
+      "help": {
+        "de": "Effektcode und Richtungsbedingungen werden kombiniert. Die Detailtabelle bestätigt CV51/52 trotz Nummernfehlern in der Übersicht.",
+        "en": "Combines effect code and direction conditions. The detailed table confirms CV51/52 despite numbering errors in the overview."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.16, Abschnitt 4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 49,
+      "name": {
+        "de": "Ausgang A: Lichteffekt",
+        "en": "Output A: lighting effect"
+      },
+      "help": {
+        "de": "Effektcode und Richtungsbedingungen werden kombiniert. Die Detailtabelle bestätigt CV51/52 trotz Nummernfehlern in der Übersicht.",
+        "en": "Combines effect code and direction conditions. The detailed table confirms CV51/52 despite numbering errors in the overview."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.16, Abschnitt 4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 50,
+      "name": {
+        "de": "Ausgang B: Lichteffekt",
+        "en": "Output B: lighting effect"
+      },
+      "help": {
+        "de": "Effektcode und Richtungsbedingungen werden kombiniert. Die Detailtabelle bestätigt CV51/52 trotz Nummernfehlern in der Übersicht.",
+        "en": "Combines effect code and direction conditions. The detailed table confirms CV51/52 despite numbering errors in the overview."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.16, Abschnitt 4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 51,
+      "name": {
+        "de": "Ausgang C: Lichteffekt",
+        "en": "Output C: lighting effect"
+      },
+      "help": {
+        "de": "Effektcode und Richtungsbedingungen werden kombiniert. Die Detailtabelle bestätigt CV51/52 trotz Nummernfehlern in der Übersicht.",
+        "en": "Combines effect code and direction conditions. The detailed table confirms CV51/52 despite numbering errors in the overview."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.16, Abschnitt 4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 52,
+      "name": {
+        "de": "Ausgang D: Lichteffekt",
+        "en": "Output D: lighting effect"
+      },
+      "help": {
+        "de": "Effektcode und Richtungsbedingungen werden kombiniert. Die Detailtabelle bestätigt CV51/52 trotz Nummernfehlern in der Übersicht.",
+        "en": "Combines effect code and direction conditions. The detailed table confirms CV51/52 despite numbering errors in the overview."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.16, Abschnitt 4.4"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 53,
+      "name": {
+        "de": "Motorregler: I-Anteil",
+        "en": "Motor control: I component"
+      },
+      "help": {
+        "de": "Motorregler: I-Anteil.",
+        "en": "Motor control: I component."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 54,
+      "name": {
+        "de": "Motorregler: P-Anteil",
+        "en": "Motor control: P component"
+      },
+      "help": {
+        "de": "Motorregler: P-Anteil.",
+        "en": "Motor control: P component."
+      },
+      "topic": "motor",
+      "minimum": 2,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 16
+    },
+    {
+      "cv": 56,
+      "name": {
+        "de": "Decoderkonfiguration 1",
+        "en": "Decoder configuration 1"
+      },
+      "help": {
+        "de": "Decoderkonfiguration 1.",
+        "en": "Decoder configuration 1."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 57,
+      "name": {
+        "de": "Rangierlicht-Ausgänge",
+        "en": "Shunting-light outputs"
+      },
+      "help": {
+        "de": "Rangierlicht-Ausgänge.",
+        "en": "Shunting-light outputs."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 58,
+      "name": {
+        "de": "Funktionstasten für Rangiergang und ABV",
+        "en": "Function keys for shunting and inertia"
+      },
+      "help": {
+        "de": "Funktionstasten für Rangiergang und ABV.",
+        "en": "Function keys for shunting and inertia."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 72
+    },
+    {
+      "cv": 59,
+      "name": {
+        "de": "Funktionstasten für Abblendlicht",
+        "en": "Function keys for dimmed lights"
+      },
+      "help": {
+        "de": "Funktionstasten für Abblendlicht.",
+        "en": "Function keys for dimmed lights."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 67,
+      "name": {
+        "de": "Geschwindigkeitskennlinie",
+        "en": "Speed table"
+      },
+      "help": {
+        "de": "Geschwindigkeitskennlinie.",
+        "en": "Speed table."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.11–13, Abschnitt 4.3/4.4"
+      },
+      "cvEnd": 94
+    },
+    {
+      "cv": 95,
+      "name": {
+        "de": "Rückwärtstrimmung",
+        "en": "Reverse trim"
+      },
+      "help": {
+        "de": "Rückwärtstrimmung.",
+        "en": "Reverse trim."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 105,
+      "name": {
+        "de": "Benutzerkennung 1",
+        "en": "User identifier 1"
+      },
+      "help": {
+        "de": "Benutzerkennung 1.",
+        "en": "User identifier 1."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 106,
+      "name": {
+        "de": "Benutzerkennung 2",
+        "en": "User identifier 2"
+      },
+      "help": {
+        "de": "Benutzerkennung 2.",
+        "en": "User identifier 2."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 112,
+      "name": {
+        "de": "Decoderkonfiguration 2",
+        "en": "Decoder configuration 2"
+      },
+      "help": {
+        "de": "Decoderkonfiguration 2.",
+        "en": "Decoder configuration 2."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 113,
+      "name": {
+        "de": "Zufallslicht-Häufigkeit",
+        "en": "Random-light frequency"
+      },
+      "help": {
+        "de": "Zufallslicht-Häufigkeit.",
+        "en": "Random-light frequency."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 9,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 115,
+      "name": {
+        "de": "ABC-Asymmetrieschwelle",
+        "en": "ABC asymmetry threshold"
+      },
+      "help": {
+        "de": "ABC-Asymmetrieschwelle.",
+        "en": "ABC asymmetry threshold."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 9,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 4
+    },
+    {
+      "cv": 123,
+      "name": {
+        "de": "Kupplungs-Abrückzeit",
+        "en": "Coupler pull-away time"
+      },
+      "help": {
+        "de": "Kupplungs-Abrückzeit.",
+        "en": "Coupler pull-away time."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 9,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 124,
+      "name": {
+        "de": "Kupplungs-Abrückgeschwindigkeit",
+        "en": "Coupler pull-away speed"
+      },
+      "help": {
+        "de": "Kupplungs-Abrückgeschwindigkeit.",
+        "en": "Coupler pull-away speed."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 126,
+      "name": {
+        "de": "Analoge Höchstgeschwindigkeit",
+        "en": "Analog maximum speed"
+      },
+      "help": {
+        "de": "Analoge Höchstgeschwindigkeit.",
+        "en": "Analog maximum speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 127,
+      "name": {
+        "de": "Software-Unterkennung",
+        "en": "Software subversion identifier"
+      },
+      "help": {
+        "de": "Software-Unterkennung.",
+        "en": "Software subversion identifier."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.10–12, Abschnitt 4.3"
+      }
+    }
+  ],
+  "active": true,
+  "rules": {
+    "abc": {
+      "cv": 27,
+      "mask": 3
+    }
+  }
+}

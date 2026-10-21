@@ -1,0 +1,1326 @@
+{
+  "revision": "2026-10-18.3",
+  "reviewedAt": "2026-10-18",
+  "manufacturers": [
+    {
+      "id": "esu",
+      "name": "ESU",
+      "cv8": 151,
+      "website": "https://www.esu.eu/",
+      "source": {
+        "title": "NMRA Manufacturer IDs",
+        "url": "https://www.nmra.org/sites/default/files/standards/sandrp/DCC/S/appendix_a_s-9_2_2.pdf",
+        "version": "2026-08-17",
+        "scope": "CV8 manufacturer identifiers"
+      }
+    },
+    {
+      "id": "zimo",
+      "name": "ZIMO",
+      "cv8": 145,
+      "website": "https://www.zimo.at/",
+      "source": {
+        "title": "NMRA Manufacturer IDs",
+        "url": "https://www.nmra.org/sites/default/files/standards/sandrp/DCC/S/appendix_a_s-9_2_2.pdf",
+        "version": "2026-08-17",
+        "scope": "CV8 manufacturer identifiers"
+      }
+    },
+    {
+      "id": "doehler-haass",
+      "name": "Doehler & Haass",
+      "cv8": 97,
+      "website": "https://doehler-haass.de/",
+      "source": {
+        "title": "NMRA Manufacturer IDs",
+        "url": "https://www.nmra.org/sites/default/files/standards/sandrp/DCC/S/appendix_a_s-9_2_2.pdf",
+        "version": "2026-08-17",
+        "scope": "CV8 manufacturer identifiers"
+      }
+    },
+    {
+      "id": "lenz",
+      "name": "Lenz",
+      "cv8": 99,
+      "website": "https://www.lenz-elektronik.de/",
+      "source": {
+        "title": "NMRA Manufacturer IDs",
+        "url": "https://www.nmra.org/sites/default/files/standards/sandrp/DCC/S/appendix_a_s-9_2_2.pdf",
+        "version": "2026-08-17",
+        "scope": "CV8 manufacturer identifiers"
+      }
+    }
+  ],
+  "families": [
+    {
+      "id": "esu-lokpilot-5",
+      "manufacturerId": "esu",
+      "name": "LokPilot 5",
+      "sources": [
+        {
+          "title": "ESU LokPilot 5",
+          "url": "https://www.esu.eu/download/betriebsanleitungen/digitaldecoder/?tx_esudownloads_pi1%5BdownloadItem%5D=803bc0046a0244b6416c82c6abfd385e",
+          "version": "8. Auflage / edition · 2023-01-24",
+          "scope": "Modellübersicht; LokPilot 5, micro, L und Fx"
+        }
+      ],
+      "notes": {
+        "de": "Motor- und Funktionsdecoder haben unterschiedliche Fähigkeiten. Die geprüfte CV-Auswertung gilt derzeit für den LokPilot 5 micro DCC ab Firmware 5.3.128.",
+        "en": "Motor and function variants differ. Reviewed CV interpretation currently covers LokPilot 5 micro DCC from firmware 5.3.128."
+      },
+      "identification": {
+        "de": "CV8 = 151 bestätigt ESU. Für die Variante den vollständigen LokProgrammer-Decodernamen erfassen; die Herstellerkennung allein reicht nicht.",
+        "en": "CV8 = 151 identifies ESU. Capture the complete LokProgrammer decoder name to distinguish variants; the manufacturer ID alone is insufficient."
+      }
+    },
+    {
+      "id": "esu-lokpilot-5-basic",
+      "manufacturerId": "esu",
+      "name": "LokPilot 5 Basic",
+      "sources": [
+        {
+          "title": "ESU Betriebsanleitungen",
+          "url": "https://www.esu.eu/nc/download/betriebsanleitungen/digitaldecoder/?tx_esudownloads_pi1%5Blanguage%5D=DE",
+          "version": "Basic · 2. Auflage / edition · 2023-03-14",
+          "scope": "59020, 59029"
+        }
+      ],
+      "notes": {
+        "de": "Eigenständige Basic-Baureihe; keine Übernahme der micro-DCC-Mappingregeln.",
+        "en": "Separate Basic series; micro DCC mapping rules are not inherited."
+      },
+      "identification": {
+        "de": "CV8 und genaue Produktbezeichnung gemeinsam erfassen.",
+        "en": "Record CV8 together with the exact product name."
+      }
+    },
+    {
+      "id": "esu-loksound-5",
+      "manufacturerId": "esu",
+      "name": "LokSound 5",
+      "sources": [
+        {
+          "title": "ESU Betriebsanleitungen",
+          "url": "https://www.esu.eu/nc/download/betriebsanleitungen/digitaldecoder/?tx_esudownloads_pi1%5Blanguage%5D=DE",
+          "version": "17. Auflage / edition · 2026-01-27",
+          "scope": "LokSound 5 family and variants"
+        }
+      ],
+      "notes": {
+        "de": "Sounddecoder; die CV-Regeln des LokPilot werden nicht automatisch angewendet.",
+        "en": "Sound decoders; LokPilot CV rules are not automatically applied."
+      },
+      "identification": {
+        "de": "Vollständigen LokProgrammer-Namen und Firmwarestand erfassen.",
+        "en": "Record the complete LokProgrammer name and firmware version."
+      }
+    },
+    {
+      "id": "zimo-mn",
+      "manufacturerId": "zimo",
+      "name": "MN",
+      "sources": [
+        {
+          "title": "ZIMO MS / MN / FS",
+          "url": "https://www.zimo.at/web2010/documents/MS-MN-Decoders_EN.pdf",
+          "version": "2026-05-12",
+          "scope": "Types, CV identification and version registers; chapters 1–3"
+        },
+        {
+          "title": "ZIMO MN Produktübersicht",
+          "url": "https://www.zimo.at/web2010/products/mn-nicht-sound-decoder.htm",
+          "version": "Abruf / checked 2026-10-18",
+          "scope": "Current product types and interfaces"
+        }
+      ],
+      "notes": {
+        "de": "Nicht-Sounddecoder. Erfasst sind dokumentierte Bauformen; die Anschlusssuffixe bleiben Teil der Modellbezeichnung.",
+        "en": "Non-sound decoders. Documented forms are listed; interface suffixes remain part of the model name."
+      },
+      "identification": {
+        "de": "CV8 = 145 bestätigt ZIMO; CV250 ermittelt den Grundtyp. Anschlussvarianten bleiben offen. CV7 und CV65 für den Softwarestand erfassen.",
+        "en": "CV8 = 145 identifies ZIMO; CV250 identifies the base type. Interface variants remain unconfirmed. Record CV7 and CV65 for the software version."
+      }
+    },
+    {
+      "id": "zimo-ms",
+      "manufacturerId": "zimo",
+      "name": "MS",
+      "sources": [
+        {
+          "title": "ZIMO MS / MN / FS",
+          "url": "https://www.zimo.at/web2010/documents/MS-MN-Decoders_EN.pdf",
+          "version": "2026-05-12",
+          "scope": "Types, CV identification and version registers; chapters 1–3"
+        },
+        {
+          "title": "ZIMO MS Produktübersicht",
+          "url": "https://www.zimo.at/web2010/products/ms-sound-decoder.htm",
+          "version": "Abruf / checked 2026-10-18",
+          "scope": "Current sound models and interface variants"
+        }
+      ],
+      "notes": {
+        "de": "Sounddecoder. Protokolle und Anschlüsse unterscheiden sich je Variante; nicht jede Bauform unterstützt mfx.",
+        "en": "Sound decoders. Protocols and interfaces differ by variant; not every form supports mfx."
+      },
+      "identification": {
+        "de": "CV8 = 145 und CV250 bestimmen Hersteller und Grundtyp. Die Steckervariante zusätzlich über die Produktbezeichnung bestätigen.",
+        "en": "CV8 = 145 and CV250 identify the manufacturer and base type. Confirm the interface variant using the product name."
+      }
+    },
+    {
+      "id": "dh-dh",
+      "manufacturerId": "doehler-haass",
+      "name": "DH",
+      "sources": [
+        {
+          "title": "Doehler & Haass Fahrzeug- und Funktionsdecoder",
+          "url": "https://doehler-haass.de/cms/media/pdf/DH05C_DH10C_DH16A.pdf",
+          "version": "01/2026 · Firmware 3.15",
+          "scope": "CV table pp. 65–79; identification appendix 6; model restrictions pp. 5–9"
+        },
+        {
+          "title": "Doehler & Haass Produktübersicht",
+          "url": "https://doehler-haass.de/cms/pages/produkte/fahrzeugdecoder.php",
+          "version": "Abruf / checked 2026-10-18",
+          "scope": "Product variants and interfaces; motor and function decoder tables"
+        }
+      ],
+      "notes": {
+        "de": "Motordecoder. Die lokale CV-Auswertung startet mit dem DH18A; die im Handbuch beschriebene Hardwarekennung wird separat dokumentiert.",
+        "en": "Motor decoders. Local CV interpretation starts with DH18A; the hardware identifier described in the manual is documented separately."
+      },
+      "identification": {
+        "de": "CV8 = 97: Hersteller. CV261: Decoderkennzeichen (DH18A = 180). CV7 ist eine Versionskennung und ergibt nicht durch einfache Dezimaldarstellung die Firmware.",
+        "en": "CV8 = 97: manufacturer. CV261: decoder type (DH18A = 180). CV7 is a version identifier, not a directly formatted firmware number."
+      }
+    },
+    {
+      "id": "dh-pd",
+      "manufacturerId": "doehler-haass",
+      "name": "PD",
+      "sources": [
+        {
+          "title": "Doehler & Haass Fahrzeug- und Funktionsdecoder",
+          "url": "https://doehler-haass.de/cms/media/pdf/DH05C_DH10C_DH16A.pdf",
+          "version": "01/2026 · Firmware 3.15",
+          "scope": "CV table pp. 65–79; identification appendix 6; model restrictions pp. 5–9"
+        },
+        {
+          "title": "Doehler & Haass Produktübersicht",
+          "url": "https://doehler-haass.de/cms/pages/produkte/fahrzeugdecoder.php",
+          "version": "Abruf / checked 2026-10-18",
+          "scope": "Product variants and interfaces; motor and function decoder tables"
+        }
+      ],
+      "notes": {
+        "de": "Eingeschränkte Decoder. PD05A und PD06A unterscheiden sich von PD12A, PD18A und PD21A. PD06A unterstützt keine ABC-Asymmetrieerkennung.",
+        "en": "Reduced-feature decoders. PD05A and PD06A differ from PD12A, PD18A and PD21A. PD06A does not support ABC asymmetry detection."
+      },
+      "identification": {
+        "de": "CV8 = 97; CV261 unterscheidet die PD-Typen. Keine DH-Funktionsregeln allein anhand des Herstellers übernehmen.",
+        "en": "CV8 = 97; CV261 distinguishes PD types. Do not apply DH feature rules based only on the manufacturer."
+      }
+    },
+    {
+      "id": "dh-fh",
+      "manufacturerId": "doehler-haass",
+      "name": "FH",
+      "sources": [
+        {
+          "title": "Doehler & Haass Fahrzeug- und Funktionsdecoder",
+          "url": "https://doehler-haass.de/cms/media/pdf/DH05C_DH10C_DH16A.pdf",
+          "version": "01/2026 · Firmware 3.15",
+          "scope": "CV table pp. 65–79; identification appendix 6; model restrictions pp. 5–9"
+        },
+        {
+          "title": "Doehler & Haass Produktübersicht",
+          "url": "https://doehler-haass.de/cms/pages/produkte/fahrzeugdecoder.php",
+          "version": "Abruf / checked 2026-10-18",
+          "scope": "Product variants and interfaces; motor and function decoder tables"
+        }
+      ],
+      "notes": {
+        "de": "Funktionsdecoder ohne Motorregelung. Motor-CVs und Motor-Mapping werden nicht aus der DH-Baureihe übernommen.",
+        "en": "Function decoders without motor regulation. DH motor CVs and motor mapping are not inherited."
+      },
+      "identification": {
+        "de": "CV8 = 97 und CV261 gemeinsam erfassen; Typkennzeichen beispielsweise FH18A = 170.",
+        "en": "Record CV8 = 97 together with CV261; for example FH18A = 170."
+      }
+    },
+    {
+      "id": "lenz-standard",
+      "manufacturerId": "lenz",
+      "name": "STANDARD+ V2",
+      "sources": [
+        {
+          "title": "Lenz STANDARD+ V2",
+          "url": "https://www.lenz-elektronik.de/media/be/06/d9/1734004977/b_10231-02.pdf?ts=1734004977",
+          "version": "5. Auflage / edition",
+          "scope": "CV table pp. 19–26; zero-based bit numbers in parentheses"
+        },
+        {
+          "title": "Lenz Decoderidentifikation",
+          "url": "https://www.lenz-elektronik.de/Hilfe-Info/FAQ-Digital-plus/",
+          "version": "checked 2026-10-18",
+          "scope": "CV7 type table and CV128 service identifier"
+        }
+      ],
+      "notes": {
+        "de": "DCC-Motordecoder. ABC wird über CV51 Bit 1 ausgewertet; ESU-Regeln für CV27 gelten hier nicht. Bitnummern in RailKeeper beginnen bei 0.",
+        "en": "DCC motor decoder. ABC is evaluated using CV51 bit 1; ESU CV27 rules do not apply. RailKeeper bit numbers start at 0."
+      },
+      "identification": {
+        "de": "CV8 = 99 plus CV7 = 77 oder 79 erkennt STANDARD+ V2. CV128 ergänzt die Softwarekennung; CV7 ist hier keine allgemeine Firmwareversion.",
+        "en": "CV8 = 99 plus CV7 = 77 or 79 identifies STANDARD+ V2. CV128 adds the software identifier; CV7 is not a generic firmware version here."
+      }
+    },
+    {
+      "id": "lenz-silver",
+      "manufacturerId": "lenz",
+      "name": "SILVER+",
+      "sources": [
+        {
+          "title": "Lenz GOLD / SILVER+ Handbuch",
+          "url": "https://www.lenz-elektronik.de/media/11/fd/c2/1734005792/GOLD_SILVER_plus_manual.pdf?ts=1734005792",
+          "version": "7. Auflage / edition",
+          "scope": "Family features"
+        },
+        {
+          "title": "Lenz Downloads / Manuals",
+          "url": "https://www.lenz-elektronik.de/Hilfe-Info/Downloads-Manuals/",
+          "version": "Abruf / checked 2026-10-18",
+          "scope": "Product numbers and interfaces"
+        },
+        {
+          "title": "Lenz Decoderidentifikation",
+          "url": "https://www.lenz-elektronik.de/Hilfe-Info/FAQ-Digital-plus/",
+          "version": "checked 2026-10-18",
+          "scope": "CV7 type table and CV128 service identifier"
+        }
+      ],
+      "notes": {
+        "de": "Bauformen getrennt erfasst. Die Regeln des STANDARD+ V2 werden nicht pauschal übertragen.",
+        "en": "Forms are listed separately. STANDARD+ V2 rules are not transferred automatically."
+      },
+      "identification": {
+        "de": "CV8 = 99 plus genaue Artikelnummer erfassen. CV7 und CV128 dienen der ergänzenden Zuordnung nach Lenz-Unterlagen.",
+        "en": "Record CV8 = 99 and the exact product number. CV7 and CV128 support identification using Lenz documentation."
+      }
+    }
+  ],
+  "models": [
+    {
+      "id": "esu-lokpilot-5-lokpilot-5",
+      "familyId": "esu-lokpilot-5",
+      "name": "LokPilot 5",
+      "kind": "motor",
+      "interfaces": [
+        "NEM 652",
+        "PluX22",
+        "NEM 651",
+        "21MTC",
+        "21MTC MKL"
+      ],
+      "articleNumbers": [
+        "59610",
+        "59612",
+        "59616",
+        "59619",
+        "59649"
+      ],
+      "sources": [
+        {
+          "title": "ESU LokPilot 5",
+          "url": "https://esu.eu/produkte/lokpilot/lokpilot-5/",
+          "version": "Abruf / checked 2026-10-18",
+          "scope": "Product variants, interfaces and product numbers"
+        }
+      ]
+    },
+    {
+      "id": "esu-lokpilot-5-lokpilot-5-dcc",
+      "familyId": "esu-lokpilot-5",
+      "name": "LokPilot 5 DCC",
+      "kind": "motor",
+      "interfaces": [
+        "NEM 652",
+        "PluX22",
+        "NEM 651",
+        "21MTC",
+        "21MTC MKL"
+      ],
+      "articleNumbers": [
+        "59620",
+        "59622",
+        "59626",
+        "59629",
+        "59659"
+      ],
+      "sources": [
+        {
+          "title": "ESU LokPilot 5 DCC",
+          "url": "https://esu.eu/produkte/lokpilot/lokpilot-5-dcc/",
+          "version": "Abruf / checked 2026-10-18",
+          "scope": "Product variants, interfaces and product numbers"
+        }
+      ]
+    },
+    {
+      "id": "esu-lokpilot-5-lokpilot-5-micro",
+      "familyId": "esu-lokpilot-5",
+      "name": "LokPilot 5 micro",
+      "kind": "motor",
+      "interfaces": [
+        "NEM 652",
+        "PluX16",
+        "NEM 651",
+        "Next18"
+      ],
+      "articleNumbers": [
+        "59810",
+        "59814",
+        "59816",
+        "59817",
+        "59818",
+        "59837"
+      ],
+      "sources": [
+        {
+          "title": "ESU LokPilot 5 micro",
+          "url": "https://esu.eu/produkte/lokpilot/lokpilot-5-micro/",
+          "version": "Abruf / checked 2026-10-18",
+          "scope": "Product variants, interfaces and product numbers"
+        }
+      ]
+    },
+    {
+      "id": "esu-lokpilot-5-lokpilot-5-micro-dcc",
+      "familyId": "esu-lokpilot-5",
+      "name": "LokPilot 5 micro DCC",
+      "kind": "motor",
+      "interfaces": [
+        "NEM 652",
+        "PluX16",
+        "NEM 651",
+        "Next18"
+      ],
+      "articleNumbers": [
+        "59820",
+        "59824",
+        "59826",
+        "59827",
+        "59828",
+        "59857"
+      ],
+      "profileId": "esu-lokpilot-5-micro-dcc",
+      "sources": [
+        {
+          "title": "ESU LokPilot 5 micro DCC",
+          "url": "https://esu.eu/produkte/lokpilot/lokpilot-5-micro-dcc/",
+          "version": "Abruf / checked 2026-10-18",
+          "scope": "Product variants, interfaces and product numbers"
+        }
+      ]
+    },
+    {
+      "id": "esu-lokpilot-5-lokpilot-5-l",
+      "familyId": "esu-lokpilot-5",
+      "name": "LokPilot 5 L",
+      "kind": "motor",
+      "interfaces": [],
+      "articleNumbers": []
+    },
+    {
+      "id": "esu-lokpilot-5-lokpilot-5-fx",
+      "familyId": "esu-lokpilot-5",
+      "name": "LokPilot 5 Fx",
+      "kind": "function",
+      "interfaces": [],
+      "articleNumbers": []
+    },
+    {
+      "id": "esu-lokpilot-5-lokpilot-5-fx-dcc",
+      "familyId": "esu-lokpilot-5",
+      "name": "LokPilot 5 Fx DCC",
+      "kind": "function",
+      "interfaces": [],
+      "articleNumbers": []
+    },
+    {
+      "id": "esu-lokpilot-5-lokpilot-5-fx-micro",
+      "familyId": "esu-lokpilot-5",
+      "name": "LokPilot 5 Fx micro",
+      "kind": "function",
+      "interfaces": [],
+      "articleNumbers": []
+    },
+    {
+      "id": "esu-lokpilot-5-lokpilot-5-fx-micro-dcc",
+      "familyId": "esu-lokpilot-5",
+      "name": "LokPilot 5 Fx micro DCC",
+      "kind": "function",
+      "interfaces": [],
+      "articleNumbers": []
+    },
+    {
+      "id": "esu-lokpilot-5-basic-lokpilot-5-basic",
+      "familyId": "esu-lokpilot-5-basic",
+      "name": "LokPilot 5 Basic",
+      "kind": "motor",
+      "interfaces": [
+        "NEM 652",
+        "21MTC"
+      ],
+      "articleNumbers": [
+        "59020",
+        "59029"
+      ]
+    },
+    {
+      "id": "esu-loksound-5-loksound-5",
+      "familyId": "esu-loksound-5",
+      "name": "LokSound 5",
+      "kind": "sound",
+      "interfaces": [],
+      "articleNumbers": []
+    },
+    {
+      "id": "esu-loksound-5-loksound-5-micro",
+      "familyId": "esu-loksound-5",
+      "name": "LokSound 5 micro",
+      "kind": "sound",
+      "interfaces": [],
+      "articleNumbers": []
+    },
+    {
+      "id": "esu-loksound-5-loksound-5-nano",
+      "familyId": "esu-loksound-5",
+      "name": "LokSound 5 Nano",
+      "kind": "sound",
+      "interfaces": [],
+      "articleNumbers": []
+    },
+    {
+      "id": "esu-loksound-5-loksound-5-l",
+      "familyId": "esu-loksound-5",
+      "name": "LokSound 5 L",
+      "kind": "sound",
+      "interfaces": [],
+      "articleNumbers": []
+    },
+    {
+      "id": "esu-loksound-5-loksound-5-xl",
+      "familyId": "esu-loksound-5",
+      "name": "LokSound 5 XL",
+      "kind": "sound",
+      "interfaces": [],
+      "articleNumbers": []
+    },
+    {
+      "id": "esu-loksound-5-loksound-5-fx",
+      "familyId": "esu-loksound-5",
+      "name": "LokSound 5 Fx",
+      "kind": "sound",
+      "interfaces": [],
+      "articleNumbers": []
+    },
+    {
+      "id": "zimo-mn-mn330p22",
+      "familyId": "zimo-mn",
+      "name": "MN330P22",
+      "kind": "motor",
+      "interfaces": [
+        "PluX22"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          126
+        ],
+        "scope": "family",
+        "name": "MN330"
+      }
+    },
+    {
+      "id": "zimo-mn-mn340c",
+      "familyId": "zimo-mn",
+      "name": "MN340C",
+      "kind": "motor",
+      "interfaces": [
+        "21MTC"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          123
+        ],
+        "scope": "family",
+        "name": "MN340"
+      }
+    },
+    {
+      "id": "zimo-mn-mn340d",
+      "familyId": "zimo-mn",
+      "name": "MN340D",
+      "kind": "motor",
+      "interfaces": [
+        "21MTC"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          123
+        ],
+        "scope": "family",
+        "name": "MN340"
+      }
+    },
+    {
+      "id": "zimo-mn-mn300p16",
+      "familyId": "zimo-mn",
+      "name": "MN300P16",
+      "kind": "motor",
+      "interfaces": [
+        "PluX16"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          125
+        ],
+        "scope": "family",
+        "name": "MN300"
+      }
+    },
+    {
+      "id": "zimo-mn-mn170n",
+      "familyId": "zimo-mn",
+      "name": "MN170N",
+      "kind": "motor",
+      "interfaces": [
+        "NEM 651"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          124
+        ],
+        "scope": "family",
+        "name": "MN170"
+      }
+    },
+    {
+      "id": "zimo-mn-mn160n",
+      "familyId": "zimo-mn",
+      "name": "MN160N",
+      "kind": "motor",
+      "interfaces": [
+        "NEM 651"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          122
+        ],
+        "scope": "family",
+        "name": "MN160"
+      }
+    },
+    {
+      "id": "zimo-mn-mn180n18",
+      "familyId": "zimo-mn",
+      "name": "MN180N18",
+      "kind": "motor",
+      "interfaces": [
+        "Next18"
+      ],
+      "articleNumbers": [],
+      "profileId": "zimo-mn180n18",
+      "identification": {
+        "cv": 250,
+        "values": [
+          127
+        ],
+        "scope": "family",
+        "name": "MN180"
+      }
+    },
+    {
+      "id": "zimo-mn-mn140e24",
+      "familyId": "zimo-mn",
+      "name": "MN140E24",
+      "kind": "motor",
+      "interfaces": [
+        "E24"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          119
+        ],
+        "scope": "family",
+        "name": "MN140"
+      }
+    },
+    {
+      "id": "zimo-ms-ms440c",
+      "familyId": "zimo-ms",
+      "name": "MS440C",
+      "kind": "sound",
+      "interfaces": [
+        "21MTC"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          4
+        ],
+        "scope": "family",
+        "name": "MS440"
+      }
+    },
+    {
+      "id": "zimo-ms-ms440d",
+      "familyId": "zimo-ms",
+      "name": "MS440D",
+      "kind": "sound",
+      "interfaces": [
+        "21MTC"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          4
+        ],
+        "scope": "family",
+        "name": "MS440"
+      }
+    },
+    {
+      "id": "zimo-ms-ms450p22",
+      "familyId": "zimo-ms",
+      "name": "MS450P22",
+      "kind": "sound",
+      "interfaces": [
+        "PluX22"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          6
+        ],
+        "scope": "family",
+        "name": "MS450"
+      }
+    },
+    {
+      "id": "zimo-ms-ms481p16",
+      "familyId": "zimo-ms",
+      "name": "MS481P16",
+      "kind": "sound",
+      "interfaces": [
+        "PluX16"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          16
+        ],
+        "scope": "family",
+        "name": "MS481"
+      }
+    },
+    {
+      "id": "zimo-ms-ms491n",
+      "familyId": "zimo-ms",
+      "name": "MS491N",
+      "kind": "sound",
+      "interfaces": [
+        "NEM 651"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          12
+        ],
+        "scope": "family",
+        "name": "MS491"
+      }
+    },
+    {
+      "id": "zimo-ms-ms581n18",
+      "familyId": "zimo-ms",
+      "name": "MS581N18",
+      "kind": "sound",
+      "interfaces": [
+        "Next18"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          13
+        ],
+        "scope": "family",
+        "name": "MS581"
+      }
+    },
+    {
+      "id": "zimo-ms-ms591n18",
+      "familyId": "zimo-ms",
+      "name": "MS591N18",
+      "kind": "sound",
+      "interfaces": [
+        "Next18"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          15
+        ],
+        "scope": "family",
+        "name": "MS591"
+      }
+    },
+    {
+      "id": "zimo-ms-ms540e24",
+      "familyId": "zimo-ms",
+      "name": "MS540E24",
+      "kind": "sound",
+      "interfaces": [
+        "E24"
+      ],
+      "articleNumbers": [],
+      "identification": {
+        "cv": 250,
+        "values": [
+          14
+        ],
+        "scope": "family",
+        "name": "MS540"
+      }
+    },
+    {
+      "id": "dh-dh-dh05c",
+      "familyId": "dh-dh",
+      "name": "DH05C",
+      "kind": "motor",
+      "interfaces": [
+        "Lötpads / solder pads",
+        "Litze / wires"
+      ],
+      "articleNumbers": [
+        "DH05C-0",
+        "DH05C-3"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          52
+        ],
+        "scope": "model",
+        "name": "DH05C"
+      }
+    },
+    {
+      "id": "dh-dh-dh10c",
+      "familyId": "dh-dh",
+      "name": "DH10C",
+      "kind": "motor",
+      "interfaces": [
+        "Lötpads / solder pads",
+        "Litze / wires",
+        "NEM 651"
+      ],
+      "articleNumbers": [
+        "DH10C-0",
+        "DH10C-1",
+        "DH10C-2",
+        "DH10C-3",
+        "DH10C-4"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          102
+        ],
+        "scope": "model",
+        "name": "DH10C"
+      }
+    },
+    {
+      "id": "dh-dh-dh16a",
+      "familyId": "dh-dh",
+      "name": "DH16A",
+      "kind": "motor",
+      "interfaces": [
+        "Lötpads / solder pads",
+        "Litze / wires",
+        "NEM 652",
+        "PluX16"
+      ],
+      "articleNumbers": [
+        "DH16A-0",
+        "DH16A-2",
+        "DH16A-3",
+        "DH16A-4"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          160
+        ],
+        "scope": "model",
+        "name": "DH16A"
+      }
+    },
+    {
+      "id": "dh-dh-dh18a",
+      "familyId": "dh-dh",
+      "name": "DH18A",
+      "kind": "motor",
+      "interfaces": [
+        "Next18"
+      ],
+      "articleNumbers": [
+        "DH18A"
+      ],
+      "profileId": "dh-dh18a",
+      "notes": {
+        "de": "Der Hersteller führt DH18A in zwei Hardwaregenerationen. Der Modellname und CV8 unterscheiden diese nicht; technische Grenzwerte deshalb am konkreten Produkt prüfen.",
+        "en": "DH18A exists in two hardware generations. The model name and CV8 do not distinguish them; check technical limits against the actual product."
+      },
+      "identification": {
+        "cv": 261,
+        "values": [
+          180
+        ],
+        "scope": "model",
+        "name": "DH18A"
+      }
+    },
+    {
+      "id": "dh-dh-dh21b",
+      "familyId": "dh-dh",
+      "name": "DH21B",
+      "kind": "motor",
+      "interfaces": [
+        "21MTC"
+      ],
+      "articleNumbers": [
+        "DH21B-4",
+        "DH21B-5"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          201
+        ],
+        "scope": "model",
+        "name": "DH21B"
+      }
+    },
+    {
+      "id": "dh-dh-dh22b",
+      "familyId": "dh-dh",
+      "name": "DH22B",
+      "kind": "motor",
+      "interfaces": [
+        "Lötpads / solder pads",
+        "Litze / wires",
+        "NEM 652",
+        "PluX22"
+      ],
+      "articleNumbers": [
+        "DH22B-0",
+        "DH22B-2",
+        "DH22B-3",
+        "DH22B-4"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          203
+        ],
+        "scope": "model",
+        "name": "DH22B"
+      }
+    },
+    {
+      "id": "dh-dh-dh24a",
+      "familyId": "dh-dh",
+      "name": "DH24A",
+      "kind": "motor",
+      "interfaces": [
+        "E24"
+      ],
+      "articleNumbers": [
+        "DH24A"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          204
+        ],
+        "scope": "model",
+        "name": "DH24A"
+      }
+    },
+    {
+      "id": "dh-pd-pd05a",
+      "familyId": "dh-pd",
+      "name": "PD05A",
+      "kind": "motor",
+      "interfaces": [
+        "Lötpads / solder pads",
+        "Litze / wires",
+        "NEM 651"
+      ],
+      "articleNumbers": [
+        "PD05A-0",
+        "PD05A-1",
+        "PD05A-3",
+        "PD05A-4"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          131
+        ],
+        "scope": "model",
+        "name": "PD05A"
+      }
+    },
+    {
+      "id": "dh-pd-pd06a",
+      "familyId": "dh-pd",
+      "name": "PD06A",
+      "kind": "motor",
+      "interfaces": [
+        "Lötpads / solder pads",
+        "Litze / wires"
+      ],
+      "articleNumbers": [
+        "PD06A-0",
+        "PD06A-3"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          132
+        ],
+        "scope": "model",
+        "name": "PD06A"
+      }
+    },
+    {
+      "id": "dh-pd-pd12a",
+      "familyId": "dh-pd",
+      "name": "PD12A",
+      "kind": "motor",
+      "interfaces": [
+        "Lötpads / solder pads",
+        "Litze / wires",
+        "NEM 652",
+        "PluX12"
+      ],
+      "articleNumbers": [
+        "PD12A-0",
+        "PD12A-2",
+        "PD12A-3",
+        "PD12A-4"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          130
+        ],
+        "scope": "model",
+        "name": "PD12A"
+      }
+    },
+    {
+      "id": "dh-pd-pd18a",
+      "familyId": "dh-pd",
+      "name": "PD18A",
+      "kind": "motor",
+      "interfaces": [
+        "Next18"
+      ],
+      "articleNumbers": [
+        "PD18A"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          134
+        ],
+        "scope": "model",
+        "name": "PD18A"
+      }
+    },
+    {
+      "id": "dh-pd-pd21a",
+      "familyId": "dh-pd",
+      "name": "PD21A",
+      "kind": "motor",
+      "interfaces": [
+        "21MTC"
+      ],
+      "articleNumbers": [
+        "PD21A-4"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          133
+        ],
+        "scope": "model",
+        "name": "PD21A"
+      }
+    },
+    {
+      "id": "dh-fh-fh05b",
+      "familyId": "dh-fh",
+      "name": "FH05B",
+      "kind": "function",
+      "interfaces": [
+        "Lötpads / solder pads",
+        "Litze / wires",
+        "NEM 651"
+      ],
+      "articleNumbers": [
+        "FH05B-0",
+        "FH05B-1",
+        "FH05B-3"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          41
+        ],
+        "scope": "model",
+        "name": "FH05B"
+      }
+    },
+    {
+      "id": "dh-fh-fh16a",
+      "familyId": "dh-fh",
+      "name": "FH16A",
+      "kind": "function",
+      "interfaces": [
+        "PluX16"
+      ],
+      "articleNumbers": [
+        "FH16A-4"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          150
+        ],
+        "scope": "model",
+        "name": "FH16A"
+      }
+    },
+    {
+      "id": "dh-fh-fh18a",
+      "familyId": "dh-fh",
+      "name": "FH18A",
+      "kind": "function",
+      "interfaces": [
+        "Next18"
+      ],
+      "articleNumbers": [
+        "FH18A"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          170
+        ],
+        "scope": "model",
+        "name": "FH18A"
+      }
+    },
+    {
+      "id": "dh-fh-fh22a",
+      "familyId": "dh-fh",
+      "name": "FH22A",
+      "kind": "function",
+      "interfaces": [
+        "PluX22"
+      ],
+      "articleNumbers": [
+        "FH22A-4"
+      ],
+      "identification": {
+        "cv": 261,
+        "values": [
+          192
+        ],
+        "scope": "model",
+        "name": "FH22A"
+      }
+    },
+    {
+      "id": "lenz-standard-standardplus-v2",
+      "familyId": "lenz-standard",
+      "name": "STANDARD+ V2",
+      "kind": "motor",
+      "interfaces": [
+        "NEM 652"
+      ],
+      "articleNumbers": [
+        "10231-02"
+      ],
+      "profileId": "lenz-standard-plus-v2",
+      "identification": {
+        "cv": 7,
+        "values": [
+          77,
+          79
+        ],
+        "scope": "model",
+        "name": "STANDARD+ V2"
+      }
+    },
+    {
+      "id": "lenz-silver-silver-miniplus",
+      "familyId": "lenz-silver",
+      "name": "SILVER mini+",
+      "kind": "motor",
+      "interfaces": [
+        "Litze / wires, NEM 651"
+      ],
+      "articleNumbers": [
+        "10310-02",
+        "10311-02"
+      ],
+      "identification": {
+        "cv": 7,
+        "values": [
+          96
+        ],
+        "scope": "model",
+        "name": "SILVER mini+"
+      }
+    },
+    {
+      "id": "lenz-silver-silverplus-plux12",
+      "familyId": "lenz-silver",
+      "name": "SILVER+ PluX12",
+      "kind": "motor",
+      "interfaces": [
+        "PluX12"
+      ],
+      "articleNumbers": [
+        "10312-01"
+      ],
+      "identification": {
+        "cv": 7,
+        "values": [
+          97
+        ],
+        "scope": "model",
+        "name": "SILVER+ PluX12"
+      }
+    },
+    {
+      "id": "lenz-silver-silverplus-next18",
+      "familyId": "lenz-silver",
+      "name": "SILVER+ Next18",
+      "kind": "motor",
+      "interfaces": [
+        "Next18"
+      ],
+      "articleNumbers": [
+        "10318-01"
+      ],
+      "identification": {
+        "cv": 7,
+        "values": [
+          94
+        ],
+        "scope": "model",
+        "name": "SILVER+ Next18"
+      }
+    },
+    {
+      "id": "lenz-silver-silverplus-21mtc",
+      "familyId": "lenz-silver",
+      "name": "SILVER+ 21MTC",
+      "kind": "motor",
+      "interfaces": [
+        "21MTC"
+      ],
+      "articleNumbers": [
+        "10321-01"
+      ],
+      "identification": {
+        "cv": 7,
+        "values": [
+          99
+        ],
+        "scope": "model",
+        "name": "SILVER+ 21MTC"
+      }
+    },
+    {
+      "id": "lenz-silver-silverplus-plux22",
+      "familyId": "lenz-silver",
+      "name": "SILVER+ PluX22",
+      "kind": "motor",
+      "interfaces": [
+        "PluX22"
+      ],
+      "articleNumbers": [
+        "10322-01"
+      ],
+      "identification": {
+        "cv": 7,
+        "values": [
+          84
+        ],
+        "scope": "model",
+        "name": "SILVER+ PluX22"
+      }
+    },
+    {
+      "id": "lenz-silver-silverplus-direct",
+      "familyId": "lenz-silver",
+      "name": "SILVER+ Direct",
+      "kind": "motor",
+      "interfaces": [
+        "NEM 652"
+      ],
+      "articleNumbers": [
+        "10330-01"
+      ],
+      "identification": {
+        "cv": 7,
+        "values": [
+          98
+        ],
+        "scope": "model",
+        "name": "SILVER+ Direct"
+      }
+    }
+  ]
+}

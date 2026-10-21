@@ -1,0 +1,495 @@
+[
+  {
+    "id": "cv-gap-esu-lokpilot-5",
+    "revision": "2026-10-20.1",
+    "modelIds": [
+      "esu-lokpilot-5-lokpilot-5-micro-dcc-direct",
+      "esu-lokpilot-5-lokpilot-5-micro-dcc-direct-atlas-legacy",
+      "esu-lokpilot-5-lokpilot-5-micro-dcc-direct-kato-usa-widebody",
+      "esu-lokpilot-5-lokpilot-5-micro-dcc-kato-usa",
+      "esu-lokpilot-5-lokpilot-5-nano-dcc"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: esu-lokpilot-5",
+      "en": "CV documentation gap: esu-lokpilot-5"
+    },
+    "note": {
+      "de": "Offene Lücke: In den geprüften offiziellen Produkt-, Download- und Archivquellen konnte keine eindeutig passende CV-Tabelle verlässlich erfasst werden. Keine Belegung ähnlicher Decoder übernommen.",
+      "en": "Open gap: no unambiguous matching CV table could be reliably recorded from the reviewed official product/download/archive sources. Mappings from similar decoders were not substituted."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "LokPilot 5 micro DCC Direct Atlas Legacy / Herstellerarchiv",
+        "url": "https://www.esu.eu/produkte/lokpilot/lokpilot-5-micro-dcc-direct-atlas-legacy/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "LokPilot 5 micro DCC Direct Atlas Legacy / Herstellerarchiv",
+        "url": "https://www.esu.eu/download/betriebsanleitungen/digitaldecoder/?tx_esudownloads_pi1%5BdownloadItem%5D=803bc0046a0244b6416c82c6abfd385e",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "LokPilot 5 micro DCC Direct Atlas Legacy / Herstellerarchiv",
+        "url": "https://www.esu.eu/produkte/lokpilot/lokpilot-5-micro-dcc-direct-kato-usa-widebody/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "LokPilot 5 micro DCC Direct Atlas Legacy / Herstellerarchiv",
+        "url": "https://www.esu.eu/produkte/lokpilot/lokpilot-5-micro-dcc-direct/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "LokPilot 5 micro DCC Direct Atlas Legacy / Herstellerarchiv",
+        "url": "https://www.esu.eu/produkte/lokpilot/lokpilot-5-micro-dcc-kato-usa/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "LokPilot 5 micro DCC Direct Atlas Legacy / Herstellerarchiv",
+        "url": "https://www.esu.eu/produkte/lokpilot/lokpilot-5-nano-dcc/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-kuehn-t",
+    "revision": "2026-10-20.1",
+    "modelIds": [
+      "kuehn-t-t62"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: kuehn-t",
+      "en": "CV documentation gap: kuehn-t"
+    },
+    "note": {
+      "de": "Offene Lücke: In den geprüften offiziellen Produkt-, Download- und Archivquellen konnte keine eindeutig passende CV-Tabelle verlässlich erfasst werden. Keine Belegung ähnlicher Decoder übernommen.",
+      "en": "Open gap: no unambiguous matching CV table could be reliably recorded from the reviewed official product/download/archive sources. Mappings from similar decoders were not substituted."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "T62 / Herstellerarchiv",
+        "url": "https://kuehn-digital.de/files/Katalog_2021_web.pdf",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-lenz-legacy",
+    "revision": "2026-10-20.1",
+    "modelIds": [
+      "lenz-legacy-gold-maxi",
+      "lenz-legacy-gold-mini",
+      "lenz-legacy-le010xf",
+      "lenz-legacy-le011xf",
+      "lenz-legacy-le030",
+      "lenz-legacy-le040",
+      "lenz-legacy-le0511a",
+      "lenz-legacy-le0511d",
+      "lenz-legacy-le0521a",
+      "lenz-legacy-le0521d",
+      "lenz-legacy-le075",
+      "lenz-legacy-le077xf",
+      "lenz-legacy-le080xs",
+      "lenz-legacy-le1000",
+      "lenz-legacy-le1025a",
+      "lenz-legacy-le1025e",
+      "lenz-legacy-le103x",
+      "lenz-legacy-le103xfjst",
+      "lenz-legacy-le105xf",
+      "lenz-legacy-le110-v1",
+      "lenz-legacy-le122",
+      "lenz-legacy-le200-v1",
+      "lenz-legacy-le200-v2",
+      "lenz-legacy-le230",
+      "lenz-legacy-le4024",
+      "lenz-legacy-le900",
+      "lenz-legacy-le911",
+      "lenz-legacy-le930",
+      "lenz-legacy-lf100",
+      "lenz-legacy-lf100xf",
+      "lenz-legacy-lf101xf",
+      "lenz-legacy-lf200",
+      "lenz-legacy-lp200",
+      "lenz-legacy-silver-21",
+      "lenz-legacy-silver-direct",
+      "lenz-legacy-silver-mini"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: lenz-legacy",
+      "en": "CV documentation gap: lenz-legacy"
+    },
+    "note": {
+      "de": "Offene Lücke: In den geprüften offiziellen Produkt-, Download- und Archivquellen konnte keine eindeutig passende CV-Tabelle verlässlich erfasst werden. Keine Belegung ähnlicher Decoder übernommen.",
+      "en": "Open gap: no unambiguous matching CV table could be reliably recorded from the reviewed official product/download/archive sources. Mappings from similar decoders were not substituted."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "GOLD maxi / Herstellerarchiv",
+        "url": "https://www.lenz-elektronik.de/media/e7/58/f9/1733842032/Decoderidenttabelle_01.pdf?ts=1733842032",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-lenz-silver",
+    "revision": "2026-10-20.1",
+    "modelIds": [
+      "lenz-silver-silver-mini-v2"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: lenz-silver",
+      "en": "CV documentation gap: lenz-silver"
+    },
+    "note": {
+      "de": "Offene Lücke: In den geprüften offiziellen Produkt-, Download- und Archivquellen konnte keine eindeutig passende CV-Tabelle verlässlich erfasst werden. Keine Belegung ähnlicher Decoder übernommen.",
+      "en": "Open gap: no unambiguous matching CV table could be reliably recorded from the reviewed official product/download/archive sources. Mappings from similar decoders were not substituted."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "SILVER mini+ V2 / Herstellerarchiv",
+        "url": "https://www.lenz-elektronik.de/en/Digital-Plus/Lokdecoder/Locomotive-decoder-in-detail/NEW-SILVERmini-V2/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SILVER mini+ V2 / Herstellerarchiv",
+        "url": "https://www.lenz-elektronik.de/media/11/fd/c2/1734005792/GOLD_SILVER_plus_manual.pdf?ts=1734005792",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SILVER mini+ V2 / Herstellerarchiv",
+        "url": "https://www.lenz-elektronik.de/Hilfe-Info/Downloads-Manuals/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SILVER mini+ V2 / Herstellerarchiv",
+        "url": "https://www.lenz-elektronik.de/Hilfe-Info/FAQ-Digital-plus/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-piko-4-1",
+    "revision": "2026-10-20.1",
+    "modelIds": [
+      "piko-4-1-smartdecoder-4-1-nem-652"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: piko-4-1",
+      "en": "CV documentation gap: piko-4-1"
+    },
+    "note": {
+      "de": "Offene Lücke: In den geprüften offiziellen Produkt-, Download- und Archivquellen konnte keine eindeutig passende CV-Tabelle verlässlich erfasst werden. Keine Belegung ähnlicher Decoder übernommen.",
+      "en": "Open gap: no unambiguous matching CV table could be reliably recorded from the reviewed official product/download/archive sources. Mappings from similar decoders were not substituted."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "SmartDecoder 4.1 NEM 652 / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/is.php?id=24844",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder 4.1 NEM 652 / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/is.php?id=19993",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-piko-digital-legacy",
+    "revision": "2026-10-20.1",
+    "modelIds": [
+      "piko-digital-legacy-46121",
+      "piko-digital-legacy-46210",
+      "piko-digital-legacy-46211",
+      "piko-digital-legacy-46218",
+      "piko-digital-legacy-56123"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: piko-digital-legacy",
+      "en": "CV documentation gap: piko-digital-legacy"
+    },
+    "note": {
+      "de": "Offene Lücke: In den geprüften offiziellen Produkt-, Download- und Archivquellen konnte keine eindeutig passende CV-Tabelle verlässlich erfasst werden. Keine Belegung ähnlicher Decoder übernommen.",
+      "en": "Open gap: no unambiguous matching CV table could be reliably recorded from the reviewed official product/download/archive sources. Mappings from similar decoders were not substituted."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "Digitaldecoder PluX22 (56123) / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/fragen-zum-digitalsystem.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "Digitaldecoder PluX22 (56123) / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/warengruppe/digital-421/l-100/o-artikelnr_asc.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-piko-sound-products",
+    "revision": "2026-10-20.1",
+    "modelIds": [
+      "piko-sound-products-36520",
+      "piko-sound-products-56560",
+      "piko-sound-products-56579",
+      "piko-sound-products-56658",
+      "piko-sound-products-56659",
+      "piko-sound-products-56663",
+      "piko-sound-products-56666"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: piko-sound-products",
+      "en": "CV documentation gap: piko-sound-products"
+    },
+    "note": {
+      "de": "Offene Lücke: In den geprüften offiziellen Produkt-, Download- und Archivquellen konnte keine eindeutig passende CV-Tabelle verlässlich erfasst werden. Keine Belegung ähnlicher Decoder übernommen.",
+      "en": "Open gap: no unambiguous matching CV table could be reliably recorded from the reviewed official product/download/archive sources. Mappings from similar decoders were not substituted."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-s-rh-2800-plux22-inkl.-lautsprecher-35119.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/warengruppe/digital-421/l-100/o-artikelnr_asc.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-s-rh-1110.5-plux22-inkl.-lautsprecher-35138.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-xp-sound-cc-65000-plux22-inkl.-lautsprecher-49608.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-xp-sound-mz-plux22-inkl.-lautsprecher-49609.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-xp-sound-tr12-pkp-plux22-inkl.-lautsprecher-49615.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-xp-sound-br-110-csd-plux22-inkl.-lautsprecher-51829.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/g-piko-smartdecoder-s-inkl.-lautsprecher-fuer-g-br-491-db-33964.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-roco-motor",
+    "revision": "2026-10-20.1",
+    "modelIds": [
+      "roco-motor-10734-h0e-n-dcc-decoder-mit-geraden-kontaktstiften",
+      "roco-motor-685404-6-poliger-decoder-mit-stecker-nem-651",
+      "roco-motor-685504-6-poliger-decoder-mit-stecker-nem-651",
+      "roco-motor-686101-6-poliger-decoder-gerade-stifte-nem-651",
+      "roco-motor-686201-8-poliger-decoder-nem-652"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: roco-motor",
+      "en": "CV documentation gap: roco-motor"
+    },
+    "note": {
+      "de": "Offene Lücke: In den geprüften offiziellen Produkt-, Download- und Archivquellen konnte keine eindeutig passende CV-Tabelle verlässlich erfasst werden. Keine Belegung ähnlicher Decoder übernommen.",
+      "en": "Open gap: no unambiguous matching CV table could be reliably recorded from the reviewed official product/download/archive sources. Mappings from similar decoders were not substituted."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "10734 · H0e/N-DCC-Decoder mit geraden Kontaktstiften / Herstellerarchiv",
+        "url": "https://www.roco.cc/rde/produkte/steuerung/decoder/10734-h0en-dcc-decoder-mit-geraden-kontaktstiften.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "10734 · H0e/N-DCC-Decoder mit geraden Kontaktstiften / Herstellerarchiv",
+        "url": "https://www.roco.cc/rde/produkte/steuerung/decoder.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-uhlenbrock-intellidrive",
+    "revision": "2026-10-20.1",
+    "modelIds": [
+      "uhlenbrock-intellidrive-intellidrive-74560",
+      "uhlenbrock-intellidrive-intellidrive-74570"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: uhlenbrock-intellidrive",
+      "en": "CV documentation gap: uhlenbrock-intellidrive"
+    },
+    "note": {
+      "de": "Offene Lücke: In den geprüften offiziellen Produkt-, Download- und Archivquellen konnte keine eindeutig passende CV-Tabelle verlässlich erfasst werden. Keine Belegung ähnlicher Decoder übernommen.",
+      "en": "Open gap: no unambiguous matching CV table could be reliably recorded from the reviewed official product/download/archive sources. Mappings from similar decoders were not substituted."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "IntelliDrive 74560 / Herstellerarchiv",
+        "url": "https://www.uhlenbrock.de/de_DE/produkte/decoder/I1F5A94F-001.htm!ArcEntryInfo=0004.20.I1F5A94F",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "IntelliDrive 74560 / Herstellerarchiv",
+        "url": "https://www.uhlenbrock.de/de_DE/produkte/decoder/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-uhlenbrock-intellisound-8",
+    "revision": "2026-10-20.1",
+    "modelIds": [
+      "uhlenbrock-intellisound-8-intellisound-8-33250",
+      "uhlenbrock-intellisound-8-intellisound-8-34720",
+      "uhlenbrock-intellisound-8-intellisound-8-34760"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: uhlenbrock-intellisound-8",
+      "en": "CV documentation gap: uhlenbrock-intellisound-8"
+    },
+    "note": {
+      "de": "Offene Lücke: In den geprüften offiziellen Produkt-, Download- und Archivquellen konnte keine eindeutig passende CV-Tabelle verlässlich erfasst werden. Keine Belegung ähnlicher Decoder übernommen.",
+      "en": "Open gap: no unambiguous matching CV table could be reliably recorded from the reviewed official product/download/archive sources. Mappings from similar decoders were not substituted."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "IntelliSound 8 33250 / Herstellerarchiv",
+        "url": "https://www.uhlenbrock.de/de_DE/I14EE3E1-003.apd/Decoder%2BSound%2B2026.pdf",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-uhlenbrock-sound-legacy",
+    "revision": "2026-10-20.1",
+    "modelIds": [
+      "uhlenbrock-sound-legacy-intellisound-36430"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: uhlenbrock-sound-legacy",
+      "en": "CV documentation gap: uhlenbrock-sound-legacy"
+    },
+    "note": {
+      "de": "Offene Lücke: In den geprüften offiziellen Produkt-, Download- und Archivquellen konnte keine eindeutig passende CV-Tabelle verlässlich erfasst werden. Keine Belegung ähnlicher Decoder übernommen.",
+      "en": "Open gap: no unambiguous matching CV table could be reliably recorded from the reviewed official product/download/archive sources. Mappings from similar decoders were not substituted."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "IntelliSound 36430 / Herstellerarchiv",
+        "url": "https://www.uhlenbrock.de/de_DE/service/download/handbook/en/B36030e.pdf",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "IntelliSound 36430 / Herstellerarchiv",
+        "url": "https://www.uhlenbrock.de/de_DE/service/download/handbook/en/Bes35330_RCe.pdf",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  }
+]

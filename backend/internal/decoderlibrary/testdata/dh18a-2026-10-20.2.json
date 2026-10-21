@@ -1,0 +1,6728 @@
+{
+  "id": "dh-dh18a",
+  "name": "Doehler & Haass DH18A",
+  "nameEn": "Doehler & Haass DH18A",
+  "revision": "2026-10-20.2",
+  "protocol": "DCC",
+  "kind": "model",
+  "manufacturerId": 97,
+  "family": "DH",
+  "model": "DH18A",
+  "parentId": "dcc-basics",
+  "aliases": [
+    "DH18A",
+    "Doehler & Haass DH18A"
+  ],
+  "familyAliases": [],
+  "sources": [
+    {
+      "title": "Doehler & Haass Fahrzeug- und Funktionsdecoder",
+      "url": "https://doehler-haass.de/cms/media/pdf/DH05C_DH10C_DH16A.pdf",
+      "version": "01/2026 · Firmware 3.15",
+      "scope": "DCC-CV-Tabelle S.65–80, Anhänge 1–7; DH18A-Anschlüsse beider Generationen S.22–23. Keine SX-Parameter oder Eigenschaften anderer Hardware übernehmen.",
+      "retrievedAt": "2026-10-20",
+      "sha256": "e919dfc7bc42a6f1135fd4698caa6d979c48df84b24db5cf1e9b12f17c6d9601"
+    },
+    {
+      "title": "Doehler & Haass Decoder-CV-Tabelle",
+      "url": "https://doehler-haass.de/cms/pages/haeufige-fragen/decoder-cv-tabelle.php",
+      "version": "Firmware 3.15, geprüft 20.10.2026",
+      "scope": "Auswahl der für DH18A dokumentierten Register; Hardwareeinschränkungen und fehlende Ausgänge bleiben berücksichtigt.",
+      "retrievedAt": "2026-10-20",
+      "sha256": "f3443560778a2e43c036a071ad81f1d09fcdd5bf2aa3cb2e0147e9e481d855bb"
+    }
+  ],
+  "definitions": [
+    {
+      "cv": 1,
+      "name": {
+        "de": "Kurze DCC-Adresse",
+        "en": "Short DCC address"
+      },
+      "help": {
+        "de": "Kurze DCC-Adresse.",
+        "en": "Short DCC address."
+      },
+      "topic": "address",
+      "minimum": 1,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.65, CV1"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 2,
+      "name": {
+        "de": "Anfahr-EMK-Offset",
+        "en": "Starting back-EMF offset"
+      },
+      "help": {
+        "de": "Zusätzlicher Gegen-EMK-Sollwert für Fahrstufe 1. Kein direkt gemessener Spannungswert.",
+        "en": "Additional back-EMF target offset at speed step1, not a measured voltage."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 15,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.65, CV2"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 3,
+      "name": {
+        "de": "Beschleunigungszeit",
+        "en": "Acceleration time"
+      },
+      "help": {
+        "de": "Beschleunigungszeit.",
+        "en": "Acceleration time."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.65, CV3"
+      },
+      "factoryDefault": 3,
+      "unit": {
+        "de": "s",
+        "en": "s"
+      }
+    },
+    {
+      "cv": 4,
+      "name": {
+        "de": "Bremszeit",
+        "en": "Deceleration time"
+      },
+      "help": {
+        "de": "Bremszeit.",
+        "en": "Deceleration time."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.65, CV4"
+      },
+      "factoryDefault": 3,
+      "unit": {
+        "de": "s",
+        "en": "s"
+      }
+    },
+    {
+      "cv": 5,
+      "name": {
+        "de": "Motor-Regelungsreferenz",
+        "en": "Motor regulation reference"
+      },
+      "help": {
+        "de": "Referenz der Gegen-EMK-Regelung bei höchster Fahrstufe: 0 entspricht ungefähr 1,2 V, 127 ungefähr 10 V Gegen-EMK. Nicht mit einer Fahrspannung oder gemessenen Geschwindigkeit gleichsetzen.",
+        "en": "Back-EMF control reference at maximum speed: 0 corresponds to about 1.2 V, 127 to about 10 V back-EMF. Not track voltage or measured speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.65, CV5"
+      },
+      "factoryDefault": 92
+    },
+    {
+      "cv": 7,
+      "name": {
+        "de": "Versionskennung",
+        "en": "Version identifier"
+      },
+      "help": {
+        "de": "Versionscode, keine Dezimal-Firmware: Beispielsweise steht 16 für 3.15.016 und 95 für 3.14.095. Code 3 ist mehrdeutig (mehrere Versionen 3.00–3.03). Keine Firmware aus einer unbekannten Kennzahl erfinden.",
+        "en": "A version code, not decimal firmware: for example, 16 denotes 3.15.016 and 95 denotes 3.14.095. Code 3 covers several 3.00–3.03 versions. Unknown codes do not establish firmware."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.65, CV7, Anhang6 S.112"
+      },
+      "access": "read-only"
+    },
+    {
+      "cv": 8,
+      "name": {
+        "de": "Herstellerkennung / Reset",
+        "en": "Manufacturer identifier / reset"
+      },
+      "help": {
+        "de": "Gelesen: 97 = Doehler & Haass. Schreiben von8 fordert einen Werksreset an. RailKeeper führt keinen Schreibzugriff aus.",
+        "en": "Read: 97 identifies Doehler & Haass. Writing8 requests a factory reset. RailKeeper does not write to the decoder."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.65, CV8"
+      },
+      "access": "command",
+      "factoryDefault": 97
+    },
+    {
+      "cv": 9,
+      "name": {
+        "de": "Motorfrequenz",
+        "en": "Motor frequency"
+      },
+      "help": {
+        "de": "Bit 0 wählt im hochfrequenten Betrieb 32 oder 16 kHz. Bit 1 schaltet auf niederfrequenten Betrieb; dann ist Bit 0 keine direkte Frequenzangabe. Bits 2/3 betreffen Regler und Kurzschlussschutz.",
+        "en": "Bit 0 selects 32 or 16 kHz in high-frequency mode. Bit 1 enables low-frequency operation, where bit 0 is not a direct frequency reading. Bits 2/3 concern controller and short-circuit protection."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 15,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.66, CV9"
+      },
+      "factoryDefault": 1,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Hochfrequente Motor-PWM",
+            "en": "High-frequency motor PWM"
+          },
+          "off": {
+            "de": "32 kHz (wenn Bit1=0)",
+            "en": "32 kHz (when bit1=0)"
+          },
+          "on": {
+            "de": "16 kHz (wenn Bit1=0)",
+            "en": "16 kHz (when bit1=0)"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Niederfrequenter Motorbetrieb",
+            "en": "Low-frequency motor operation"
+          },
+          "off": {
+            "de": "16/32 kHz",
+            "en": "16/32 kHz"
+          },
+          "on": {
+            "de": "Niederfrequent",
+            "en": "Low-frequency"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "Proportionalteilbegrenzung",
+            "en": "Proportional-term limiting"
+          },
+          "off": {
+            "de": "Nicht gesetzt",
+            "en": "Not set"
+          },
+          "on": {
+            "de": "Gesetzt",
+            "en": "Set"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "Kurzschlusssicherung ausschalten",
+            "en": "Disable short-circuit protection"
+          },
+          "off": {
+            "de": "Nicht ausgeschaltet",
+            "en": "Not disabled"
+          },
+          "on": {
+            "de": "Ausgeschaltet",
+            "en": "Disabled"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 12,
+      "name": {
+        "de": "Motorola-Einstellungen",
+        "en": "Motorola settings"
+      },
+      "help": {
+        "de": "Motorola-Einstellungen.",
+        "en": "Motorola settings."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 15,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.66, CV12"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 13,
+      "name": {
+        "de": "Funktionen im Analogbetrieb / MM1",
+        "en": "Functions in analog / MM1 operation"
+      },
+      "help": {
+        "de": "Bitmaske für eingeschaltete Funktionen im Analog- und MM1-Betrieb. Die tatsächlichen Ausgänge folgen dem Mapping; keine Funktionstasten-Schaltart.",
+        "en": "Mask of functions enabled in analog and MM1 operation. Actual outputs follow the mapping; this is not the function-key mode."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.66, CV13"
+      },
+      "access": "read-write",
+      "factoryDefault": 1,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 14,
+      "name": {
+        "de": "Funktionen im Analogbetrieb / MM1",
+        "en": "Functions in analog / MM1 operation"
+      },
+      "help": {
+        "de": "Bitmaske für eingeschaltete Funktionen im Analog- und MM1-Betrieb. Die tatsächlichen Ausgänge folgen dem Mapping; keine Funktionstasten-Schaltart.",
+        "en": "Mask of functions enabled in analog and MM1 operation. Actual outputs follow the mapping; this is not the function-key mode."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.66, CV14"
+      },
+      "access": "read-write",
+      "factoryDefault": 3,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F0 vorwärts",
+            "en": "F0 forward"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F0 rückwärts",
+            "en": "F0 reverse"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F9",
+            "en": "F9"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F10",
+            "en": "F10"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F11",
+            "en": "F11"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F12",
+            "en": "F12"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 27,
+      "name": {
+        "de": "Bremserkennung",
+        "en": "Brake detection"
+      },
+      "help": {
+        "de": "Bits 0/1: DCC-Asymmetrie normal/invers; Bits 4/5: Gleichspannung; Bits 6/7: SX-Bremsdiode.",
+        "en": "Bits 0/1: normal/inverse DCC asymmetry; bits 4/5: DC; bits 6/7: SX brake diode."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 243,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.67, CV27"
+      },
+      "factoryDefault": 64,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Asymmetrie normal (ABC)",
+            "en": "Normal asymmetry (ABC)"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Asymmetrie invers (ABC)",
+            "en": "Inverse asymmetry (ABC)"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Negative Gleichspannung",
+            "en": "Negative DC voltage"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Positive Gleichspannung",
+            "en": "Positive DC voltage"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "SX-Bremsdiode normal",
+            "en": "Normal SX braking diode"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "SX-Bremsdiode invers",
+            "en": "Inverse SX braking diode"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "allowedValues": [
+        0,
+        1,
+        2,
+        3,
+        16,
+        17,
+        18,
+        19,
+        32,
+        33,
+        34,
+        35,
+        48,
+        49,
+        50,
+        51,
+        64,
+        65,
+        66,
+        67,
+        80,
+        81,
+        82,
+        83,
+        96,
+        97,
+        98,
+        99,
+        112,
+        113,
+        114,
+        115,
+        128,
+        129,
+        130,
+        131,
+        144,
+        145,
+        146,
+        147,
+        160,
+        161,
+        162,
+        163,
+        176,
+        177,
+        178,
+        179,
+        192,
+        193,
+        194,
+        195,
+        208,
+        209,
+        210,
+        211,
+        224,
+        225,
+        226,
+        227,
+        240,
+        241,
+        242,
+        243
+      ]
+    },
+    {
+      "cv": 28,
+      "name": {
+        "de": "RailCom-Konfiguration",
+        "en": "RailCom configuration"
+      },
+      "help": {
+        "de": "Bits 0/1 erlauben Kanal1/2, Bit 2 die dynamische Kanalnutzung. Zusätzlich muss CV 29 Bit 3 Rückmeldung erlauben. Kein Nachweis einer RailComPlus-Funktion.",
+        "en": "Bits 0/1 allow channels 1/2; bit 2 allows dynamic channel use. CV 29 bit 3 must also allow feedback. This does not establish RailComPlus capability."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 7,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.67, CV28"
+      },
+      "access": "read-write",
+      "factoryDefault": 3,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Kanal1: Lokadresse",
+            "en": "Channel1: address"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Erlaubt",
+            "en": "Allowed"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Kanal2: POM-Auslesen",
+            "en": "Channel2: POM reads"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Erlaubt",
+            "en": "Allowed"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "Dynamische Kanalnutzung",
+            "en": "Dynamic channel use"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Erlaubt",
+            "en": "Allowed"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 29,
+      "name": {
+        "de": "DCC-Konfiguration DH18A",
+        "en": "DH18A DCC configuration"
+      },
+      "help": {
+        "de": "Dokumentiert sind Richtung, Fahrstufen, Analogfreigabe, Rückmeldung und Adresswahl. CV 48 bestimmt die Motorkennlinie; aus dem nicht beschriebenen Bit 4 keine 3-/28-Punkt-Umschaltung ableiten. Für DH nennt die Tabelle Standard 6/14, daher kein eindeutiger Werkswert.",
+        "en": "Direction, speed steps, analog enablement, feedback and address selection are documented. CV 48 controls the motor characteristic; undocumented bit 4 does not establish a 3/28-point curve switch. The DH table lists defaults6/14, so no single factory value is recorded."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.68, CV29"
+      },
+      "access": "read-write",
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Fahrtrichtung",
+            "en": "Direction"
+          },
+          "off": {
+            "de": "Normal",
+            "en": "Normal"
+          },
+          "on": {
+            "de": "Umgekehrt",
+            "en": "Reversed"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "DCC-Fahrstufen",
+            "en": "DCC speed steps"
+          },
+          "off": {
+            "de": "14",
+            "en": "14"
+          },
+          "on": {
+            "de": "28/126",
+            "en": "28/126"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "Analogbetrieb",
+            "en": "Analog operation"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Erlaubt",
+            "en": "Allowed"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "RailCom-Rückmeldung",
+            "en": "RailCom feedback"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Erlaubt",
+            "en": "Allowed"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "DCC-Adresse",
+            "en": "DCC address"
+          },
+          "off": {
+            "de": "Kurz (CV1)",
+            "en": "Short (CV1)"
+          },
+          "on": {
+            "de": "Lang (CV17/18)",
+            "en": "Long (CV17/18)"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 33,
+      "name": {
+        "de": "Funktionszuordnung F0 vorwärts",
+        "en": "Function mapping F0 forward"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.68, CV33, Anhang1 S.102–103"
+      },
+      "factoryDefault": 1,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 34,
+      "name": {
+        "de": "Funktionszuordnung F0 rückwärts",
+        "en": "Function mapping F0 reverse"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.68, CV34, Anhang1 S.102–103"
+      },
+      "factoryDefault": 2,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 35,
+      "name": {
+        "de": "Funktionszuordnung F1",
+        "en": "Function mapping F1"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.68, CV35, Anhang1 S.102–103"
+      },
+      "factoryDefault": 4,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 36,
+      "name": {
+        "de": "Funktionszuordnung F2",
+        "en": "Function mapping F2"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.68, CV36, Anhang1 S.102–103"
+      },
+      "factoryDefault": 8,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 37,
+      "name": {
+        "de": "Funktionszuordnung F3",
+        "en": "Function mapping F3"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV37, Anhang1 S.102–103"
+      },
+      "factoryDefault": 16,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 38,
+      "name": {
+        "de": "Funktionszuordnung F4",
+        "en": "Function mapping F4"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV38, Anhang1 S.102–103"
+      },
+      "factoryDefault": 128,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 39,
+      "name": {
+        "de": "Funktionszuordnung F5",
+        "en": "Function mapping F5"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV39, Anhang1 S.102–103"
+      },
+      "factoryDefault": 32,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 40,
+      "name": {
+        "de": "Funktionszuordnung F6",
+        "en": "Function mapping F6"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV40, Anhang1 S.102–103"
+      },
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 41,
+      "name": {
+        "de": "Funktionszuordnung F7",
+        "en": "Function mapping F7"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV41, Anhang1 S.102–103"
+      },
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 42,
+      "name": {
+        "de": "Funktionszuordnung F8",
+        "en": "Function mapping F8"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV42, Anhang1 S.102–103"
+      },
+      "factoryDefault": 64,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 43,
+      "name": {
+        "de": "Funktionszuordnung F9",
+        "en": "Function mapping F9"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV43, Anhang1 S.102–103"
+      },
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 44,
+      "name": {
+        "de": "Funktionszuordnung F10",
+        "en": "Function mapping F10"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV44, Anhang1 S.102–103"
+      },
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 45,
+      "name": {
+        "de": "Funktionszuordnung F11",
+        "en": "Function mapping F11"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV45, Anhang1 S.102–103"
+      },
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 46,
+      "name": {
+        "de": "Funktionszuordnung F12",
+        "en": "Function mapping F12"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV46, Anhang1 S.102–103"
+      },
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 47,
+      "name": {
+        "de": "Funktionszuordnung F1 rückwärts",
+        "en": "Function mapping F1 reverse"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV47, Anhang1 S.102–103"
+      },
+      "factoryDefault": 4,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 48,
+      "name": {
+        "de": "Krümmung der Motorkennlinie",
+        "en": "Motor curve shape"
+      },
+      "help": {
+        "de": "Krümmung der Fahrstufenkennlinie: 0 ist gerade, 7 stark gekrümmt. Für konstanten Bremsweg empfiehlt der Hersteller 0.",
+        "en": "Speed characteristic curvature: 0 is linear, 7 strongly curved. The manufacturer recommends 0 for constant braking distance."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 7,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV48"
+      },
+      "factoryDefault": 5
+    },
+    {
+      "cv": 49,
+      "name": {
+        "de": "Motorimpulsbreite",
+        "en": "Motor pulse width"
+      },
+      "help": {
+        "de": "Motorimpulsbreite: 0 = 1 ms, 1 = 2 ms, 2 = 4 ms, 3 = 8 ms. Der Rohwert ist kein linearer Millisekundenwert.",
+        "en": "Motor pulse width: 0 = 1 ms, 1 = 2 ms, 2 = 4 ms, 3 = 8 ms. The raw value is not linear milliseconds."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 3,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV49"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 50,
+      "name": {
+        "de": "Motor-Regelvariante",
+        "en": "Motor control preset"
+      },
+      "help": {
+        "de": "0 verwendet die benutzerdefinierten Reglerparameter CV 56–59; 1 = hart, 2 = weich, 3 = sehr weich.",
+        "en": "0 uses custom controller parameters CV 56–59; 1 = hard, 2 = soft, 3 = very soft."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 3,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.69, CV50"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 51,
+      "name": {
+        "de": "Anschlussvertauschungen",
+        "en": "Connection swaps"
+      },
+      "help": {
+        "de": "Bits vertauschen die logischen Zuordnungen, ohne die Verdrahtung zu ändern. Kein Lenz-ABC-Register.",
+        "en": "Bits swap logical assignments without rewiring. This is not the Lenz ABC register."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 7,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Motoranschlüsse vertauschen",
+            "en": "Swap motor connections"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Lichtanschlüsse vertauschen",
+            "en": "Swap light connections"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "Gleisanschlüsse vertauschen",
+            "en": "Swap track connections"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.70, CV51"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 52,
+      "name": {
+        "de": "Dimmung Licht vorn/hinten",
+        "en": "Front/rear light dimming"
+      },
+      "help": {
+        "de": "Dimmung Licht vorn/hinten.",
+        "en": "Front/rear light dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.70, CV52"
+      },
+      "factoryDefault": 31
+    },
+    {
+      "cv": 53,
+      "name": {
+        "de": "Dimmung Abblendlicht",
+        "en": "Dimmed-light level"
+      },
+      "help": {
+        "de": "Dimmung Abblendlicht.",
+        "en": "Dimmed-light level."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.70, CV53"
+      },
+      "factoryDefault": 15
+    },
+    {
+      "cv": 54,
+      "name": {
+        "de": "Dimmung AUX1",
+        "en": "AUX1 dimming"
+      },
+      "help": {
+        "de": "Dimmung AUX1.",
+        "en": "AUX1 dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.70, CV54"
+      },
+      "factoryDefault": 31
+    },
+    {
+      "cv": 55,
+      "name": {
+        "de": "Dimmung AUX2",
+        "en": "AUX2 dimming"
+      },
+      "help": {
+        "de": "Dimmung AUX2.",
+        "en": "AUX2 dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.70, CV55"
+      },
+      "factoryDefault": 31
+    },
+    {
+      "cv": 56,
+      "name": {
+        "de": "Motorregler: P-Anteil",
+        "en": "Motor control: P component"
+      },
+      "help": {
+        "de": "Nur bei CV 50=0 wirksam.",
+        "en": "Effective only when CV 50=0."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 7,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.70, CV56"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 57,
+      "name": {
+        "de": "Motorregler: I-Anteil",
+        "en": "Motor control: I component"
+      },
+      "help": {
+        "de": "Nur bei CV 50=0 wirksam.",
+        "en": "Effective only when CV 50=0."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 3,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.70, CV57"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 58,
+      "name": {
+        "de": "Motorregler: Messzeit",
+        "en": "Motor control: measurement interval"
+      },
+      "help": {
+        "de": "Nur bei CV 50=0 wirksam.",
+        "en": "Effective only when CV 50=0."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 3,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.70, CV58"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 59,
+      "name": {
+        "de": "Motorregler: Impulsbreite",
+        "en": "Motor control: pulse width"
+      },
+      "help": {
+        "de": "Nur bei CV 50=0 wirksam.",
+        "en": "Effective only when CV 50=0."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 7,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.70, CV59"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 60,
+      "name": {
+        "de": "Bremsabschnitt und Pendelbetrieb",
+        "en": "Braking sections and shuttle operation"
+      },
+      "help": {
+        "de": "Bit 0: zweiteiliger SX-Bremsabschnitt; Bit 1: Mindestfahrstufe für Bremsrampe. Bits 2/3 bilden gemeinsam eine Auswahl: 0 aus,4 Pendeln ohne Zwischenhalt,8 mit manuellem,12 mit automatischem Zwischenhalt. Pendeln benötigt passende ABC-Module und CV 27; Aufenthalte in CV 63.",
+        "en": "Bit 0: two-part SX braking section; bit 1: minimum speed for the brake ramp. Bits 2/3 jointly encode a selection: 0 off,4 shuttle without an intermediate stop,8 with manual and12 with automatic intermediate stop. Shuttle operation requires suitable ABC modules and CV 27; dwell times use CV 63."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 15,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.71, CV60"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Zweiteiliger SX-Bremsabschnitt",
+            "en": "Two-part SX braking section"
+          },
+          "off": {
+            "de": "Einteilig",
+            "en": "Single-part"
+          },
+          "on": {
+            "de": "Zweiteilig (CV27 beachten)",
+            "en": "Two-part (observe CV27)"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Mindestfahrstufe für Bremsrampe",
+            "en": "Minimum speed for brake ramp"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein (CV65)",
+            "en": "On (CV65)"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 61,
+      "name": {
+        "de": "Rangiergang: Regelungsreferenz",
+        "en": "Shunting: regulation reference"
+      },
+      "help": {
+        "de": "Rangiergang: Regelungsreferenz.",
+        "en": "Shunting: regulation reference."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.71, CV61"
+      },
+      "factoryDefault": 63,
+      "unit": {
+        "de": "Regelungsreferenz; keine km/h",
+        "en": "Control reference; not km/h"
+      }
+    },
+    {
+      "cv": 62,
+      "name": {
+        "de": "Rangiergang: Verzögerungszeit",
+        "en": "Shunting: inertia time"
+      },
+      "help": {
+        "de": "Rangiergang: Verzögerungszeit.",
+        "en": "Shunting: inertia time."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.71, CV62"
+      },
+      "factoryDefault": 1,
+      "unit": {
+        "de": "s",
+        "en": "s"
+      }
+    },
+    {
+      "cv": 63,
+      "name": {
+        "de": "Anfahrwartezeit / Pendelaufenthalt",
+        "en": "Starting wait / shuttle stop"
+      },
+      "help": {
+        "de": "CV 60 Bits 2/3 wählen den Pendelbetrieb. Ohne Pendelbetrieb: Anfahrwartezeit je 100 ms (Zuordnung CV 124). Im Pendelbetrieb: Aufenthalt vor Richtungswechsel je 1 s, vor Wiederanfahrt je 0,5 s. Keine gemeinsame feste Zeiteinheit für alle Betriebsarten.",
+        "en": "CV 60 bits 2/3 select shuttle operation. Without shuttle mode: start waiting time in 100 ms steps (assignment CV 124). In shuttle mode: dwell before reversing in 1 s steps, before restarting in 0.5 s steps. No single fixed scale applies to every mode."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.71, CV63"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 64,
+      "name": {
+        "de": "Funktionszuordnung F2 rückwärts",
+        "en": "Function mapping F2 reverse"
+      },
+      "help": {
+        "de": "Ausgangsmaske: Bits 0–5 wählen LV, LR und AUX1–4. Bei CV 137 Bit 4=0 bedeuten Bits 6/7 Abblendlicht/Rangiergang, bei Bit 4=1 AUX5/AUX6. AUX3–6 am DH18A sind unverstärkt; SUSI-Pinbelegung und angeschlossene Last separat prüfen. CV 35 setzt auch CV 47, CV 36 auch CV 64. Keine Schaltart oder Tasteninvertierung daraus ableiten.",
+        "en": "Output mask: bits 0–5 select front/rear lights and AUX1–4. With CV 137 bit 4=0, bits 6/7 mean dimming/shunting; with bit 4=1 they mean AUX5/AUX6. DH18A AUX3–6 are logic-level; check SUSI pin assignment and attached loads separately. CV 35 also sets CV 47, CV 36 also sets CV 64. This does not establish key mode or inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.72, CV64, Anhang1 S.102–103"
+      },
+      "factoryDefault": 8,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Abblendlicht / AUX5",
+            "en": "Dimming / AUX5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Rangiergang / AUX6",
+            "en": "Shunting / AUX6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet; CV137 beachten",
+            "en": "Assigned; observe CV137"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 65,
+      "name": {
+        "de": "Fahrstufe im Bremsabschnitt",
+        "en": "Brake-section speed step"
+      },
+      "help": {
+        "de": "Bei CV 60 Bit 1=0: maximale Fahrstufe im zweiteiligen SX-Bremsabschnitt (CV 27 Bits 6/7, CV 60 Bit 0). Bei Bit 1=1: Mindestfahrstufe für die Bremsrampe CV 154/155. Kein km/h-Wert.",
+        "en": "With CV 60 bit 1=0: maximum speed step in a two-part SX braking section (CV 27 bits 6/7, CV 60 bit 0). With bit 1=1: minimum speed step for the CV 154/155 brake ramp. Not km/h."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.72, CV65"
+      },
+      "factoryDefault": 12,
+      "unit": {
+        "de": "Interne Fahrstufe; keine km/h",
+        "en": "Internal speed step; not km/h"
+      }
+    },
+    {
+      "cv": 66,
+      "name": {
+        "de": "Geschwindigkeitstrimm vorwärts",
+        "en": "Forward speed trim"
+      },
+      "help": {
+        "de": "0 deaktiviert den Vorwärtstrimm; unter 128 wird die Geschwindigkeit vermindert, über 128 erhöht. Kein gemessener Geschwindigkeitswert.",
+        "en": "0 disables forward trim; values below 128 reduce speed, above 128 increase it. Not a measured speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.72, CV66"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 95,
+      "name": {
+        "de": "Geschwindigkeitstrimm rückwärts",
+        "en": "Reverse speed trim"
+      },
+      "help": {
+        "de": "Rückwärtstrimm wie CV 66: 0 deaktiviert, unter 128 vermindert und über 128 erhöht die Geschwindigkeit.",
+        "en": "Reverse trim follows CV 66: 0 disables it, below 128 reduces speed, above 128 increases it."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.72, CV95"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 105,
+      "name": {
+        "de": "Benutzerkennung 1",
+        "en": "User identifier 1"
+      },
+      "help": {
+        "de": "Benutzerkennung 1.",
+        "en": "User identifier 1."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.72, CV105"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 106,
+      "name": {
+        "de": "Benutzerkennung 2",
+        "en": "User identifier 2"
+      },
+      "help": {
+        "de": "Benutzerkennung 2.",
+        "en": "User identifier 2."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.72, CV106"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 112,
+      "name": {
+        "de": "Analogbetrieb: Geschwindigkeitsminderung",
+        "en": "Analog speed reduction"
+      },
+      "help": {
+        "de": "Analogbetrieb: Geschwindigkeitsminderung.",
+        "en": "Analog speed reduction."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.72, CV112"
+      },
+      "factoryDefault": 15
+    },
+    {
+      "cv": 113,
+      "name": {
+        "de": "Ausschaltfunktionen für LV",
+        "en": "Off-function mask for LV"
+      },
+      "help": {
+        "de": "Bits 0–7 ordnen F1–F8 zu: Diese Tasten können den genannten Ausgang trotz bestehender Einschaltzuordnung abschalten. Kein globales Invertierungsbit und keine Dauer-/Moment-Einstellung einer Taste.",
+        "en": "Bits 0–7 assign F1–F8: these keys can turn off the output despite its on-assignment. This is not a global inversion flag or a latching/momentary key setting."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.73, CV113; Anhang1 S.103"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 114,
+      "name": {
+        "de": "Ausschaltfunktionen für LR",
+        "en": "Off-function mask for LR"
+      },
+      "help": {
+        "de": "Bits 0–7 ordnen F1–F8 zu: Diese Tasten können den genannten Ausgang trotz bestehender Einschaltzuordnung abschalten. Kein globales Invertierungsbit und keine Dauer-/Moment-Einstellung einer Taste.",
+        "en": "Bits 0–7 assign F1–F8: these keys can turn off the output despite its on-assignment. This is not a global inversion flag or a latching/momentary key setting."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.73, CV114; Anhang1 S.103"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 115,
+      "name": {
+        "de": "Ausschaltfunktionen für AUX1",
+        "en": "Off-function mask for AUX1"
+      },
+      "help": {
+        "de": "Bits 0–7 ordnen F1–F8 zu: Diese Tasten können den genannten Ausgang trotz bestehender Einschaltzuordnung abschalten. Kein globales Invertierungsbit und keine Dauer-/Moment-Einstellung einer Taste.",
+        "en": "Bits 0–7 assign F1–F8: these keys can turn off the output despite its on-assignment. This is not a global inversion flag or a latching/momentary key setting."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.73, CV115; Anhang1 S.103"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 116,
+      "name": {
+        "de": "Ausschaltfunktionen für AUX2",
+        "en": "Off-function mask for AUX2"
+      },
+      "help": {
+        "de": "Bits 0–7 ordnen F1–F8 zu: Diese Tasten können den genannten Ausgang trotz bestehender Einschaltzuordnung abschalten. Kein globales Invertierungsbit und keine Dauer-/Moment-Einstellung einer Taste.",
+        "en": "Bits 0–7 assign F1–F8: these keys can turn off the output despite its on-assignment. This is not a global inversion flag or a latching/momentary key setting."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.73, CV116; Anhang1 S.103"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 117,
+      "name": {
+        "de": "AUX1 Abschalttimer",
+        "en": "AUX1 off timer"
+      },
+      "help": {
+        "de": "Ausgang schaltet nach Wert × 0,1 s ab; 0 deaktiviert den Timer. Dies belegt keine Momentfunktion der Funktionstaste.",
+        "en": "The output switches off after value × 0.1 s; 0 disables the timer. This does not establish momentary function-key mode."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.73, CV117; Anhang1 S.102"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 118,
+      "name": {
+        "de": "AUX2 Abschalttimer",
+        "en": "AUX2 off timer"
+      },
+      "help": {
+        "de": "Ausgang schaltet nach Wert × 0,1 s ab; 0 deaktiviert den Timer. Dies belegt keine Momentfunktion der Funktionstaste.",
+        "en": "The output switches off after value × 0.1 s; 0 disables the timer. This does not establish momentary function-key mode."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.73, CV118; Anhang1 S.102"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 119,
+      "name": {
+        "de": "AUX3: Abschalttimer",
+        "en": "AUX3: switch-off timer"
+      },
+      "help": {
+        "de": "Ausgang schaltet nach Wert × 0,1 s ab; 0 deaktiviert den Timer. Dies belegt keine Momentfunktion der Funktionstaste.",
+        "en": "The output switches off after value × 0.1 s; 0 disables the timer. This does not establish momentary function-key mode."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.73, CV119; Anhang1 S.102"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Schritt; 0 = Timer aus",
+        "en": "100 ms per step; 0 = timer off"
+      }
+    },
+    {
+      "cv": 120,
+      "name": {
+        "de": "AUX4: Abschalttimer",
+        "en": "AUX4: switch-off timer"
+      },
+      "help": {
+        "de": "Ausgang schaltet nach Wert × 0,1 s ab; 0 deaktiviert den Timer. Dies belegt keine Momentfunktion der Funktionstaste.",
+        "en": "The output switches off after value × 0.1 s; 0 disables the timer. This does not establish momentary function-key mode."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.73, CV120; Anhang1 S.102"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Schritt; 0 = Timer aus",
+        "en": "100 ms per step; 0 = timer off"
+      }
+    },
+    {
+      "cv": 121,
+      "name": {
+        "de": "LV/LR ein, AUX1/AUX2 aus (bei F0 ein)",
+        "en": "Front/rear on, AUX1/AUX2 off (F0 on)"
+      },
+      "help": {
+        "de": "Bitmaske für F1–F8. Die Bedingung im Namen beachten; CV 124 ordnet die Anfahrwartezeit CV 63 zu. Keine automatische Änderung der Funktionstasteneigenschaften.",
+        "en": "Mask for F1–F8. Observe the condition in the name; CV 124 assigns the CV 63 start waiting time. It does not automatically change function-key properties."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.73, CV121"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 122,
+      "name": {
+        "de": "AUX1/AUX2 ein, LV/LR aus (bei F0 aus)",
+        "en": "AUX1/AUX2 on, front/rear off (F0 off)"
+      },
+      "help": {
+        "de": "Bitmaske für F1–F8. Die Bedingung im Namen beachten; CV 124 ordnet die Anfahrwartezeit CV 63 zu. Keine automatische Änderung der Funktionstasteneigenschaften.",
+        "en": "Mask for F1–F8. Observe the condition in the name; CV 124 assigns the CV 63 start waiting time. It does not automatically change function-key properties."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.73, CV122"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 123,
+      "name": {
+        "de": "ABC-Langsamfahrt",
+        "en": "ABC slow speed"
+      },
+      "help": {
+        "de": "ABC-Langsamfahrt.",
+        "en": "ABC slow speed."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.73, CV123"
+      },
+      "factoryDefault": 63,
+      "unit": {
+        "de": "Interne Fahrstufe; keine km/h",
+        "en": "Internal speed step; not km/h"
+      }
+    },
+    {
+      "cv": 124,
+      "name": {
+        "de": "Tastenzuordnung Anfahrwartezeit",
+        "en": "Start-waiting-time key assignment"
+      },
+      "help": {
+        "de": "Bitmaske für F1–F8. Die Bedingung im Namen beachten; CV 124 ordnet die Anfahrwartezeit CV 63 zu. Keine automatische Änderung der Funktionstasteneigenschaften.",
+        "en": "Mask for F1–F8. Observe the condition in the name; CV 124 assigns the CV 63 start waiting time. It does not automatically change function-key properties."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.74, CV124"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 125,
+      "name": {
+        "de": "Ausschaltfunktionen für AUX3",
+        "en": "Off-function mask for AUX3"
+      },
+      "help": {
+        "de": "Bits 0–7 ordnen F1–F8 zu: Diese Tasten können den genannten Ausgang trotz bestehender Einschaltzuordnung abschalten. Kein globales Invertierungsbit und keine Dauer-/Moment-Einstellung einer Taste.",
+        "en": "Bits 0–7 assign F1–F8: these keys can turn off the output despite its on-assignment. This is not a global inversion flag or a latching/momentary key setting."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.74, CV125; Anhang1 S.103"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 126,
+      "name": {
+        "de": "Ausschaltfunktionen für AUX4",
+        "en": "Off-function mask for AUX4"
+      },
+      "help": {
+        "de": "Bits 0–7 ordnen F1–F8 zu: Diese Tasten können den genannten Ausgang trotz bestehender Einschaltzuordnung abschalten. Kein globales Invertierungsbit und keine Dauer-/Moment-Einstellung einer Taste.",
+        "en": "Bits 0–7 assign F1–F8: these keys can turn off the output despite its on-assignment. This is not a global inversion flag or a latching/momentary key setting."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.74, CV126; Anhang1 S.103"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 127,
+      "name": {
+        "de": "Ausschaltfunktionen für AUX5",
+        "en": "Off-function mask for AUX5"
+      },
+      "help": {
+        "de": "Bits 0–7 ordnen F1–F8 zu: Diese Tasten können den genannten Ausgang trotz bestehender Einschaltzuordnung abschalten. Kein globales Invertierungsbit und keine Dauer-/Moment-Einstellung einer Taste.",
+        "en": "Bits 0–7 assign F1–F8: these keys can turn off the output despite its on-assignment. This is not a global inversion flag or a latching/momentary key setting."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.74, CV127; Anhang1 S.103"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 128,
+      "name": {
+        "de": "Ausschaltfunktionen für AUX6",
+        "en": "Off-function mask for AUX6"
+      },
+      "help": {
+        "de": "Bits 0–7 ordnen F1–F8 zu: Diese Tasten können den genannten Ausgang trotz bestehender Einschaltzuordnung abschalten. Kein globales Invertierungsbit und keine Dauer-/Moment-Einstellung einer Taste.",
+        "en": "Bits 0–7 assign F1–F8: these keys can turn off the output despite its on-assignment. This is not a global inversion flag or a latching/momentary key setting."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.74, CV128; Anhang1 S.103"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1",
+            "en": "F1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2",
+            "en": "F2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3",
+            "en": "F3"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4",
+            "en": "F4"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5",
+            "en": "F5"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6",
+            "en": "F6"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7",
+            "en": "F7"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8",
+            "en": "F8"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zum Ausschalten zugeordnet",
+            "en": "Assigned to turn off"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 129,
+      "name": {
+        "de": "AUX5: Abschalttimer",
+        "en": "AUX5: switch-off timer"
+      },
+      "help": {
+        "de": "Ausgang schaltet nach Wert × 0,1 s ab; 0 deaktiviert den Timer. Dies belegt keine Momentfunktion der Funktionstaste.",
+        "en": "The output switches off after value × 0.1 s; 0 disables the timer. This does not establish momentary function-key mode."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.74, CV129; Anhang1 S.102"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Schritt; 0 = Timer aus",
+        "en": "100 ms per step; 0 = timer off"
+      }
+    },
+    {
+      "cv": 130,
+      "name": {
+        "de": "AUX6: Abschalttimer",
+        "en": "AUX6: switch-off timer"
+      },
+      "help": {
+        "de": "Ausgang schaltet nach Wert × 0,1 s ab; 0 deaktiviert den Timer. Dies belegt keine Momentfunktion der Funktionstaste.",
+        "en": "The output switches off after value × 0.1 s; 0 disables the timer. This does not establish momentary function-key mode."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.74, CV130; Anhang1 S.102"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Schritt; 0 = Timer aus",
+        "en": "100 ms per step; 0 = timer off"
+      }
+    },
+    {
+      "cv": 134,
+      "name": {
+        "de": "ABC-Asymmetrieschwelle",
+        "en": "ABC asymmetry threshold"
+      },
+      "help": {
+        "de": "ABC-Entscheidungsschwelle: Standard 6 entspricht ungefähr 0,7 V Asymmetrie. Werte unter 3 nennt der Hersteller nicht sinnvoll. Daraus keine lineare Volt-Skala für alle Werte ableiten.",
+        "en": "ABC decision threshold: default 6 corresponds to approximately 0.7 V asymmetry. The manufacturer calls values below 3 unsuitable. This does not establish a linear voltage scale."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 15,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.74, CV134"
+      },
+      "factoryDefault": 6
+    },
+    {
+      "cv": 135,
+      "name": {
+        "de": "Geschwindigkeitsrückmeldung: Multiplikator",
+        "en": "Speed feedback multiplier"
+      },
+      "help": {
+        "de": "Multiplikator für die kalibrierte RailCom-Geschwindigkeitsrückmeldung; 0 schaltet sie aus. Zusammen mit CV 136: Geschwindigkeit = Fahrstufe × CV 135 / 2^CV 136. Keine Messung durch RailKeeper.",
+        "en": "Multiplier for calibrated RailCom speed feedback; 0 disables it. With CV 136: speed = speed step × CV 135 / 2^CV 136. RailKeeper does not measure speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.74, CV135; Anhang7 S.112–113"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 136,
+      "name": {
+        "de": "Geschwindigkeitsrückmeldung: Teiler",
+        "en": "Speed feedback divisor"
+      },
+      "help": {
+        "de": "Exponent des Teilers für die Geschwindigkeitsrückmeldung: 0→1, 1→2, 2→4, 3→8, 4→16, 5→32, 6→64. Zusammen mit CV 135 auswerten.",
+        "en": "Divisor exponent for speed feedback: 0→1, 1→2, 2→4, 3→8, 4→16, 5→32, 6→64. Interpret together with CV 135."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 6,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.75, CV136; Anhang7 S.112–113"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 137,
+      "name": {
+        "de": "SUSI, Logikausgänge und erweitertes Mapping",
+        "en": "SUSI, logic outputs and extended mapping"
+      },
+      "help": {
+        "de": "DH18A: Bit 0 ist laut Modellhinweis ab Werk aktiv (AUX statt SUSI); der allgemeine Tabellenstandard0 gilt hierfür nicht. Bits 0/4/5 gemeinsam nach Anhang 3 lesen. AUX3–6 sind unverstärkt. Bit 2 invertiert die SUSI-Fahrtrichtung, keine Funktionstaste.",
+        "en": "For DH18A, the model note enables bit 0 at the factory (AUX instead of SUSI); the generic table default 0 does not apply. Interpret bits 0/4/5 together using appendix3. AUX3–6 are logic-level. Bit 2 inverts SUSI direction, not a function key."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 127,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.22–23/75/105, CV137"
+      },
+      "access": "read-write",
+      "factoryDefault": 1,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "ZCLK/ZDAT als Logikausgänge",
+            "en": "ZCLK/ZDAT as logic outputs"
+          },
+          "off": {
+            "de": "SUSI",
+            "en": "SUSI"
+          },
+          "on": {
+            "de": "Logikausgänge (Bits4/5 beachten)",
+            "en": "Logic outputs (observe bits4/5)"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Energiesparmodus ausschalten",
+            "en": "Disable power-saving mode"
+          },
+          "off": {
+            "de": "Nicht ausgeschaltet",
+            "en": "Not disabled"
+          },
+          "on": {
+            "de": "Ausgeschaltet",
+            "en": "Disabled"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "SUSI-Fahrtrichtung invertieren",
+            "en": "Invert SUSI direction"
+          },
+          "off": {
+            "de": "Nicht invertiert",
+            "en": "Not inverted"
+          },
+          "on": {
+            "de": "Invertiert",
+            "en": "Inverted"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "SUSI-Anfahrverzögerung ausschalten",
+            "en": "Disable SUSI start delay"
+          },
+          "off": {
+            "de": "Nicht ausgeschaltet",
+            "en": "Not disabled"
+          },
+          "on": {
+            "de": "Ausgeschaltet",
+            "en": "Disabled"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Erweitertes Mapping",
+            "en": "Extended mapping"
+          },
+          "off": {
+            "de": "Standardmapping",
+            "en": "Standard mapping"
+          },
+          "on": {
+            "de": "Erweitert",
+            "en": "Extended"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Logikausgänge an ZCLK/ZDAT",
+            "en": "Logic outputs at ZCLK/ZDAT"
+          },
+          "off": {
+            "de": "AUX3/AUX4 (Bit0 beachten)",
+            "en": "AUX3/AUX4 (observe bit0)"
+          },
+          "on": {
+            "de": "AUX5/AUX6 (Bits0/4 beachten)",
+            "en": "AUX5/AUX6 (observe bits0/4)"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "SUSI F1–F12 mit CV401ff. vertauschen",
+            "en": "Remap SUSI F1–F12 using CV401 onward"
+          },
+          "off": {
+            "de": "Nicht übernehmen",
+            "en": "Do not apply"
+          },
+          "on": {
+            "de": "Übernehmen",
+            "en": "Apply"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 138,
+      "name": {
+        "de": "Entkuppeln: Andrückzeit",
+        "en": "Uncoupling: push time"
+      },
+      "help": {
+        "de": "Entkuppeln: Andrückzeit.",
+        "en": "Uncoupling: push time."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.75, CV138"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 139,
+      "name": {
+        "de": "Entkuppeln: Wartezeit",
+        "en": "Uncoupling: waiting time"
+      },
+      "help": {
+        "de": "Entkuppeln: Wartezeit.",
+        "en": "Uncoupling: waiting time."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.75, CV139"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 140,
+      "name": {
+        "de": "Entkuppeln: Abrückzeit",
+        "en": "Uncoupling: pull-away time"
+      },
+      "help": {
+        "de": "Entkuppeln: Abrückzeit.",
+        "en": "Uncoupling: pull-away time."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 250,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.75, CV140"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 141,
+      "name": {
+        "de": "Entkuppeln: Andrückfahrstufe",
+        "en": "Uncoupling: push speed step"
+      },
+      "help": {
+        "de": "Entkuppeln: Andrückfahrstufe.",
+        "en": "Uncoupling: push speed step."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.75, CV141"
+      },
+      "factoryDefault": 12,
+      "unit": {
+        "de": "Interne Fahrstufe; keine km/h",
+        "en": "Internal speed step; not km/h"
+      }
+    },
+    {
+      "cv": 142,
+      "name": {
+        "de": "Entkuppeln: Abrückfahrstufe",
+        "en": "Uncoupling: pull-away speed step"
+      },
+      "help": {
+        "de": "Entkuppeln: Abrückfahrstufe.",
+        "en": "Uncoupling: pull-away speed step."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.75, CV142"
+      },
+      "factoryDefault": 12,
+      "unit": {
+        "de": "Interne Fahrstufe; keine km/h",
+        "en": "Internal speed step; not km/h"
+      }
+    },
+    {
+      "cv": 143,
+      "name": {
+        "de": "Kupplungsablauf: Freigaben",
+        "en": "Coupler-cycle permissions"
+      },
+      "help": {
+        "de": "Nur Bits 6/7 sind hier dokumentiert:6 deaktiviert Ablauf und Timer,7 beschränkt den Ablauf auf den Rangiergang. Andere Bits bleiben ungeklärt.",
+        "en": "Only bits 6/7 are documented here:6 disables the cycle and timers; 7 restricts the cycle to shunting mode. Other bits remain uninterpreted."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.76, CV143; Anhang4 S.106–110"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 6,
+          "name": {
+            "de": "Ablauf und Timer deaktivieren",
+            "en": "Disable cycle and timers"
+          },
+          "off": {
+            "de": "Nicht deaktiviert",
+            "en": "Not disabled"
+          },
+          "on": {
+            "de": "Deaktiviert",
+            "en": "Disabled"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Kupplungsablauf nur im Rangiergang",
+            "en": "Coupler cycle only in shunting mode"
+          },
+          "off": {
+            "de": "Keine Rangierbeschränkung",
+            "en": "No shunting restriction"
+          },
+          "on": {
+            "de": "Nur Rangiergang",
+            "en": "Only shunting mode"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 145,
+      "name": {
+        "de": "Ausgangsbedingungen LV",
+        "en": "LV output conditions"
+      },
+      "help": {
+        "de": "Additive Auswahlgruppen, keine unabhängigen Bits: Richtung0/1/2; Fahrt/Stand0/3/6; F0-Zustand0/9/18; Rangierverhalten0/27/54/81/108/135. Je Gruppe nur eine Auswahl addieren (CV 145). Dies ist Richtungs-/Betriebsabhängigkeit des Ausgangs, keine Tasteninvertierung.",
+        "en": "Additive choice groups, not independent bits: direction0/1/2; movement0/3/6; F0 state0/9/18; shunting behavior0/27/54/81/108/135. Add only one choice per group (CV 145). These are output operating/direction conditions, not function-key inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 161,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.77, CV145; Bedingungen CV145"
+      },
+      "access": "read-write",
+      "factoryDefault": 0
+    },
+    {
+      "cv": 146,
+      "name": {
+        "de": "Ausgangsbedingungen LR",
+        "en": "LR output conditions"
+      },
+      "help": {
+        "de": "Additive Auswahlgruppen, keine unabhängigen Bits: Richtung0/1/2; Fahrt/Stand0/3/6; F0-Zustand0/9/18; Rangierverhalten0/27/54/81/108/135. Je Gruppe nur eine Auswahl addieren (CV 145). Dies ist Richtungs-/Betriebsabhängigkeit des Ausgangs, keine Tasteninvertierung.",
+        "en": "Additive choice groups, not independent bits: direction0/1/2; movement0/3/6; F0 state0/9/18; shunting behavior0/27/54/81/108/135. Add only one choice per group (CV 145). These are output operating/direction conditions, not function-key inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 161,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.77, CV146; Bedingungen CV145"
+      },
+      "access": "read-write",
+      "factoryDefault": 0
+    },
+    {
+      "cv": 147,
+      "name": {
+        "de": "Ausgangsbedingungen AUX1",
+        "en": "AUX1 output conditions"
+      },
+      "help": {
+        "de": "Additive Auswahlgruppen, keine unabhängigen Bits: Richtung0/1/2; Fahrt/Stand0/3/6; F0-Zustand0/9/18; Rangierverhalten0/27/54/81/108/135. Je Gruppe nur eine Auswahl addieren (CV 145). Dies ist Richtungs-/Betriebsabhängigkeit des Ausgangs, keine Tasteninvertierung.",
+        "en": "Additive choice groups, not independent bits: direction0/1/2; movement0/3/6; F0 state0/9/18; shunting behavior0/27/54/81/108/135. Add only one choice per group (CV 145). These are output operating/direction conditions, not function-key inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 161,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.77, CV147; Bedingungen CV145"
+      },
+      "access": "read-write",
+      "factoryDefault": 0
+    },
+    {
+      "cv": 148,
+      "name": {
+        "de": "Ausgangsbedingungen AUX2",
+        "en": "AUX2 output conditions"
+      },
+      "help": {
+        "de": "Additive Auswahlgruppen, keine unabhängigen Bits: Richtung0/1/2; Fahrt/Stand0/3/6; F0-Zustand0/9/18; Rangierverhalten0/27/54/81/108/135. Je Gruppe nur eine Auswahl addieren (CV 145). Dies ist Richtungs-/Betriebsabhängigkeit des Ausgangs, keine Tasteninvertierung.",
+        "en": "Additive choice groups, not independent bits: direction0/1/2; movement0/3/6; F0 state0/9/18; shunting behavior0/27/54/81/108/135. Add only one choice per group (CV 145). These are output operating/direction conditions, not function-key inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 161,
+      "reference": {
+        "sourceIndex": 1,
+        "location": "Online-CV-Tabelle, CV148"
+      },
+      "access": "read-write",
+      "factoryDefault": 0
+    },
+    {
+      "cv": 149,
+      "name": {
+        "de": "Ausgangsbedingungen AUX3",
+        "en": "AUX3 output conditions"
+      },
+      "help": {
+        "de": "Additive Auswahlgruppen, keine unabhängigen Bits: Richtung0/1/2; Fahrt/Stand0/3/6; F0-Zustand0/9/18; Rangierverhalten0/27/54/81/108/135. Je Gruppe nur eine Auswahl addieren (CV 145). Dies ist Richtungs-/Betriebsabhängigkeit des Ausgangs, keine Tasteninvertierung.",
+        "en": "Additive choice groups, not independent bits: direction0/1/2; movement0/3/6; F0 state0/9/18; shunting behavior0/27/54/81/108/135. Add only one choice per group (CV 145). These are output operating/direction conditions, not function-key inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 161,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.77, CV149; Bedingungen CV145"
+      },
+      "access": "read-write",
+      "factoryDefault": 0
+    },
+    {
+      "cv": 150,
+      "name": {
+        "de": "Ausgangsbedingungen AUX4",
+        "en": "AUX4 output conditions"
+      },
+      "help": {
+        "de": "Additive Auswahlgruppen, keine unabhängigen Bits: Richtung0/1/2; Fahrt/Stand0/3/6; F0-Zustand0/9/18; Rangierverhalten0/27/54/81/108/135. Je Gruppe nur eine Auswahl addieren (CV 145). Dies ist Richtungs-/Betriebsabhängigkeit des Ausgangs, keine Tasteninvertierung.",
+        "en": "Additive choice groups, not independent bits: direction0/1/2; movement0/3/6; F0 state0/9/18; shunting behavior0/27/54/81/108/135. Add only one choice per group (CV 145). These are output operating/direction conditions, not function-key inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 161,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.77, CV150; Bedingungen CV145"
+      },
+      "access": "read-write",
+      "factoryDefault": 0
+    },
+    {
+      "cv": 151,
+      "name": {
+        "de": "Ausgangsbedingungen AUX5",
+        "en": "AUX5 output conditions"
+      },
+      "help": {
+        "de": "Additive Auswahlgruppen, keine unabhängigen Bits: Richtung0/1/2; Fahrt/Stand0/3/6; F0-Zustand0/9/18; Rangierverhalten0/27/54/81/108/135. Je Gruppe nur eine Auswahl addieren (CV 145). Dies ist Richtungs-/Betriebsabhängigkeit des Ausgangs, keine Tasteninvertierung.",
+        "en": "Additive choice groups, not independent bits: direction0/1/2; movement0/3/6; F0 state0/9/18; shunting behavior0/27/54/81/108/135. Add only one choice per group (CV 145). These are output operating/direction conditions, not function-key inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 161,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.77, CV151; Bedingungen CV145"
+      },
+      "access": "read-write",
+      "factoryDefault": 0
+    },
+    {
+      "cv": 152,
+      "name": {
+        "de": "Ausgangsbedingungen AUX6",
+        "en": "AUX6 output conditions"
+      },
+      "help": {
+        "de": "Additive Auswahlgruppen, keine unabhängigen Bits: Richtung0/1/2; Fahrt/Stand0/3/6; F0-Zustand0/9/18; Rangierverhalten0/27/54/81/108/135. Je Gruppe nur eine Auswahl addieren (CV 145). Dies ist Richtungs-/Betriebsabhängigkeit des Ausgangs, keine Tasteninvertierung.",
+        "en": "Additive choice groups, not independent bits: direction0/1/2; movement0/3/6; F0 state0/9/18; shunting behavior0/27/54/81/108/135. Add only one choice per group (CV 145). These are output operating/direction conditions, not function-key inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 161,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.77, CV152; Bedingungen CV145"
+      },
+      "access": "read-write",
+      "factoryDefault": 0
+    },
+    {
+      "cv": 153,
+      "name": {
+        "de": "Initialmapping",
+        "en": "Initial mapping"
+      },
+      "help": {
+        "de": "Bits 0–7 ordnen LV/LR/AUX1–6 zu. Initialmapping aktiviert die Ausgänge bereits beim Adressieren ohne aktive Funktionstaste; die Dimmmaske bestimmt die von CV 53 betroffenen Ausgänge. AUX3–6 beim DH18A unverstärkt.",
+        "en": "Bits 0–7 assign front/rear lights and AUX1–6. Initial mapping enables outputs when addressed without an active key; the dimming mask selects the outputs affected by CV 53. DH18A AUX3–6 are logic-level."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.78, CV153"
+      },
+      "access": "read-write",
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "AUX5 (Logikpegel)",
+            "en": "AUX5 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "AUX6 (Logikpegel)",
+            "en": "AUX6 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 154,
+      "name": {
+        "de": "Bremsrampe",
+        "en": "Braking ramp"
+      },
+      "help": {
+        "de": "Bremszeit aus höchster Fahrstufe = Wert / 8 Sekunden. 0 deaktiviert die Bremsrampe; CV 48=0 wird für konstanten Bremsweg empfohlen. Tatsächlicher Weg hängt von Kalibrierung, Fahrzeug und Bremsverfahren ab.",
+        "en": "Braking time from maximum speed = value / 8 seconds. 0 disables the brake ramp; CV 48=0 is recommended for constant braking distance. Actual distance depends on calibration, vehicle and braking method."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.78, CV154, Anhang5 S.111"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "0,125 s je Schritt; Sonderwert0 beachten",
+        "en": "0.125 s per step; observe special value 0"
+      }
+    },
+    {
+      "cv": 155,
+      "name": {
+        "de": "Bremsrampe rückwärts",
+        "en": "Reverse braking ramp"
+      },
+      "help": {
+        "de": "Separater Rückwärtswert für die Bremsrampe: Zeit = Wert / 8 Sekunden. 0 übernimmt CV 154, statt den Rückwärts-Bremsweg separat auszuschalten.",
+        "en": "Separate reverse brake ramp: time = value / 8 seconds. 0 reuses CV 154 instead of independently disabling reverse braking."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.78, CV155, Anhang5 S.111"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "0,125 s je Schritt; Sonderwert0 beachten",
+        "en": "0.125 s per step; observe special value 0"
+      }
+    },
+    {
+      "cv": 156,
+      "name": {
+        "de": "Abblendlicht: Ausgangsmaske",
+        "en": "Dimming output mask"
+      },
+      "help": {
+        "de": "Bits 0–7 ordnen LV/LR/AUX1–6 zu. Initialmapping aktiviert die Ausgänge bereits beim Adressieren ohne aktive Funktionstaste; die Dimmmaske bestimmt die von CV 53 betroffenen Ausgänge. AUX3–6 beim DH18A unverstärkt.",
+        "en": "Bits 0–7 assign front/rear lights and AUX1–6. Initial mapping enables outputs when addressed without an active key; the dimming mask selects the outputs affected by CV 53. DH18A AUX3–6 are logic-level."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.78, CV156"
+      },
+      "access": "read-write",
+      "factoryDefault": 3,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorne",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "AUX1",
+            "en": "AUX1"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "AUX2",
+            "en": "AUX2"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AUX3 (Logikpegel)",
+            "en": "AUX3 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "AUX4 (Logikpegel)",
+            "en": "AUX4 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "AUX5 (Logikpegel)",
+            "en": "AUX5 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "AUX6 (Logikpegel)",
+            "en": "AUX6 (logic level)"
+          },
+          "off": {
+            "de": "Nicht zugeordnet",
+            "en": "Not assigned"
+          },
+          "on": {
+            "de": "Zugeordnet",
+            "en": "Assigned"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 157,
+      "name": {
+        "de": "Ausgangsbedingungen Abblendlicht",
+        "en": "Abblendlicht output conditions"
+      },
+      "help": {
+        "de": "Additive Auswahlgruppen, keine unabhängigen Bits: Richtung0/1/2; Fahrt/Stand0/3/6; F0-Zustand0/9/18; Rangierverhalten0/27/54/81/108/135. Je Gruppe nur eine Auswahl addieren (CV 145). Dies ist Richtungs-/Betriebsabhängigkeit des Ausgangs, keine Tasteninvertierung.",
+        "en": "Additive choice groups, not independent bits: direction0/1/2; movement0/3/6; F0 state0/9/18; shunting behavior0/27/54/81/108/135. Add only one choice per group (CV 145). These are output operating/direction conditions, not function-key inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 161,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.78, CV157; Bedingungen CV145"
+      },
+      "access": "read-write",
+      "factoryDefault": 0
+    },
+    {
+      "cv": 260,
+      "name": {
+        "de": "Erweiterte Herstellerkennung",
+        "en": "Extended manufacturer ID"
+      },
+      "help": {
+        "de": "Nur lesen: 97 steht für Doehler & Haass.",
+        "en": "Read only: 97 identifies Doehler & Haass."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV260, Anhang6 S.112"
+      },
+      "access": "read-only"
+    },
+    {
+      "cv": 261,
+      "name": {
+        "de": "Decoderkennzeichen",
+        "en": "Decoder type identifier"
+      },
+      "help": {
+        "de": "Nur lesen: 180 steht für DH18A. Nicht mit einer Indexseite gleichsetzen.",
+        "en": "Read only: 180 identifies DH18A. This is not an index-page selector."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV261, Anhang6 S.112"
+      },
+      "access": "read-only"
+    },
+    {
+      "cv": 262,
+      "name": {
+        "de": "Versionskennung, erweitert",
+        "en": "Extended version identifier"
+      },
+      "help": {
+        "de": "Nur auslesen; vollständige Zuordnung nach Herstellerdokumentation.",
+        "en": "Read only; interpret using the manufacturer documentation."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV262, Anhang6 S.112"
+      },
+      "access": "read-only"
+    },
+    {
+      "cv": 263,
+      "name": {
+        "de": "Versionsdatum",
+        "en": "Version date"
+      },
+      "help": {
+        "de": "Herstellerkodierung des Datums; nicht als allgemeiner Dezimalwert einer Jahreszahl auswerten.",
+        "en": "Manufacturer-encoded date; not a plain decimal year."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV263, Anhang6 S.112"
+      },
+      "access": "read-only"
+    },
+    {
+      "cv": 264,
+      "name": {
+        "de": "Revisionskennung",
+        "en": "Revision identifier"
+      },
+      "help": {
+        "de": "Nur auslesen; ergänzt Versions- und Typkennungen.",
+        "en": "Read only; complements version and type identifiers."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV264, Anhang6 S.112"
+      },
+      "access": "read-only"
+    },
+    {
+      "cv": 265,
+      "name": {
+        "de": "Revisionsdatum",
+        "en": "Revision date"
+      },
+      "help": {
+        "de": "Herstellerspezifische Datumskennung.",
+        "en": "Manufacturer-specific date identifier."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV265, Anhang6 S.112"
+      },
+      "access": "read-only"
+    },
+    {
+      "cv": 401,
+      "name": {
+        "de": "Funktionsvertauschung F1",
+        "en": "Function remapping F1"
+      },
+      "help": {
+        "de": "0 deaktiviert; 1–28 wählen F1–F28;29 wählt F0. Das ist eine Tastennummer, keine Bitmaske und keine Schaltart. SUSI-Übernahme separat über CV 137 Bit 6. Ohne Index auswerten.",
+        "en": "0 disables; 1–28 select F1–F28;29 selects F0. This is a key number, not a bitmask or operating mode. SUSI application is separate via CV 137 bit 6. Use the unindexed register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV401"
+      },
+      "access": "read-write",
+      "factoryDefault": 1
+    },
+    {
+      "cv": 402,
+      "name": {
+        "de": "Funktionsvertauschung F2",
+        "en": "Function remapping F2"
+      },
+      "help": {
+        "de": "0 deaktiviert; 1–28 wählen F1–F28;29 wählt F0. Das ist eine Tastennummer, keine Bitmaske und keine Schaltart. SUSI-Übernahme separat über CV 137 Bit 6. Ohne Index auswerten.",
+        "en": "0 disables; 1–28 select F1–F28;29 selects F0. This is a key number, not a bitmask or operating mode. SUSI application is separate via CV 137 bit 6. Use the unindexed register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV402"
+      },
+      "access": "read-write",
+      "factoryDefault": 2
+    },
+    {
+      "cv": 403,
+      "name": {
+        "de": "Funktionsvertauschung F3",
+        "en": "Function remapping F3"
+      },
+      "help": {
+        "de": "0 deaktiviert; 1–28 wählen F1–F28;29 wählt F0. Das ist eine Tastennummer, keine Bitmaske und keine Schaltart. SUSI-Übernahme separat über CV 137 Bit 6. Ohne Index auswerten.",
+        "en": "0 disables; 1–28 select F1–F28;29 selects F0. This is a key number, not a bitmask or operating mode. SUSI application is separate via CV 137 bit 6. Use the unindexed register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV403"
+      },
+      "access": "read-write",
+      "factoryDefault": 3
+    },
+    {
+      "cv": 404,
+      "name": {
+        "de": "Funktionsvertauschung F4",
+        "en": "Function remapping F4"
+      },
+      "help": {
+        "de": "0 deaktiviert; 1–28 wählen F1–F28;29 wählt F0. Das ist eine Tastennummer, keine Bitmaske und keine Schaltart. SUSI-Übernahme separat über CV 137 Bit 6. Ohne Index auswerten.",
+        "en": "0 disables; 1–28 select F1–F28;29 selects F0. This is a key number, not a bitmask or operating mode. SUSI application is separate via CV 137 bit 6. Use the unindexed register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV404"
+      },
+      "access": "read-write",
+      "factoryDefault": 4
+    },
+    {
+      "cv": 405,
+      "name": {
+        "de": "Funktionsvertauschung F5",
+        "en": "Function remapping F5"
+      },
+      "help": {
+        "de": "0 deaktiviert; 1–28 wählen F1–F28;29 wählt F0. Das ist eine Tastennummer, keine Bitmaske und keine Schaltart. SUSI-Übernahme separat über CV 137 Bit 6. Ohne Index auswerten.",
+        "en": "0 disables; 1–28 select F1–F28;29 selects F0. This is a key number, not a bitmask or operating mode. SUSI application is separate via CV 137 bit 6. Use the unindexed register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV405"
+      },
+      "access": "read-write",
+      "factoryDefault": 5
+    },
+    {
+      "cv": 406,
+      "name": {
+        "de": "Funktionsvertauschung F6",
+        "en": "Function remapping F6"
+      },
+      "help": {
+        "de": "0 deaktiviert; 1–28 wählen F1–F28;29 wählt F0. Das ist eine Tastennummer, keine Bitmaske und keine Schaltart. SUSI-Übernahme separat über CV 137 Bit 6. Ohne Index auswerten.",
+        "en": "0 disables; 1–28 select F1–F28;29 selects F0. This is a key number, not a bitmask or operating mode. SUSI application is separate via CV 137 bit 6. Use the unindexed register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV406"
+      },
+      "access": "read-write",
+      "factoryDefault": 6
+    },
+    {
+      "cv": 407,
+      "name": {
+        "de": "Funktionsvertauschung F7",
+        "en": "Function remapping F7"
+      },
+      "help": {
+        "de": "0 deaktiviert; 1–28 wählen F1–F28;29 wählt F0. Das ist eine Tastennummer, keine Bitmaske und keine Schaltart. SUSI-Übernahme separat über CV 137 Bit 6. Ohne Index auswerten.",
+        "en": "0 disables; 1–28 select F1–F28;29 selects F0. This is a key number, not a bitmask or operating mode. SUSI application is separate via CV 137 bit 6. Use the unindexed register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV407"
+      },
+      "access": "read-write",
+      "factoryDefault": 7
+    },
+    {
+      "cv": 408,
+      "name": {
+        "de": "Funktionsvertauschung F8",
+        "en": "Function remapping F8"
+      },
+      "help": {
+        "de": "0 deaktiviert; 1–28 wählen F1–F28;29 wählt F0. Das ist eine Tastennummer, keine Bitmaske und keine Schaltart. SUSI-Übernahme separat über CV 137 Bit 6. Ohne Index auswerten.",
+        "en": "0 disables; 1–28 select F1–F28;29 selects F0. This is a key number, not a bitmask or operating mode. SUSI application is separate via CV 137 bit 6. Use the unindexed register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.79, CV408"
+      },
+      "access": "read-write",
+      "factoryDefault": 8
+    },
+    {
+      "cv": 409,
+      "name": {
+        "de": "Funktionsvertauschung F9",
+        "en": "Function remapping F9"
+      },
+      "help": {
+        "de": "0 deaktiviert; 1–28 wählen F1–F28;29 wählt F0. Das ist eine Tastennummer, keine Bitmaske und keine Schaltart. SUSI-Übernahme separat über CV 137 Bit 6. Ohne Index auswerten.",
+        "en": "0 disables; 1–28 select F1–F28;29 selects F0. This is a key number, not a bitmask or operating mode. SUSI application is separate via CV 137 bit 6. Use the unindexed register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.80, CV409"
+      },
+      "access": "read-write",
+      "factoryDefault": 9
+    },
+    {
+      "cv": 410,
+      "name": {
+        "de": "Funktionsvertauschung F10",
+        "en": "Function remapping F10"
+      },
+      "help": {
+        "de": "0 deaktiviert; 1–28 wählen F1–F28;29 wählt F0. Das ist eine Tastennummer, keine Bitmaske und keine Schaltart. SUSI-Übernahme separat über CV 137 Bit 6. Ohne Index auswerten.",
+        "en": "0 disables; 1–28 select F1–F28;29 selects F0. This is a key number, not a bitmask or operating mode. SUSI application is separate via CV 137 bit 6. Use the unindexed register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.80, CV410"
+      },
+      "access": "read-write",
+      "factoryDefault": 10
+    },
+    {
+      "cv": 411,
+      "name": {
+        "de": "Funktionsvertauschung F11",
+        "en": "Function remapping F11"
+      },
+      "help": {
+        "de": "0 deaktiviert; 1–28 wählen F1–F28;29 wählt F0. Das ist eine Tastennummer, keine Bitmaske und keine Schaltart. SUSI-Übernahme separat über CV 137 Bit 6. Ohne Index auswerten.",
+        "en": "0 disables; 1–28 select F1–F28;29 selects F0. This is a key number, not a bitmask or operating mode. SUSI application is separate via CV 137 bit 6. Use the unindexed register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.80, CV411"
+      },
+      "access": "read-write",
+      "factoryDefault": 11
+    },
+    {
+      "cv": 412,
+      "name": {
+        "de": "Funktionsvertauschung F12",
+        "en": "Function remapping F12"
+      },
+      "help": {
+        "de": "0 deaktiviert; 1–28 wählen F1–F28;29 wählt F0. Das ist eine Tastennummer, keine Bitmaske und keine Schaltart. SUSI-Übernahme separat über CV 137 Bit 6. Ohne Index auswerten.",
+        "en": "0 disables; 1–28 select F1–F28;29 selects F0. This is a key number, not a bitmask or operating mode. SUSI application is separate via CV 137 bit 6. Use the unindexed register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.80, CV412"
+      },
+      "access": "read-write",
+      "factoryDefault": 12
+    },
+    {
+      "cv": 461,
+      "name": {
+        "de": "AUX3: Dimmung",
+        "en": "AUX3: dimming"
+      },
+      "help": {
+        "de": "0 ist dunkel,31 volle Helligkeit. Nicht jeder Ausgang ist bei jedem Decoder unabhängig dimmbar; beim DH18A sind AUX3–6 Logikpegel. Kein gemessener Prozentwert und kein Nachweis einer angeschlossenen Last.",
+        "en": "0 is dark;31 is full brightness. Not every output is independently dimmable on every decoder; DH18A AUX3–6 are logic-level. Not a measured percentage or proof of an attached load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.80, CV461"
+      },
+      "access": "read-write",
+      "factoryDefault": 31
+    },
+    {
+      "cv": 463,
+      "name": {
+        "de": "AUX4: Dimmung",
+        "en": "AUX4: dimming"
+      },
+      "help": {
+        "de": "0 ist dunkel,31 volle Helligkeit. Nicht jeder Ausgang ist bei jedem Decoder unabhängig dimmbar; beim DH18A sind AUX3–6 Logikpegel. Kein gemessener Prozentwert und kein Nachweis einer angeschlossenen Last.",
+        "en": "0 is dark;31 is full brightness. Not every output is independently dimmable on every decoder; DH18A AUX3–6 are logic-level. Not a measured percentage or proof of an attached load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.80, CV463"
+      },
+      "access": "read-write",
+      "factoryDefault": 31
+    },
+    {
+      "cv": 465,
+      "name": {
+        "de": "AUX5: Dimmung",
+        "en": "AUX5: dimming"
+      },
+      "help": {
+        "de": "0 ist dunkel,31 volle Helligkeit. Nicht jeder Ausgang ist bei jedem Decoder unabhängig dimmbar; beim DH18A sind AUX3–6 Logikpegel. Kein gemessener Prozentwert und kein Nachweis einer angeschlossenen Last.",
+        "en": "0 is dark;31 is full brightness. Not every output is independently dimmable on every decoder; DH18A AUX3–6 are logic-level. Not a measured percentage or proof of an attached load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.80, CV465"
+      },
+      "access": "read-write",
+      "factoryDefault": 31
+    },
+    {
+      "cv": 467,
+      "name": {
+        "de": "AUX6: Dimmung",
+        "en": "AUX6: dimming"
+      },
+      "help": {
+        "de": "0 ist dunkel,31 volle Helligkeit. Nicht jeder Ausgang ist bei jedem Decoder unabhängig dimmbar; beim DH18A sind AUX3–6 Logikpegel. Kein gemessener Prozentwert und kein Nachweis einer angeschlossenen Last.",
+        "en": "0 is dark;31 is full brightness. Not every output is independently dimmable on every decoder; DH18A AUX3–6 are logic-level. Not a measured percentage or proof of an attached load."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.80, CV467"
+      },
+      "access": "read-write",
+      "factoryDefault": 31
+    }
+  ],
+  "active": true,
+  "rules": {
+    "abc": {
+      "cv": 27,
+      "mask": 3
+    },
+    "constantBrake": {
+      "forwardCV": 154,
+      "reverseCV": 155,
+      "enableCV": 154
+    },
+    "motorCurveCV": 48
+  },
+  "firmwareMin": "3.15"
+}

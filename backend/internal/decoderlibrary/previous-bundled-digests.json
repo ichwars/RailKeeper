@@ -1,0 +1,129 @@
+{
+  "decoder_catalog:library": [
+    "063168fc31c0e7490eae7d9bb552c361c0920d6616bd45f0268a9be73f748799",
+    "5becea5ed6536021662cb08f5dccda3f6ead4f9fe6bce40f623ee041bcd8d9fa",
+    "e0e1c26c8c05c69f63b001c6e44527acf4dcba6b77525ce5b0df97e8aa619727",
+    "699736390dbe6322cdcb7c7772f82173a34ed497cb2aff19310c96794fa53963",
+    "59164e116720e4f6b8c3768ff7f784801d57207c354774f9a23b1842642f2f05",
+    "c6e28c7d88bc498a0ab4785271ad4c36e990b2fd48c03b71c47cc0f67cc48ba2",
+    "2e85ca1eb337e8cc93b4e97a0c383650f385495d8db20b94935ddaa6bc47ef9a",
+    "e3d82e97328f289a0ac44f30a900d88fd29dd07be8ccbaee0003354b6d35194f",
+    "c87b2fc9540886741f75fba1290f79e01e614f3164770d85f1cd485a60897aa0",
+    "3d6439e2651e9f7c1a62f3a6fed624d13353f790785c6c48e887b109f7d4fd35"
+  ],
+  "decoder_profile:dcc-basics": [
+    "e2ba5489d8edef1887b3750c06f681cf5a0e1769e2ce87057dfff1f8c743de64",
+    "793264c297118d2c83e99c8b3ce702d04cbacf09bbcac17c950325f99185081a"
+  ],
+  "decoder_profile:dh-dh18a": [
+    "5ba62eed7e5f72ccb4cf955c342039927ee8c79a136a2d0144b80e43607ab958",
+    "a039f24fc4a6ca855c2b54f5722086bbccd1a180202c643db662327aad8a57da",
+    "dacc4b76dc51ed2a84d6b47215ba7c90a20d653963b226040c4159bf7b4433d2",
+    "43a29da47119c3abafc44912cadca0798b89fb8a05a52618b1f8b2832a13238a"
+  ],
+  "decoder_profile:esu-lokpilot-5-micro-dcc": [
+    "c68877240db98e97fa0ddf0173632b560db4dde773560444822449faf89b4394",
+    "9a3d7f2b68bc7e49973eb0f2cef7544027b7bf4753a9e2ebfbffa08973f3c71d",
+    "2fed8abdeea65309077c0684da3572102e971f0af4721ade8cec628459ae49b7",
+    "678d74450be777ad0c6b194b270a630b684e67cd86e9012b70970cc2075aeb8d",
+    "c0d484cb95a98cc8d6f0cb98b8957ab4b6c84cc7f12f66c1003139363dc324ab",
+    "8d9a4b993327f73a0f24cd890e7c178bd6f16c0c8425acd077b1002fa4dbbc12",
+    "4e1f0521eab92d80547869a2991212c02c51270b7cdc5e63d94d197b06442075",
+    "e539ebd250c50ee33f2eef34dd11cf4d090a75e22b58386b51867ace70f64c1a",
+    "ff2582385ce00ff78b8c8e1dc655896b46d84494aded7be730034e1d8c5076cb"
+  ],
+  "decoder_profile:kuehn-n45": [
+    "fc45daa2a756cdfa24c3ef9e6d91cda7f581887ef9a744bf4542dfe8d6b1145b"
+  ],
+  "decoder_profile:lenz-standard-plus-v2": [
+    "49344f59d60719b7e283c24ca38cb2ce9b0ca60f1b11c0bb17cfdee04abf4a9d",
+    "a5292c3e41d0f8b713264f7b5c8c76310f38f3fc27c76b2165068e19d541ea09",
+    "53451160bd5bf13436b9fbe92639897cbe3fee917e6f886059b27e210edb8165"
+  ],
+  "decoder_profile:piko-56500": [
+    "35ad281e1078eb3964ec1387e2e9b306ef8a29cbace01b319565b57d31d9a246"
+  ],
+  "decoder_profile:roco-10882": [
+    "4e451a19a0fa04ca7e7b1552a7af15ce32695481ca0fcdd286987baadceb11d2"
+  ],
+  "decoder_profile:uhlenbrock-76420": [
+    "f88affa111bed45238d0825f7e49777a8f105e145d1d90bf1fca74437ec5ef38"
+  ],
+  "decoder_profile:zimo-mn180n18": [
+    "e5da1c1fb61755802959e622ce8a8156641defdb1235fd3ec63a2039d16fb6a3",
+    "fb07fbd6a94c97ecb11de82fad28915ea15f41f9937b26742390eb33db016b8d",
+    "e4276b3bb3d5ee5fc06ccb5796681985bbdf911a717c780fb3c382f6dc25901a",
+    "5bfbf19840c6620c44be9cdada2231fc4f215742f8b55ed4b8b386dc0655bdb9"
+  ],
+  "decoder_reference:cv-gap-esu-lokpilot-5": [
+    "3d3c0db14d564ccdbb98d407ef320f106711252ff01c666c38446a67fe9ca9c9",
+    "b929bd1197d45c88f240168209521eb4d494d83cbbd83fdc45197d78237fdf8b"
+  ],
+  "decoder_reference:cv-gap-kuehn-t": [
+    "e9427c9e602a58e92a2a1d1e732790fc0a97bf97ab9117079692166b91f28cf8",
+    "6e881c225d9e63525d0b41d8ec7fdbcbb88d91210f1d74be2bd64de070f2fb12"
+  ],
+  "decoder_reference:cv-gap-lenz-legacy": [
+    "f1acb77fbfaa48489bf509cfb0f4a0ded22ae6ed6852ec8ec9f140fc8b663e8b",
+    "77460b062e70ec402b531d6580d5f1ef2a6a0258d7b932dabca1c9efdf5dfa5e",
+    "8144cccd1eb21729c4a16c19962a258232951c2cbf095a3547abee835fa0fadb"
+  ],
+  "decoder_reference:cv-gap-lenz-silver": [
+    "5742c376cde6664b0eb8688b312c507205c692224b9a6013c22425eb7a191dc7",
+    "2067b875db3b119618a334b4b0b2d20c229be36555e617fc173efd8fc66b8421"
+  ],
+  "decoder_reference:cv-gap-piko-4-1": [
+    "95120d125c567ae278a9af8a4e88f07b447e56b29df126312ce0dcbf9308b612"
+  ],
+  "decoder_reference:cv-gap-piko-digital-legacy": [
+    "731d6cb3fae0459648642e7bd2aa2ba6e576927793dcfb49c5ad471a8eb86f7c"
+  ],
+  "decoder_reference:cv-gap-piko-sound-products": [
+    "5f843cab0663984542a422d76c66428a0466668b5cb58bdf91c41841c0958fff",
+    "4ac60fe311fe51bde71e9c62f8daeb2d39652bf54c164bccef0d93244bd9a1fc",
+    "c549a38ca40b990b1d4539ed6adbb305bfa3a05b0cac36d39d4d347df5f1154a"
+  ],
+  "decoder_reference:cv-gap-roco-motor": [
+    "394c01ec876e2b5b0ce677986d34dee3136fcae1779f74e07f35bd39506cc329",
+    "1a8f3e0ce49116af4817196a63fc184e4b5009708a4c134573d87612cdc1a3b2",
+    "bbd6a97680168987fc0d1ce96c78ea4f5651ebae297630eb66afbdacb5f4573e"
+  ],
+  "decoder_reference:cv-gap-uhlenbrock-intellidrive": [
+    "36d4ae7a336701e38d859f56feb1295b48426cbe60e2d01234369eea7380ed69"
+  ],
+  "decoder_reference:cv-gap-uhlenbrock-intellisound-8": [
+    "499614d564c4add0e9a006d3ef3fc85a33b84aabf150e2f8caa117e95a7a22b1",
+    "98ac8d907849cf768218bf31bee9f69a2c411e4003795d46b858a6b2e5cf22ed",
+    "a79999b7f45283507f09df87f58a2e1a8b565d1f652f6fb7960179b9a4526b3d"
+  ],
+  "decoder_reference:cv-gap-uhlenbrock-sound-legacy": [
+    "fdcb7a88580e99c5f0bd6414aa9da9187a28ec90c0aade2644a248ef96ca7c50"
+  ],
+  "decoder_reference:cv-ref-44b6dd44ba5cb681": [
+    "b56be24beaf0a6929083f646862d0e5938d70e5b26ce96ffb5eb61a0b1d5f430"
+  ],
+  "decoder_reference:cv-ref-8d54ef2095152cad": [
+    "53fe519856beec46d64cb61ebf6f2debe6b36075af96a7978c9115b4a4d6d7fc"
+  ],
+  "decoder_reference:cv-ref-fab060dbad1c373b": [
+    "47870fd27775688e1d627538491dd807d5a3f396b4cddd5346bfde301fe91857"
+  ],
+  "decoder_reference:cv-ref-kuehn-n45": [
+    "cbb99b48fa4a36fef1f5763edcc3c9465c1a49e1142fc574d4405a651b955202"
+  ],
+  "decoder_reference:cv-ref-lenz-gold-maxi-identification": [
+    "890e82f9d112dabf5c056fbafa92ce61d0598bf4b04bb696ab3c297c8e8bffd0"
+  ],
+  "decoder_reference:cv-ref-lenz-lf101xf-identification": [
+    "78f95376ed86d22a05cd7910d964b656d7348b06dd85f3bb6e678de5295a6ced"
+  ],
+  "decoder_reference:cv-ref-lenz-silver-21-identification": [
+    "ddf27d00d2127c62d7085eb8259ff103c8143ad7667bcba062aaac167b264d03"
+  ],
+  "decoder_reference:cv-ref-lenz-silver-direct-identification": [
+    "a8baf50be5d59d42cf72b792620b151d43588b6ec44de9fb7cbebc92b423d18c"
+  ],
+  "decoder_reference:cv-ref-lenz-silver-mini-identification": [
+    "00c10ad8f25e343a6e19ee3b7bdb0a85b21abcc0ded3ec6bdb845c668bb31c47"
+  ]
+}
