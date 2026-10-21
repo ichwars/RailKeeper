@@ -1,4 +1,5 @@
 import { createAccessoriesAPI } from "./apiAccessories";
+import type { DecoderLibrary, DecoderLibraryMatch } from "./decoderLibraryModel";
 import type {
   DataTransferCSVMappingInput,
   DataTransferExportResult,
@@ -465,11 +466,15 @@ export type VehicleFunction = {
   symbolKey?: string;
   functionType: string;
   mode: string;
-  directionDependent: boolean;
+  directionDependent: boolean | null;
+  inverted: boolean | null;
+  legacyDirectionDependent?: boolean | null;
+  flagsVersion?: number;
   notes?: string;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+  revision?: string;
 };
 
 export type VehicleFunctionInput = {
@@ -477,8 +482,18 @@ export type VehicleFunctionInput = {
   symbolKey?: string;
   functionType?: string;
   mode?: string;
-  directionDependent?: boolean;
+  directionDependent?: boolean | null;
+  inverted?: boolean | null;
+  legacyDirectionDependent?: boolean | null;
+  flagsVersion?: number;
   notes?: string;
+};
+
+export type VehicleFunctionChange = {
+  functionKey: string;
+  expectedRevision: string;
+  value?: VehicleFunctionInput;
+  delete?: boolean;
 };
 
 export type VehicleCVValue = {
@@ -537,6 +552,7 @@ export type VehicleCVFile = {
 };
 
 export type VehicleCVFilePreview = {
+  decoderLibraryMatches?: Record<string, DecoderLibraryMatch>;
   fileName: string;
   sizeBytes: number;
   mimeType: string;
@@ -640,6 +656,7 @@ export type CreateVehicleRequest = {
   additionalInfo?: string;
   qrCodeEnabled?: boolean;
   images?: VehicleImageInput[];
+  functionChanges?: VehicleFunctionChange[];
 };
 
 export type MasterDataOrigin = "bundled" | "custom";
@@ -1674,7 +1691,7 @@ export const api = {
   updateVehicleFunction: (vehicleId: string, functionKey: string, input: VehicleFunctionInput) =>
     request<VehicleFunction>(`/vehicles/${encodeURIComponent(vehicleId)}/functions/${encodeURIComponent(functionKey)}`, {
       method: "PUT",
-      body: JSON.stringify(input)
+      body: JSON.stringify({ ...input, flagsVersion: input.flagsVersion ?? 2 })
     }),
   deleteVehicleFunction: (vehicleId: string, functionKey: string) =>
     request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/functions/${encodeURIComponent(functionKey)}`, {
@@ -1952,6 +1969,8 @@ export const api = {
     request<MasterDataEntry[]>(
       `/master-data/${encodeURIComponent(type)}${activeOnly ? "?active=true" : ""}`
     ),
+  decoderLibrary: (includeInactive = false) => request<DecoderLibrary>(`/decoder-library${includeInactive ? "?includeInactive=true" : ""}`),
+  decoderReferences: (modelId: string) => request<import("./decoderLibraryModel").DecoderCVReference[]>(`/decoder-library/references/${encodeURIComponent(modelId)}`),
   masterDataAll: (activeOnly = false) =>
     request<Record<string, MasterDataEntry[]>>(
       `/master-data-all${activeOnly ? "?active=true" : ""}`,

@@ -270,7 +270,7 @@ func isValidVehicleFunctionInput(input VehicleFunctionInput) bool {
 	if _, ok := allowedFunctionModes[input.Mode]; !ok {
 		return false
 	}
-	return len(input.Name) <= 120 &&
+	return input.FlagsVersion >= 0 && input.FlagsVersion <= 2 && len(input.Name) <= 120 &&
 		len(input.SymbolKey) <= 80 &&
 		len(input.Notes) <= 1000
 }

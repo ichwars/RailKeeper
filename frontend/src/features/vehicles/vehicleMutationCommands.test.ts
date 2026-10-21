@@ -1,7 +1,7 @@
 import type { FormEvent } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { api, ApiError, type Vehicle } from "../../shared/api";
+import { api, ApiError, type Vehicle, type VehicleFunctionChange } from "../../shared/api";
 import { vehicleFixture } from "../../test/fixtures/vehicles";
 import { emptyVehicle, type ECoSVehicleDraftPayload } from "./vehicleViewModel";
 import { createVehicleMutationCommands } from "./vehicleMutationCommands";
@@ -25,7 +25,7 @@ function commandOptions() {
     validation: { missingRequiredLabels: [] as string[] },
     media: { pendingImages: [] },
     spareParts: { selectedInputs: vi.fn(() => []), clearSelected: vi.fn() },
-    functions: { configuredKeys: [], edit: vi.fn() },
+    functions: { changes: vi.fn((): VehicleFunctionChange[] => []), acknowledgeSaved: vi.fn() },
     ecos: {
       draft: null as ECoSVehicleDraftPayload | null,
       unclearFieldCount: 0,
@@ -142,5 +142,43 @@ describe("createVehicleMutationCommands", () => {
     expect(api.deleteVehicle).toHaveBeenCalledWith(candidate.id);
     expect(options.editor.close).toHaveBeenCalledOnce();
     expect(options.deletion.setCandidate).toHaveBeenCalledWith(null);
+  });
+
+  it("submits function edits/deletions in the vehicle request without per-row writes", async () => {
+    const options = commandOptions(), saved = vehicleFixture({ id: "saved" });
+    const changes: VehicleFunctionChange[] = [
+      { functionKey: "F0", expectedRevision: "a".repeat(64), value: { name: "Manual", mode: "moment", flagsVersion: 2 } },
+      { functionKey: "F3", expectedRevision: "b".repeat(64), delete: true }
+    ];
+    options.functions.changes.mockReturnValue(changes);
+    vi.spyOn(api, "createVehicle").mockResolvedValue(saved);
+    vi.spyOn(api, "vehicle").mockResolvedValue(saved);
+    const perRow = vi.spyOn(api, "updateVehicleFunction"), deleteRow = vi.spyOn(api, "deleteVehicleFunction");
+    await createVehicleMutationCommands(options).submit(submitEvent());
+    expect(api.createVehicle).toHaveBeenCalledWith(expect.objectContaining({ functionChanges: changes }));
+    expect(options.functions.acknowledgeSaved).toHaveBeenCalledWith(saved.functions, saved.id);
+    expect(perRow).not.toHaveBeenCalled(); expect(deleteRow).not.toHaveBeenCalled();
+  });
+
+  it("preserves the draft and selection when the atomic request conflicts", async () => {
+    const options = commandOptions();
+    options.functions.changes.mockReturnValue([{ functionKey: "F1", expectedRevision: "a".repeat(64), value: { name: "Draft" } }]);
+    vi.spyOn(api, "createVehicle").mockRejectedValue(new ApiError("Conflict", "vehicle_function_conflict", 409));
+    await createVehicleMutationCommands(options).submit(submitEvent());
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.functions.conflict");
+    expect(options.functions.acknowledgeSaved).not.toHaveBeenCalled();
+    expect(options.editor.setSelectedDetail).not.toHaveBeenCalled();
+    expect(options.editor.close).not.toHaveBeenCalled();
+    expect(options.editor.setSaving).toHaveBeenLastCalledWith(false);
+  });
+
+  it("rejects overlong UTF-8 notes before any vehicle write", async () => {
+    const options = commandOptions();
+    options.functions.changes.mockReturnValue([{ functionKey: "F1", expectedRevision: "", value: { notes: "ä".repeat(501) } }]);
+    const create = vi.spyOn(api, "createVehicle");
+    await createVehicleMutationCommands(options).submit(submitEvent());
+    expect(create).not.toHaveBeenCalled();
+    expect(options.editor.setActiveTab).toHaveBeenCalledWith("control");
+    expect(options.onMessage).toHaveBeenCalledWith("vehicles.functions.invalidFields");
   });
 });

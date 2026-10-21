@@ -1,0 +1,105 @@
+{
+  "id": "dh-dh18a",
+  "name": "Doehler & Haass DH18A",
+  "nameEn": "Doehler & Haass DH18A",
+  "revision": "2026-10-18.2",
+  "protocol": "DCC",
+  "kind": "model",
+  "manufacturerId": 97,
+  "family": "DH",
+  "model": "DH18A",
+  "parentId": "dcc-basics",
+  "aliases": [
+    "DH18A",
+    "Doehler & Haass DH18A"
+  ],
+  "familyAliases": [],
+  "sources": [
+    {
+      "title": "Doehler & Haass Fahrzeug- und Funktionsdecoder",
+      "url": "https://doehler-haass.de/cms/media/pdf/DH05C_DH10C_DH16A.pdf",
+      "version": "01/2026 · Firmware 3.15",
+      "scope": "CV table pp. 65–79; identification appendix 6; model restrictions pp. 5–9"
+    }
+  ],
+  "definitions": [
+    {
+      "cv": 7,
+      "name": {
+        "de": "Versionskennung",
+        "en": "Version identifier"
+      },
+      "help": {
+        "de": "Kennzahl der Firmware; Zuordnung anhand der Versionstabelle des Herstellers, keine direkte Versionsnummer.",
+        "en": "Firmware identifier; consult the manufacturer version table rather than formatting it as a version."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 9,
+      "name": {
+        "de": "Motorfrequenz",
+        "en": "Motor frequency"
+      },
+      "help": {
+        "de": "Bit 0 wählt 32/16 kHz; Bit 1 aktiviert niederfrequenten Betrieb. Weitere Bits gemäß Handbuch.",
+        "en": "Bit 0 selects 32/16 kHz; bit 1 selects low-frequency operation. See manual for other bits."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 15
+    },
+    {
+      "cv": 27,
+      "name": {
+        "de": "Bremserkennung",
+        "en": "Brake detection"
+      },
+      "help": {
+        "de": "Bits 0/1: DCC-Asymmetrie normal/invers; Bits 4/5: Gleichspannung; Bits 6/7: SX-Bremsdiode.",
+        "en": "Bits 0/1: normal/inverse DCC asymmetry; bits 4/5: DC; bits 6/7: SX brake diode."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 243
+    },
+    {
+      "cv": 260,
+      "name": {
+        "de": "Erweiterte Herstellerkennung",
+        "en": "Extended manufacturer ID"
+      },
+      "help": {
+        "de": "Nur lesen: 97 steht für Doehler & Haass.",
+        "en": "Read only: 97 identifies Doehler & Haass."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "cv": 261,
+      "name": {
+        "de": "Decoderkennzeichen",
+        "en": "Decoder type identifier"
+      },
+      "help": {
+        "de": "Nur lesen: 180 steht für DH18A. Nicht mit einer Indexseite gleichsetzen.",
+        "en": "Read only: 180 identifies DH18A. This is not an index-page selector."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255
+    }
+  ],
+  "active": true,
+  "rules": {
+    "abc": {
+      "cv": 27,
+      "mask": 3
+    }
+  },
+  "firmwareMin": "3.15"
+}

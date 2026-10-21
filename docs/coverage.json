@@ -201,7 +201,9 @@
       "vehicles.uploads.webDocument": "vehicle-search-spares",
       "vehicles.uploads.webDocuments": "vehicle-search-spares",
       "vehicles.uploads": "vehicle-media",
-      "vehicles": "vehicles-core"
+      "locomotiveImage": "vehicle-media",
+      "vehicles": "vehicles-core",
+      "decoderLibrary": "vehicle-decoder-cv"
     },
     "apiPrefixes": {
       "/health": "system-operations",
@@ -239,7 +241,8 @@
       "/api/v1/inventory-number-schemes": "master-data",
       "/api/v1/master-data": "master-data",
       "/api/v1/backup": "backup-restore",
-      "/api/v1/exhibition-lists": "exhibition"
+      "/api/v1/exhibition-lists": "exhibition",
+      "/api/v1/decoder-library": "vehicle-decoder-cv"
     },
     "environmentVariables": {
       "LOCALAPPDATA": "deployment-configuration",

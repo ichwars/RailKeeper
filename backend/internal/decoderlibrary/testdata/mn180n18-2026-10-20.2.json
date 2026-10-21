@@ -1,0 +1,2675 @@
+{
+  "id": "zimo-mn180n18",
+  "name": "ZIMO MN180N18",
+  "nameEn": "ZIMO MN180N18",
+  "revision": "2026-10-20.2",
+  "protocol": "DCC",
+  "kind": "model",
+  "manufacturerId": 145,
+  "family": "MN",
+  "model": "MN180N18",
+  "parentId": "dcc-basics",
+  "aliases": [
+    "MN180N18",
+    "ZIMO MN180N18"
+  ],
+  "familyAliases": [],
+  "sources": [
+    {
+      "title": "ZIMO MS / MN / FS",
+      "url": "https://www.zimo.at/web2010/documents/MS-MN-Decoders_EN.pdf",
+      "version": "2026-05-12",
+      "scope": "Types, CV identification and version registers; chapters 1–3"
+    },
+    {
+      "title": "ZIMO MS-/MN-/FS-Decoder",
+      "url": "https://www.zimo.at/web2010/documents/MS-MN-Decoder.pdf",
+      "version": "SW 5.29; Ausgabe 2026-07-01",
+      "scope": "Geprüfte Nicht-Sound-Register für MN180N18: S.29–42, 53 und Typkennung S.8; Vorschau auf SW 6.00, MX-, Sound- und Großbahn-Sonderfunktionen ausgenommen.",
+      "retrievedAt": "2026-10-20",
+      "sha256": "2e40762b6f4dcd5d761fe1507d70c8b997657b2fbe98d480ce63993f01f5ec43"
+    }
+  ],
+  "definitions": [
+    {
+      "cv": 1,
+      "name": {
+        "de": "Kurze DCC-Adresse",
+        "en": "Short DCC address"
+      },
+      "help": {
+        "de": "Wirksam bei CV29 Bit 5 = 0. Ab SW>5.28 schaltet das Schreiben von CV1 auch auf die kurze Adresse um; RailKeeper liest nur gespeicherte Werte.",
+        "en": "Used when CV29 bit 5 = 0. After SW5.28, writing CV1 also selects the short address; RailKeeper only reads stored values."
+      },
+      "topic": "address",
+      "minimum": 1,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.31, CV1"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 2,
+      "name": {
+        "de": "Anfahrspannung",
+        "en": "Starting voltage"
+      },
+      "help": {
+        "de": "Interne Fahrstufe für Fahrstufe 1 bei der Dreipunkt-Kennlinie (CV29 Bit 4 = 0). Wert 1 ist die niedrigste Anfahrstufe; keine Spannung in Volt.",
+        "en": "Internal step for speed step 1 with the three-point characteristic (CV29 bit 4 = 0). Value 1 is the lowest start setting, not a voltage in volts."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.33, CV2"
+      },
+      "factoryDefault": 1,
+      "unit": {
+        "de": "interne Fahrstufe",
+        "en": "internal speed step"
+      }
+    },
+    {
+      "cv": 3,
+      "name": {
+        "de": "Beschleunigungszeit",
+        "en": "Acceleration time"
+      },
+      "help": {
+        "de": "Gesamtzeit von Stillstand bis volle Fahrt: CV-Wert × 0,9 s. Der Ablauf folgt der eingestellten Geschwindigkeitskennlinie, nicht einer zwingend linearen Geschwindigkeit.",
+        "en": "Total time from standstill to full speed: CV value × 0.9 s. The progression follows the configured speed characteristic, not necessarily linear speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.35, CV3"
+      },
+      "factoryDefault": 2,
+      "unit": {
+        "de": "0,9 s je Wertschritt (Gesamtzeit)",
+        "en": "0.9 s per increment (total time)"
+      }
+    },
+    {
+      "cv": 4,
+      "name": {
+        "de": "Bremszeit",
+        "en": "Deceleration time"
+      },
+      "help": {
+        "de": "Gesamtzeit von volle Fahrt bis Stillstand: CV-Wert × 0,9 s. Der Ablauf folgt der eingestellten Geschwindigkeitskennlinie, nicht einer zwingend linearen Geschwindigkeit.",
+        "en": "Total time from full speed to standstill: CV value × 0.9 s. The progression follows the configured speed characteristic, not necessarily linear speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.35, CV4"
+      },
+      "factoryDefault": 1,
+      "unit": {
+        "de": "0,9 s je Wertschritt (Gesamtzeit)",
+        "en": "0.9 s per increment (total time)"
+      }
+    },
+    {
+      "cv": 5,
+      "name": {
+        "de": "Höchstgeschwindigkeit",
+        "en": "Maximum speed"
+      },
+      "help": {
+        "de": "Bei CV29 Bit 4 = 0: Werte 0 und 1 entsprechen jeweils 255, also der höchsten internen Fahrstufe. Werte 2–255 setzen den oberen Stützpunkt; keine km/h-Angabe.",
+        "en": "With CV29 bit 4 = 0, values 0 and 1 each mean 255, the highest internal step. Values 2–255 set the upper support point, not a speed in km/h."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.33, CV5"
+      },
+      "factoryDefault": 1,
+      "unit": {
+        "de": "interne Fahrstufe; 0/1 entsprechen 255",
+        "en": "internal speed step; 0/1 mean 255"
+      }
+    },
+    {
+      "cv": 6,
+      "name": {
+        "de": "Mittengeschwindigkeit",
+        "en": "Mid speed"
+      },
+      "help": {
+        "de": "Wert 1 wählt die geglättete Standardkennlinie mit mittlerer Geschwindigkeit etwa einem Viertel der Höchstgeschwindigkeit (bei CV5 = 255 etwa 64). Werte 2–255 setzen den mittleren Stützpunkt. CV29 Bit 4 = 0 erforderlich; Wert 0 ist nicht dokumentiert.",
+        "en": "Value 1 selects the smoothed default characteristic with mid speed about one quarter of maximum (about 64 when CV5 = 255). Values 2–255 set the middle support point. Requires CV29 bit 4 = 0; value 0 is undocumented."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.33, CV6"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 7,
+      "name": {
+        "de": "Softwareversion, Hauptkennung",
+        "en": "Software version, main identifier"
+      },
+      "help": {
+        "de": "Hauptversion der Firmware; zusammen mit CV65 und gegebenenfalls Patchkennung CV839 erfassen. Pseudo-Programmierung ist ein Befehl und kein gespeicherter Versionswert. Keine neue automatische Firmwareerkennung.",
+        "en": "Firmware main version; record together with CV65 and, where present, patch identifier CV839. Pseudo-programming is a command, not a stored version value. No new automatic firmware detection."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.30, CV7"
+      }
+    },
+    {
+      "cv": 8,
+      "name": {
+        "de": "Herstellerkennung / Reset",
+        "en": "Manufacturer identifier / reset"
+      },
+      "help": {
+        "de": "Auslesen liefert 145 (ZIMO). Schreiben löst Sonderbefehle aus, etwa Reset bei 8; der geschriebene Wert wird nicht als Herstellerkennung gespeichert. RailKeeper führt keine Decoderbefehle aus.",
+        "en": "Reading returns 145 (ZIMO). Writing triggers commands such as reset at 8; the written value is not stored as the manufacturer identifier. RailKeeper does not execute decoder commands."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "command",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.30, CV8"
+      },
+      "factoryDefault": 145
+    },
+    {
+      "cv": 9,
+      "name": {
+        "de": "Motorabtastung",
+        "en": "Motor sampling"
+      },
+      "help": {
+        "de": "Motor-PWM etwa 20 kHz. Zehnerstelle beeinflusst EMK-Abtastrate, Einerstelle Messlücke; Hunderterstelle 1 ist für Glockenankermotoren. Kein direkter Frequenzwert. Die widersprüchliche Beschreibung von 0 wird nicht normalisiert.",
+        "en": "Motor PWM is about 20 kHz. Tens affect back-EMF sampling rate, units affect the measurement gap; hundreds digit 1 is for coreless motors. Not a direct frequency. The contradictory description of 0 is not normalized."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 199,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.34, CV9"
+      },
+      "factoryDefault": 55,
+      "allowedValues": [
+        0,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198,
+        199
+      ]
+    },
+    {
+      "cv": 12,
+      "name": {
+        "de": "Betriebsartenfreigabe",
+        "en": "Operating-mode enablement"
+      },
+      "help": {
+        "de": "DC-Analogbetrieb benötigt zusätzlich CV29 Bit 2. DCC ist nicht deaktivierbar. MN180 N18 ist nicht mfx-fähig (Typübersicht S.8); ein gesetztes mfx-Bit der gemeinsamen Tabelle belegt diese Fähigkeit nicht. Sonderwert 0 wird nicht als dauerhafte Abschaltung aller Formate interpretiert.",
+        "en": "DC analog also requires CV29 bit 2. DCC cannot be disabled. MN180 N18 does not support mfx (type overview p.8); a set mfx bit from the shared table does not prove that capability. Special value 0 is not interpreted as permanently disabling all formats."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29, 32, CV12"
+      },
+      "factoryDefault": 117,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "DC-Analogbetrieb",
+            "en": "DC analog operation"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "AC-Analogbetrieb",
+            "en": "AC analog operation"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Motorola",
+            "en": "Motorola"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 15,
+      "name": {
+        "de": "Decoder-Sperre: Zugriffsschlüssel",
+        "en": "Decoder lock: access key"
+      },
+      "help": {
+        "de": "CV15 und CV16 müssen für normalen CV-Zugriff übereinstimmen. Beide 0 bedeuten keine Sperre. Keine Fahrzeugadresse und keine Funktionszuordnung.",
+        "en": "CV15 and CV16 must match for ordinary CV access. Both 0 mean no lock. Not a vehicle address or function assignment."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.31, CV15"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 16,
+      "name": {
+        "de": "Decoder-Sperre: Decoderkennung",
+        "en": "Decoder lock: decoder identifier"
+      },
+      "help": {
+        "de": "CV15 und CV16 müssen für normalen CV-Zugriff übereinstimmen. Beide 0 bedeuten keine Sperre. Keine Fahrzeugadresse und keine Funktionszuordnung.",
+        "en": "CV15 and CV16 must match for ordinary CV access. Both 0 mean no lock. Not a vehicle address or function assignment."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.31, CV16"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 17,
+      "name": {
+        "de": "Lange Adresse: höheres Byte",
+        "en": "Long address: high byte"
+      },
+      "help": {
+        "de": "Lange DCC-Adresse = (CV17−192) × 256+CV18, aktiviert durch CV29 Bit 5. Die Anleitung nennt den gemeinsamen Adressbereich; Bytegrenzen folgen der DCC-Codierung.",
+        "en": "Long DCC address = (CV17−192) × 256+CV18, selected by CV29 bit 5. The manual gives a combined address range; byte bounds follow DCC encoding."
+      },
+      "topic": "address",
+      "minimum": 192,
+      "maximum": 231,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.31, CV17"
+      },
+      "factoryDefault": 192
+    },
+    {
+      "cv": 18,
+      "name": {
+        "de": "Lange Adresse: niederes Byte",
+        "en": "Long address: low byte"
+      },
+      "help": {
+        "de": "Lange DCC-Adresse = (CV17−192) × 256+CV18, aktiviert durch CV29 Bit 5. Die Anleitung nennt den gemeinsamen Adressbereich; Bytegrenzen folgen der DCC-Codierung.",
+        "en": "Long DCC address = (CV17−192) × 256+CV18, selected by CV29 bit 5. The manual gives a combined address range; byte bounds follow DCC encoding."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.31, CV18"
+      },
+      "factoryDefault": 128
+    },
+    {
+      "cv": 19,
+      "name": {
+        "de": "DCC-Verbundadresse",
+        "en": "DCC consist address"
+      },
+      "help": {
+        "de": "Kurze Verbundadresse in Bits 0–6; Bit 7 kehrt die Fahrtrichtung im Verbund um, nicht die Funktionstasten. Wert 128 ist nicht dokumentiert. Für die ZIMO-Erweiterung ist zusätzlich CV20 erforderlich; CV19 allein belegt keine vollständige lange Verbundadresse.",
+        "en": "Short consist address in bits 0–6; bit 7 reverses consist travel direction, not function keys. Value 128 is undocumented. ZIMO extended addressing also requires CV20; CV19 alone does not establish a complete long consist address."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.31, CV19"
+      },
+      "factoryDefault": 0,
+      "allowedValues": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        210,
+        211,
+        212,
+        213,
+        214,
+        215,
+        216,
+        217,
+        218,
+        219,
+        220,
+        221,
+        222,
+        223,
+        224,
+        225,
+        226,
+        227,
+        228,
+        229,
+        230,
+        231,
+        232,
+        233,
+        234,
+        235,
+        236,
+        237,
+        238,
+        239,
+        240,
+        241,
+        242,
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        249,
+        250,
+        251,
+        252,
+        253,
+        254,
+        255
+      ],
+      "bits": [
+        {
+          "bit": 7,
+          "name": {
+            "de": "Verbund-Fahrtrichtung",
+            "en": "Consist travel direction"
+          },
+          "off": {
+            "de": "Normal",
+            "en": "Normal"
+          },
+          "on": {
+            "de": "Umgekehrt",
+            "en": "Reversed"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 21,
+      "name": {
+        "de": "Verbundfunktionen F1–F8",
+        "en": "Consist functions F1–F8"
+      },
+      "help": {
+        "de": "Jedes gesetzte Bit gibt die entsprechende Funktion zur Steuerung über die Verbundadresse frei. Keine Aussage über angeschlossene Verbraucher, Schaltart oder Invertierung.",
+        "en": "Each set bit enables its function under the consist address. Does not establish fitted loads, switch mode or inversion."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.31, CV21"
+      },
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F1 über Verbundadresse",
+            "en": "F1 via consist address"
+          },
+          "off": {
+            "de": "Einzeladresse",
+            "en": "Individual address"
+          },
+          "on": {
+            "de": "Verbundadresse",
+            "en": "Consist address"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F2 über Verbundadresse",
+            "en": "F2 via consist address"
+          },
+          "off": {
+            "de": "Einzeladresse",
+            "en": "Individual address"
+          },
+          "on": {
+            "de": "Verbundadresse",
+            "en": "Consist address"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "F3 über Verbundadresse",
+            "en": "F3 via consist address"
+          },
+          "off": {
+            "de": "Einzeladresse",
+            "en": "Individual address"
+          },
+          "on": {
+            "de": "Verbundadresse",
+            "en": "Consist address"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F4 über Verbundadresse",
+            "en": "F4 via consist address"
+          },
+          "off": {
+            "de": "Einzeladresse",
+            "en": "Individual address"
+          },
+          "on": {
+            "de": "Verbundadresse",
+            "en": "Consist address"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F5 über Verbundadresse",
+            "en": "F5 via consist address"
+          },
+          "off": {
+            "de": "Einzeladresse",
+            "en": "Individual address"
+          },
+          "on": {
+            "de": "Verbundadresse",
+            "en": "Consist address"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F6 über Verbundadresse",
+            "en": "F6 via consist address"
+          },
+          "off": {
+            "de": "Einzeladresse",
+            "en": "Individual address"
+          },
+          "on": {
+            "de": "Verbundadresse",
+            "en": "Consist address"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "F7 über Verbundadresse",
+            "en": "F7 via consist address"
+          },
+          "off": {
+            "de": "Einzeladresse",
+            "en": "Individual address"
+          },
+          "on": {
+            "de": "Verbundadresse",
+            "en": "Consist address"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F8 über Verbundadresse",
+            "en": "F8 via consist address"
+          },
+          "off": {
+            "de": "Einzeladresse",
+            "en": "Individual address"
+          },
+          "on": {
+            "de": "Verbundadresse",
+            "en": "Consist address"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 22,
+      "name": {
+        "de": "Weitere Verbundfunktionen / Auto-Consist",
+        "en": "Additional consist functions / auto-consist"
+      },
+      "help": {
+        "de": "Bit 0/1 geben F0 vorwärts/rückwärts frei; Bits 3–5 F10–F12; Bit 7 gemeinsam F13–F27. Bit 6 aktiviert Auto-Consist. Die Bit 2-Zeile nennt widersprüchlich F0; hierfür wird keine eindeutige Herstellerzuordnung behauptet. Keine globale Tasteninvertierung.",
+        "en": "Bits 0/1 enable F0 forward/reverse; bits 3–5 F10–F12; bit 7 groups F13–F27. Bit 6 enables auto-consist. The bit 2 row inconsistently names F0; no unambiguous manufacturer assignment is claimed for it. Not global key inversion."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.31–32, CV22"
+      },
+      "factoryDefault": 0,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "F0 vorwärts über Verbundadresse",
+            "en": "F0 forward via consist address"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "F0 rückwärts über Verbundadresse",
+            "en": "F0 reverse via consist address"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "F10 über Verbundadresse",
+            "en": "F10 via consist address"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "F11 über Verbundadresse",
+            "en": "F11 via consist address"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "F12 über Verbundadresse",
+            "en": "F12 via consist address"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Auto-Consist",
+            "en": "Auto-consist"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "F13–F27 gemeinsam über Verbundadresse",
+            "en": "F13–F27 jointly via consist address"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 23,
+      "name": {
+        "de": "Beschleunigungsvariation",
+        "en": "Acceleration adjustment"
+      },
+      "help": {
+        "de": "Zeitweise Erhöhung/Reduktion der Einstellung aus CV3; Bit 7 unterscheidet Erhöhung (0) und Reduktion (1). Keine Momentfunktion einer Taste.",
+        "en": "Temporary increase/decrease of CV3; bit 7 selects increase (0) or decrease (1). Does not indicate momentary key mode."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.35, CV23"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 24,
+      "name": {
+        "de": "Bremszeitvariation",
+        "en": "Deceleration adjustment"
+      },
+      "help": {
+        "de": "Zeitweise Erhöhung/Reduktion der Einstellung aus CV4; Bit 7 unterscheidet Erhöhung (0) und Reduktion (1). Keine Momentfunktion einer Taste.",
+        "en": "Temporary increase/decrease of CV4; bit 7 selects increase (0) or decrease (1). Does not indicate momentary key mode."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.35, CV24"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 27,
+      "name": {
+        "de": "Bremsverfahren",
+        "en": "Braking methods"
+      },
+      "help": {
+        "de": "ABC: Bit 0 rechte, Bit 1 linke Schiene mit höherer Spannung in Fahrtrichtung; beide gesetzt wirken richtungsunabhängig. DC-Bremsen (Bits 4/5) benötigt CV29 Bit 2 = 0. Bit 2 ist laut Tabelle HLU; dessen Kapitel trägt zugleich einen SW6.00-Vorbehalt, daher keine zusätzliche HLU-Verfügbarkeitszusage.",
+        "en": "ABC: bit 0 right, bit 1 left rail at higher voltage in direction of travel; both set work in either direction. DC braking (bits 4/5) requires CV29 bit 2 = 0. The table names bit 2 as HLU, but its chapter also carries an SW6.00 caveat; no additional HLU availability is promised."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29, 36–38, CV27"
+      },
+      "factoryDefault": 4,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "ABC rechts",
+            "en": "ABC right"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "ABC links",
+            "en": "ABC left"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "DC gegen Fahrtrichtung",
+            "en": "DC opposite direction"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "DC mit Fahrtrichtung",
+            "en": "DC same direction"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 28,
+      "name": {
+        "de": "RailCom-Konfiguration",
+        "en": "RailCom configuration"
+      },
+      "help": {
+        "de": "Channel 1/2 und automatische DCC-A-Anmeldung (Bit 7, RCN-218); zusätzlich CV29 Bit 3 erforderlich. Hochstrom-Bit 6 betrifft nur Großbahndecoder und wird nicht als MN180 N18-Funktion übernommen. DCC-A ist kein Nachweis für ESU-RailComPlus-Symboldaten.",
+        "en": "Channels 1/2 and automatic DCC-A registration (bit 7, RCN-218); also requires CV29 bit 3. High-current bit 6 only applies to large-scale decoders and is not assigned to MN180 N18. DCC-A does not prove ESU RailComPlus symbol data."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29, 53, CV28"
+      },
+      "factoryDefault": 131,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "RailCom Channel1",
+            "en": "RailCom channel1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "RailCom Channel2",
+            "en": "RailCom channel2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "DCC-A-Anmeldung",
+            "en": "DCC-A registration"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 29,
+      "name": {
+        "de": "DCC-Konfiguration",
+        "en": "DCC configuration"
+      },
+      "help": {
+        "de": "Auswahl von Richtung, Fahrstufen, Analogfreigabe, RailCom, Kennlinie und Adresse. Analogbetrieb benötigt zusätzlich die Betriebsartenfreigabe CV12; Richtungsumkehr betrifft die Lok, nicht einzelne Funktionstasten.",
+        "en": "Selects direction, speed steps, analog permission, RailCom, characteristic and address. Analog also requires operating-mode permission in CV12; direction reversal affects the locomotive, not individual function keys."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29, 31–33, CV29"
+      },
+      "factoryDefault": 14,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Fahrtrichtung",
+            "en": "Travel direction"
+          },
+          "off": {
+            "de": "Normal",
+            "en": "Normal"
+          },
+          "on": {
+            "de": "Umgekehrt",
+            "en": "Reversed"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Fahrstufen",
+            "en": "Speed steps"
+          },
+          "off": {
+            "de": "14",
+            "en": "14"
+          },
+          "on": {
+            "de": "28/128",
+            "en": "28/128"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "Analogfreigabe",
+            "en": "Analog permission"
+          },
+          "off": {
+            "de": "Gesperrt",
+            "en": "Disabled"
+          },
+          "on": {
+            "de": "Freigegeben; zusätzlich CV12",
+            "en": "Permitted; also requires CV12"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "RailCom",
+            "en": "RailCom"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein; zusätzlich CV28",
+            "en": "On; also requires CV28"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Geschwindigkeitskennlinie",
+            "en": "Speed characteristic"
+          },
+          "off": {
+            "de": "Dreipunkt CV2/5/6",
+            "en": "Three-point CV2/5/6"
+          },
+          "on": {
+            "de": "28-Punkt CV67–94",
+            "en": "28-point CV67–94"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Adressauswahl",
+            "en": "Address selection"
+          },
+          "off": {
+            "de": "Kurz CV1",
+            "en": "Short CV1"
+          },
+          "on": {
+            "de": "Lang CV17/18",
+            "en": "Long CV17/18"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 33,
+      "name": {
+        "de": "Ausgangszuordnung F0 →",
+        "en": "Output assignment F0 →"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F0 →. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F0 →. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV33"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 34,
+      "name": {
+        "de": "Ausgangszuordnung F0 ←",
+        "en": "Output assignment F0 ←"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F0 ←. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F0 ←. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV34"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 35,
+      "name": {
+        "de": "Ausgangszuordnung F1",
+        "en": "Output assignment F1"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F1. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F1. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV35"
+      },
+      "factoryDefault": 4
+    },
+    {
+      "cv": 36,
+      "name": {
+        "de": "Ausgangszuordnung F2",
+        "en": "Output assignment F2"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F2. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F2. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV36"
+      },
+      "factoryDefault": 8
+    },
+    {
+      "cv": 37,
+      "name": {
+        "de": "Ausgangszuordnung F3",
+        "en": "Output assignment F3"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F3. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F3. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV37"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 38,
+      "name": {
+        "de": "Ausgangszuordnung F4",
+        "en": "Output assignment F4"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F4. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F4. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV38"
+      },
+      "factoryDefault": 4
+    },
+    {
+      "cv": 39,
+      "name": {
+        "de": "Ausgangszuordnung F5",
+        "en": "Output assignment F5"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F5. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F5. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV39"
+      },
+      "factoryDefault": 8
+    },
+    {
+      "cv": 40,
+      "name": {
+        "de": "Ausgangszuordnung F6",
+        "en": "Output assignment F6"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F6. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F6. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV40"
+      },
+      "factoryDefault": 16
+    },
+    {
+      "cv": 41,
+      "name": {
+        "de": "Ausgangszuordnung F7",
+        "en": "Output assignment F7"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F7. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F7. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV41"
+      },
+      "factoryDefault": 4
+    },
+    {
+      "cv": 42,
+      "name": {
+        "de": "Ausgangszuordnung F8",
+        "en": "Output assignment F8"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F8. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F8. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV42"
+      },
+      "factoryDefault": 8
+    },
+    {
+      "cv": 43,
+      "name": {
+        "de": "Ausgangszuordnung F9",
+        "en": "Output assignment F9"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F9. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F9. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV43"
+      },
+      "factoryDefault": 16
+    },
+    {
+      "cv": 44,
+      "name": {
+        "de": "Ausgangszuordnung F10",
+        "en": "Output assignment F10"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F10. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F10. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV44"
+      },
+      "factoryDefault": 32
+    },
+    {
+      "cv": 45,
+      "name": {
+        "de": "Ausgangszuordnung F11",
+        "en": "Output assignment F11"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F11. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F11. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV45"
+      },
+      "factoryDefault": 64
+    },
+    {
+      "cv": 46,
+      "name": {
+        "de": "Ausgangszuordnung F12",
+        "en": "Output assignment F12"
+      },
+      "help": {
+        "de": "Bitmaske für Ausgänge bei F12. Die Bitpositionen höherer Funktionen hängen von CV61 ab (0: verschobene NMRA-Zuordnung, 97: ohne Verschiebung). Deshalb keine bedingungslosen Ausgangs-Bitnamen. Tatsächliche Ausgänge hängen von der Hardware ab; keine Aussage zu Schaltart oder globaler Invertierung.",
+        "en": "Output mask for F12. Higher-function bit positions depend on CV61 (0: shifted NMRA mapping; 97: unshifted). No unconditional output-bit names are supplied. Available outputs depend on hardware; not evidence of switch mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.41, CV46"
+      },
+      "factoryDefault": 128
+    },
+    {
+      "cv": 53,
+      "name": {
+        "de": "ABC-Langsamfahrstufe",
+        "en": "ABC slow speed step"
+      },
+      "help": {
+        "de": "Interne Fahrstufe für ABC-Langsamabschnitte; keine Geschwindigkeit in km/h.",
+        "en": "Internal speed step for ABC slow sections, not a speed in km/h."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.37, CV53"
+      },
+      "factoryDefault": 70,
+      "unit": {
+        "de": "interne Fahrstufe",
+        "en": "internal speed step"
+      }
+    },
+    {
+      "cv": 56,
+      "name": {
+        "de": "PID-Grundeinstellung",
+        "en": "PID basic adjustment"
+      },
+      "help": {
+        "de": "Zehnerstelle verändert den P-Anteil, Einerstelle den I-Anteil. 55 ist die mittlere Einstellung; 0 wird zu 55 umgesetzt. Volle Zehner 10–90 sind unzulässig. Änderungen führen CV147–149 automatisch nach, umgekehrt nicht. Keine unabhängigen Bits.",
+        "en": "Tens adjust P, units adjust I. 55 is the middle setting; 0 becomes 55. Exact tens 10–90 are invalid. Changes also update CV147–149, but not vice versa. Not independent bits."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 99,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.34, CV56"
+      },
+      "factoryDefault": 55,
+      "allowedValues": [
+        0,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99
+      ]
+    },
+    {
+      "cv": 57,
+      "name": {
+        "de": "Regelungsreferenz",
+        "en": "Motor regulation reference"
+      },
+      "help": {
+        "de": "0 passt die Referenz an die Schienenspannung an. 100–255 sind Zehntelvolt, z.B.140 = 14 V. Bei Energiespeicher empfiehlt die Anleitung einen Wert ungleich 0. Keine gemessene Motorspannung.",
+        "en": "0 adapts the reference to track voltage. 100–255 are tenths of a volt, e.g.140 = 14 V. The manual recommends nonzero with energy storage. Not a measured motor voltage."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.33, CV57"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "0: relativ; 100–255: 0,1 V je Wertschritt",
+        "en": "0: relative; 100–255: 0.1 V per increment"
+      },
+      "allowedValues": [
+        0,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188,
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        210,
+        211,
+        212,
+        213,
+        214,
+        215,
+        216,
+        217,
+        218,
+        219,
+        220,
+        221,
+        222,
+        223,
+        224,
+        225,
+        226,
+        227,
+        228,
+        229,
+        230,
+        231,
+        232,
+        233,
+        234,
+        235,
+        236,
+        237,
+        238,
+        239,
+        240,
+        241,
+        242,
+        243,
+        244,
+        245,
+        246,
+        247,
+        248,
+        249,
+        250,
+        251,
+        252,
+        253,
+        254,
+        255
+      ]
+    },
+    {
+      "cv": 65,
+      "name": {
+        "de": "Softwareversion, Ergänzung",
+        "en": "Software version, subversion"
+      },
+      "help": {
+        "de": "Unterversion zu CV7; die vollständige Kennung kann zusätzlich CV839 benötigen. Rohregister werden nicht als neu erfasste vollständige Firmware ausgegeben.",
+        "en": "Subversion for CV7; a complete identifier may also require CV839. Raw registers are not presented as a newly detected complete firmware version."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.30, CV65"
+      }
+    },
+    {
+      "cv": 66,
+      "name": {
+        "de": "Geschwindigkeitstrimmung vorwärts",
+        "en": "Forward speed trim"
+      },
+      "help": {
+        "de": "Richtungsbezogene Trimmung; 1–127 multiplizieren die Fahrstufe mit Wert/128. Werkseinstellung 0 bleibt als Sonderwert erhalten, ohne daraus Stillstand abzuleiten. Keine Funktionsinvertierung.",
+        "en": "Direction-specific trim; 1–127 multiply the speed step by value/128. Factory value 0 remains a special value, without inferring standstill. Not function inversion."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.33, CV66"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 67,
+      "name": {
+        "de": "28-Punkt-Geschwindigkeitstabelle",
+        "en": "28-point speed table"
+      },
+      "help": {
+        "de": "Je eine interne Fahrstufe für die 28 Stützpunkte; aktiv bei CV29 Bit 4 = 1. Die Werkstabelle ist gekrümmt, daher keine linearen Werkspunkte ergänzen. Fehlende Werte bleiben unbekannt.",
+        "en": "One internal speed step per support point; active when CV29 bit 4 = 1. The factory table is curved; no linear factory points are supplied. Missing values remain unknown."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.33, CV67–94"
+      },
+      "cvEnd": 94,
+      "unit": {
+        "de": "interne Fahrstufe",
+        "en": "internal speed step"
+      }
+    },
+    {
+      "cv": 95,
+      "name": {
+        "de": "Geschwindigkeitstrimmung rückwärts",
+        "en": "Reverse speed trim"
+      },
+      "help": {
+        "de": "Richtungsbezogene Trimmung; 1–127 multiplizieren die Fahrstufe mit Wert/128. Werkseinstellung 0 bleibt als Sonderwert erhalten, ohne daraus Stillstand abzuleiten. Keine Funktionsinvertierung.",
+        "en": "Direction-specific trim; 1–127 multiply the speed step by value/128. Factory value 0 remains a special value, without inferring standstill. Not function inversion."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.33, CV95"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 99,
+      "name": {
+        "de": "RailCom-ID7: Meldungen unterdrücken",
+        "en": "RailCom ID7: suppress messages"
+      },
+      "help": {
+        "de": "Gesetzte Bits unterdrücken die jeweilige ID7-Meldung. Keine Aussage über aktuelle Geschwindigkeit, Richtung, Temperatur oder Spannung. Weitere Bits und Werkseinstellung sind hier nicht belegt.",
+        "en": "Set bits suppress the corresponding ID7 message. Does not establish current speed, direction, temperature or voltage. Other bits and a factory default are not established here."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29, CV99"
+      },
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Geschwindigkeitsmeldung",
+            "en": "Speed message"
+          },
+          "off": {
+            "de": "Nicht unterdrückt",
+            "en": "Not suppressed"
+          },
+          "on": {
+            "de": "Unterdrückt",
+            "en": "Suppressed"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Ost/West-Meldung",
+            "en": "East/west message"
+          },
+          "off": {
+            "de": "Nicht unterdrückt",
+            "en": "Not suppressed"
+          },
+          "on": {
+            "de": "Unterdrückt",
+            "en": "Suppressed"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "Temperaturmeldung",
+            "en": "Temperature message"
+          },
+          "off": {
+            "de": "Nicht unterdrückt",
+            "en": "Not suppressed"
+          },
+          "on": {
+            "de": "Unterdrückt",
+            "en": "Suppressed"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "Gleisspannungsmeldung",
+            "en": "Track voltage message"
+          },
+          "off": {
+            "de": "Nicht unterdrückt",
+            "en": "Not suppressed"
+          },
+          "on": {
+            "de": "Unterdrückt",
+            "en": "Suppressed"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 100,
+      "name": {
+        "de": "Gemessene ABC-Asymmetrie",
+        "en": "Measured ABC asymmetry"
+      },
+      "help": {
+        "de": "Nur lesbar über PoM: 0 = symmetrisch; 1,2,… positive Asymmetrie rechts in 0,1 V; 255,254,… entsprechende Asymmetrie links. Zeitpunktgebundener Messwert, kein eingestellter ABC-Schwellwert und keine fortlaufende Live-Messung.",
+        "en": "Read via PoM: 0 = symmetric; 1,2,… positive right-side asymmetry in 0.1 V; 255,254,… corresponding left-side asymmetry. A measurement at export time, not an ABC threshold or a continuous live measurement."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.37, CV100"
+      }
+    },
+    {
+      "cv": 111,
+      "name": {
+        "de": "Verzögerung bei Nothalt",
+        "en": "Emergency-stop deceleration"
+      },
+      "help": {
+        "de": "Bei Einzel- oder Sammelnothalt anstelle von CV4 verwendeter Verzögerungsparameter. Die eigene Tabellenzeile belegt keine gesonderte Zeiteinheit.",
+        "en": "Deceleration parameter used instead of CV4 for individual or system emergency stop. Its own table row does not establish a separate time unit."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.35, CV111"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 134,
+      "name": {
+        "de": "ABC-Asymmetrieschwelle",
+        "en": "ABC asymmetry threshold"
+      },
+      "help": {
+        "de": "Erkennungsschwelle für asymmetrisches DCC: 6 entspricht 0,6 V. Einstellwert, kein Messwert; aktuelle PoM-Messung steht in CV100.",
+        "en": "Detection threshold for asymmetric DCC: 6 means 0.6 V. A configured threshold, not a measurement; current PoM measurement is in CV100."
+      },
+      "topic": "braking",
+      "minimum": 1,
+      "maximum": 14,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.37, CV134"
+      },
+      "factoryDefault": 6,
+      "unit": {
+        "de": "0,1 V je Wertschritt",
+        "en": "0.1 V per increment"
+      }
+    },
+    {
+      "cv": 140,
+      "name": {
+        "de": "Konstanter Bremsweg: Betriebsart",
+        "en": "Constant stopping distance: mode"
+      },
+      "help": {
+        "de": "0 = aus; 1 = automatischer Signalhalt; 2 = manueller Reglerhalt; 3 = beides. 11/12/13 wählen dieselben Anlässe mit sofortigem Bremsbeginn; 1/2/3 können den Beginn bei Teilgeschwindigkeit verzögern. Wegparameter CV141 bzw. CV830–833. Kein Richtungs-Bitfeld.",
+        "en": "0 = off; 1 = automatic signal stop; 2 = manual throttle stop; 3 = both. 11/12/13 select the same triggers with immediate braking; 1/2/3 may delay onset at partial speed. Distance uses CV141 or CV830–833. Not a direction bitfield."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 13,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.38, CV140"
+      },
+      "factoryDefault": 0,
+      "allowedValues": [
+        0,
+        1,
+        2,
+        3,
+        11,
+        12,
+        13
+      ]
+    },
+    {
+      "cv": 141,
+      "name": {
+        "de": "Konstanter Bremsweg: Grundparameter",
+        "en": "Constant stopping distance: basic parameter"
+      },
+      "help": {
+        "de": "Wegparameter, durch Probieren abzustimmen. Die Anleitung nennt nur ungefähre Vorbildstrecken (50 etwa 100 m), keine exakte Längenmessung. Bei 0 gelten stattdessen die richtungsgetrennten Register CV830–833. Aktivierung über CV140.",
+        "en": "Distance parameter requiring calibration. The manual gives approximate prototype distances (50 about 100 m), not exact length measurements. At 0, directional registers CV830–833 apply instead. Enabled by CV140."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.38, CV141"
+      },
+      "factoryDefault": 20
+    },
+    {
+      "cv": 143,
+      "name": {
+        "de": "HLU-Erkennungsverzögerung kompensieren",
+        "en": "Compensate HLU detection delay"
+      },
+      "help": {
+        "de": "Kompensationsparameter beim distanzgesteuerten HLU-Anhalten. Die Quelle nennt keine verlässliche Umrechnung in Sekunden oder Meter; keine automatische HLU-Verfügbarkeitszusage.",
+        "en": "Compensation parameter for distance-controlled HLU stopping. The source provides no reliable conversion to seconds or metres; does not automatically establish HLU availability."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.38, CV143"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 147,
+      "name": {
+        "de": "PID-Regelung: Integralanteil",
+        "en": "PID regulation: integral term"
+      },
+      "help": {
+        "de": "Feinabstimmung der Motorregelung. Änderungen von CV56 führen diesen Parameter nach; eine Änderung hier verändert CV56 nicht automatisch. Kein physikalischer Messwert.",
+        "en": "Fine adjustment of motor regulation. Changes to CV56 update this parameter; changing it does not automatically change CV56. Not a physical measurement."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.34, CV147"
+      },
+      "factoryDefault": 100
+    },
+    {
+      "cv": 148,
+      "name": {
+        "de": "PID-Regelung: Differentialanteil",
+        "en": "PID regulation: differential term"
+      },
+      "help": {
+        "de": "Feinabstimmung der Motorregelung. Änderungen von CV56 führen diesen Parameter nach; eine Änderung hier verändert CV56 nicht automatisch. Kein physikalischer Messwert.",
+        "en": "Fine adjustment of motor regulation. Changes to CV56 update this parameter; changing it does not automatically change CV56. Not a physical measurement."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.34, CV148"
+      },
+      "factoryDefault": 100
+    },
+    {
+      "cv": 149,
+      "name": {
+        "de": "PID-Regelung: Proportionalanteil",
+        "en": "PID regulation: proportional term"
+      },
+      "help": {
+        "de": "Feinabstimmung der Motorregelung. Änderungen von CV56 führen diesen Parameter nach; eine Änderung hier verändert CV56 nicht automatisch. Kein physikalischer Messwert.",
+        "en": "Fine adjustment of motor regulation. Changes to CV56 update this parameter; changing it does not automatically change CV56. Not a physical measurement."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.34, CV149"
+      },
+      "factoryDefault": 100
+    },
+    {
+      "cv": 153,
+      "name": {
+        "de": "Nachlauf ohne Schienensignal",
+        "en": "Run-on without track signal"
+      },
+      "help": {
+        "de": "0 = keine Zeitbegrenzung durch diese Funktion. Werte 1–255: Nach dieser Zeit ohne DCC-Empfang beginnt ein Bremsvorgang, dessen Ablauf weitere Brems-CVs berücksichtigen. Nicht die vollständige Zeit bis zum Stillstand.",
+        "en": "0 = no time limit from this feature. Values 1–255: after this time without DCC reception, braking starts and follows other brake CVs. Not the complete time until standstill."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29, CV153"
+      },
+      "factoryDefault": 100,
+      "unit": {
+        "de": "0,1 s je Wertschritt bis Bremsbeginn",
+        "en": "0.1 s per increment until braking starts"
+      }
+    },
+    {
+      "cv": 157,
+      "name": {
+        "de": "Taste zur Aufhebung des Signalhalts",
+        "en": "Key overriding signal stop"
+      },
+      "help": {
+        "de": "0 = keine Taste; 1–28 = F1–F28; 29 = F0. Ersatz der MAN-Funktion zum Aufheben von ABC-/HLU-Signalhalt. Tastenzuweisung, keine belegte Dauer-/Momentfunktion oder globale Invertierung.",
+        "en": "0 = no key; 1–28 = F1–F28; 29 = F0. Assigns a key to the MAN override of ABC/HLU signal stop. Assignment only, not evidence of latching/momentary mode or global inversion."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 29,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.40, CV157"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 193,
+      "name": {
+        "de": "ABC-Pendeln: Umkehr-Aufenthalt",
+        "en": "ABC shuttle: reversing dwell"
+      },
+      "help": {
+        "de": "0 = kein Pendelbetrieb. Werte 1–255 aktivieren ABC-Pendeln und geben die Aufenthaltszeit am Umkehrabschnitt in Sekunden an. Keine Verzögerungszeit einer Funktionstaste.",
+        "en": "0 = no shuttle operation. Values 1–255 enable ABC shuttle operation and specify dwell at the reversing section in seconds. Not a function-key delay."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.37, CV193"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "s; 0 deaktiviert Pendelbetrieb",
+        "en": "s; 0 disables shuttle operation"
+      }
+    },
+    {
+      "cv": 194,
+      "name": {
+        "de": "ABC-Pendeln: Zwischenaufenthalt",
+        "en": "ABC shuttle: intermediate dwell"
+      },
+      "help": {
+        "de": "Nur bei CV193>0: 0 = ohne Zwischenhalt; 1–254 = Aufenthaltszeit an Zwischenhalten in Sekunden; 255 = Dauerhalt bis Aufheben der Haltewirkung. 255 bedeutet nicht 255 Sekunden.",
+        "en": "Only when CV193>0: 0 = no intermediate stop; 1–254 = intermediate dwell in seconds; 255 = stop until the stopping condition is released. 255 does not mean 255 seconds."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.37, CV194"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "1–254: s; 0/255 Sonderwerte",
+        "en": "1–254: s; 0/255 special values"
+      }
+    },
+    {
+      "cv": 248,
+      "name": {
+        "de": "Bootloader: Version",
+        "en": "Bootloader: version"
+      },
+      "help": {
+        "de": "Version des Ladeprogramms, nicht die Fahrdecoder-Firmware. Ergänzende Patchkennung CV842; keine automatische Firmwareerkennung daraus.",
+        "en": "Version of the loading program, not the driving-decoder firmware. Additional patch identifier is CV842; not used for automatic firmware detection."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.30, CV248"
+      }
+    },
+    {
+      "cv": 249,
+      "name": {
+        "de": "Bootloader: Unterversion",
+        "en": "Bootloader: subversion"
+      },
+      "help": {
+        "de": "Version des Ladeprogramms, nicht die Fahrdecoder-Firmware. Ergänzende Patchkennung CV842; keine automatische Firmwareerkennung daraus.",
+        "en": "Version of the loading program, not the driving-decoder firmware. Additional patch identifier is CV842; not used for automatic firmware detection."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.30, CV249"
+      }
+    },
+    {
+      "cv": 250,
+      "name": {
+        "de": "Decodertyp",
+        "en": "Decoder base type"
+      },
+      "help": {
+        "de": "Nur lesen: 127 bezeichnet den Grundtyp MN180. Weder Next 18-Anschluss noch vollständige Seriennummer werden durch dieses Byte bestätigt.",
+        "en": "Read only: 127 identifies the MN180 base type. This byte confirms neither the Next 18 interface nor the complete serial number."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.8, 29, CV250"
+      }
+    },
+    {
+      "cv": 251,
+      "name": {
+        "de": "Decoder-ID: weitere Seriennummernbytes",
+        "en": "Decoder ID: remaining serial bytes"
+      },
+      "help": {
+        "de": "Nur lesbare Teile der ab Werk gespeicherten Decoder-ID zusammen mit CV250. Keine Anschlusskennung oder selbstständige vollständige Seriennummer; Bytes unverändert erhalten.",
+        "en": "Read-only parts of the factory decoder ID together with CV250. Not an interface identifier or a complete serial number by themselves; preserve the original bytes."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.29, CV251–253"
+      },
+      "cvEnd": 253
+    },
+    {
+      "cv": 830,
+      "name": {
+        "de": "Bremsweg vorwärts: höheres Byte",
+        "en": "Stopping distance forward: high byte"
+      },
+      "help": {
+        "de": "Nur bei CV141 = 0 wirksam; richtungsbezogener Parameter = 256 × höheres+niederes Byte,16-fache Auflösung gegenüber CV141. Keine exakte gemessene Strecke; Aktivierung über CV140. Kein CV31/32-Indexregister.",
+        "en": "Used only when CV141 = 0; directional parameter = 256 × high+low byte,16 times the resolution of CV141. Not an exact measured distance; enabled by CV140. Not a CV31/32-indexed register."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.38, CV830"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 831,
+      "name": {
+        "de": "Bremsweg vorwärts: niederes Byte",
+        "en": "Stopping distance forward: low byte"
+      },
+      "help": {
+        "de": "Nur bei CV141 = 0 wirksam; richtungsbezogener Parameter = 256 × höheres+niederes Byte,16-fache Auflösung gegenüber CV141. Keine exakte gemessene Strecke; Aktivierung über CV140. Kein CV31/32-Indexregister.",
+        "en": "Used only when CV141 = 0; directional parameter = 256 × high+low byte,16 times the resolution of CV141. Not an exact measured distance; enabled by CV140. Not a CV31/32-indexed register."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.38, CV831"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 832,
+      "name": {
+        "de": "Bremsweg rückwärts: höheres Byte",
+        "en": "Stopping distance reverse: high byte"
+      },
+      "help": {
+        "de": "Nur bei CV141 = 0 wirksam; richtungsbezogener Parameter = 256 × höheres+niederes Byte,16-fache Auflösung gegenüber CV141. Keine exakte gemessene Strecke; Aktivierung über CV140. Kein CV31/32-Indexregister.",
+        "en": "Used only when CV141 = 0; directional parameter = 256 × high+low byte,16 times the resolution of CV141. Not an exact measured distance; enabled by CV140. Not a CV31/32-indexed register."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.38, CV832"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 833,
+      "name": {
+        "de": "Bremsweg rückwärts: niederes Byte",
+        "en": "Stopping distance reverse: low byte"
+      },
+      "help": {
+        "de": "Nur bei CV141 = 0 wirksam; richtungsbezogener Parameter = 256 × höheres+niederes Byte,16-fache Auflösung gegenüber CV141. Keine exakte gemessene Strecke; Aktivierung über CV140. Kein CV31/32-Indexregister.",
+        "en": "Used only when CV141 = 0; directional parameter = 256 × high+low byte,16 times the resolution of CV141. Not an exact measured distance; enabled by CV140. Not a CV31/32-indexed register."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.38, CV833"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 839,
+      "name": {
+        "de": "Firmware-Patchkennung",
+        "en": "Firmware patch identifier"
+      },
+      "help": {
+        "de": "Nur lesbare ergänzende Unterversion. Nicht als Adresse, Funktionstastensymbol oder automatisch bestätigte Gesamtversion interpretieren.",
+        "en": "Read-only additional subversion. Not an address, function-key symbol or automatically confirmed complete version."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.30, CV839"
+      }
+    },
+    {
+      "cv": 842,
+      "name": {
+        "de": "Bootloader-Patchkennung",
+        "en": "Bootloader patch identifier"
+      },
+      "help": {
+        "de": "Nur lesbare ergänzende Unterversion. Nicht als Adresse, Funktionstastensymbol oder automatisch bestätigte Gesamtversion interpretieren.",
+        "en": "Read-only additional subversion. Not an address, function-key symbol or automatically confirmed complete version."
+      },
+      "topic": "communication",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 1,
+        "location": "S.30, CV842"
+      }
+    }
+  ],
+  "active": true,
+  "firmwareMin": "5.29",
+  "rules": {
+    "abc": {
+      "cv": 27,
+      "mask": 3
+    }
+  }
+}

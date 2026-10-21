@@ -402,27 +402,42 @@ type VehicleSparePartInput struct {
 }
 
 type VehicleFunction struct {
-	ID                 string `json:"id"`
-	VehicleID          string `json:"vehicleId"`
-	FunctionKey        string `json:"functionKey"`
-	Name               string `json:"name,omitempty"`
-	SymbolKey          string `json:"symbolKey,omitempty"`
-	FunctionType       string `json:"functionType"`
-	Mode               string `json:"mode"`
-	DirectionDependent bool   `json:"directionDependent"`
-	Notes              string `json:"notes,omitempty"`
-	SortOrder          int    `json:"sortOrder"`
-	CreatedAt          string `json:"createdAt"`
-	UpdatedAt          string `json:"updatedAt"`
+	ID                       string `json:"id"`
+	VehicleID                string `json:"vehicleId"`
+	FunctionKey              string `json:"functionKey"`
+	Name                     string `json:"name,omitempty"`
+	SymbolKey                string `json:"symbolKey,omitempty"`
+	FunctionType             string `json:"functionType"`
+	Mode                     string `json:"mode"`
+	DirectionDependent       *bool  `json:"directionDependent"`
+	Inverted                 *bool  `json:"inverted"`
+	LegacyDirectionDependent *bool  `json:"legacyDirectionDependent,omitempty"`
+	FlagsVersion             int    `json:"flagsVersion"`
+	Notes                    string `json:"notes,omitempty"`
+	SortOrder                int    `json:"sortOrder"`
+	CreatedAt                string `json:"createdAt"`
+	UpdatedAt                string `json:"updatedAt"`
+	Revision                 string `json:"revision"`
 }
 
 type VehicleFunctionInput struct {
-	Name               string `json:"name"`
-	SymbolKey          string `json:"symbolKey"`
-	FunctionType       string `json:"functionType"`
-	Mode               string `json:"mode"`
-	DirectionDependent bool   `json:"directionDependent"`
-	Notes              string `json:"notes"`
+	Name                     string `json:"name"`
+	SymbolKey                string `json:"symbolKey"`
+	FunctionType             string `json:"functionType"`
+	Mode                     string `json:"mode"`
+	DirectionDependent       *bool  `json:"directionDependent"`
+	Inverted                 *bool  `json:"inverted"`
+	LegacyDirectionDependent *bool  `json:"legacyDirectionDependent,omitempty"`
+	FlagsVersion             int    `json:"flagsVersion"`
+	Notes                    string `json:"notes"`
+}
+
+// An absent expected revision means the key must not exist yet.
+type VehicleFunctionChange struct {
+	FunctionKey      string                `json:"functionKey"`
+	ExpectedRevision string                `json:"expectedRevision"`
+	Value            *VehicleFunctionInput `json:"value,omitempty"`
+	Delete           bool                  `json:"delete,omitempty"`
 }
 
 type VehicleCVValue struct {
@@ -557,4 +572,6 @@ type CreateVehicleInput struct {
 	AdditionalInfo            string              `json:"additionalInfo"`
 	QRCodeEnabled             bool                `json:"qrCodeEnabled"`
 	Images                    []VehicleImageInput `json:"images"`
+
+	FunctionChanges []VehicleFunctionChange `json:"functionChanges,omitempty"`
 }

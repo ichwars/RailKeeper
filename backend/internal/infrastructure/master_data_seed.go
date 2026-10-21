@@ -131,6 +131,9 @@ ON CONFLICT(parent_type, parent_key, child_type, child_key) DO NOTHING
 		}
 	}
 
+	if err = seedDecoderLibrary(ctx, tx, now); err != nil {
+		return err
+	}
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("commit master data seed: %w", err)
 	}

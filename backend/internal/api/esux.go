@@ -15,6 +15,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"railkeeper/backend/internal/decoderlibrary"
 )
 
 type esuxMetadata struct {
@@ -28,23 +30,24 @@ type esuxMetadata struct {
 }
 
 type vehicleCVFilePreviewResponse struct {
-	FileName                string                   `json:"fileName"`
-	SizeBytes               int64                    `json:"sizeBytes"`
-	MimeType                string                   `json:"mimeType"`
-	HasMetadata             bool                     `json:"hasMetadata"`
-	ProjectName             string                   `json:"projectName,omitempty"`
-	Address                 string                   `json:"address,omitempty"`
-	Type                    string                   `json:"type,omitempty"`
-	Decoder                 string                   `json:"decoder,omitempty"`
-	Manufacturer            string                   `json:"manufacturer,omitempty"`
-	ManufacturerID          string                   `json:"manufacturerId,omitempty"`
-	LokProgrammer           string                   `json:"lokProgrammer,omitempty"`
-	SuggestedDecoderProfile string                   `json:"suggestedDecoderProfile,omitempty"`
-	SuggestedDescription    string                   `json:"suggestedDescription,omitempty"`
-	CVImportError           string                   `json:"cvImportError,omitempty"`
-	SuggestedCVValues       []cvValuePreview         `json:"suggestedCvValues,omitempty"`
-	SuggestedFunctions      []functionMappingPreview `json:"suggestedFunctions,omitempty"`
-	SuggestedPreviewImage   *decoderPreviewImage     `json:"suggestedPreviewImage,omitempty"`
+	DecoderLibraryMatches   map[string]decoderlibrary.Match `json:"decoderLibraryMatches,omitempty"`
+	FileName                string                          `json:"fileName"`
+	SizeBytes               int64                           `json:"sizeBytes"`
+	MimeType                string                          `json:"mimeType"`
+	HasMetadata             bool                            `json:"hasMetadata"`
+	ProjectName             string                          `json:"projectName,omitempty"`
+	Address                 string                          `json:"address,omitempty"`
+	Type                    string                          `json:"type,omitempty"`
+	Decoder                 string                          `json:"decoder,omitempty"`
+	Manufacturer            string                          `json:"manufacturer,omitempty"`
+	ManufacturerID          string                          `json:"manufacturerId,omitempty"`
+	LokProgrammer           string                          `json:"lokProgrammer,omitempty"`
+	SuggestedDecoderProfile string                          `json:"suggestedDecoderProfile,omitempty"`
+	SuggestedDescription    string                          `json:"suggestedDescription,omitempty"`
+	CVImportError           string                          `json:"cvImportError,omitempty"`
+	SuggestedCVValues       []cvValuePreview                `json:"suggestedCvValues,omitempty"`
+	SuggestedFunctions      []functionMappingPreview        `json:"suggestedFunctions,omitempty"`
+	SuggestedPreviewImage   *decoderPreviewImage            `json:"suggestedPreviewImage,omitempty"`
 }
 
 type cvValuePreview struct {
@@ -445,6 +448,8 @@ func cvValuesFromRecords(records [][]string) []cvValuePreview {
 	valueIndex := firstHeaderIndex(header, "value", "wert", "cvvalue")
 	descriptionIndex := firstHeaderIndex(header, "description", "beschreibung", "name", "bezeichnung")
 	categoryIndex := firstHeaderIndex(header, "category", "kategorie")
+	profileIndex := firstHeaderIndex(header, "decoderprofile", "decoderprofil")
+	protocolIndex := firstHeaderIndex(header, "protocol", "protokoll")
 	highIndex := firstHeaderIndex(header, "indexcv31", "cv31")
 	lowIndex := firstHeaderIndex(header, "indexcv32", "cv32")
 	sourceLineIndex := firstHeaderIndex(header, "sourceline", "originalzeile")
@@ -455,6 +460,9 @@ func cvValuesFromRecords(records [][]string) []cvValuePreview {
 		valueIndex = 1
 		descriptionIndex = 2
 		categoryIndex = 3
+		profileIndex = 4
+		highIndex = 5
+		lowIndex = 6
 	}
 
 	rows := []cvValuePreview{}
@@ -489,6 +497,7 @@ func cvValuesFromRecords(records [][]string) []cvValuePreview {
 		}
 		rows = append(rows, cvValuePreview{
 			SourceLine: sourceLine, SourceExportedAt: cell(record, exportIndex),
+			DecoderProfile: cell(record, profileIndex), Protocol: cell(record, protocolIndex),
 			IndexCV31: high, IndexCV32: low,
 			CVNumber:    cvNumber,
 			Value:       value,

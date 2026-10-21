@@ -9,6 +9,7 @@ import { maintenanceOptionLabel } from "./vehicleMaintenance";
 import { AttachmentEditState, PendingArticleImage } from "./vehicleTransforms";
 import { webDocumentKey } from "./vehicleDocuments";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { LocomotiveImageExportDialog } from "./LocomotiveImageExportDialog";
 
 function attachmentPreviewKind(attachment: VehicleAttachment) {
   const mimeType = (attachment.mimeType || "").toLowerCase();
@@ -183,6 +184,7 @@ export function VehicleUploadsTab({
 }) {
   const { t } = useI18n();
   const [previewAttachment, setPreviewAttachment] = useState<VehicleAttachment | null>(null);
+  const [exportImage, setExportImage] = useState<PendingArticleImage | null>(null);
 
   const importedAttachmentForDocument = (document: ArticleSearchDocument) => selected?.attachments?.find((attachment) => Boolean(document.url) && (attachment.description || "").includes(document.url));
   const selectableDocuments = foundDocuments.filter((document) => document.url && !importedAttachmentForDocument(document));
@@ -265,6 +267,10 @@ export function VehicleUploadsTab({
                     </AppSelect>
                   )}
                   <div className="image-card-actions">
+                    <button type="button" className="secondary-button locomotive-image-action" disabled={saving}
+                      onClick={() => setExportImage(image)}>
+                      <Download size={15} aria-hidden="true" />{t("locomotiveImage.action")}
+                    </button>
                     <a className="icon-button" href={image.source} target="_blank" rel="noreferrer" aria-label={t("vehicles.uploads.openSource")} title={t("vehicles.uploads.openSource")}>
                       <ExternalLink size={15} />
                     </a>
@@ -497,6 +503,7 @@ export function VehicleUploadsTab({
           />
         )}
       </section>
+      {exportImage && <LocomotiveImageExportDialog key={exportImage.id} image={exportImage} onClose={() => setExportImage(null)} />}
     </section>
   );
 }

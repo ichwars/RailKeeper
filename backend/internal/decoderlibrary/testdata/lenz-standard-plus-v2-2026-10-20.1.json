@@ -1,0 +1,1466 @@
+{
+  "id": "lenz-standard-plus-v2",
+  "name": "Lenz STANDARD+ V2",
+  "nameEn": "Lenz STANDARD+ V2",
+  "revision": "2026-10-20.1",
+  "protocol": "DCC",
+  "kind": "model",
+  "manufacturerId": 99,
+  "family": "STANDARD+ V2",
+  "model": "STANDARD+ V2",
+  "parentId": "dcc-basics",
+  "aliases": [
+    "STANDARD+ V2",
+    "Lenz STANDARD+ V2",
+    "Standard+V2",
+    "Lenz Standard+V2"
+  ],
+  "familyAliases": [],
+  "sources": [
+    {
+      "title": "Lenz STANDARD+ V2 10231-02",
+      "url": "https://www.lenz-elektronik.de/media/be/06/d9/1734004977/b_10231-02.pdf?ts=1734004977",
+      "version": "5. Auflage, 11/2020",
+      "scope": "CV-Liste S.19–26. Bitnummern in Klammern sind nullbasiert; Werkseinstellungen sind Dokumentationswerte.",
+      "retrievedAt": "2026-10-20",
+      "sha256": "3f1e6f449e916f714b5ea931a6d4058f339717e273a722cee1ab65cf6cf8f1ba"
+    },
+    {
+      "title": "Lenz Decoderidentifikation",
+      "url": "https://www.lenz-elektronik.de/Hilfe-Info/FAQ-Digital-plus/",
+      "version": "checked 2026-10-18",
+      "scope": "CV7 type table and CV128 service identifier"
+    }
+  ],
+  "definitions": [
+    {
+      "cv": 1,
+      "name": {
+        "de": "Kurze DCC-Adresse",
+        "en": "Short DCC address"
+      },
+      "help": {
+        "de": "Kurze DCC-Adresse.",
+        "en": "Short DCC address."
+      },
+      "topic": "address",
+      "minimum": 1,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.19, CV-Liste"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 2,
+      "name": {
+        "de": "Anfahrspannung",
+        "en": "Starting voltage"
+      },
+      "help": {
+        "de": "Anfahrspannung.",
+        "en": "Starting voltage."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.19, CV-Liste"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 3,
+      "name": {
+        "de": "Beschleunigung",
+        "en": "Acceleration"
+      },
+      "help": {
+        "de": "Beschleunigung.",
+        "en": "Acceleration."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.19, CV-Liste"
+      },
+      "factoryDefault": 6
+    },
+    {
+      "cv": 4,
+      "name": {
+        "de": "Bremsverzögerung",
+        "en": "Deceleration"
+      },
+      "help": {
+        "de": "Bremsverzögerung.",
+        "en": "Deceleration."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.19, CV-Liste"
+      },
+      "factoryDefault": 5
+    },
+    {
+      "cv": 5,
+      "name": {
+        "de": "Höchstgeschwindigkeit",
+        "en": "Maximum speed"
+      },
+      "help": {
+        "de": "Höchstgeschwindigkeit.",
+        "en": "Maximum speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.19, CV-Liste"
+      },
+      "factoryDefault": 254
+    },
+    {
+      "cv": 6,
+      "name": {
+        "de": "Mittengeschwindigkeit",
+        "en": "Mid speed"
+      },
+      "help": {
+        "de": "Mittengeschwindigkeit.",
+        "en": "Mid speed."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.19, CV-Liste"
+      },
+      "factoryDefault": 48
+    },
+    {
+      "cv": 7,
+      "name": {
+        "de": "Versionskennung",
+        "en": "Version identifier"
+      },
+      "help": {
+        "de": "Dokumentationsstand nennt 77, die Erkennungstabelle weitere Kennungen. Kein fester Firmware-Werkswert wird behauptet.",
+        "en": "The manual lists 77 while the identification table lists further identifiers. No fixed firmware default is assumed."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.19, CV-Liste"
+      }
+    },
+    {
+      "cv": 8,
+      "name": {
+        "de": "Herstellerkennung",
+        "en": "Manufacturer identifier"
+      },
+      "help": {
+        "de": "Herstellerkennung.",
+        "en": "Manufacturer identifier."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.19, CV-Liste"
+      },
+      "factoryDefault": 99
+    },
+    {
+      "cv": 9,
+      "name": {
+        "de": "Motorregelungs-Wiederholrate",
+        "en": "Motor control repetition rate"
+      },
+      "help": {
+        "de": "Motorregelungs-Wiederholrate.",
+        "en": "Motor control repetition rate."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.19, CV-Liste"
+      },
+      "factoryDefault": 15
+    },
+    {
+      "cv": 17,
+      "name": {
+        "de": "Lange Adresse: höheres Byte",
+        "en": "Long address: high byte"
+      },
+      "help": {
+        "de": "Lange Adresse: höheres Byte.",
+        "en": "Long address: high byte."
+      },
+      "topic": "address",
+      "minimum": 192,
+      "maximum": 231,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.19, CV-Liste"
+      },
+      "factoryDefault": 192
+    },
+    {
+      "cv": 18,
+      "name": {
+        "de": "Lange Adresse: niederes Byte",
+        "en": "Long address: low byte"
+      },
+      "help": {
+        "de": "Lange Adresse: niederes Byte.",
+        "en": "Long address: low byte."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.19, CV-Liste"
+      },
+      "factoryDefault": 100
+    },
+    {
+      "cv": 19,
+      "name": {
+        "de": "DCC-Verbundadresse",
+        "en": "DCC consist address"
+      },
+      "help": {
+        "de": "DCC-Verbundadresse.",
+        "en": "DCC consist address."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.19, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 28,
+      "name": {
+        "de": "RailCom-Kanäle",
+        "en": "RailCom channels"
+      },
+      "help": {
+        "de": "RailCom-Kanäle.",
+        "en": "RailCom channels."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 3,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 29,
+      "name": {
+        "de": "DCC-Konfiguration",
+        "en": "DCC configuration"
+      },
+      "help": {
+        "de": "DCC-Konfiguration.",
+        "en": "DCC configuration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 14
+    },
+    {
+      "cv": 30,
+      "name": {
+        "de": "Fehleranzeige",
+        "en": "Error flags"
+      },
+      "help": {
+        "de": "Fehleranzeige.",
+        "en": "Error flags."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 7,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 33,
+      "name": {
+        "de": "Zuordnung F0 vorwärts",
+        "en": "F0 forward assignment"
+      },
+      "help": {
+        "de": "Ausgänge A/B/C/D über die Werte 1/2/4/8 zuordnen.",
+        "en": "Assign outputs A/B/C/D using values 1/2/4/8."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31
+    },
+    {
+      "cv": 34,
+      "name": {
+        "de": "Zuordnung F0 rückwärts",
+        "en": "F0 reverse assignment"
+      },
+      "help": {
+        "de": "Ausgangsmaske für F0 bei Rückwärtsfahrt.",
+        "en": "Output mask for F0 when running in reverse."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31
+    },
+    {
+      "cv": 35,
+      "name": {
+        "de": "Zuordnung F1 vorwärts",
+        "en": "F1 forward assignment"
+      },
+      "help": {
+        "de": "Ausgangsmaske für F1 vorwärts; Rückwärtszuordnung in CV47.",
+        "en": "Output mask for F1 forward; reverse assignment is in CV47."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31
+    },
+    {
+      "cv": 36,
+      "name": {
+        "de": "Zuordnung F2 bis F12",
+        "en": "F2 to F12 assignment"
+      },
+      "help": {
+        "de": "CV36 bis CV46 ordnen F2 bis F12 zu. Keine Gleichsetzung mit ESU-Mapping.",
+        "en": "CV36 through CV46 assign F2 through F12. This is different from ESU mapping."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "cvEnd": 46
+    },
+    {
+      "cv": 47,
+      "name": {
+        "de": "Zuordnung F1 rückwärts",
+        "en": "F1 reverse assignment"
+      },
+      "help": {
+        "de": "Ausgangsmaske für F1 bei Rückwärtsfahrt.",
+        "en": "Output mask for F1 when running in reverse."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31
+    },
+    {
+      "cv": 50,
+      "name": {
+        "de": "Motor-Konfiguration",
+        "en": "Motor configuration"
+      },
+      "help": {
+        "de": "Motortyp und Regelungsoptionen nach Lenz-Handbuch. Nicht die ESU-Analogfreigabe.",
+        "en": "Motor type and regulation options according to the Lenz manual. Not the ESU analog-enable register."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 4,
+          "name": {
+            "de": "Funktionsdecodermodus",
+            "en": "Function-decoder mode"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "EMK-Teiler",
+            "en": "Back-EMF divider"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 6,
+          "name": {
+            "de": "Lastregelung ausschalten",
+            "en": "Disable load regulation"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Niederfrequente Motorsteuerung",
+            "en": "Low-frequency motor control"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 51,
+      "name": {
+        "de": "Brems-Konfiguration",
+        "en": "Brake configuration"
+      },
+      "help": {
+        "de": "Bit 1 aktiviert ABC. Bit 0 aktiviert konstanten Bremsweg bei ABC; Bit 7 bei Fahrstufe 0. Bit 5 wirkt beim DC-Anhalten nur ohne Analogfreigabe in CV29.",
+        "en": "Bit 1 enables ABC. Bit 0 enables constant braking distance with ABC; bit 7 at speed step 0. Bit 5 affects DC stops only when analog operation is disabled in CV29."
+      },
+      "topic": "braking",
+      "minimum": 0,
+      "maximum": 255,
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Konstanter Bremsweg bei ABC",
+            "en": "Constant braking distance with ABC"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "ABC",
+            "en": "ABC"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "ABC unabhängig von Fahrtrichtung",
+            "en": "Direction-independent ABC"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "Pendelbetrieb ohne Zwischenhalt",
+            "en": "Shuttle without intermediate stop"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Pendelbetrieb mit Zwischenhalt",
+            "en": "Shuttle with intermediate stop"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "DC-Anhalten unabhängig von Polarität",
+            "en": "Polarity-independent DC stop"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 7,
+          "name": {
+            "de": "Konstanter Bremsweg bei Fahrstufe 0",
+            "en": "Constant braking distance at speed step 0"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ]
+    },
+    {
+      "cv": 52,
+      "name": {
+        "de": "Konstanter Bremsweg",
+        "en": "Constant braking distance"
+      },
+      "help": {
+        "de": "Konstanter Bremsweg.",
+        "en": "Constant braking distance."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 50
+    },
+    {
+      "cv": 53,
+      "name": {
+        "de": "ABC-Langsamfahrt",
+        "en": "ABC slow speed"
+      },
+      "help": {
+        "de": "ABC-Langsamfahrt.",
+        "en": "ABC slow speed."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 48
+    },
+    {
+      "cv": 54,
+      "name": {
+        "de": "Pendelaufenthalt",
+        "en": "Shuttle stop duration"
+      },
+      "help": {
+        "de": "Pendelaufenthalt.",
+        "en": "Shuttle stop duration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 4
+    },
+    {
+      "cv": 55,
+      "name": {
+        "de": "Dimmung Ausgang A",
+        "en": "Output A dimming"
+      },
+      "help": {
+        "de": "Dimmung Ausgang A.",
+        "en": "Output A dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 255
+    },
+    {
+      "cv": 56,
+      "name": {
+        "de": "Dimmung Ausgang B",
+        "en": "Output B dimming"
+      },
+      "help": {
+        "de": "Dimmung Ausgang B.",
+        "en": "Output B dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 255
+    },
+    {
+      "cv": 57,
+      "name": {
+        "de": "Funktionsmaske Dimmen",
+        "en": "Dimming function mask"
+      },
+      "help": {
+        "de": "Funktionsmaske Dimmen.",
+        "en": "Dimming function mask."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 58,
+      "name": {
+        "de": "Funktionsmaske Rangiergang",
+        "en": "Shunting function mask"
+      },
+      "help": {
+        "de": "Funktionsmaske Rangiergang.",
+        "en": "Shunting function mask."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 4
+    },
+    {
+      "cv": 59,
+      "name": {
+        "de": "Funktionsmaske Verzögerungen aus",
+        "en": "Inertia-off function mask"
+      },
+      "help": {
+        "de": "Funktionsmaske Verzögerungen aus.",
+        "en": "Inertia-off function mask."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 8
+    },
+    {
+      "cv": 60,
+      "name": {
+        "de": "Lichteffekte A/B",
+        "en": "Lighting effects A/B"
+      },
+      "help": {
+        "de": "Lichteffekte A/B.",
+        "en": "Lighting effects A/B."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 61,
+      "name": {
+        "de": "Funktionsmaske Effekte A/B",
+        "en": "Effects A/B function mask"
+      },
+      "help": {
+        "de": "Funktionsmaske Effekte A/B.",
+        "en": "Effects A/B function mask."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 62,
+      "name": {
+        "de": "Lichteffekte C/D",
+        "en": "Lighting effects C/D"
+      },
+      "help": {
+        "de": "Lichteffekte C/D.",
+        "en": "Lighting effects C/D."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 63,
+      "name": {
+        "de": "Blinkfrequenz C/D",
+        "en": "Flashing frequency C/D"
+      },
+      "help": {
+        "de": "Blinkfrequenz C/D.",
+        "en": "Flashing frequency C/D."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 32
+    },
+    {
+      "cv": 64,
+      "name": {
+        "de": "Funktionsmaske Effekte C/D",
+        "en": "Effects C/D function mask"
+      },
+      "help": {
+        "de": "Funktionsmaske Effekte C/D.",
+        "en": "Effects C/D function mask."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 67,
+      "name": {
+        "de": "Geschwindigkeitskennlinie",
+        "en": "Speed table"
+      },
+      "help": {
+        "de": "28 einzelne Stützpunkte; aktiv bei CV29 Bit4=1. Keine einheitliche Werkseinstellung für alle Punkte.",
+        "en": "28 individual points; selected with CV29 bit4=1. No shared default for all points."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.24, CV-Liste"
+      },
+      "cvEnd": 94
+    },
+    {
+      "cv": 112,
+      "name": {
+        "de": "Motornachlauf ohne Gleissignal",
+        "en": "Motor run-on without track signal"
+      },
+      "help": {
+        "de": "Motornachlauf ohne Gleissignal.",
+        "en": "Motor run-on without track signal."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 16,
+      "unit": {
+        "de": "16 ms je Wertschritt",
+        "en": "16 ms per increment"
+      }
+    },
+    {
+      "cv": 113,
+      "name": {
+        "de": "Motor-PWM-Untergrenze",
+        "en": "Motor PWM lower limit"
+      },
+      "help": {
+        "de": "Motor-PWM-Untergrenze.",
+        "en": "Motor PWM lower limit."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 40
+    },
+    {
+      "cv": 114,
+      "name": {
+        "de": "Motor-Dutycycle-Schritt",
+        "en": "Motor duty-cycle increment"
+      },
+      "help": {
+        "de": "Motor-Dutycycle-Schritt.",
+        "en": "Motor duty-cycle increment."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 10
+    },
+    {
+      "cv": 116,
+      "name": {
+        "de": "Dimmung Ausgang C",
+        "en": "Output C dimming"
+      },
+      "help": {
+        "de": "Dimmung Ausgang C.",
+        "en": "Output C dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 255
+    },
+    {
+      "cv": 117,
+      "name": {
+        "de": "Dimmung Ausgang D",
+        "en": "Output D dimming"
+      },
+      "help": {
+        "de": "Dimmung Ausgang D.",
+        "en": "Output D dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 255
+    },
+    {
+      "cv": 120,
+      "name": {
+        "de": "Dimmung im Funktionsdecodermodus",
+        "en": "Function-decoder mode dimming"
+      },
+      "help": {
+        "de": "Dimmung im Funktionsdecodermodus.",
+        "en": "Function-decoder mode dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 255
+    },
+    {
+      "cv": 126,
+      "name": {
+        "de": "SUSI-Zeiger",
+        "en": "SUSI pointer"
+      },
+      "help": {
+        "de": "SUSI-Zeiger.",
+        "en": "SUSI pointer."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 102
+    },
+    {
+      "cv": 127,
+      "name": {
+        "de": "SUSI-Transportregister",
+        "en": "SUSI transfer register"
+      },
+      "help": {
+        "de": "SUSI-Transportregister.",
+        "en": "SUSI transfer register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 128,
+      "name": {
+        "de": "Servicenummer",
+        "en": "Service identifier"
+      },
+      "help": {
+        "de": "Servicenummer.",
+        "en": "Service identifier."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      }
+    },
+    {
+      "cv": 129,
+      "name": {
+        "de": "Zuordnung F13",
+        "en": "Mapping F13"
+      },
+      "help": {
+        "de": "Zuordnung F13.",
+        "en": "Mapping F13."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 130,
+      "name": {
+        "de": "Zuordnung F14",
+        "en": "Mapping F14"
+      },
+      "help": {
+        "de": "Zuordnung F14.",
+        "en": "Mapping F14."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 131,
+      "name": {
+        "de": "Zuordnung F15",
+        "en": "Mapping F15"
+      },
+      "help": {
+        "de": "Zuordnung F15.",
+        "en": "Mapping F15."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 132,
+      "name": {
+        "de": "Zuordnung F16",
+        "en": "Mapping F16"
+      },
+      "help": {
+        "de": "Zuordnung F16.",
+        "en": "Mapping F16."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 133,
+      "name": {
+        "de": "Zuordnung F17",
+        "en": "Mapping F17"
+      },
+      "help": {
+        "de": "Zuordnung F17.",
+        "en": "Mapping F17."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 134,
+      "name": {
+        "de": "Zuordnung F18",
+        "en": "Mapping F18"
+      },
+      "help": {
+        "de": "Zuordnung F18.",
+        "en": "Mapping F18."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 135,
+      "name": {
+        "de": "Zuordnung F19",
+        "en": "Mapping F19"
+      },
+      "help": {
+        "de": "Zuordnung F19.",
+        "en": "Mapping F19."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 136,
+      "name": {
+        "de": "Zuordnung F20",
+        "en": "Mapping F20"
+      },
+      "help": {
+        "de": "Zuordnung F20.",
+        "en": "Mapping F20."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 137,
+      "name": {
+        "de": "Zuordnung F21",
+        "en": "Mapping F21"
+      },
+      "help": {
+        "de": "Zuordnung F21.",
+        "en": "Mapping F21."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 138,
+      "name": {
+        "de": "Zuordnung F22",
+        "en": "Mapping F22"
+      },
+      "help": {
+        "de": "Zuordnung F22.",
+        "en": "Mapping F22."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 139,
+      "name": {
+        "de": "Zuordnung F23",
+        "en": "Mapping F23"
+      },
+      "help": {
+        "de": "Zuordnung F23.",
+        "en": "Mapping F23."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 140,
+      "name": {
+        "de": "Zuordnung F24",
+        "en": "Mapping F24"
+      },
+      "help": {
+        "de": "Zuordnung F24.",
+        "en": "Mapping F24."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 141,
+      "name": {
+        "de": "Zuordnung F25",
+        "en": "Mapping F25"
+      },
+      "help": {
+        "de": "Zuordnung F25.",
+        "en": "Mapping F25."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 142,
+      "name": {
+        "de": "Zuordnung F26",
+        "en": "Mapping F26"
+      },
+      "help": {
+        "de": "Zuordnung F26.",
+        "en": "Mapping F26."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 143,
+      "name": {
+        "de": "Zuordnung F27",
+        "en": "Mapping F27"
+      },
+      "help": {
+        "de": "Zuordnung F27.",
+        "en": "Mapping F27."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 144,
+      "name": {
+        "de": "Zuordnung F28",
+        "en": "Mapping F28"
+      },
+      "help": {
+        "de": "Zuordnung F28.",
+        "en": "Mapping F28."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 31,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.25, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 147,
+      "name": {
+        "de": "Kupplung: Anzugsdauer",
+        "en": "Coupler: kick duration"
+      },
+      "help": {
+        "de": "Kupplung: Anzugsdauer.",
+        "en": "Coupler: kick duration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 30,
+      "unit": {
+        "de": "16 ms je Wertschritt",
+        "en": "16 ms per increment"
+      }
+    },
+    {
+      "cv": 148,
+      "name": {
+        "de": "Kupplung: Abrückdauer",
+        "en": "Coupler: pull-away duration"
+      },
+      "help": {
+        "de": "Kupplung: Abrückdauer.",
+        "en": "Coupler: pull-away duration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 80,
+      "unit": {
+        "de": "16 ms je Wertschritt",
+        "en": "16 ms per increment"
+      }
+    },
+    {
+      "cv": 149,
+      "name": {
+        "de": "Kupplung: Andrückdauer",
+        "en": "Coupler: push duration"
+      },
+      "help": {
+        "de": "Wert × 0,016 s. Das Rechenbeispiel des Handbuchs ist widersprüchlich; kein abgeleiteter Werkzeitwert wird verwendet.",
+        "en": "Value × 0.016 s. The manual example is inconsistent; no derived factory time is used."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.20–26, CV-Liste"
+      },
+      "factoryDefault": 30,
+      "unit": {
+        "de": "16 ms je Wertschritt",
+        "en": "16 ms per increment"
+      }
+    }
+  ],
+  "active": true,
+  "rules": {
+    "abc": {
+      "cv": 51,
+      "mask": 2
+    }
+  }
+}

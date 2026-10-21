@@ -282,3 +282,36 @@
   .decoder-mapping-list article > div { grid-column: 1 / -1; }
   .cv-subtabs button, .cv-topic-nav button { min-height: 44px; }
 }
+
+.railcom-plus, .railcom-preview {
+  min-width: 0;
+  margin: var(--space-lg) 0;
+  padding: var(--space-lg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel-subtle);
+}
+.railcom-preview > summary { cursor: pointer; font-weight: 600; }
+.railcom-name { margin-top: var(--space-lg); }
+.railcom-plus-list article {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-sm);
+  border-top: 1px solid var(--line);
+  padding: var(--space-md) 0;
+}
+.railcom-plus-list small { display: block; color: var(--muted); font-size: var(--font-size-sm); }
+.railcom-plus-list > article > div { min-width: 0; overflow-wrap: anywhere; }
+.railcom-plus-list > article > div > strong { display: flex; align-items: center; gap: var(--space-sm); }
+.railcom-plus-list .function-symbol-tile { flex-shrink: 0; }
+.railcom-plus-actions { display: flex; flex-direction: column; gap: var(--space-sm); }
+.railcom-plus-actions > button { white-space: normal; }
+.railcom-plus .decoder-notice { align-items: start; }
+.railcom-plus .decoder-notice > svg { flex-shrink: 0; }
+@media (max-width: 600px) {
+  .railcom-plus, .railcom-preview { padding: var(--space-md); }
+  .railcom-plus-list article { grid-template-columns: 36px minmax(0, 1fr); }
+  .railcom-plus-list .railcom-plus-actions { grid-column: 2; }
+  .railcom-plus-actions > button { min-height: 44px; }
+}

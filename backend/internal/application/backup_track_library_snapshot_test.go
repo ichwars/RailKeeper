@@ -2,8 +2,8 @@ package application_test
 
 import (
 	"database/sql"
+	"strings"
 	"testing"
-"strings"
 
 	"railkeeper/backend/internal/application"
 )
@@ -14,15 +14,17 @@ func TestBackupVersionFourteenRestoresLegacyTrackGeometrySnapshots(t *testing.T)
 	ctx := t.Context()
 	vehicleID := seedBackupVehicle(t, db)
 	seedStageOneBackupData(t, db, vehicleID)
-	if _, err := db.Exec(`INSERT INTO plan_track_objects(id,revision_id,geometry_id,position_x_mm,position_y_mm,rotation_degrees,created_at,updated_at) VALUES('legacy-object','revision-2','tillig-tt-modellgleis-83101-v1',100,80,0,'now','now')`); err != nil { t.Fatal(err) }
+	if _, err := db.Exec(`INSERT INTO plan_track_objects(id,revision_id,geometry_id,position_x_mm,position_y_mm,rotation_degrees,created_at,updated_at) VALUES('legacy-object','revision-2','tillig-tt-modellgleis-83101-v1',100,80,0,'now','now')`); err != nil {
+		t.Fatal(err)
+	}
 
 	service := application.NewBackupService(db, dataDir)
 	backup, err := service.Export(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 23 {
-		t.Fatalf("expected version 23 export, got %d", backup.Version)
+	if backup.Version != 24 {
+		t.Fatalf("expected version 24 export, got %d", backup.Version)
 	}
 	legacy := cloneBackupWithoutTrackGeometrySnapshots(backup)
 	if _, err := service.Import(ctx, legacy); err != nil {
@@ -41,7 +43,9 @@ UPDATE track_geometry_definitions SET name='Changed', length_mm=999
 WHERE id='tillig-tt-modellgleis-83101-v1'`); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(snapshot.String, `"lengthMm":166`) { t.Fatalf("snapshot lost geometry: %s", snapshot.String) }
+	if !strings.Contains(snapshot.String, `"lengthMm":166`) {
+		t.Fatalf("snapshot lost geometry: %s", snapshot.String)
+	}
 }
 
 func cloneBackupWithoutTrackGeometrySnapshots(source *application.BackupDocument) *application.BackupDocument {

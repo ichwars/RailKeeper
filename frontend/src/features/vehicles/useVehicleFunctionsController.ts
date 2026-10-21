@@ -1,7 +1,9 @@
 import { useRef, useState } from "react";
 
-import { api, type CreateVehicleRequest, type Vehicle, type VehicleFunction, type VehicleFunctionInput } from "../../shared/api";
+import { type CreateVehicleRequest, type Vehicle, type VehicleFunction, type VehicleFunctionInput } from "../../shared/api";
+import { useI18n } from "../../shared/i18n";
 import { functionKeys, functionMappingsFromImport, isValidFunctionMapping } from "./cvImport";
+import { functionDraftChanges, functionHasContent, functionInput } from "./functionDraft";
 import { functionsToEditState, type FunctionEditState } from "./vehicleTransforms";
 import { emptyFunctionEdit } from "./vehicleViewModel";
 
@@ -16,12 +18,12 @@ type UseVehicleFunctionsControllerOptions = {
 export function useVehicleFunctionsController({
   selected,
   form,
-  setSaving,
-  onMessage,
-  refreshSelectedVehicle
+  onMessage
 }: UseVehicleFunctionsControllerOptions) {
+  const { t } = useI18n();
   const [edits, setEdits] = useState<FunctionEditState>({});
-  const [showConfiguredOnly, setShowConfiguredOnly] = useState(false);
+  const [showConfiguredOnly, setShowConfiguredOnly] = useState(true);
+  const loadedVehicle = useRef<string | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const functionEdit = (functionKey: string) => edits[functionKey] || emptyFunctionEdit(functionKey);
@@ -32,54 +34,45 @@ export function useVehicleFunctionsController({
       [functionKey]: {
         ...emptyFunctionEdit(functionKey),
         ...current[functionKey],
-        ...patch
+        ...patch, dirty: true,
+        ...(patch.mode !== undefined ? { modeAssigned: true } : {})
       }
     }));
   };
 
-  const reset = () => setEdits({});
-  const loadDetail = (functions: VehicleFunction[] | undefined) => setEdits(functionsToEditState(functions));
+  const reset = () => { loadedVehicle.current = null; setEdits({}); setShowConfiguredOnly(true); };
+  const acknowledgeSaved = (functions: VehicleFunction[] | undefined, vehicleID?: string) => {
+    if (vehicleID) loadedVehicle.current = vehicleID;
+    setEdits(functionsToEditState(functions));
+  };
+  const loadDetail = (functions: VehicleFunction[] | undefined, vehicleID?: string) => {
+    const sameVehicle = Boolean(vehicleID && vehicleID === loadedVehicle.current);
+    loadedVehicle.current = vehicleID || null;
+    setEdits(current => ({ ...functionsToEditState(functions),
+      ...(sameVehicle ? Object.fromEntries(Object.entries(current).filter(([, edit]) => edit.dirty)) : {}) }));
+  };
   const mergeDetail = (functions: VehicleFunction[] | undefined, overrides: FunctionEditState) => {
-    setEdits({ ...functionsToEditState(functions), ...overrides });
-  };
-
-  const save = (functionKey: string) => {
-    if (!selected) return;
-    const edit = functionEdit(functionKey);
-
-    if (!edit.persisted && !edit.name?.trim() && !edit.symbolKey && !edit.notes?.trim()) {
-      onMessage(`${functionKey}: Bitte Funktionsname, Symbol oder Notiz eintragen.`);
-      return;
+    const merged = functionsToEditState(functions);
+    for (const [key, edit] of Object.entries(overrides)) {
+      const existing = merged[key];
+      merged[key] = { ...edit, persisted: existing?.persisted, revision: existing?.revision, dirty: true,
+        modeAssigned: true, directionDependent: edit.directionDependent ?? existing?.directionDependent ?? null,
+        inverted: edit.inverted ?? existing?.inverted ?? null,
+        legacyDirectionDependent: existing?.legacyDirectionDependent ?? edit.legacyDirectionDependent };
     }
-
-    setSaving(true);
-    onMessage("");
-    api.updateVehicleFunction(selected.id, functionKey, {
-      name: edit.name || "",
-      symbolKey: edit.symbolKey || "",
-      functionType: edit.functionType || "standard",
-      mode: edit.mode || "dauer",
-      directionDependent: Boolean(edit.directionDependent),
-      notes: edit.notes || ""
-    })
-      .then(() => refreshSelectedVehicle(selected.id))
-      .catch((error: Error) => onMessage(error.message))
-      .finally(() => setSaving(false));
+    setEdits(merged);
   };
-
-  const remove = (functionKey: string) => {
-    if (!selected) return;
-    setSaving(true);
-    onMessage("");
-    api.deleteVehicleFunction(selected.id, functionKey)
-      .then(() => refreshSelectedVehicle(selected.id))
-      .catch((error: Error) => onMessage(error.message))
-      .finally(() => setSaving(false));
-  };
+  const remove = (functionKey: string) => setEdits(current => {
+    const next = { ...current }, edit = next[functionKey];
+    if (!edit) return current;
+    if (edit.persisted) next[functionKey] = { ...edit, deleted: !edit.deleted, dirty: true };
+    else delete next[functionKey];
+    return next;
+  });
 
   const configuredKeys = functionKeys.filter((functionKey) => {
-    const edit = functionEdit(functionKey);
-    return Boolean(edit.persisted || edit.name || edit.symbolKey || edit.notes);
+    const edit = edits[functionKey];
+    return Boolean(edit && !edit.deleted && functionHasContent(edit));
   });
   const visibleKeys = showConfiguredOnly ? configuredKeys : functionKeys;
   const summary = {
@@ -91,18 +84,10 @@ export function useVehicleFunctionsController({
   const exportValues = () => {
     if (!selected) return;
     const functionMappings = configuredKeys.map((functionKey) => {
-      const edit = functionEdit(functionKey);
-      return {
-        functionKey,
-        name: edit.name || "",
-        symbolKey: edit.symbolKey || "",
-        functionType: edit.functionType || "standard",
-        mode: edit.mode || "dauer",
-        directionDependent: Boolean(edit.directionDependent),
-        notes: edit.notes || ""
-      };
+      return { functionKey, ...functionInput(functionEdit(functionKey)) };
     });
     const payload = {
+      flagsVersion: 2,
       vehicle: {
         inventoryNumber: selected.inventoryNumber,
         name: selected.name,
@@ -120,39 +105,39 @@ export function useVehicleFunctionsController({
   };
 
   const importValues = (files: FileList | null) => {
-    if (!selected || !files || files.length === 0) return;
+    if (!files?.length) return;
     const [file] = Array.from(files);
-    setSaving(true);
     onMessage("");
-    file.text()
-      .then(functionMappingsFromImport)
-      .then(async (rows) => {
-        const valid = rows.filter(isValidFunctionMapping);
-        if (valid.length === 0) throw new Error("Keine gültigen Funktionszuordnungen gefunden.");
-
-        for (const row of valid) {
-          await api.updateVehicleFunction(selected.id, row.functionKey, {
-            name: row.name || "",
-            symbolKey: row.symbolKey || "",
-            functionType: row.functionType || "standard",
-            mode: row.mode || "dauer",
-            directionDependent: Boolean(row.directionDependent),
-            notes: row.notes || ""
-          });
+    return file.text().then(text => {
+      const rows = functionMappingsFromImport(text);
+      if (!rows.length || rows.some(row => !isValidFunctionMapping(row)) ||
+        new Set(rows.map(row => row.functionKey)).size !== rows.length) {
+        throw new Error("vehicles.functions.invalidImport");
+      }
+      setEdits(current => {
+        const next = { ...current };
+        for (const row of rows) {
+          const existing = current[row.functionKey] || emptyFunctionEdit(row.functionKey);
+          next[row.functionKey] = { ...existing, ...row, dirty: true, deleted: false, modeAssigned: true,
+            directionDependent: row.flagsVersion === 2 ? row.directionDependent : existing.directionDependent,
+            inverted: row.flagsVersion === 2 ? row.inverted : existing.inverted,
+            legacyDirectionDependent: existing.legacyDirectionDependent ?? row.legacyDirectionDependent,
+            flagsVersion: 2 };
         }
-      })
-      .then(() => refreshSelectedVehicle(selected.id))
-      .catch((error: Error) => onMessage(error.message))
-      .finally(() => {
-        setSaving(false);
-        if (importInputRef.current) importInputRef.current.value = "";
+        return next;
       });
+      return t("vehicles.functions.importDraft", { count: rows.length });
+    }).catch(() => {
+      onMessage(t("vehicles.functions.invalidImport"));
+      return undefined;
+    })
+      .finally(() => { if (importInputRef.current) importInputRef.current.value = ""; });
   };
 
   return {
     state: { edits, showConfiguredOnly, configuredKeys, visibleKeys, summary },
     refs: { importInputRef },
     setters: { setEdits, setShowConfiguredOnly },
-    commands: { functionEdit, updateFunctionEdit, reset, loadDetail, mergeDetail, save, remove, exportValues, importValues }
+    commands: { functionEdit, updateFunctionEdit, reset, loadDetail, mergeDetail, acknowledgeSaved, changes: () => functionDraftChanges(edits), remove, exportValues, importValues }
   };
 }

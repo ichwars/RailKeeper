@@ -116,7 +116,10 @@ export function useVehicleDecoderFilesController({
         symbolKey: "",
         functionType: mapping.functionType || "standard",
         mode: "dauer",
-        directionDependent: false,
+        directionDependent: selected.functions?.find(row => row.functionKey === mapping.functionKey)?.directionDependent ?? null,
+        inverted: selected.functions?.find(row => row.functionKey === mapping.functionKey)?.inverted ?? null,
+        legacyDirectionDependent: selected.functions?.find(row => row.functionKey === mapping.functionKey)?.legacyDirectionDependent ?? null,
+        flagsVersion: 2,
         notes: preview.fileName
       }))
     );
@@ -136,7 +139,10 @@ export function useVehicleDecoderFilesController({
           symbolKey: row.symbolKey || "",
           functionType: row.functionType || "standard",
           mode: row.mode || "dauer",
-          directionDependent: Boolean(row.directionDependent),
+          directionDependent: row.directionDependent ?? null,
+          inverted: row.inverted ?? null,
+          legacyDirectionDependent: row.legacyDirectionDependent ?? null,
+          flagsVersion: row.flagsVersion ?? 2,
           notes: row.notes || ""
         });
       }

@@ -1,0 +1,1722 @@
+{
+  "id": "uhlenbrock-76420",
+  "name": "Uhlenbrock IntelliDrive 76420",
+  "nameEn": "Uhlenbrock IntelliDrive 76420",
+  "revision": "2026-10-20.1",
+  "protocol": "DCC",
+  "kind": "model",
+  "manufacturerId": 85,
+  "family": "IntelliDrive",
+  "model": "IntelliDrive 76420",
+  "parentId": "dcc-basics",
+  "aliases": [
+    "76420",
+    "Uhlenbrock 76420",
+    "IntelliDrive 76420",
+    "Uhlenbrock IntelliDrive 76420"
+  ],
+  "familyAliases": [],
+  "sources": [
+    {
+      "title": "Uhlenbrock 76420 operating instructions",
+      "url": "https://www.uhlenbrock.de/de_DE/service/download/handbook/en/Bes76420e.pdf",
+      "version": "Herstellerarchiv, undatierte EN-Anleitung",
+      "scope": "CV table pp.5–6. Duplicate CV56 and contradictory CV98 text are deliberately not interpreted.",
+      "retrievedAt": "2026-10-20",
+      "sha256": "5c5afc890607dc089048efbe7a113724a999724622f3330fbd67a15006345870"
+    }
+  ],
+  "definitions": [
+    {
+      "cv": 1,
+      "name": {
+        "de": "Kurze DCC-Adresse",
+        "en": "Short DCC address"
+      },
+      "help": {
+        "de": "Kurze DCC-Adresse.",
+        "en": "Short DCC address."
+      },
+      "topic": "address",
+      "minimum": 1,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 2,
+      "name": {
+        "de": "Mindestgeschwindigkeit",
+        "en": "Minimum speed"
+      },
+      "help": {
+        "de": "Mindestgeschwindigkeit.",
+        "en": "Minimum speed."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 1
+    },
+    {
+      "cv": 3,
+      "name": {
+        "de": "Beschleunigungsfaktor",
+        "en": "Acceleration factor"
+      },
+      "help": {
+        "de": "Beschleunigungsfaktor.",
+        "en": "Acceleration factor."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 4,
+      "name": {
+        "de": "Bremsfaktor",
+        "en": "Deceleration factor"
+      },
+      "help": {
+        "de": "Bremsfaktor.",
+        "en": "Deceleration factor."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 5,
+      "name": {
+        "de": "Höchstgeschwindigkeit",
+        "en": "Maximum speed"
+      },
+      "help": {
+        "de": "Höchstgeschwindigkeit.",
+        "en": "Maximum speed."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 48
+    },
+    {
+      "cv": 6,
+      "name": {
+        "de": "Mittengeschwindigkeit",
+        "en": "Mid speed"
+      },
+      "help": {
+        "de": "Mittengeschwindigkeit.",
+        "en": "Mid speed."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 24
+    },
+    {
+      "cv": 7,
+      "name": {
+        "de": "Softwarekennung",
+        "en": "Software identifier"
+      },
+      "help": {
+        "de": "Softwarekennung.",
+        "en": "Software identifier."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      }
+    },
+    {
+      "cv": 8,
+      "name": {
+        "de": "Herstellerkennung",
+        "en": "Manufacturer identifier"
+      },
+      "help": {
+        "de": "Herstellerkennung.",
+        "en": "Manufacturer identifier."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 85
+    },
+    {
+      "cv": 19,
+      "name": {
+        "de": "Verbundadresse",
+        "en": "Consist address"
+      },
+      "help": {
+        "de": "Verbundadresse.",
+        "en": "Consist address."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 29,
+      "name": {
+        "de": "DCC-Konfiguration",
+        "en": "DCC configuration"
+      },
+      "help": {
+        "de": "DCC-Konfiguration.",
+        "en": "DCC configuration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 6
+    },
+    {
+      "cv": 33,
+      "name": {
+        "de": "Funktionsmaske F0 vorwärts",
+        "en": "Function mask 33"
+      },
+      "help": {
+        "de": "Funktionsmaske F0 vorwärts.",
+        "en": "Function mask 33."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5, CV-Tabelle"
+      },
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorn",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "A1",
+            "en": "A1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "A2",
+            "en": "A2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Rangiergang",
+            "en": "Shunting"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Verzögerungen ausschalten",
+            "en": "Disable inertia"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "factoryDefault": 1
+    },
+    {
+      "cv": 34,
+      "name": {
+        "de": "Funktionsmaske F0 rückwärts",
+        "en": "Function mask 34"
+      },
+      "help": {
+        "de": "Funktionsmaske F0 rückwärts.",
+        "en": "Function mask 34."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5, CV-Tabelle"
+      },
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorn",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "A1",
+            "en": "A1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "A2",
+            "en": "A2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Rangiergang",
+            "en": "Shunting"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Verzögerungen ausschalten",
+            "en": "Disable inertia"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "factoryDefault": 2
+    },
+    {
+      "cv": 35,
+      "name": {
+        "de": "Funktionsmaske F1",
+        "en": "Function mask 35"
+      },
+      "help": {
+        "de": "Funktionsmaske F1.",
+        "en": "Function mask 35."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5, CV-Tabelle"
+      },
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorn",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "A1",
+            "en": "A1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "A2",
+            "en": "A2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Rangiergang",
+            "en": "Shunting"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Verzögerungen ausschalten",
+            "en": "Disable inertia"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "factoryDefault": 4
+    },
+    {
+      "cv": 36,
+      "name": {
+        "de": "Funktionsmaske F2",
+        "en": "Function mask 36"
+      },
+      "help": {
+        "de": "Funktionsmaske F2.",
+        "en": "Function mask 36."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5, CV-Tabelle"
+      },
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorn",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "A1",
+            "en": "A1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "A2",
+            "en": "A2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Rangiergang",
+            "en": "Shunting"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Verzögerungen ausschalten",
+            "en": "Disable inertia"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "factoryDefault": 8
+    },
+    {
+      "cv": 37,
+      "name": {
+        "de": "Funktionsmaske F3",
+        "en": "Function mask 37"
+      },
+      "help": {
+        "de": "Funktionsmaske F3.",
+        "en": "Function mask 37."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5, CV-Tabelle"
+      },
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorn",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "A1",
+            "en": "A1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "A2",
+            "en": "A2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Rangiergang",
+            "en": "Shunting"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Verzögerungen ausschalten",
+            "en": "Disable inertia"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "factoryDefault": 16
+    },
+    {
+      "cv": 38,
+      "name": {
+        "de": "Funktionsmaske F4",
+        "en": "Function mask 38"
+      },
+      "help": {
+        "de": "Funktionsmaske F4.",
+        "en": "Function mask 38."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5, CV-Tabelle"
+      },
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorn",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "A1",
+            "en": "A1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "A2",
+            "en": "A2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Rangiergang",
+            "en": "Shunting"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Verzögerungen ausschalten",
+            "en": "Disable inertia"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "factoryDefault": 32
+    },
+    {
+      "cv": 39,
+      "name": {
+        "de": "Funktionsmaske F5",
+        "en": "Function mask 39"
+      },
+      "help": {
+        "de": "Funktionsmaske F5.",
+        "en": "Function mask 39."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5, CV-Tabelle"
+      },
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorn",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "A1",
+            "en": "A1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "A2",
+            "en": "A2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Rangiergang",
+            "en": "Shunting"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Verzögerungen ausschalten",
+            "en": "Disable inertia"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "factoryDefault": 0
+    },
+    {
+      "cv": 40,
+      "name": {
+        "de": "Funktionsmaske F6",
+        "en": "Function mask 40"
+      },
+      "help": {
+        "de": "Funktionsmaske F6.",
+        "en": "Function mask 40."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5, CV-Tabelle"
+      },
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorn",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "A1",
+            "en": "A1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "A2",
+            "en": "A2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Rangiergang",
+            "en": "Shunting"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Verzögerungen ausschalten",
+            "en": "Disable inertia"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "factoryDefault": 0
+    },
+    {
+      "cv": 41,
+      "name": {
+        "de": "Funktionsmaske F7",
+        "en": "Function mask 41"
+      },
+      "help": {
+        "de": "Funktionsmaske F7.",
+        "en": "Function mask 41."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5, CV-Tabelle"
+      },
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorn",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "A1",
+            "en": "A1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "A2",
+            "en": "A2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Rangiergang",
+            "en": "Shunting"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Verzögerungen ausschalten",
+            "en": "Disable inertia"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "factoryDefault": 0
+    },
+    {
+      "cv": 42,
+      "name": {
+        "de": "Funktionsmaske F8",
+        "en": "Function mask 42"
+      },
+      "help": {
+        "de": "Funktionsmaske F8.",
+        "en": "Function mask 42."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5, CV-Tabelle"
+      },
+      "bits": [
+        {
+          "bit": 0,
+          "name": {
+            "de": "Licht vorn",
+            "en": "Front light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 1,
+          "name": {
+            "de": "Licht hinten",
+            "en": "Rear light"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 2,
+          "name": {
+            "de": "A1",
+            "en": "A1"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 3,
+          "name": {
+            "de": "A2",
+            "en": "A2"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 4,
+          "name": {
+            "de": "Rangiergang",
+            "en": "Shunting"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        },
+        {
+          "bit": 5,
+          "name": {
+            "de": "Verzögerungen ausschalten",
+            "en": "Disable inertia"
+          },
+          "off": {
+            "de": "Aus",
+            "en": "Off"
+          },
+          "on": {
+            "de": "Ein",
+            "en": "On"
+          }
+        }
+      ],
+      "factoryDefault": 0
+    },
+    {
+      "cv": 47,
+      "name": {
+        "de": "Geschwindigkeitstrimm vorwärts",
+        "en": "Forward speed trim"
+      },
+      "help": {
+        "de": "Geschwindigkeitstrimm vorwärts.",
+        "en": "Forward speed trim."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 32
+    },
+    {
+      "cv": 48,
+      "name": {
+        "de": "Geschwindigkeitstrimm rückwärts",
+        "en": "Reverse speed trim"
+      },
+      "help": {
+        "de": "Geschwindigkeitstrimm rückwärts.",
+        "en": "Reverse speed trim."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 32
+    },
+    {
+      "cv": 49,
+      "name": {
+        "de": "Decoderkonfiguration",
+        "en": "Decoder configuration"
+      },
+      "help": {
+        "de": "Decoderkonfiguration.",
+        "en": "Decoder configuration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 32
+    },
+    {
+      "cv": 50,
+      "name": {
+        "de": "Ausgangsdimmung",
+        "en": "Output dimming"
+      },
+      "help": {
+        "de": "Ausgangsdimmung.",
+        "en": "Output dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 32
+    },
+    {
+      "cv": 51,
+      "name": {
+        "de": "Analoge Betriebsarten",
+        "en": "Analog operating modes"
+      },
+      "help": {
+        "de": "Analoge Betriebsarten.",
+        "en": "Analog operating modes."
+      },
+      "topic": "outputs",
+      "minimum": 1,
+      "maximum": 3,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 52,
+      "name": {
+        "de": "Zielgeschwindigkeit im Bremsabschnitt",
+        "en": "Target speed in brake section"
+      },
+      "help": {
+        "de": "Zielgeschwindigkeit im Bremsabschnitt.",
+        "en": "Target speed in brake section."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 30
+    },
+    {
+      "cv": 53,
+      "name": {
+        "de": "Motorregelungs-Wiederholrate",
+        "en": "Motor control repetition rate"
+      },
+      "help": {
+        "de": "Motorregelungs-Wiederholrate.",
+        "en": "Motor control repetition rate."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 35
+    },
+    {
+      "cv": 54,
+      "name": {
+        "de": "Motorregler: P-Anteil",
+        "en": "Motor control: P component"
+      },
+      "help": {
+        "de": "Motorregler: P-Anteil.",
+        "en": "Motor control: P component."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 20
+    },
+    {
+      "cv": 57,
+      "name": {
+        "de": "Motorregler: D-Anteil",
+        "en": "Motor control: D component"
+      },
+      "help": {
+        "de": "Motorregler: D-Anteil.",
+        "en": "Motor control: D component."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 12
+    },
+    {
+      "cv": 58,
+      "name": {
+        "de": "AD-Messzeitfenster",
+        "en": "AD measurement window"
+      },
+      "help": {
+        "de": "AD-Messzeitfenster.",
+        "en": "AD measurement window."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 63,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 59,
+      "name": {
+        "de": "Werksreset-Befehl",
+        "en": "Factory-reset command"
+      },
+      "help": {
+        "de": "Werksreset-Befehl.",
+        "en": "Factory-reset command."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 1,
+      "access": "command",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 60,
+      "name": {
+        "de": "Kurzschlussüberwachung",
+        "en": "Short-circuit monitoring"
+      },
+      "help": {
+        "de": "Nur 0 oder 9 sind dokumentiert; der Bereich ist kein Nachweis für Zwischenwerte.",
+        "en": "Only 0 or 9 is documented; intermediate values are not established by the bounds."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 9,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 9,
+      "allowedValues": [
+        0,
+        9
+      ]
+    },
+    {
+      "cv": 61,
+      "name": {
+        "de": "Abschalttemperatur",
+        "en": "Shutdown temperature"
+      },
+      "help": {
+        "de": "Abschalttemperatur.",
+        "en": "Shutdown temperature."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "unit": {
+        "de": "°C; 0 deaktiviert",
+        "en": "°C; 0 disables"
+      }
+    },
+    {
+      "cv": 65,
+      "name": {
+        "de": "Motorola-Werteoffset",
+        "en": "Motorola value offset"
+      },
+      "help": {
+        "de": "Motorola-Werteoffset.",
+        "en": "Motorola value offset."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 66,
+      "name": {
+        "de": "Motorola-Seitenregister",
+        "en": "Motorola page register"
+      },
+      "help": {
+        "de": "Motorola-Seitenregister.",
+        "en": "Motorola page register."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 67,
+      "name": {
+        "de": "Geschwindigkeitskennlinie",
+        "en": "Speed table"
+      },
+      "help": {
+        "de": "Geschwindigkeitskennlinie.",
+        "en": "Speed table."
+      },
+      "topic": "motor",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.6, CV-Tabelle"
+      },
+      "cvEnd": 94
+    },
+    {
+      "cv": 99,
+      "name": {
+        "de": "Ausgangs-Timerdauer",
+        "en": "Output timer duration"
+      },
+      "help": {
+        "de": "Ausgangs-Timerdauer.",
+        "en": "Output timer duration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 0,
+      "unit": {
+        "de": "100 ms je Wertschritt",
+        "en": "100 ms per increment"
+      }
+    },
+    {
+      "cv": 115,
+      "name": {
+        "de": "LISSY-Zugkategorie",
+        "en": "LISSY train category"
+      },
+      "help": {
+        "de": "LISSY-Zugkategorie.",
+        "en": "LISSY train category."
+      },
+      "topic": "outputs",
+      "minimum": 1,
+      "maximum": 4,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.5–6, CV-Tabelle"
+      },
+      "factoryDefault": 1
+    }
+  ],
+  "active": true
+}

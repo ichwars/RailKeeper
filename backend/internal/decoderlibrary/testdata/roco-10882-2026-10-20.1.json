@@ -1,0 +1,368 @@
+{
+  "id": "roco-10882",
+  "name": "Roco 10882 (ZIMO, Anleitung 2012)",
+  "nameEn": "Roco 10882 (ZIMO, Anleitung 2012)",
+  "revision": "2026-10-20.1",
+  "protocol": "DCC",
+  "kind": "model",
+  "manufacturerId": 145,
+  "family": "Roco 10882",
+  "model": "10882 · PluX16-Decoder (NEM 658)",
+  "parentId": "dcc-basics",
+  "aliases": [
+    "Roco 10882",
+    "ROCO 10882"
+  ],
+  "familyAliases": [],
+  "sources": [
+    {
+      "title": "Roco Decoder 10882/10883/10884",
+      "url": "https://www.roco.cc/documents/pdf/Anleitung_10882.pdf",
+      "version": "8010884920, VI/2012",
+      "scope": "CV list pp.4–7; this profile selects only 10882. CV8=145 (ZIMO); no rules inferred for other Roco OEM decoders.",
+      "retrievedAt": "2026-10-20",
+      "sha256": "a5fe8303c15db927b125ef4dfd15d0ffa7e4f3f404850537971b0cfe669b9883"
+    }
+  ],
+  "definitions": [
+    {
+      "cv": 1,
+      "name": {
+        "de": "Kurze DCC-Adresse",
+        "en": "Short DCC address"
+      },
+      "help": {
+        "de": "Kurze DCC-Adresse.",
+        "en": "Short DCC address."
+      },
+      "topic": "address",
+      "minimum": 1,
+      "maximum": 127,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 2,
+      "name": {
+        "de": "Anfahrspannung",
+        "en": "Starting voltage"
+      },
+      "help": {
+        "de": "Anfahrspannung.",
+        "en": "Starting voltage."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 4
+    },
+    {
+      "cv": 3,
+      "name": {
+        "de": "Beschleunigungszeit",
+        "en": "Acceleration time"
+      },
+      "help": {
+        "de": "Beschleunigungszeit.",
+        "en": "Acceleration time."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 6
+    },
+    {
+      "cv": 4,
+      "name": {
+        "de": "Bremszeit",
+        "en": "Deceleration time"
+      },
+      "help": {
+        "de": "Bremszeit.",
+        "en": "Deceleration time."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 2
+    },
+    {
+      "cv": 5,
+      "name": {
+        "de": "Maximalspannung",
+        "en": "Maximum voltage"
+      },
+      "help": {
+        "de": "Maximalspannung.",
+        "en": "Maximum voltage."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 252
+    },
+    {
+      "cv": 6,
+      "name": {
+        "de": "Mittelspannung",
+        "en": "Mid voltage"
+      },
+      "help": {
+        "de": "Mittelspannung.",
+        "en": "Mid voltage."
+      },
+      "topic": "motor",
+      "minimum": 1,
+      "maximum": 252,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 85
+    },
+    {
+      "cv": 7,
+      "name": {
+        "de": "Software-Hauptkennung",
+        "en": "Main software identifier"
+      },
+      "help": {
+        "de": "Software-Hauptkennung.",
+        "en": "Main software identifier."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      }
+    },
+    {
+      "cv": 8,
+      "name": {
+        "de": "Technischer Hersteller / Reset",
+        "en": "Technical manufacturer / reset"
+      },
+      "help": {
+        "de": "Die Roco-Anleitung nennt ausdrücklich ZIMO und CV8=145. Schreiben von 8 fordert einen Reset an. Marken-ID161 wird nicht verwendet.",
+        "en": "The Roco manual explicitly identifies ZIMO and CV8=145. Writing8 requests a reset. Retail brand ID161 is not used."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "command",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 145
+    },
+    {
+      "cv": 17,
+      "name": {
+        "de": "Lange Adresse: höheres Byte",
+        "en": "Long address: high byte"
+      },
+      "help": {
+        "de": "Lange Adresse: höheres Byte.",
+        "en": "Long address: high byte."
+      },
+      "topic": "address",
+      "minimum": 192,
+      "maximum": 231,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 192
+    },
+    {
+      "cv": 18,
+      "name": {
+        "de": "Lange Adresse: niederes Byte",
+        "en": "Long address: low byte"
+      },
+      "help": {
+        "de": "Lange Adresse: niederes Byte.",
+        "en": "Long address: low byte."
+      },
+      "topic": "address",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 128
+    },
+    {
+      "cv": 28,
+      "name": {
+        "de": "RailCom-Kanäle",
+        "en": "RailCom channels"
+      },
+      "help": {
+        "de": "RailCom-Kanäle.",
+        "en": "RailCom channels."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 3,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 3
+    },
+    {
+      "cv": 29,
+      "name": {
+        "de": "DCC-Konfiguration",
+        "en": "DCC configuration"
+      },
+      "help": {
+        "de": "DCC-Konfiguration.",
+        "en": "DCC configuration."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 14
+    },
+    {
+      "cv": 60,
+      "name": {
+        "de": "Gemeinsame Ausgangsdimmung",
+        "en": "Shared output dimming"
+      },
+      "help": {
+        "de": "Gemeinsame Ausgangsdimmung.",
+        "en": "Shared output dimming."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 65,
+      "name": {
+        "de": "Software-Unterkennung",
+        "en": "Software subversion identifier"
+      },
+      "help": {
+        "de": "Software-Unterkennung.",
+        "en": "Software subversion identifier."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-only",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      }
+    },
+    {
+      "cv": 114,
+      "name": {
+        "de": "Ausnahmen von der Dimmung",
+        "en": "Dimming exceptions"
+      },
+      "help": {
+        "de": "Bei 10882 nur Licht und AUX1/AUX2; keine AUX3–AUX7 aus 10883 ableiten.",
+        "en": "For 10882 only lights and AUX1/AUX2; do not borrow AUX3–AUX7 from 10883."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 255,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 155,
+      "name": {
+        "de": "Rangiergang-Taste",
+        "en": "Shunting function key"
+      },
+      "help": {
+        "de": "Rangiergang-Taste.",
+        "en": "Shunting function key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 12,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 0
+    },
+    {
+      "cv": 156,
+      "name": {
+        "de": "Taste für Verzögerungen aus",
+        "en": "Inertia-off function key"
+      },
+      "help": {
+        "de": "Taste für Verzögerungen aus.",
+        "en": "Inertia-off function key."
+      },
+      "topic": "outputs",
+      "minimum": 0,
+      "maximum": 12,
+      "access": "read-write",
+      "reference": {
+        "sourceIndex": 0,
+        "location": "S.4–6, CV-Liste"
+      },
+      "factoryDefault": 0
+    }
+  ],
+  "active": true
+}

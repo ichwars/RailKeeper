@@ -1,0 +1,564 @@
+{
+  "id": "cv-ref-kuehn-n45",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "kuehn-n-n45"
+  ],
+  "title": {
+    "de": "Kühn N45: geprüfte CV-Tabelle",
+    "en": "Kühn N45: reviewed CV table"
+  },
+  "note": {
+    "de": "Geprüfte Abschnitte 4.3/4.4. Die Zusammenfassung enthält doppelte CV49-Zeilen; Ausgänge C/D sind im Detail als CV51/52 belegt. Keine vollständige Abdeckung aller Firmwarestände.",
+    "en": "Reviewed sections 4.3/4.4; the detailed descriptions resolve duplicated CV49 summary entries as CV51/52. Not complete firmware coverage."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Kühn N45 Betriebsanleitung",
+      "url": "https://www.kuehn-digital.de/files/N45_de_b.pdf",
+      "version": "Revision b, Abschnitt 4.3/4.4",
+      "scope": "CV-Liste S.10–12; Registerdetails S.12–21. Next18-Erweiterung nicht aus dieser Anleitung abgeleitet.",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {
+      "cv": 1,
+      "label": "Kurze DCC-Adresse",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "1–127",
+      "factoryValue": "3"
+    },
+    {
+      "cv": 2,
+      "label": "Anfahrspannung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "3"
+    },
+    {
+      "cv": 3,
+      "label": "Beschleunigungsrate",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–63",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 4,
+      "label": "Bremsrate",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–63",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 5,
+      "label": "Maximalspannung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 6,
+      "label": "Mittelspannung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 7,
+      "label": "Software-Hauptkennung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255"
+    },
+    {
+      "cv": 8,
+      "label": "Herstellerkennung / Reset",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "157"
+    },
+    {
+      "cv": 9,
+      "label": "Motorfrequenzauswahl",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–2",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 13,
+      "label": "Analogfunktionen F1–F8",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255"
+    },
+    {
+      "cv": 14,
+      "label": "Analogfunktionen F9–F12",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255"
+    },
+    {
+      "cv": 17,
+      "label": "Lange Adresse: höheres Byte",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "192–231",
+      "factoryValue": "192"
+    },
+    {
+      "cv": 18,
+      "label": "Lange Adresse: niederes Byte",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 19,
+      "label": "Verbundadresse",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 27,
+      "label": "Bremserkennung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–63",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 28,
+      "label": "RailCom-Konfiguration",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–7",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 29,
+      "label": "DCC-Konfiguration",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–63",
+      "factoryValue": "14"
+    },
+    {
+      "cv": 33,
+      "label": "Ausgangszuordnung F0 vorwärts",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "1"
+    },
+    {
+      "cv": 34,
+      "label": "Ausgangszuordnung F0 rückwärts",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 35,
+      "label": "Ausgangszuordnung F1",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "4"
+    },
+    {
+      "cv": 36,
+      "label": "Ausgangszuordnung F2",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "8"
+    },
+    {
+      "cv": 37,
+      "label": "Ausgangszuordnung F3",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 38,
+      "label": "Ausgangszuordnung F4",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 39,
+      "label": "Ausgangszuordnung F5",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 40,
+      "label": "Ausgangszuordnung F6",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "4"
+    },
+    {
+      "cv": 41,
+      "label": "Ausgangszuordnung F7",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 42,
+      "label": "Ausgangszuordnung F8",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 43,
+      "label": "Ausgangszuordnung F9",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 44,
+      "label": "Ausgangszuordnung F10",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 45,
+      "label": "Ausgangszuordnung F11",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 46,
+      "label": "Ausgangszuordnung F12",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 47,
+      "label": "Ausgang E: Lichteffekt",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 48,
+      "label": "Ausgang F: Lichteffekt",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 49,
+      "label": "Ausgang A: Lichteffekt",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 50,
+      "label": "Ausgang B: Lichteffekt",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 51,
+      "label": "Ausgang C: Lichteffekt",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 52,
+      "label": "Ausgang D: Lichteffekt",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 53,
+      "label": "Motorregler: I-Anteil",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "1–63",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 54,
+      "label": "Motorregler: P-Anteil",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "2–63",
+      "factoryValue": "16"
+    },
+    {
+      "cv": 56,
+      "label": "Decoderkonfiguration 1",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–31",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 57,
+      "label": "Rangierlicht-Ausgänge",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–127",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 58,
+      "label": "Funktionstasten für Rangiergang und ABV",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "72"
+    },
+    {
+      "cv": 59,
+      "label": "Funktionstasten für Abblendlicht",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 67,
+      "label": "Geschwindigkeitskennlinie",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "cvEnd": 94
+    },
+    {
+      "cv": 95,
+      "label": "Rückwärtstrimmung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 105,
+      "label": "Benutzerkennung 1",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 106,
+      "label": "Benutzerkennung 2",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 112,
+      "label": "Decoderkonfiguration 2",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–31",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 113,
+      "label": "Zufallslicht-Häufigkeit",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–9",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 115,
+      "label": "ABC-Asymmetrieschwelle",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–9",
+      "factoryValue": "4"
+    },
+    {
+      "cv": 123,
+      "label": "Kupplungs-Abrückzeit",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–9",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 124,
+      "label": "Kupplungs-Abrückgeschwindigkeit",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 126,
+      "label": "Analoge Höchstgeschwindigkeit",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 127,
+      "label": "Software-Unterkennung",
+      "page": 0,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0–255"
+    }
+  ]
+}

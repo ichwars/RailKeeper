@@ -49,6 +49,8 @@ import { applyStoredThemeOptions, applyThemePreference, readThemePreference, the
 import { SettingsAuthTab } from "./SettingsAuthTab";
 import { SettingsDigitalTab } from "./SettingsDigitalTab";
 import { ArticleManagementSettings } from "./ArticleManagementSettings";
+import { DecoderLibrarySettings } from "./DecoderLibrarySettings";
+import { decoderLibraryChanged } from "../../shared/DecoderLibraryProvider";
 import {
   MasterDataBulkEntryCheckbox,
   MasterDataBulkSelectAllCheckbox,
@@ -1282,6 +1284,7 @@ export function SettingsView({ username }: { username: string }) {
         api
           .restoreBackup(backupFile)
           .then((result) => {
+            window.dispatchEvent(new Event(decoderLibraryChanged));
             setBackupMessage(t("settings.backup.restored", { rows: result.restoredRows, files: result.restoredFiles }));
             setLoadedTypes({});
             setItemsByType({});
@@ -1313,6 +1316,7 @@ export function SettingsView({ username }: { username: string }) {
         api
           .importMasterData(masterDataFile)
           .then((result) => {
+            window.dispatchEvent(new Event(decoderLibraryChanged));
             setMasterDataMessage(t("settings.masterTransfer.imported", { entries: result.importedEntries, relations: result.importedRelations }));
             setLoadedTypes({});
             setItemsByType({});
@@ -1860,7 +1864,7 @@ export function SettingsView({ username }: { username: string }) {
               className="settings-data-types"
             />
 
-            <section className="master-data-panel">
+            {activeType === "decoder_profile" ? <DecoderLibrarySettings roles={currentSession?.roles || []} /> : <section className="master-data-panel">
             <div className="master-data-head">
               <div>
                 <h3>{t("settings.data.manage", { label: activeDataLabel })}</h3>
@@ -2069,7 +2073,7 @@ export function SettingsView({ username }: { username: string }) {
 
                 {message && <p className="form-message">{message}</p>}
             </>
-            </section>
+            </section>}
           </> : (
             <ArticleManagementSettings
               roles={currentSession?.roles || []}

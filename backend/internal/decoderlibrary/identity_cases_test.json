@@ -1,0 +1,1562 @@
+[
+  {
+    "name": "DH18A by hardware",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 180
+      },
+      {
+        "cvNumber": 27,
+        "value": 3
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh18a",
+      "identification": {
+        "scope": "model",
+        "name": "DH18A"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "PD06A without borrowed DH rules",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 132
+      },
+      {
+        "cvNumber": 27,
+        "value": 3
+      }
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "identification": {
+        "scope": "model",
+        "name": "PD06A"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "ZIMO base type leaves interface open",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 145
+      },
+      {
+        "cvNumber": 250,
+        "value": 127
+      },
+      {
+        "cvNumber": 27,
+        "value": 3
+      }
+    ],
+    "expected": {
+      "status": "family",
+      "profileId": "dcc-basics",
+      "identification": {
+        "scope": "family",
+        "name": "MN180"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "ZIMO shared C and D variants",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 145
+      },
+      {
+        "cvNumber": 250,
+        "value": 4
+      }
+    ],
+    "expected": {
+      "status": "family",
+      "profileId": "dcc-basics",
+      "identification": {
+        "scope": "family",
+        "name": "MS440"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "Lenz type code",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 99
+      },
+      {
+        "cvNumber": 7,
+        "value": 77
+      },
+      {
+        "cvNumber": 51,
+        "value": 2
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "lenz-standard-plus-v2",
+      "identification": {
+        "scope": "model",
+        "name": "STANDARD+ V2"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "Lenz improved type code",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 99
+      },
+      {
+        "cvNumber": 7,
+        "value": 79
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "lenz-standard-plus-v2",
+      "identification": {
+        "scope": "model",
+        "name": "STANDARD+ V2"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "Lenz catalogue-only model",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 99
+      },
+      {
+        "cvNumber": 7,
+        "value": 94
+      }
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "identification": {
+        "scope": "model",
+        "name": "SILVER+ Next18"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "manufacturer required",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 261,
+        "value": 180
+      }
+    ],
+    "expected": {
+      "status": "standard",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "page zero is not a base identity",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 180,
+        "indexCV31": 0,
+        "indexCV32": 0
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "name and hardware disagree",
+    "label": "DH18A",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 132
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "alias and hardware disagree",
+    "label": "Standard+V2",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 99
+      },
+      {
+        "cvNumber": 7,
+        "value": 94
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "ZIMO variant and base disagree",
+    "label": "MN180N18",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 145
+      },
+      {
+        "cvNumber": 250,
+        "value": 123
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "contradictory type readings",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 180
+      },
+      {
+        "cvNumber": 261,
+        "value": 132
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "contradictory manufacturer readings",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 99
+      },
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 180
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "unknown type does not guess",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 250
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "other manufacturer does not borrow identity",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 151
+      },
+      {
+        "cvNumber": 261,
+        "value": 180
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "protocol isolated",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97,
+        "protocol": "MM"
+      },
+      {
+        "cvNumber": 261,
+        "value": 180
+      }
+    ],
+    "expected": {
+      "status": "unsupported",
+      "profileId": ""
+    }
+  },
+  {
+    "name": "profile groups isolated",
+    "label": "Target",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97,
+        "decoderProfile": "Other"
+      },
+      {
+        "cvNumber": 261,
+        "value": 180
+      }
+    ],
+    "expected": {
+      "status": "standard",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "inactive rules preserve identity only",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 180
+      },
+      {
+        "cvNumber": 27,
+        "value": 3
+      }
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "identification": {
+        "scope": "model",
+        "name": "DH18A"
+      },
+      "matchedBy": "cv"
+    },
+    "deactivate": [
+      "dh-dh18a"
+    ]
+  },
+  {
+    "name": "explicit ZIMO variant with matching base",
+    "label": "MN180N18",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 145
+      },
+      {
+        "cvNumber": 250,
+        "value": 127
+      },
+      {
+        "cvNumber": 27,
+        "value": 3
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "zimo-mn180n18",
+      "identification": {
+        "scope": "family",
+        "name": "MN180"
+      },
+      "matchedBy": "name"
+    }
+  },
+  {
+    "name": "DCC 128 export retains DCC identity",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97,
+        "protocol": "DCC 128"
+      },
+      {
+        "cvNumber": 261,
+        "value": 180,
+        "protocol": "DCC 128"
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh18a",
+      "identification": {
+        "scope": "model",
+        "name": "DH18A"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DCC28 central spelling retains DCC identity",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97,
+        "protocol": "DCC28"
+      },
+      {
+        "cvNumber": 261,
+        "value": 180,
+        "protocol": "DCC28"
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh18a",
+      "identification": {
+        "scope": "model",
+        "name": "DH18A"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "Roco retail name with ZIMO CV8 does not create a brand conflict or borrow CV rules",
+    "label": "10891 · PluX22 Sound-Decoder (MX645P22)",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 145
+      },
+      {
+        "cvNumber": 27,
+        "value": 3
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "Earlier PIKO retail entry does not force registered PIKO CV8",
+    "label": "SmartDecoder 4.1 PluX22",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 85
+      },
+      {
+        "cvNumber": 27,
+        "value": 3
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "Catalogued Kuehn N025 enables no unreviewed CV rules",
+    "label": "Kühn N025",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 157
+      },
+      {
+        "cvNumber": 27,
+        "value": 3
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "Kuehn N025 with contradictory registered manufacturer is still a conflict",
+    "label": "Kühn N025",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 99
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH05C by exact model code",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 52
+      },
+      {
+        "cvNumber": 48,
+        "value": 5
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh05c",
+      "identification": {
+        "scope": "model",
+        "name": "DH05C"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DH05C inactive rules preserve type evidence",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 52
+      }
+    ],
+    "deactivate": [
+      "dh-dh05c"
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "identification": {
+        "scope": "model",
+        "name": "DH05C"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DH10C by exact model code",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 102
+      },
+      {
+        "cvNumber": 48,
+        "value": 5
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh10c",
+      "identification": {
+        "scope": "model",
+        "name": "DH10C"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DH10C inactive rules preserve type evidence",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 102
+      }
+    ],
+    "deactivate": [
+      "dh-dh10c"
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "identification": {
+        "scope": "model",
+        "name": "DH10C"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DH05C name contradicts DH10C type code",
+    "label": "DH05C",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 102
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "Indexed DH10C code cannot identify base decoder",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 102,
+        "indexCV31": 1,
+        "indexCV32": 1
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH16A by exact model code",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 160
+      },
+      {
+        "cvNumber": 48,
+        "value": 5
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh16a",
+      "identification": {
+        "scope": "model",
+        "name": "DH16A"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DH16A inactive profile retains only model evidence",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 160
+      }
+    ],
+    "deactivate": [
+      "dh-dh16a"
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "identification": {
+        "scope": "model",
+        "name": "DH16A"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DH16A name conflicts with DH18A code",
+    "label": "DH16A",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 180
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH16A indexed type code cannot identify base model",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 160,
+        "indexCV31": 1,
+        "indexCV32": 1
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH12A by exact model code",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 120
+      },
+      {
+        "cvNumber": 48,
+        "value": 5
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh12a",
+      "identification": {
+        "scope": "model",
+        "name": "DH12A"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DH12A inactive profile retains only model evidence",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 120
+      }
+    ],
+    "deactivate": [
+      "dh-dh12a"
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "identification": {
+        "scope": "model",
+        "name": "DH12A"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DH12A name conflicts with DH18A code",
+    "label": "DH12A",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 180
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH12A indexed type code cannot identify base model",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 120,
+        "indexCV31": 1,
+        "indexCV32": 1
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH14B by exact model code",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 141
+      },
+      {
+        "cvNumber": 48,
+        "value": 5
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh14b",
+      "identification": {
+        "scope": "model",
+        "name": "DH14B"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DH14B inactive profile retains only model evidence",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 141
+      }
+    ],
+    "deactivate": [
+      "dh-dh14b"
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "identification": {
+        "scope": "model",
+        "name": "DH14B"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DH14B name conflicts with DH18A code",
+    "label": "DH14B",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 180
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH14B indexed type code cannot identify base model",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 141,
+        "indexCV31": 1,
+        "indexCV32": 1
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH14B type byte requires D&H manufacturer",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 145
+      },
+      {
+        "cvNumber": 261,
+        "value": 141
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH21A by exact model code",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 200
+      },
+      {
+        "cvNumber": 48,
+        "value": 5
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh21a",
+      "identification": {
+        "scope": "model",
+        "name": "DH21A"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DH21A inactive profile retains only model evidence",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 200
+      }
+    ],
+    "deactivate": [
+      "dh-dh21a"
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "identification": {
+        "scope": "model",
+        "name": "DH21A"
+      },
+      "matchedBy": "cv"
+    }
+  },
+  {
+    "name": "DH21A name conflicts with DH21B code",
+    "label": "DH21A",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 201
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH21A indexed type code cannot identify base model",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 200,
+        "indexCV31": 1,
+        "indexCV32": 1
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH21A type byte requires D&H manufacturer",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 145
+      },
+      {
+        "cvNumber": 261,
+        "value": 200
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH21A-4 alias does not supply generation evidence",
+    "label": "DH21A-4",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 200
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh21a",
+      "identification": {
+        "scope": "model",
+        "name": "DH21A"
+      },
+      "matchedBy": "name"
+    }
+  },
+  {
+    "name": "DH21B hardware",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 201
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh21b",
+      "matchedBy": "cv",
+      "identification": {
+        "scope": "model",
+        "name": "DH21B"
+      }
+    }
+  },
+  {
+    "name": "DH21B indexed",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 201,
+        "indexCV31": 1,
+        "indexCV32": 1
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH21B wrong-name",
+    "label": "DH18A",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 201
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH21B inactive",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 201
+      }
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "matchedBy": "cv",
+      "identification": {
+        "scope": "model",
+        "name": "DH21B"
+      }
+    },
+    "deactivate": [
+      "dh-dh21b"
+    ]
+  },
+  {
+    "name": "DH22A hardware",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 202
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh22a",
+      "matchedBy": "cv",
+      "identification": {
+        "scope": "model",
+        "name": "DH22A"
+      }
+    }
+  },
+  {
+    "name": "DH22A indexed",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 202,
+        "indexCV31": 1,
+        "indexCV32": 1
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH22A wrong-name",
+    "label": "DH18A",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 202
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH22A inactive",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 202
+      }
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "matchedBy": "cv",
+      "identification": {
+        "scope": "model",
+        "name": "DH22A"
+      }
+    },
+    "deactivate": [
+      "dh-dh22a"
+    ]
+  },
+  {
+    "name": "DH22B hardware",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 203
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh22b",
+      "matchedBy": "cv",
+      "identification": {
+        "scope": "model",
+        "name": "DH22B"
+      }
+    }
+  },
+  {
+    "name": "DH22B indexed",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 203,
+        "indexCV31": 1,
+        "indexCV32": 1
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH22B wrong-name",
+    "label": "DH18A",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 203
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH22B inactive",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 203
+      }
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "matchedBy": "cv",
+      "identification": {
+        "scope": "model",
+        "name": "DH22B"
+      }
+    },
+    "deactivate": [
+      "dh-dh22b"
+    ]
+  },
+  {
+    "name": "DH24A hardware",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 204
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dh24a",
+      "matchedBy": "cv",
+      "identification": {
+        "scope": "model",
+        "name": "DH24A"
+      }
+    }
+  },
+  {
+    "name": "DH24A indexed",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 204,
+        "indexCV31": 1,
+        "indexCV32": 1
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH24A wrong-name",
+    "label": "DH18A",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 204
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DH24A inactive",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 204
+      }
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "matchedBy": "cv",
+      "identification": {
+        "scope": "model",
+        "name": "DH24A"
+      }
+    },
+    "deactivate": [
+      "dh-dh24a"
+    ]
+  },
+  {
+    "name": "DHSP10A hardware",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 110
+      }
+    ],
+    "expected": {
+      "status": "matched",
+      "profileId": "dh-dhsp10a",
+      "matchedBy": "cv",
+      "identification": {
+        "scope": "model",
+        "name": "DHSP10A"
+      }
+    }
+  },
+  {
+    "name": "DHSP10A indexed",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 110,
+        "indexCV31": 1,
+        "indexCV32": 1
+      }
+    ],
+    "expected": {
+      "status": "manufacturer",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DHSP10A wrong-name",
+    "label": "DH18A",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 110
+      }
+    ],
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics"
+    }
+  },
+  {
+    "name": "DHSP10A inactive",
+    "label": "",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 110
+      }
+    ],
+    "expected": {
+      "status": "identified",
+      "profileId": "dcc-basics",
+      "matchedBy": "cv",
+      "identification": {
+        "scope": "model",
+        "name": "DHSP10A"
+      }
+    },
+    "deactivate": [
+      "dh-dhsp10a"
+    ]
+  }
+]

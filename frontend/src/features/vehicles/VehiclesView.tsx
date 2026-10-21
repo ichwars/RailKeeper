@@ -111,7 +111,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     onReset: (reason) => {
       clearECoSDraft();
       resetVehicleMedia(reason === "close");
-      setFunctionEdits({});
+      resetFunctionEdits();
       resetMaintenanceForm();
       resetSparePartForm();
       resetSparePartSearch();
@@ -122,7 +122,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     onDetailLoaded: (detail) => {
       clearECoSDraft();
       loadVehicleMedia(detail);
-      loadFunctionEdits(detail.functions);
+      loadFunctionEdits(detail.functions, detail.id);
       resetMaintenanceForm();
       resetSparePartDetail();
       resetCVController();
@@ -154,9 +154,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
   const {
     state: {
       showConfiguredOnly: showConfiguredFunctionsOnly,
-      configuredKeys: configuredFunctionKeys,
-      visibleKeys: visibleFunctionKeys,
-      summary: functionSummary
+      configuredKeys: configuredFunctionKeys
     },
     refs: { importInputRef: functionImportInputRef },
     setters: {
@@ -169,7 +167,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       reset: resetFunctionEdits,
       loadDetail: loadFunctionEdits,
       mergeDetail: mergeFunctionEdits,
-      save: saveFunction,
+      changes: functionChanges,
+      acknowledgeSaved: acknowledgeSavedFunctions,
       remove: deleteFunction,
       exportValues: exportFunctions,
       importValues: importFunctions
@@ -600,7 +599,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       setAttachmentDragActive(false);
       setAttachmentDeleteCandidate(null);
       setSaveAttempted(false);
-      setFunctionEdits(prepared.functionEdits);
+      setFunctionEdits(Object.fromEntries(Object.entries(prepared.functionEdits)
+        .map(([key, edit]) => [key, { ...edit, dirty: true, modeAssigned: true }])));
     },
     onOpenUpdate: (detail, prepared) => {
       setSelectedDetail(detail);
@@ -616,7 +616,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       resetUploadDocumentSearch();
       resetCVController();
       resetDecoderFiles();
-      setShowConfiguredFunctionsOnly((draft.functionValues || []).length > 0);
+      setShowConfiguredFunctionsOnly(true);
       setActiveTab("model");
       setOpenSections({ model: true, details: false, vehicle: false });
       setModalOpen(true);
@@ -691,8 +691,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       clearSelected: clearSelectedFoundSpareParts
     },
     functions: {
-      configuredKeys: configuredFunctionKeys,
-      edit: functionEdit
+      changes: functionChanges,
+      acknowledgeSaved: acknowledgeSavedFunctions
     },
     ecos: {
       draft: ecosDraft,
@@ -940,14 +940,13 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             },
             functions: {
               selected,
-              draftMode: Boolean(ecosDraft),
+              draftMode: mode === "create" || Boolean(ecosDraft),
+              draftCVValues: ecosDraft?.cvValues,
               readonly,
               saving,
               functionImportInputRef,
               configuredFunctionKeys,
-              functionSummary,
               showConfiguredFunctionsOnly,
-              visibleFunctionKeys,
               symbols: options.symbols,
               onImportFunctions: importFunctions,
               onExportFunctions: exportFunctions,
@@ -955,7 +954,6 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
               functionEdit,
               updateFunctionEdit,
               inferFunctionTypeFromSymbol,
-              saveFunction,
               deleteFunction
             },
             speedCurve: { selected, ecosDraft },

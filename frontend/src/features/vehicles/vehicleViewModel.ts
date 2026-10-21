@@ -375,7 +375,9 @@ export function emptyFunctionEdit(functionKey: string): VehicleFunctionInput & {
     symbolKey: functionKey === "F0" ? "light" : "",
     functionType: functionKey === "F0" ? "licht" : "standard",
     mode: "dauer",
-    directionDependent: false,
+    directionDependent: null,
+    inverted: null,
+    flagsVersion: 2,
     notes: "",
     persisted: false
   };

@@ -119,7 +119,9 @@ func (a *App) previewVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusBadRequest, "cv_file_blocked", "Diese CV-Datei ist nicht erlaubt.")
 		return
 	}
-	respondJSON(w, http.StatusOK, esuxPreviewResponse(originalName, int64(len(data)), mimeType, data))
+	preview := esuxPreviewResponse(originalName, int64(len(data)), mimeType, data)
+	a.enrichDecoderPreview(r.Context(), &preview)
+	respondJSON(w, http.StatusOK, preview)
 }
 
 func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {

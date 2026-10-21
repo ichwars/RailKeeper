@@ -30,6 +30,12 @@ export const cvProtocols = ["Motorola 14", "Motorola 27", "Motorola 28", "Motoro
 
 export { cvValuesFromImport } from "./cvFileImport";
 
+function nullableFunctionFlag(value: unknown): boolean | null {
+  if (value == null) return null;
+  if (typeof value !== "boolean") throw new Error("Funktionsangaben müssen true, false oder null sein.");
+  return value;
+}
+
 export function functionMappingsFromImport(text: string): FunctionMappingImport[] {
   const trimmed = text.trim();
   if (!trimmed) return [];
@@ -41,13 +47,18 @@ export function functionMappingsFromImport(text: string): FunctionMappingImport[
     symbolKey: String(row.symbolKey || ""),
     functionType: String(row.functionType || "standard"),
     mode: String(row.mode || "dauer"),
-    directionDependent: Boolean(row.directionDependent),
+    flagsVersion: row.flagsVersion ?? parsed.flagsVersion ?? 1,
+    directionDependent: (row.flagsVersion ?? parsed.flagsVersion) === 2 ? nullableFunctionFlag(row.directionDependent) : null,
+    inverted: (row.flagsVersion ?? parsed.flagsVersion) === 2 ? nullableFunctionFlag(row.inverted) : null,
+    legacyDirectionDependent: (row.flagsVersion ?? parsed.flagsVersion) === 2
+      ? nullableFunctionFlag(row.legacyDirectionDependent) : nullableFunctionFlag(row.legacyDirectionDependent ?? row.directionDependent),
     notes: String(row.notes || "")
   }));
 }
 
 export function isValidFunctionMapping(value: FunctionMappingImport) {
-  return functionKeys.includes(value.functionKey) &&
+  return Number.isInteger(value.flagsVersion ?? 1) && (value.flagsVersion ?? 1) >= 0 && (value.flagsVersion ?? 1) <= 2 &&
+    functionKeys.includes(value.functionKey) &&
     functionTypes.includes(value.functionType || "standard") &&
     functionModes.includes(value.mode || "dauer");
 }

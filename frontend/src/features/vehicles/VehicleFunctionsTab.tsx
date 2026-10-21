@@ -1,184 +1,92 @@
-import type { RefObject } from "react";
-import { Download, Save, Trash2, Upload } from "lucide-react";
-import { MasterDataEntry, Vehicle, VehicleFunctionInput } from "../../shared/api";
-import { FunctionSymbolPicker, functionSymbolIcon, functionSymbolMetadata } from "../../shared/functionSymbols";
-import { useI18n } from "../../shared/i18n";
-import { functionModes } from "./cvImport";
+import { useEffect, useMemo, useState, type RefObject } from "react";
+import { Download, Plus, TriangleAlert, Upload } from "lucide-react";
+import type { MasterDataEntry, Vehicle, VehicleCVValueInput, VehicleFunctionInput } from "../../shared/api";
+import { translate, useI18n } from "../../shared/i18n";
+import { functionKeys } from "./cvImport";
+import { DecoderProfileSelect, useDecoderProfile } from "./DecoderProfileSelect";
+import { esuMapping } from "./decoderAnalysis";
+import { functionCVSuggestion } from "./functionCVSuggestions";
 import { VehicleDecoderMapping } from "./VehicleDecoderMapping";
-import { AppSelect } from "../../shared/ui/AppSelect";
+import { VehicleFunctionRow } from "./VehicleFunctionRow";
+import type { FunctionEdit } from "./vehicleTransforms";
 
-type FunctionEdit = VehicleFunctionInput & { persisted?: boolean };
-
-export function VehicleFunctionsTab({
-  selected,
-  draftMode = false,
-  readonly,
-  saving,
-  functionImportInputRef,
-  configuredFunctionKeys,
-  functionSummary,
-  showConfiguredFunctionsOnly,
-  visibleFunctionKeys,
-  symbols,
-  onImportFunctions,
-  onExportFunctions,
-  onShowConfiguredFunctionsOnlyChange,
-  functionEdit,
-  updateFunctionEdit,
-  inferFunctionTypeFromSymbol,
-  saveFunction,
-  deleteFunction
-}: {
-  selected: Vehicle | null;
-  draftMode?: boolean;
-  readonly: boolean;
-  saving: boolean;
-  functionImportInputRef: RefObject<HTMLInputElement | null>;
-  configuredFunctionKeys: string[];
-  functionSummary: {
-    configured: number;
-    sound: number;
-    light: number;
-  };
-  showConfiguredFunctionsOnly: boolean;
-  visibleFunctionKeys: string[];
-  symbols: MasterDataEntry[];
-  onImportFunctions: (files: FileList | null) => void;
-  onExportFunctions: () => void;
+export function VehicleFunctionsTab({ selected, draftMode = false, draftCVValues, readonly, saving,
+  functionImportInputRef, configuredFunctionKeys, showConfiguredFunctionsOnly, symbols,
+  onImportFunctions, onExportFunctions, onShowConfiguredFunctionsOnlyChange, functionEdit,
+  updateFunctionEdit, inferFunctionTypeFromSymbol, deleteFunction }: {
+  selected: Vehicle | null; draftMode?: boolean; draftCVValues?: VehicleCVValueInput[];
+  readonly: boolean; saving: boolean; functionImportInputRef: RefObject<HTMLInputElement | null>;
+  configuredFunctionKeys: string[]; showConfiguredFunctionsOnly: boolean; symbols: MasterDataEntry[];
+  onImportFunctions: (files: FileList | null) => Promise<string | undefined> | void; onExportFunctions: () => void;
   onShowConfiguredFunctionsOnlyChange: (value: boolean) => void;
-  functionEdit: (functionKey: string) => FunctionEdit;
-  updateFunctionEdit: (functionKey: string, patch: Partial<VehicleFunctionInput>) => void;
-  inferFunctionTypeFromSymbol: (symbolKey: string, symbols: MasterDataEntry[], fallback?: string) => string;
-  saveFunction: (functionKey: string) => void;
-  deleteFunction: (functionKey: string) => void;
+  functionEdit: (key: string) => FunctionEdit;
+  updateFunctionEdit: (key: string, patch: Partial<VehicleFunctionInput>) => void;
+  inferFunctionTypeFromSymbol: (key: string, symbols: MasterDataEntry[], fallback?: string) => string;
+  deleteFunction: (key: string) => void;
 }) {
-  const { t } = useI18n();
-  const canEditFunctions = Boolean(selected || draftMode);
-
-  return (
-    <section className="functions-tab">
-      <div className="upload-head">
-        <div>
-          <h3>{t("vehicles.functions.title")}</h3>
-          <p>{t("vehicles.functions.subtitle")}</p>
-        </div>
-        <div className="cv-toolbar">
-          <input
-            ref={functionImportInputRef}
-            type="file"
-            accept="application/json,.json"
-            className="visually-hidden"
-            onChange={(event) => onImportFunctions(event.target.files)}
-            disabled={readonly || !selected || saving}
-          />
-          <button type="button" className="secondary-button" onClick={() => functionImportInputRef.current?.click()} disabled={readonly || !selected || saving}>
-            <Upload size={15} aria-hidden="true" />
-            Import
-          </button>
-          <button type="button" className="secondary-button" onClick={onExportFunctions} disabled={!selected || configuredFunctionKeys.length === 0}>
-            <Download size={15} aria-hidden="true" />
-            Export
-          </button>
-        </div>
+  const { t, language } = useI18n(), [message, setMessage] = useState("");
+  useEffect(() => setMessage(""), [selected?.updatedAt, selected?.functions]);
+  const state = useDecoderProfile(selected?.cvValues || draftCVValues || []);
+  const mappings = useMemo(() => esuMapping(state.analysis, (key, args) => translate(language, key, args)), [state.analysis, language]);
+  const recognized = new Set(mappings.map(row => row.functionKey));
+  const relevant = functionKeys.filter(key => recognized.has(key) || configuredFunctionKeys.includes(key));
+  const visible = functionKeys.filter(key => !showConfiguredFunctionsOnly || relevant.includes(key) || functionEdit(key).deleted);
+  const suggestions = relevant.map(key => ({ key,
+    ...functionCVSuggestion(state.analysis, key, functionEdit(key), symbols, t, mappings) }));
+  const canEdit = Boolean(selected || draftMode), locked = readonly || saving;
+  const blocked = suggestions.filter(row => row.notesFull).map(row => row.key);
+  const apply = () => {
+    const patches = suggestions.filter(row => row.patch);
+    for (const row of patches) updateFunctionEdit(row.key, row.patch!);
+    setMessage(t("vehicles.functions.supplemented", { count: patches.length }));
+  };
+  return <section className="functions-tab function-editor">
+    <div className="upload-head"><div><h3>{t("vehicles.functions.editorTitle")}</h3>
+      <p>{t("vehicles.functions.editorHelp")}</p></div>
+      <div className="cv-toolbar">
+        <input ref={functionImportInputRef} type="file" accept="application/json,.json" className="visually-hidden"
+          onChange={async event => { setMessage(""); const result = await onImportFunctions(event.target.files);
+            if (result) setMessage(result); }} disabled={locked || !canEdit} />
+        <button type="button" className="secondary-button" disabled={locked || !canEdit}
+          onClick={() => functionImportInputRef.current?.click()}><Upload size={15} />{t("vehicles.functions.import")}</button>
+        <button type="button" className="secondary-button" disabled={!selected || configuredFunctionKeys.length === 0}
+          onClick={onExportFunctions}><Download size={15} />{t("vehicles.functions.export")}</button>
       </div>
-      {selected && <VehicleDecoderMapping values={selected.cvValues || []} readonly={readonly || saving}
-        update={updateFunctionEdit} edit={functionEdit} />}
-      {!canEditFunctions && <p className="empty-state compact">{t("vehicles.functions.emptyUntilSave")}</p>}
-      {canEditFunctions && (
-        <div className="function-list">
-          <div className="function-toolbar">
-            <div className="function-summary">
-              <span><strong>{functionSummary.configured}</strong> {t("vehicles.functions.configured")}</span>
-              <span><strong>{functionSummary.sound}</strong> {t("vehicles.functions.sound")}</span>
-              <span><strong>{functionSummary.light}</strong> {t("vehicles.functions.light")}</span>
-            </div>
-            <label className="switch-label compact-switch">
-              <span>{t("vehicles.functions.onlyConfigured")}</span>
-              <span className="switch-field">
-                <input
-                  type="checkbox"
-                  checked={showConfiguredFunctionsOnly}
-                  onChange={(event) => onShowConfiguredFunctionsOnlyChange(event.target.checked)}
-                  disabled={saving}
-                />
-                <span />
-              </span>
-            </label>
-          </div>
-          {visibleFunctionKeys.length === 0 && (
-            <p className="empty-state compact">{t("vehicles.functions.empty")}</p>
-          )}
-          {visibleFunctionKeys.map((functionKey) => {
-            const edit = functionEdit(functionKey);
-            return (
-              <article key={functionKey} className={edit.persisted ? "function-row persisted" : "function-row"}>
-                <strong className="function-key">
-                  {functionSymbolIcon(edit.symbolKey, edit.functionType, functionSymbolMetadata(symbols, edit.symbolKey))}
-                  {functionKey}
-                </strong>
-                <input
-                  className="function-name-input"
-                  value={edit.name || ""}
-                  onChange={(event) => updateFunctionEdit(functionKey, { name: event.target.value })}
-                  disabled={readonly || saving}
-                  placeholder={t("vehicles.functions.name")}
-                  aria-label={`${functionKey} ${t("vehicles.functions.name")}`}
-                />
-                <FunctionSymbolPicker
-                  value={edit.symbolKey || ""}
-                  functionType={edit.functionType}
-                  symbols={symbols}
-                  disabled={readonly || saving}
-                  label={`${functionKey} ${t("vehicles.functions.symbol")}`}
-                  onChange={(symbolKey, symbolLabel) => updateFunctionEdit(functionKey, {
-                    symbolKey,
-                    name: symbolLabel || edit.name || "",
-                    functionType: inferFunctionTypeFromSymbol(symbolKey, symbols, edit.functionType)
-                  })}
-                />
-                <AppSelect
-                  value={edit.mode || "dauer"}
-                  onChange={(event) => updateFunctionEdit(functionKey, { mode: event.target.value })}
-                  disabled={readonly || saving}
-                  aria-label={`${functionKey} ${t("vehicles.functions.mode")}`}
-                >
-                  {functionModes.map((modeName) => (
-                    <option key={modeName} value={modeName}>{t(`vehicles.functionMode.${modeName}`)}</option>
-                  ))}
-                </AppSelect>
-                <label className="switch-card function-direction">
-                  <span>{t("vehicles.functions.direction")}</span>
-                  <span className="switch-field">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(edit.directionDependent)}
-                      onChange={(event) => updateFunctionEdit(functionKey, { directionDependent: event.target.checked })}
-                      disabled={readonly || saving}
-                    />
-                    <span />
-                  </span>
-                </label>
-                <input
-                  className="function-note-input"
-                  value={edit.notes || ""}
-                  onChange={(event) => updateFunctionEdit(functionKey, { notes: event.target.value })}
-                  disabled={readonly || saving}
-                  placeholder={t("vehicles.functions.note")}
-                  aria-label={`${functionKey} ${t("vehicles.functions.note")}`}
-                />
-                <div className="function-actions">
-                  <button type="button" className="icon-button" onClick={() => saveFunction(functionKey)} disabled={readonly || saving || !selected} aria-label={t("vehicles.functions.save", { key: functionKey })} title={t("vehicles.save")}>
-                    <Save size={15} />
-                  </button>
-                  <button type="button" className="icon-button danger" onClick={() => deleteFunction(functionKey)} disabled={readonly || saving || !selected || !edit.persisted} aria-label={t("vehicles.functions.delete", { key: functionKey })} title={t("vehicles.delete")}>
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
+    </div>
+    {state.failed && <p className="decoder-notice" role="status">{t("decoderLibrary.loadFailed")}</p>}
+    {state.loading && <p className="decoder-hint" role="status">{t("vehicles.functions.loadingSources")}</p>}
+    {!canEdit ? <p className="empty-state compact">{t("vehicles.functions.emptyUntilSave")}</p> : <>
+      {state.profiles.length > 1 && <DecoderProfileSelect {...state} />}
+      <div className="function-toolbar">
+        <div className="function-editor-counts"><span>{t("vehicles.functions.recognizedCount", { count: recognized.size })}</span>
+          <span>{t("vehicles.functions.savedCount", { count: selected?.functions?.length || 0 })}</span>
+          {functionKeys.some(key => functionEdit(key).dirty) && <span>{t("vehicles.functions.unsaved")}</span>}</div>
+        <label className="switch-label compact-switch"><span>{t("vehicles.functions.onlyConfigured")}</span>
+          <span className="switch-field"><input type="checkbox" checked={showConfiguredFunctionsOnly}
+            onChange={event => onShowConfiguredFunctionsOnlyChange(event.target.checked)} disabled={saving} /><span /></span>
+        </label>
+      </div>
+      <div className="function-supplement">
+        <button type="button" className="secondary-button" disabled={locked || !suggestions.some(row => row.patch)} onClick={apply}>
+          <Plus size={15} aria-hidden="true" />{t("vehicles.functions.supplement")}</button>
+        <p>{t("vehicles.functions.supplementHelp")}</p>
+      </div>
+      {message && <p className="decoder-notice" role="status">{message}</p>}
+      {blocked.length > 0 && <p className="decoder-notice"><TriangleAlert size={15} aria-hidden="true" />
+        {t("vehicles.functions.sourceBlocked", { keys: blocked.join(", ") })}</p>}
+      <div className="function-editor-columns" aria-hidden="true"><span>{t("vehicles.functions.key")}</span>
+        <span>{t("vehicles.functions.name")}</span><span>{t("vehicles.functions.symbol")}</span>
+        <span>{t("vehicles.functions.switchingMode")}</span><span /></div>
+      <div className="function-list">
+        {visible.length === 0 && <p className="empty-state compact">{t("vehicles.functions.emptyHelp")}</p>}
+        {visible.map(key => <VehicleFunctionRow key={key} functionKey={key} edit={functionEdit(key)}
+          symbols={symbols} disabled={locked} inferType={inferFunctionTypeFromSymbol}
+          description={[...new Set(mappings.filter(row => row.functionKey === key).flatMap(row => row.actions))].join(" / ")}
+          cv={state.analysis.railComPlus?.functions.find(row => row.functionKey === key)}
+          update={patch => updateFunctionEdit(key, patch)} remove={() => deleteFunction(key)} />)}
+      </div>
+      <p className="function-missing-help"><TriangleAlert size={14} aria-hidden="true" />{t("vehicles.functions.missingHelp")}</p>
+    </>}
+    {state.analysis.rows.length > 0 && <VehicleDecoderMapping state={state} />}
+  </section>;
 }

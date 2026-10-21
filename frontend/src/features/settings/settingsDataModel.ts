@@ -8,6 +8,7 @@ export const generalDataTypes = [
   "gauge",
   "railway_company",
   "cv8_manufacturer",
+  "decoder_profile",
   "symbols"
 ] as const;
 

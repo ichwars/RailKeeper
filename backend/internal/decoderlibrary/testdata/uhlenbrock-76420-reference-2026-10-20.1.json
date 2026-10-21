@@ -1,0 +1,333 @@
+{
+  "id": "cv-ref-8d54ef2095152cad",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "uhlenbrock-intellidrive-intellidrive-76420"
+  ],
+  "title": {
+    "de": "Uhlenbrock: IntelliDrive 76420",
+    "en": "Uhlenbrock: IntelliDrive 76420"
+  },
+  "note": {
+    "de": "Anleitung zur exakten Artikelnummer. Bank-CVs und vom Ausstattungsumfang abhängige Funktionen gelten nur unter den Bedingungen des Dokuments; widersprüchliche Tabellenzeilen bleiben offen. Erfasst sind die kurzen CV-Bezeichnungen und eindeutigen Tabellenangaben. Vollständige Bitlogik und alle Firmwarestände sind damit noch nicht abgedeckt.",
+    "en": "Manufacturer manual reference, with model, hardware, sound-project and firmware restrictions. Short CV headings and unambiguous table facts only; this is not complete bit-level or firmware coverage. No automatic interpretation is enabled. Unknown bank pages remain explicit."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Uhlenbrock: IntelliDrive 76420",
+      "url": "https://www.uhlenbrock.de/de_DE/service/download/handbook/en/Bes76420e.pdf",
+      "version": "Herstellerfassung, geprüft 20.10.2026",
+      "scope": "Anleitung zur exakten Artikelnummer. Bank-CVs und vom Ausstattungsumfang abhängige Funktionen gelten nur unter den Bedingungen des Dokuments; widersprüchliche Tabellenzeilen bleiben offen.",
+      "sha256": "5c5afc890607dc089048efbe7a113724a999724622f3330fbd67a15006345870",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {
+      "cv": 1,
+      "label": "Locomotive address",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "DCC 1-127 Mot 1-80",
+      "factoryValue": "3"
+    },
+    {
+      "cv": 2,
+      "label": "Minimum Speed",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "1-63",
+      "factoryValue": "1"
+    },
+    {
+      "cv": 3,
+      "label": "Acceleration",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "1-63",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 4,
+      "label": "Braking inertia (time factor CV3)",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "1-63",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 5,
+      "label": "Maximum speed (must be greater than CV2)",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "1-63",
+      "factoryValue": "48"
+    },
+    {
+      "cv": 6,
+      "label": "Middle speed (must be greater than CV2 and less than CV5)",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "1-63",
+      "factoryValue": "24"
+    },
+    {
+      "cv": 7,
+      "label": "Software version (The processor can be updated)",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "-",
+      "factoryValue": "varies"
+    },
+    {
+      "cv": 8,
+      "label": "Manufacturer ID",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "-",
+      "factoryValue": "85"
+    },
+    {
+      "cv": 17,
+      "label": "Long locomotive address",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual"
+    },
+    {
+      "cv": 18,
+      "label": "Long locomotive address",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual"
+    },
+    {
+      "cv": 19,
+      "label": "Consist address (double traction)",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "1-127",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 29,
+      "label": "Configuration for DCC Value",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255",
+      "factoryValue": "6"
+    },
+    {
+      "cv": 33,
+      "label": "Allocation of the function outputs, which are to be activated with",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "cvEnd": 42
+    },
+    {
+      "cv": 47,
+      "label": "Speed correction forwards",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-63",
+      "factoryValue": "32"
+    },
+    {
+      "cv": 48,
+      "label": "Speed correction reverse",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-63",
+      "factoryValue": "32"
+    },
+    {
+      "cv": 49,
+      "label": "Locomotive decoder configuration Value",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255",
+      "factoryValue": "32"
+    },
+    {
+      "cv": 50,
+      "label": "Dimming of Function outputs A1, A2 and Light outputs",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-63",
+      "factoryValue": "32"
+    },
+    {
+      "cv": 51,
+      "label": "Configuration of analog operation",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "1-3",
+      "factoryValue": "3"
+    },
+    {
+      "cv": 52,
+      "label": "Final speed in a braking section",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255",
+      "factoryValue": "30"
+    },
+    {
+      "cv": 53,
+      "label": "Motor regulation repetition rate",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-63",
+      "factoryValue": "35"
+    },
+    {
+      "cv": 54,
+      "label": "Motor regulation P Constant",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-63",
+      "factoryValue": "20"
+    },
+    {
+      "cv": 57,
+      "label": "Motor regulation D Constant",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-63",
+      "factoryValue": "12"
+    },
+    {
+      "cv": 58,
+      "label": "Time slot for AD transducer measurement",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-63",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 59,
+      "label": "Reset to factory defaults",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0, 1",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 60,
+      "label": "Short circuit monitoring",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0, 9",
+      "factoryValue": "9"
+    },
+    {
+      "cv": 61,
+      "label": "Shutdown temperature in °C",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255",
+      "factoryValue": "varies"
+    },
+    {
+      "cv": 65,
+      "label": "Offset-Register",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 66,
+      "label": "Page Register",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 67,
+      "label": "Characteristic curve for speed steps 1-28",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "cvEnd": 94
+    },
+    {
+      "cv": 99,
+      "label": "Length of the time switching",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 115,
+      "label": "LISSY Train catagory",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "1-4",
+      "factoryValue": "1"
+    }
+  ]
+}

@@ -1,0 +1,1111 @@
+[
+{
+  "id": "cv-gap-roco-motor",
+  "revision": "2026-10-21.7",
+  "modelIds": [
+    "roco-motor-10734-h0e-n-dcc-decoder-mit-geraden-kontaktstiften"
+  ],
+  "title": {
+    "de": "CV-Dokumentation offen: roco-motor",
+    "en": "CV documentation gap: roco-motor"
+  },
+  "note": {
+    "de": "10734 erneut bis zum Rechercheabschluss geprüft: Artikel in der Herstellerübersicht belegt; keine passende 10734-CV-Tabelle auffindbar. Der direkte 10734-PDF-Pfad liefert keine Anleitung; das Original 10735 nennt nur 10735. Weder eine ähnliche 6-polige Schnittstelle noch ein vermuteter Kühn-OEM-Typ belegt CV-Gleichheit. Die separat belegten MX622-Vertriebsartikel bleiben unverändert getrennt.",
+    "en": "10734 reviewed through completion: the manufacturer directory establishes the article, but no matching 10734 CV table was found. The direct 10734 PDF path does not provide a manual; the 10735 original names only 10735. Neither a similar six-pin connector nor a presumed Kühn OEM type establishes identical CV mappings. Separately documented MX622 retail articles remain unchanged."
+  },
+  "status": "unavailable",
+  "sources": [
+    {
+      "title": "10734 · H0e/N-DCC-Decoder mit geraden Kontaktstiften / Herstellerarchiv",
+      "url": "https://www.roco.cc/rde/produkte/steuerung/decoder/10734-h0en-dcc-decoder-mit-geraden-kontaktstiften.html",
+      "version": "Recherche 20.10.2026",
+      "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+      "retrievedAt": "2026-10-20"
+    },
+    {
+      "title": "10734 · H0e/N-DCC-Decoder mit geraden Kontaktstiften / Herstellerarchiv",
+      "url": "https://www.roco.cc/rde/produkte/steuerung/decoder.html",
+      "version": "Recherche 20.10.2026",
+      "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": []
+},
+{
+  "id": "cv-ref-roco-mx622-oem-2022",
+  "revision": "2026-10-21.6",
+  "modelIds": [
+    "roco-motor-685404-6-poliger-decoder-mit-stecker-nem-651",
+    "roco-motor-685504-6-poliger-decoder-mit-stecker-nem-651",
+    "roco-motor-686101-6-poliger-decoder-gerade-stifte-nem-651",
+    "roco-motor-686201-8-poliger-decoder-nem-652"
+  ],
+  "title": {
+    "de": "Roco/Fleischmann 685404/685504/686101/686201 · ZIMO MX622",
+    "en": "Roco/Fleischmann 685404/685504/686101/686201 · ZIMO MX622"
+  },
+  "note": {
+    "de": "Der Fleischmann-Originalkatalog 2022 ordnet 685404/685504 dem MX622 mit Litzen, 686101 dem MX622N (S.16) und 686201 dem MX622R (S.17) ausdrücklich zu. Die ZIMO-Anleitung Stand 19.08.2024 nennt diese MX622-Familie auf S.3; S.69 belegt die ausgewählten CV-Bedeutungen. Nur dokumentarische Teilabdeckung dieser vier Artikel: Firmwarestand und Hardwareumfang am tatsächlichen Decoder prüfen. Keine OEM-Werkswerte, Sound-CVs, erweiterten Ausgangsannahmen oder automatische Identifikation. Roco-Vertriebsmarke und technische ZIMO-Kennung bleiben getrennt. CV17/18 bilden gemeinsam eine Adresse; kein geratener Byte-Wertebereich. CV7/CV8 sind hier Lesebedeutungen; Schreibaktionen werden nicht ausgeführt.",
+    "en": "The original Fleischmann 2022 catalogue explicitly equates 685404/685504 to wired MX622, 686101 to MX622N (p.16) and 686201 to MX622R (p.17). The ZIMO manual dated 19 August 2024 lists this MX622 family on p.3; p.69 documents the selected CV meanings. Documentary partial coverage for these four articles only: check the actual decoder firmware and hardware. No OEM defaults, sound CVs, extra output assumptions or automatic identification. Roco retail branding remains separate from ZIMO technical identity. CV17/18 form one address; no guessed per-byte range. CV7/CV8 describe reading here; write actions are not performed."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Fleischmann Zubehörkatalog 2022 · ausdrückliche MX622-Zuordnung",
+      "url": "https://www.fleischmann.de/documents/pdf/2/20220627_FLM_Zubehoer_DE.pdf",
+      "version": "Zubehörkatalog 2022, PDF- und Druckseiten 16–17",
+      "scope": "Identitätsnachweis: S.16 nennt 685404/685504 als MX622 mit Litzen und 686101 als MX622N; S.17 nennt 686201 als MX622R. Keine CV-Tabelle und keine Firmware-/OEM-Werkswerte.",
+      "sha256": "02122c7f769a17c9a2102db43cbc69fff2ec561a38131679a3913dc250f571a1",
+      "retrievedAt": "2026-10-21"
+    },
+    {
+      "title": "ZIMO · MX-KleineDecoder · ausgewählte Nicht-Sound-CVs",
+      "url": "https://www.zimo.at/web2010/documents/MX-KleineDecoder.pdf",
+      "version": "Stand 19.08.2024, 79-seitige Herstellerfassung",
+      "scope": "S.2 Ausgabestand; S.3 nennt MX622/MX622N/MX622R; S.69 enthält die ausgewählten Basis-CV-Zuordnungen. Gilt nur im dokumentierten MX-Firmware-/Hardwareumfang. Soundregister, OEM-Werkswerte und nicht geprüfte Firmwareerweiterungen bleiben ausgeschlossen.",
+      "sha256": "46aae51d2d08ef167ead121ad066f0d67683fac492f926a81d885a200af91927",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {
+      "cv": 1,
+      "label": "Kurze DCC-Adresse",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "1-127"
+    },
+    {
+      "cv": 2,
+      "label": "Anfahrspannung",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "1-255"
+    },
+    {
+      "cv": 3,
+      "label": "Beschleunigungszeit",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 4,
+      "label": "Bremsverzögerung",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 5,
+      "label": "Höchstgeschwindigkeit",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 6,
+      "label": "Mittlere Geschwindigkeit",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual"
+    },
+    {
+      "cv": 7,
+      "label": "Firmware-Hauptversion (Lesewert)",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual"
+    },
+    {
+      "cv": 8,
+      "label": "Herstellerkennung (Lesewert; Schreiben löst Aktionen aus)",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual"
+    },
+    {
+      "cv": 9,
+      "label": "Motorregelung: EMK-Abtastung",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 10,
+      "label": "Motorregelung: Cutoff-Fahrstufe",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-252"
+    },
+    {
+      "cv": 13,
+      "label": "Analogfunktionen F1–F8",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 14,
+      "label": "Analogfunktionen F0/F9–F12",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 17,
+      "label": "Lange DCC-Adresse (gemeinsam CV17/18)",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "cvEnd": 18
+    },
+    {
+      "cv": 19,
+      "label": "Verbundadresse und Verbundrichtung",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 21,
+      "label": "Verbundfunktionen F1–F8",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 22,
+      "label": "Verbundfunktion F0 je Richtung",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 23,
+      "label": "Beschleunigungskorrektur",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 24,
+      "label": "Bremskorrektur",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 27,
+      "label": "ABC: wirksame Asymmetrierichtung",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-3"
+    },
+    {
+      "cv": 28,
+      "label": "RailCom-Konfiguration",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-15"
+    },
+    {
+      "cv": 29,
+      "label": "DCC-Grundkonfiguration",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-63"
+    },
+    {
+      "cv": 33,
+      "label": "Funktionszuordnung F0 vorwärts",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 34,
+      "label": "Funktionszuordnung F0 rückwärts",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 35,
+      "label": "Funktionszuordnung F1–F12",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "cvEnd": 46,
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 49,
+      "label": "HLU-Beschleunigung",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 50,
+      "label": "HLU-Bremszeit",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 51,
+      "label": "HLU-Geschwindigkeitsgrenzen",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "cvEnd": 55,
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 56,
+      "label": "Motorregelung: PID-Parameter",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "1-199"
+    },
+    {
+      "cv": 57,
+      "label": "Motorregelung: Referenzspannung",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 58,
+      "label": "Motorregelung: Einfluss",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 59,
+      "label": "HLU-Reaktionszeit",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 60,
+      "label": "Ausgangsdimmung",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 61,
+      "label": "Erweiterte Funktionszuordnung",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual"
+    },
+    {
+      "cv": 62,
+      "label": "Lichteffekte: Mindesthelligkeit",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-9"
+    },
+    {
+      "cv": 63,
+      "label": "Lichteffekte: Zykluszeit",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-99"
+    },
+    {
+      "cv": 64,
+      "label": "Ditch-Light-Nachlauf",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-9"
+    },
+    {
+      "cv": 65,
+      "label": "Firmware-Unterversion",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 66,
+      "label": "Geschwindigkeitstrimmung vorwärts",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-128"
+    },
+    {
+      "cv": 67,
+      "label": "Freie Geschwindigkeitskennlinie",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "cvEnd": 94,
+      "valueRange": "0-255"
+    },
+    {
+      "cv": 95,
+      "label": "Geschwindigkeitstrimmung rückwärts",
+      "page": 69,
+      "sourceIndex": 1,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0-128"
+    }
+  ]
+},
+{
+  "id": "cv-ref-30b66cfcffe4c6ce",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "roco-motor-10884-8-poliger-decoder-nem-652"
+  ],
+  "title": {
+    "de": "Roco: 10884 · 8-poliger Decoder (NEM 652)",
+    "en": "Roco: 10884 · 8-poliger Decoder (NEM 652)"
+  },
+  "note": {
+    "de": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen. Erfasst sind die kurzen CV-Bezeichnungen und eindeutigen Tabellenangaben. Vollständige Bitlogik und alle Firmwarestände sind damit noch nicht abgedeckt.",
+    "en": "Manufacturer manual reference, with model, hardware, sound-project and firmware restrictions. Short CV headings and unambiguous table facts only; this is not complete bit-level or firmware coverage. No automatic interpretation is enabled. Unknown bank pages remain explicit."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Roco: 10884 · 8-poliger Decoder (NEM 652)",
+      "url": "https://www.roco.cc/documents/pdf/Anleitung_10884.pdf",
+      "version": "Herstellerfassung, geprüft 20.10.2026",
+      "scope": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen.",
+      "sha256": "a5fe8303c15db927b125ef4dfd15d0ffa7e4f3f404850537971b0cfe669b9883",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":1,"label":"Lokadresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"DCC: 01 – 127 Motorola3): 01 – 80","factoryValue":"DCC: 01 – 127 Motorola3): 01 – 80"},
+    {"cv":2,"label":"Anfahrspannung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 255","factoryValue":"01 – 255"},
+    {"cv":3,"label":"Beschleunigungszeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 255","factoryValue":"01 – 255"},
+    {"cv":4,"label":"Bremsverzögerung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 255","factoryValue":"01 – 255"},
+    {"cv":5,"label":"Maximalspannung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 255","factoryValue":"01 – 255"},
+    {"cv":6,"label":"Mittenspannung","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 252","factoryValue":"01 – 252"},
+    {"cv":7,"label":"Versionsnummer","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"-------","factoryValue":"-------"},
+    {"cv":8,"label":"Hersteller ID","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"08 (Reset)","factoryValue":"08 (Reset)"},
+    {"cv":17,"label":"Lange Adresse","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"192 – 231","factoryValue":"192 – 231"},
+    {"cv":18,"label":"Lange Adresse","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":28,"label":"RailCom1)","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 3","factoryValue":"0 – 3"},
+    {"cv":29,"label":"Konfigurationsregister","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 255","factoryValue":"00 – 255"},
+    {"cv":60,"label":"Dimmen","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":65,"label":"Software-Version","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":112,"label":"Spezielle Konfiguration","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":114,"label":"Dimm-Ausnahmen Achtung! Bei den Decodern 10882 und 10884 können nur das Stirnlicht und die Funktionausgänge AUX1 und AUX2 gedimmt werden","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":124,"label":"Spezielle Konfiguration","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":152,"label":"Dimm-Ausnahmen Achtung! Nur für 10883","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":155,"label":"Rangiertaste","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 12","factoryValue":"0 – 12"},
+    {"cv":156,"label":"VerzögerungsDeaktivierung","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 12","factoryValue":"0 – 12"}
+  ]
+},
+{
+  "id": "cv-ref-44b6dd44ba5cb681",
+  "revision": "2026-10-20.2",
+  "modelIds": [
+    "roco-motor-10882-plux16-decoder-nem-658"
+  ],
+  "title": {
+    "de": "Roco: 10882 · PluX16-Decoder (NEM 658)",
+    "en": "Roco: 10882 · PluX16-Decoder (NEM 658)"
+  },
+  "note": {
+    "de": "Exakt10882: Zuordnungen und Wertebereiche aus den visuell geprüften Tabellen S.4–7; DELTA-Option S.2. Die fehlerhaft als Werkswerte erfassten Bereichsangaben sind korrigiert. Gemeinsame Mappingtabelle enthält beim10882 nicht vorhandene Ausgänge; widersprüchliche späte Mapping-Werkswerte werden nicht übernommen. CV152 ist nur10883 und wird hier entfernt. Keine vollständige Firmwareabdeckung.",
+    "en": "Exact10882 scope: visually reviewed tables pp.4–7 and DELTA option p.2. Range values formerly copied into the factory column are corrected. Shared mappings include outputs unavailable on10882; contradictory late mapping defaults are not adopted. CV152 is10883-only and removed here. No complete firmware coverage."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Roco Decoder 10882/10883/10884",
+      "url": "https://www.roco.cc/documents/pdf/Anleitung_10882.pdf",
+      "version": "8010884920, VI/2012",
+      "scope": "Exakt Roco10882 mit technischer ZIMO-Kennung145. S.2 DELTA-Lichtoption, S.3 Ausgangsumfang, S.4 Mapping, S.4–7 CV-Liste/Bremsen; 10883/10884 und aktuelle ZIMO-MN-Regeln werden nicht übertragen.",
+      "retrievedAt": "2026-10-20",
+      "sha256": "a5fe8303c15db927b125ef4dfd15d0ffa7e4f3f404850537971b0cfe669b9883"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {
+      "cv": 1,
+      "label": "Kurze DCC-Adresse",
+      "page": 4,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "1-127",
+      "factoryValue": "3"
+    },
+    {
+      "cv": 2,
+      "label": "Anfahrspannung",
+      "page": 4,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "1-255",
+      "factoryValue": "4"
+    },
+    {
+      "cv": 3,
+      "label": "Beschleunigungsparameter",
+      "page": 4,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "1-255",
+      "factoryValue": "6"
+    },
+    {
+      "cv": 4,
+      "label": "Bremsverzögerungsparameter",
+      "page": 4,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "1-255",
+      "factoryValue": "2"
+    },
+    {
+      "cv": 5,
+      "label": "Maximalspannung",
+      "page": 4,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "1-255",
+      "factoryValue": "252"
+    },
+    {
+      "cv": 6,
+      "label": "Mittelspannung",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "1-252",
+      "factoryValue": "85"
+    },
+    {
+      "cv": 7,
+      "label": "Software-Hauptkennung",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model"
+    },
+    {
+      "cv": 8,
+      "label": "Technischer Hersteller / Reset",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "factoryValue": "145"
+    },
+    {
+      "cv": 17,
+      "label": "Lange Adresse: höheres Byte",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "192-231",
+      "factoryValue": "192"
+    },
+    {
+      "cv": 18,
+      "label": "Lange Adresse: niederes Byte",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0-255",
+      "factoryValue": "128"
+    },
+    {
+      "cv": 28,
+      "label": "RailCom-Sendefunktionen",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0-3",
+      "factoryValue": "3"
+    },
+    {
+      "cv": 29,
+      "label": "DCC-Konfiguration",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0-255",
+      "factoryValue": "14"
+    },
+    {
+      "cv": 33,
+      "label": "Tastenmapping F0–F12, Modellgrenzen und graue Tabellenfelder beachten",
+      "page": 4,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "cvEnd": 46
+    },
+    {
+      "cv": 51,
+      "label": "DELTA-Lichthinweis CV51",
+      "page": 2,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model"
+    },
+    {
+      "cv": 60,
+      "label": "Gemeinsame Ausgangsdimmung",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0-255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 65,
+      "label": "Software-Unterkennung",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model"
+    },
+    {
+      "cv": 67,
+      "label": "CV29 Bit4 verweist auf Fahrstufentabelle67–94; Werte nicht abgedruckt",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "cvEnd": 94
+    },
+    {
+      "cv": 112,
+      "label": "Bremsstreckenart",
+      "page": 7,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "factoryValue": "0",
+      "valueRange": "Nur Bit6 dokumentiert"
+    },
+    {
+      "cv": 114,
+      "label": "Ausnahmen von der Dimmung",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0-255",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 124,
+      "label": "Bremsstreckenerkennung",
+      "page": 7,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "factoryValue": "0",
+      "valueRange": "Nur Bit5 dokumentiert"
+    },
+    {
+      "cv": 155,
+      "label": "Rangiergang-Taste",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0-12",
+      "factoryValue": "0"
+    },
+    {
+      "cv": 156,
+      "label": "Taste für Verzögerungen aus",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "model",
+      "valueRange": "0-12",
+      "factoryValue": "0"
+    }
+  ]
+},
+{
+  "id": "cv-ref-731ee3117972cc52",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "roco-motor-10885-6-poliger-decoder-gerade-stifte-nem-651",
+    "roco-motor-10886-6-poliger-decoder-abgewinkelte-stifte-nem-651"
+  ],
+  "title": {
+    "de": "Roco: 10885 · 6-poliger Decoder, gerade Stifte (NEM 651) / Familienreferenz",
+    "en": "Roco: 10885 · 6-poliger Decoder, gerade Stifte (NEM 651) / Familienreferenz"
+  },
+  "note": {
+    "de": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen. Erfasst sind die kurzen CV-Bezeichnungen und eindeutigen Tabellenangaben. Vollständige Bitlogik und alle Firmwarestände sind damit noch nicht abgedeckt.",
+    "en": "Manufacturer manual reference, with model, hardware, sound-project and firmware restrictions. Short CV headings and unambiguous table facts only; this is not complete bit-level or firmware coverage. No automatic interpretation is enabled. Unknown bank pages remain explicit."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Roco: 10885 · 6-poliger Decoder, gerade Stifte (NEM 651) / Familienreferenz",
+      "url": "https://www.roco.cc/documents/pdf/10885_10886_Digital-Lokdecoder.pdf",
+      "version": "Herstellerfassung, geprüft 20.10.2026",
+      "scope": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen.",
+      "sha256": "41825c5f8ebcbf477ead9c5fe3ef564beff4f5be1326756cc9fe423f9bdb7e8d",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":1,"label":"Lokadresse","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"1 – 127","factoryValue":"1 – 127"},
+    {"cv":2,"label":"Anfahrspannung","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"1 – 255","factoryValue":"1 – 255"},
+    {"cv":3,"label":"Beschleunigungszeit","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":4,"label":"Bremsverzögerung","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":5,"label":"Maximalspannung","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"2 – 255","factoryValue":"2 – 255"},
+    {"cv":6,"label":"Mittenspannung","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":7,"label":"Versionsnummer","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"-------","factoryValue":"-------"},
+    {"cv":8,"label":"Hersteller ID","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"Weiter Möglich- keiten siehe CV64","factoryValue":"Weiter Möglich- keiten siehe CV64"},
+    {"cv":17,"label":"Lange Adresse","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"192 – 231","factoryValue":"192 – 231"},
+    {"cv":18,"label":"Lange Adresse","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":28,"label":"RailCom1)","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 3","factoryValue":"0 – 3"},
+    {"cv":29,"label":"Kon�gurationsregister","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":30,"label":"Fehler-Information","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":51,"label":"Individuelle Informationen","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":64,"label":"Reset (siehe auch CV8)","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":66,"label":"Vorwärts Trimm","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":67,"label":"Veränderung der Regelcharakteristik des Steuergerätes","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual","cvEnd":94},
+    {"cv":95,"label":"Rückwärts Trimm","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":105,"label":"Benutzervariablen","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":106,"label":"Benutzervariablen","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":121,"label":"Helligkeit, Dimmwert des","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","factoryValue":"8"},
+    {"cv":122,"label":"Einschaltdauer des Ausgangs bei","page":9,"sourceIndex":0,"indexScope":"base","applicability":"manual","factoryValue":"18"},
+    {"cv":123,"label":"Ausschaltdauer des Ausgangs bei","page":9,"sourceIndex":0,"indexScope":"base","applicability":"manual","factoryValue":"47"},
+    {"cv":124,"label":"Anzahl der Blink- / Schaltvorgänge bei","page":9,"sourceIndex":0,"indexScope":"base","applicability":"manual","factoryValue":"0"}
+  ]
+},
+{
+  "id": "cv-ref-768d4cb47456b1a4",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "roco-motor-10880-plux-16-multiprotokolldecoder"
+  ],
+  "title": {
+    "de": "Roco: 10880 · PluX-16 Multiprotokolldecoder",
+    "en": "Roco: 10880 · PluX-16 Multiprotokolldecoder"
+  },
+  "note": {
+    "de": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen. Erfasst sind die kurzen CV-Bezeichnungen und eindeutigen Tabellenangaben. Vollständige Bitlogik und alle Firmwarestände sind damit noch nicht abgedeckt.",
+    "en": "Manufacturer manual reference, with model, hardware, sound-project and firmware restrictions. Short CV headings and unambiguous table facts only; this is not complete bit-level or firmware coverage. No automatic interpretation is enabled. Unknown bank pages remain explicit."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Roco: 10880 · PluX-16 Multiprotokolldecoder",
+      "url": "https://www.roco.cc/documents/pdf/10880_PLUX16.pdf",
+      "version": "Herstellerfassung, geprüft 20.10.2026",
+      "scope": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen.",
+      "sha256": "0d481644d9c5c3adb942621c3463b84c3de9e51cda08b6e4862e5d9fa64c2f40",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":1,"label":"Lokadresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"DCC 01 – 99 Motorola ** 01 – 80","factoryValue":"DCC 01 – 99 Motorola ** 01 – 80"},
+    {"cv":2,"label":"Anfahrspannung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 252","factoryValue":"01 – 252"},
+    {"cv":3,"label":"Beschleunigungszeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 255","factoryValue":"01 – 255"},
+    {"cv":4,"label":"Bremsverzögerung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 255","factoryValue":"01 – 255"},
+    {"cv":5,"label":"Maximalspannung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 252","factoryValue":"01 – 252"},
+    {"cv":6,"label":"Mittenspannung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 252","factoryValue":"01 – 252"},
+    {"cv":7,"label":"Versionsnummer","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"-------","factoryValue":"-------"},
+    {"cv":8,"label":"Hersteller ID","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"08 (Reset)","factoryValue":"08 (Reset)"},
+    {"cv":17,"label":"Lange Adresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"192 – 231","factoryValue":"192 – 231"},
+    {"cv":18,"label":"Lange Adresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":29,"label":"Konfigurationsregister","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 255","factoryValue":"00 – 255"}
+  ]
+},
+{
+  "id": "cv-ref-a498a48c2dc30243",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "roco-motor-10883-plux22-decoder-nem-658"
+  ],
+  "title": {
+    "de": "Roco: 10883 · PluX22-Decoder (NEM 658)",
+    "en": "Roco: 10883 · PluX22-Decoder (NEM 658)"
+  },
+  "note": {
+    "de": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen. Erfasst sind die kurzen CV-Bezeichnungen und eindeutigen Tabellenangaben. Vollständige Bitlogik und alle Firmwarestände sind damit noch nicht abgedeckt.",
+    "en": "Manufacturer manual reference, with model, hardware, sound-project and firmware restrictions. Short CV headings and unambiguous table facts only; this is not complete bit-level or firmware coverage. No automatic interpretation is enabled. Unknown bank pages remain explicit."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Roco: 10883 · PluX22-Decoder (NEM 658)",
+      "url": "https://www.roco.cc/documents/pdf/Anleitung_10883.pdf",
+      "version": "Herstellerfassung, geprüft 20.10.2026",
+      "scope": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen.",
+      "sha256": "a5fe8303c15db927b125ef4dfd15d0ffa7e4f3f404850537971b0cfe669b9883",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":1,"label":"Lokadresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"DCC: 01 – 127 Motorola3): 01 – 80","factoryValue":"DCC: 01 – 127 Motorola3): 01 – 80"},
+    {"cv":2,"label":"Anfahrspannung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 255","factoryValue":"01 – 255"},
+    {"cv":3,"label":"Beschleunigungszeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 255","factoryValue":"01 – 255"},
+    {"cv":4,"label":"Bremsverzögerung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 255","factoryValue":"01 – 255"},
+    {"cv":5,"label":"Maximalspannung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 255","factoryValue":"01 – 255"},
+    {"cv":6,"label":"Mittenspannung","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 252","factoryValue":"01 – 252"},
+    {"cv":7,"label":"Versionsnummer","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"-------","factoryValue":"-------"},
+    {"cv":8,"label":"Hersteller ID","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"08 (Reset)","factoryValue":"08 (Reset)"},
+    {"cv":17,"label":"Lange Adresse","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"192 – 231","factoryValue":"192 – 231"},
+    {"cv":18,"label":"Lange Adresse","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":28,"label":"RailCom1)","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 3","factoryValue":"0 – 3"},
+    {"cv":29,"label":"Konfigurationsregister","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 255","factoryValue":"00 – 255"},
+    {"cv":60,"label":"Dimmen","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":65,"label":"Software-Version","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":112,"label":"Spezielle Konfiguration","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":114,"label":"Dimm-Ausnahmen Achtung! Bei den Decodern 10882 und 10884 können nur das Stirnlicht und die Funktionausgänge AUX1 und AUX2 gedimmt werden","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":124,"label":"Spezielle Konfiguration","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":152,"label":"Dimm-Ausnahmen Achtung! Nur für 10883","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":155,"label":"Rangiertaste","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 12","factoryValue":"0 – 12"},
+    {"cv":156,"label":"VerzögerungsDeaktivierung","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 12","factoryValue":"0 – 12"}
+  ]
+},
+{
+  "id": "cv-ref-acb80ac11ad72980",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "roco-motor-10746-lokpilot-dcc-10-st-ck-packung"
+  ],
+  "title": {
+    "de": "Roco: 10746 · LokPilot DCC (10-Stück-Packung)",
+    "en": "Roco: 10746 · LokPilot DCC (10-Stück-Packung)"
+  },
+  "note": {
+    "de": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen. Erfasst sind die kurzen CV-Bezeichnungen und eindeutigen Tabellenangaben. Vollständige Bitlogik und alle Firmwarestände sind damit noch nicht abgedeckt.",
+    "en": "Manufacturer manual reference, with model, hardware, sound-project and firmware restrictions. Short CV headings and unambiguous table facts only; this is not complete bit-level or firmware coverage. No automatic interpretation is enabled. Unknown bank pages remain explicit."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Roco: 10746 · LokPilot DCC (10-Stück-Packung)",
+      "url": "https://www.roco.cc/documents/pdf/BA_10746.pdf",
+      "version": "Herstellerfassung, geprüft 20.10.2026",
+      "scope": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen.",
+      "sha256": "f13912c18d218d605654344d0431cff7ebd416e8bb9398efdd9acb18e62e2586",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":1,"label":"Lokadresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":2,"label":"Minimalgeschwindigkeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":3,"label":"Beschleunigungszeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":4,"label":"Bremszeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":5,"label":"Maximalgeschwindigkeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":7,"label":"Decoder-Version","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":8,"label":"Hersteller-Identifikation, bzw. Rückstellung auf Werkswerte","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":29,"label":"Fahrtrichtungsverhalten Fahrstufeneinstellung Analogerkennung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":49,"label":"Lastregelung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":63,"label":"Dimmer für alle Funktionsausgänge","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"}
+  ]
+},
+{
+  "id": "cv-ref-bca0bc9b10abc57f",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "roco-motor-10743-lokpilot-10-st-ck-packung",
+    "roco-motor-10745-digital-lokdecoder-dcc"
+  ],
+  "title": {
+    "de": "Roco: 10743 · LokPilot (10-Stück-Packung) / Familienreferenz",
+    "en": "Roco: 10743 · LokPilot (10-Stück-Packung) / Familienreferenz"
+  },
+  "note": {
+    "de": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen. Das 10743-Beiblatt verweist ausdrücklich auf die Decoderanleitung 10738/10745. Erfasst sind die kurzen CV-Bezeichnungen und eindeutigen Tabellenangaben. Vollständige Bitlogik und alle Firmwarestände sind damit noch nicht abgedeckt.",
+    "en": "Manufacturer manual reference, with model, hardware, sound-project and firmware restrictions. Short CV headings and unambiguous table facts only; this is not complete bit-level or firmware coverage. No automatic interpretation is enabled. Unknown bank pages remain explicit."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Roco: 10743 · LokPilot (10-Stück-Packung) / Familienreferenz",
+      "url": "https://z21app.roco.cc/doc/da/1/de/8010745920.pdf",
+      "version": "Herstellerfassung, geprüft 20.10.2026",
+      "scope": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen. Das 10743-Beiblatt verweist ausdrücklich auf die Decoderanleitung 10738/10745.",
+      "sha256": "df476142a01875f079eec0ec2664e8d1b47e67a708c14cefbac874907c38e333",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":1,"label":"Lokadresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":2,"label":"Minimalgeschwindigkeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":3,"label":"Beschleunigungszeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":4,"label":"Bremszeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":5,"label":"Maximalgeschwindigkeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":6,"label":"Mittengeschwindigkeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":7,"label":"Decoder-Version","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":8,"label":"Hersteller-Identifikation, bzw. Rückstellung auf Werkswerte","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":17,"label":"Lange Adresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":18,"label":"Lange Adresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":29,"label":"Fahrtrichtungsverhalten Fahrstufeneinstellung Analogerkennung Lange Adresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":49,"label":"Lastregelung Automatische Fahrstufenerkennung (FSE)","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":54,"label":"Dimmer","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":55,"label":"Analog Modus","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual"}
+  ]
+},
+{
+  "id": "cv-ref-ca59f71236579da5",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "roco-motor-10881-plux-22-multiprotokolldecoder"
+  ],
+  "title": {
+    "de": "Roco: 10881 · PluX-22 Multiprotokolldecoder",
+    "en": "Roco: 10881 · PluX-22 Multiprotokolldecoder"
+  },
+  "note": {
+    "de": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen. Erfasst sind die kurzen CV-Bezeichnungen und eindeutigen Tabellenangaben. Vollständige Bitlogik und alle Firmwarestände sind damit noch nicht abgedeckt.",
+    "en": "Manufacturer manual reference, with model, hardware, sound-project and firmware restrictions. Short CV headings and unambiguous table facts only; this is not complete bit-level or firmware coverage. No automatic interpretation is enabled. Unknown bank pages remain explicit."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Roco: 10881 · PluX-22 Multiprotokolldecoder",
+      "url": "https://www.roco.cc/documents/pdf/Anleitung_fuer_unseren_PluX22-Decoder_10881.pdf",
+      "version": "Herstellerfassung, geprüft 20.10.2026",
+      "scope": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen.",
+      "sha256": "98453f8595df9228387ed7b1a2934deff72d9803060a350db1b0b18eb5cf90a1",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":1,"label":"Lokadresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"DCC 01 – 127 Motorola ** 01 – 80","factoryValue":"DCC 01 – 127 Motorola ** 01 – 80"},
+    {"cv":2,"label":"Anfahrspannung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 63","factoryValue":"01 – 63"},
+    {"cv":3,"label":"Beschleunigungszeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 63","factoryValue":"01 – 63"},
+    {"cv":4,"label":"Bremsverzögerung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 63","factoryValue":"01 – 63"},
+    {"cv":5,"label":"Maximalspannung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 63","factoryValue":"01 – 63"},
+    {"cv":6,"label":"Mittenspannung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 63","factoryValue":"01 – 63"},
+    {"cv":7,"label":"Versionsnummer","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"-------","factoryValue":"-------"},
+    {"cv":8,"label":"Hersteller ID","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"08 (Reset)","factoryValue":"08 (Reset)"},
+    {"cv":12,"label":"Digitalformat","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 03","factoryValue":"00 – 03"},
+    {"cv":17,"label":"Lange Adresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"192 – 231","factoryValue":"192 – 231"},
+    {"cv":18,"label":"Lange Adresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":29,"label":"Konfi gurationsregister","page":4,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 255","factoryValue":"00 – 255"},
+    {"cv":47,"label":"Geschwindigkeitskorrektur","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 63","factoryValue":"00 – 63"},
+    {"cv":48,"label":"Geschwindigkeits-","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 63","factoryValue":"00 – 63"},
+    {"cv":49,"label":"Erweiterte Kofi guration","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 255","factoryValue":"00 – 255"},
+    {"cv":51,"label":"Analoge","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 03","factoryValue":"01 – 03"},
+    {"cv":59,"label":"Reset (alternatve zu CV8)","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0,1","factoryValue":"0,1"},
+    {"cv":64,"label":"Bremsstrecken","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 63","factoryValue":"00 – 63"},
+    {"cv":65,"label":"Offset-Register","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 255","factoryValue":"00 – 255"},
+    {"cv":66,"label":"Page-Register","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 255","factoryValue":"00 – 255"},
+    {"cv":67,"label":"Kennlinie","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","cvEnd":94},
+    {"cv":107,"label":"Licht aus (Zug vorne)","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 144","factoryValue":"0 − 144"},
+    {"cv":108,"label":"Licht aus (Zug hinten)","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 144","factoryValue":"0 − 144"},
+    {"cv":109,"label":"FunktionsAuswahl","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 255","factoryValue":"0 − 255"},
+    {"cv":110,"label":"Aus-Zeit","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 255","factoryValue":"0 − 255"},
+    {"cv":111,"label":"Ein-Zeit","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 255","factoryValue":"0 − 255"},
+    {"cv":116,"label":"F0-Dimmen","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 32","factoryValue":"0 − 32"},
+    {"cv":117,"label":"AUX1-Dimmen","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 32","factoryValue":"0 − 32"},
+    {"cv":118,"label":"AUX2-Dimmen","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 32","factoryValue":"0 − 32"},
+    {"cv":119,"label":"AUX3-Dimmen","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 32","factoryValue":"0 − 32"},
+    {"cv":120,"label":"AUX4-Dimmen","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 32","factoryValue":"0 − 32"},
+    {"cv":121,"label":"AUX5-Dimmen","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 32","factoryValue":"0 − 32"},
+    {"cv":122,"label":"AUX6-Dimmen","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 32","factoryValue":"0 − 32"},
+    {"cv":123,"label":"AUX7-Dimmen","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 32","factoryValue":"0 − 32"},
+    {"cv":124,"label":"KuppelWiederholung","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 255","factoryValue":"0 − 255"},
+    {"cv":125,"label":"EinschaltDimmen","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 255","factoryValue":"0 − 255"},
+    {"cv":126,"label":"HalteDimmen","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 255","factoryValue":"0 − 255"},
+    {"cv":127,"label":"Ein-Zeit","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 255","factoryValue":"0 − 255"},
+    {"cv":128,"label":"Halte-Zeit","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 255","factoryValue":"0 − 255"},
+    {"cv":129,"label":"Pausenzeit","page":8,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 255","factoryValue":"0 − 255"},
+    {"cv":130,"label":"Defi nitionen","page":9,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 − 255","factoryValue":"0 − 255"},
+    {"cv":131,"label":"Anfahren","page":9,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":132,"label":"Normalbetrieb","page":9,"sourceIndex":0,"indexScope":"base","applicability":"manual"},
+    {"cv":133,"label":"Stillstand","page":9,"sourceIndex":0,"indexScope":"base","applicability":"manual"}
+  ]
+},
+{
+  "id": "cv-ref-e70ee09f1ff34549",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "roco-motor-10732-lokdecoder-multiprotokoll"
+  ],
+  "title": {
+    "de": "Roco: 10732 · Lokdecoder Multiprotokoll",
+    "en": "Roco: 10732 · Lokdecoder Multiprotokoll"
+  },
+  "note": {
+    "de": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen. Erfasst sind die kurzen CV-Bezeichnungen und eindeutigen Tabellenangaben. Vollständige Bitlogik und alle Firmwarestände sind damit noch nicht abgedeckt.",
+    "en": "Manufacturer manual reference, with model, hardware, sound-project and firmware restrictions. Short CV headings and unambiguous table facts only; this is not complete bit-level or firmware coverage. No automatic interpretation is enabled. Unknown bank pages remain explicit."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Roco: 10732 · Lokdecoder Multiprotokoll",
+      "url": "https://www.roco.cc/documents/pdf/10732.pdf",
+      "version": "Herstellerfassung, geprüft 20.10.2026",
+      "scope": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen.",
+      "sha256": "3c123ec0720d55cf007712b8def49cf2024cd1b75641ac8dc62a6a8de1f9ee46",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":1,"label":"Lokadresse","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"DCC 01 – 99 Motorola ** 01 – 80","factoryValue":"DCC 01 – 99 Motorola ** 01 – 80"},
+    {"cv":2,"label":"Anfahrspannung","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 63","factoryValue":"01 – 63"},
+    {"cv":3,"label":"Beschleunigungszeit","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 63","factoryValue":"01 – 63"},
+    {"cv":4,"label":"Bremsverzögerung","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 63","factoryValue":"01 – 63"},
+    {"cv":5,"label":"Maximalspannung","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 63","factoryValue":"01 – 63"},
+    {"cv":6,"label":"Mittenspannung","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 63","factoryValue":"01 – 63"},
+    {"cv":7,"label":"Versionsnummer","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"-------","factoryValue":"-------"},
+    {"cv":8,"label":"Hersteller ID","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"08 (Reset)","factoryValue":"08 (Reset)"},
+    {"cv":17,"label":"Lange Adresse","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"192 – 231","factoryValue":"192 – 231"},
+    {"cv":18,"label":"Lange Adresse","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0 – 255","factoryValue":"0 – 255"},
+    {"cv":29,"label":"Konfi gurationsregister","page":5,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 255","factoryValue":"00 – 255"},
+    {"cv":47,"label":"Geschwindigkeitskorrektur","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 63","factoryValue":"00 – 63"},
+    {"cv":48,"label":"Geschwindigkeitskorrektur","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 63","factoryValue":"00 – 63"},
+    {"cv":49,"label":"Erweiterte Kofi guration","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 255","factoryValue":"00 – 255"},
+    {"cv":50,"label":"Dimmer","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 32","factoryValue":"00 – 32"},
+    {"cv":51,"label":"Analoge Betriebsart","page":6,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"01 – 03","factoryValue":"01 – 03"},
+    {"cv":59,"label":"Reset (alternatve zu CV8)","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"0,1","factoryValue":"0,1"},
+    {"cv":64,"label":"Bremsstrecken","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 63","factoryValue":"00 – 63"},
+    {"cv":65,"label":"Offset-Register","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 255","factoryValue":"00 – 255"},
+    {"cv":66,"label":"Page-Register","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual","valueRange":"00 – 255","factoryValue":"00 – 255"},
+    {"cv":67,"label":"Kennlinie","page":7,"sourceIndex":0,"indexScope":"base","applicability":"manual","cvEnd":94}
+  ]
+},
+{
+  "id": "cv-ref-fa16381eec914316",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "roco-motor-10735-dcc-mini-decoder-f-r-h0e-und-n"
+  ],
+  "title": {
+    "de": "Roco: 10735 · DCC-Mini-Decoder für H0e und N",
+    "en": "Roco: 10735 · DCC-Mini-Decoder für H0e und N"
+  },
+  "note": {
+    "de": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen. Erfasst sind die kurzen CV-Bezeichnungen und eindeutigen Tabellenangaben. Vollständige Bitlogik und alle Firmwarestände sind damit noch nicht abgedeckt.",
+    "en": "Manufacturer manual reference, with model, hardware, sound-project and firmware restrictions. Short CV headings and unambiguous table facts only; this is not complete bit-level or firmware coverage. No automatic interpretation is enabled. Unknown bank pages remain explicit."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Roco: 10735 · DCC-Mini-Decoder für H0e und N",
+      "url": "https://www.roco.cc/documents/pdf/10735.pdf",
+      "version": "Herstellerfassung, geprüft 20.10.2026",
+      "scope": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen.",
+      "sha256": "73779df183c12b35820d1371826b808d172f68e1e7b3b4ebfddad61e9a8fe753",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {"cv":1,"label":"Kurze DCC-Adresse","page":4,"sourceIndex":0,"indexScope":"base","applicability":"model","factoryValue":"3"},
+    {"cv":2,"label":"Anfahrspannung / Mindestgeschwindigkeit","page":4,"sourceIndex":0,"indexScope":"base","applicability":"model","factoryValue":"3"},
+    {"cv":3,"label":"Beschleunigung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"model","factoryValue":"2"},
+    {"cv":4,"label":"Bremsverzögerung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"model","factoryValue":"2"},
+    {"cv":5,"label":"Maximalspannung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"model","factoryValue":"0"},
+    {"cv":6,"label":"Mittelspannung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"model","factoryValue":"0"},
+    {"cv":7,"label":"Versionskennung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"model"},
+    {"cv":8,"label":"Herstellerkennung","page":4,"sourceIndex":0,"indexScope":"base","applicability":"model","factoryValue":"157"},
+    {"cv":29,"label":"DCC-Grundkonfiguration","page":4,"sourceIndex":0,"indexScope":"base","applicability":"model","factoryValue":"6"}
+  ]
+}
+]

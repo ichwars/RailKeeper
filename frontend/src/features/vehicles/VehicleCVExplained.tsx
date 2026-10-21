@@ -13,11 +13,11 @@ const topics = [
 export function VehicleCVExplained({ analysis: a, values, onOpenValue }: {
   analysis: DecoderAnalysis; values: VehicleCVValue[]; onOpenValue: (value: VehicleCVValue) => void;
 }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [topic, setTopic] = useState<CVTopic>("address");
-  const rows = cvExplanationRows(a, topic, t);
+  const rows = cvExplanationRows(a, topic, t, language);
   const mainRows = topic === "address" ? rows.slice(0, 5) : topic === "braking" ? rows.slice(0, 2) : rows;
-  const extraRows = topic === "address" ? [...rows.slice(5), ...cvExplanationRows(a, "communication", t)]
+  const extraRows = topic === "address" ? [...rows.slice(5), ...cvExplanationRows(a, "communication", t, language)]
     : topic === "braking" ? rows.slice(2) : [];
   const renderRows = (items: typeof rows) => items.map(row => {
     const number = row.numbers[0];

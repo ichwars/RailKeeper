@@ -42,7 +42,9 @@ describe("profile-aware decoder analysis", () => {
       .toMatchObject({ abc: false, constantBrake: false });
     expect(analyze([...standard, base(27, 1), base(254, 20)]))
       .toMatchObject({ abc: true, constantBrake: true });
-    expect(analyze([...standard, base(254, 0)]).constantBrake).toBeUndefined();
+    expect(analyze([...standard, base(254, 0)]).constantBrake).toBe(false);
+    expect(analyze([...standard, base(254, 0), base(255, 50)]).constantBrake).toBe(false);
+    expect(analyze([...standard, base(255, 50)]).constantBrake).toBeUndefined();
     expect(decoderAnalysis([base(27, 1)], profile).abc).toBeUndefined();
     expect(decoderAnalysis([...standard], "Other").esu5).toBe(false);
   });

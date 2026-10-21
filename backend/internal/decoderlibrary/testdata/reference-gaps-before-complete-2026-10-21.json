@@ -1,0 +1,337 @@
+[
+  {
+    "id": "cv-gap-piko-sound-products",
+    "revision": "2026-10-21.5",
+    "modelIds": [
+      "piko-sound-products-56560",
+      "piko-sound-products-56579",
+      "piko-sound-products-56658",
+      "piko-sound-products-56659",
+      "piko-sound-products-56663",
+      "piko-sound-products-56666"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: piko-sound-products",
+      "en": "CV documentation gap: piko-sound-products"
+    },
+    "note": {
+      "de": "Nachprüfung 21.10.2026: Keine eindeutig passende CV-/Soundprojekt-Tabelle für diese Artikel belegt. Das Original-Ersatzteilblatt 51775 bezeichnet 56579 als XP 5.1 Sound; es enthält selbst keine CV-Tabelle. Die Generation allein belegt keine Projektparameter. Der aktuelle Download id=39251 nennt 56505 und ist kein Beleg für die sechs Soundprojekte. BR491/36520 und ältere Rh2800-Projekte werden nicht übertragen. Neuheiten 56658/56659/56663/56666 bleiben ohne genaue CV-Unterlage offen.",
+      "en": "Rechecked 21 October 2026: no exact CV/sound-project table is established for these articles. The original 51775 parts sheet identifies 56579 as XP 5.1 Sound, but contains no CV table. The generation alone does not establish project parameters. The current id=39251 download names 56505, not these six sound projects. BR491/36520 and earlier Rh2800 projects are not applied. New articles 56658/56659/56663/56666 still need exact CV documentation."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-s-rh-2800-plux22-inkl.-lautsprecher-35119.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/warengruppe/digital-421/l-100/o-artikelnr_asc.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-s-rh-1110.5-plux22-inkl.-lautsprecher-35138.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-xp-sound-cc-65000-plux22-inkl.-lautsprecher-49608.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-xp-sound-mz-plux22-inkl.-lautsprecher-49609.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-xp-sound-tr12-pkp-plux22-inkl.-lautsprecher-49615.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-xp-sound-br-110-csd-plux22-inkl.-lautsprecher-51829.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/g-piko-smartdecoder-s-inkl.-lautsprecher-fuer-g-br-491-db-33964.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "PIKO 51775 · Original-Ersatzteilblatt mit Artikel 56579",
+        "url": "https://www.piko-shop.de/is.php?id=37608",
+        "version": "51775-90-7010, Herstellerfassung geprüft 21.10.2026",
+        "scope": "PDF-Seite 2 nennt 56579 als SmartDecoder XP 5.1 Sound. Kein Nachweis einer CV-Belegung oder von Projekt-Werkswerten.",
+        "sha256": "131e82fd3b41ef9fd3a46912162b512176360a920627191d783b5cec21b96c92",
+        "retrievedAt": "2026-10-21"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-roco-motor",
+    "revision": "2026-10-21.6",
+    "modelIds": [
+      "roco-motor-10734-h0e-n-dcc-decoder-mit-geraden-kontaktstiften"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: roco-motor",
+      "en": "CV documentation gap: roco-motor"
+    },
+    "note": {
+      "de": "Nachprüfung 21.10.2026: Für 10734 bleibt eine eindeutig passende CV-Tabelle offen. Die Originalanleitung 10735 nennt nur 10735 und belegt keine Gleichheit mit 10734. Für 685404/685504/686101/686201 liegt jetzt ein eigener MX622-Nachweis aus dem Fleischmann-Herstellerkatalog 2022 vor; diese vier Artikel besitzen einen getrennten CV-Referenzsatz. Ähnliche Anschlüsse oder Händlerangaben allein werden nicht als CV-Nachweis verwendet.",
+      "en": "Rechecked 21 October 2026: an exact CV table is still missing for 10734. The original 10735 manual names only 10735 and does not establish equivalence with 10734. The original Fleischmann 2022 catalogue now explicitly identifies 685404/685504/686101/686201 as MX622 variants; these four articles have a separate CV reference. Similar connectors or dealer claims alone are not CV evidence."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "10734 · H0e/N-DCC-Decoder mit geraden Kontaktstiften / Herstellerarchiv",
+        "url": "https://www.roco.cc/rde/produkte/steuerung/decoder/10734-h0en-dcc-decoder-mit-geraden-kontaktstiften.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "10734 · H0e/N-DCC-Decoder mit geraden Kontaktstiften / Herstellerarchiv",
+        "url": "https://www.roco.cc/rde/produkte/steuerung/decoder.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-esu-lokpilot-5",
+    "revision": "2026-10-21.3",
+    "modelIds": [
+      "esu-lokpilot-5-lokpilot-5-micro-dcc-direct",
+      "esu-lokpilot-5-lokpilot-5-micro-dcc-direct-atlas-legacy",
+      "esu-lokpilot-5-lokpilot-5-micro-dcc-direct-kato-usa-widebody",
+      "esu-lokpilot-5-lokpilot-5-micro-dcc-kato-usa",
+      "esu-lokpilot-5-lokpilot-5-nano-dcc"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: esu-lokpilot-5",
+      "en": "CV documentation gap: esu-lokpilot-5"
+    },
+    "note": {
+      "de": "Nachprüfung 21.10.2026: Produktseiten und LokPilot-5-Sammelanleitung belegen keine ausdrücklich passende CV-Tabelle für diese Direct-/Kato-/Atlas-/Nano-Varianten. Die alte Anleitung LokPilot Nano Standard / Fx Nano ist nicht die Anleitung zu LokPilot 5 Nano 59925. Keine Gleichsetzung nur aufgrund der Familienbezeichnung.",
+      "en": "Rechecked 21 October 2026: product pages and the shared LokPilot 5 manual do not establish an explicitly matching CV table for these Direct/Kato/Atlas/Nano variants. The old LokPilot Nano Standard / Fx Nano manual does not cover LokPilot 5 Nano 59925. Family naming alone is not sufficient."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "LokPilot 5 micro DCC Direct Atlas Legacy / Herstellerarchiv",
+        "url": "https://www.esu.eu/produkte/lokpilot/lokpilot-5-micro-dcc-direct-atlas-legacy/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "LokPilot 5 micro DCC Direct Atlas Legacy / Herstellerarchiv",
+        "url": "https://www.esu.eu/download/betriebsanleitungen/digitaldecoder/?tx_esudownloads_pi1%5BdownloadItem%5D=803bc0046a0244b6416c82c6abfd385e",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "LokPilot 5 micro DCC Direct Atlas Legacy / Herstellerarchiv",
+        "url": "https://www.esu.eu/produkte/lokpilot/lokpilot-5-micro-dcc-direct-kato-usa-widebody/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "LokPilot 5 micro DCC Direct Atlas Legacy / Herstellerarchiv",
+        "url": "https://www.esu.eu/produkte/lokpilot/lokpilot-5-micro-dcc-direct/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "LokPilot 5 micro DCC Direct Atlas Legacy / Herstellerarchiv",
+        "url": "https://www.esu.eu/produkte/lokpilot/lokpilot-5-micro-dcc-kato-usa/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "LokPilot 5 micro DCC Direct Atlas Legacy / Herstellerarchiv",
+        "url": "https://www.esu.eu/produkte/lokpilot/lokpilot-5-nano-dcc/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-uhlenbrock-intellisound-8",
+    "revision": "2026-10-21.5",
+    "modelIds": [
+      "uhlenbrock-intellisound-8-intellisound-8-33250",
+      "uhlenbrock-intellisound-8-intellisound-8-34720",
+      "uhlenbrock-intellisound-8-intellisound-8-34760"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: uhlenbrock-intellisound-8",
+      "en": "CV documentation gap: uhlenbrock-intellisound-8"
+    },
+    "note": {
+      "de": "Nachprüfung 21.10.2026: IntelliSound 8 ist im Katalog dokumentiert. Die Hersteller-Startseite kennzeichnet e24-Decoder und IntelliSound 7+8, darunter 34720/34760, weiterhin als „in Vorbereitung“. Eine passende CV-Tabelle für diese Modell-/Firmwarefassung ist nicht belegt. Anleitungen zu IntelliSound 6 oder früheren Generationen werden nicht übertragen.",
+      "en": "Rechecked 21 October 2026: IntelliSound 8 is documented in the catalogue. The manufacturer homepage still labels e24 decoders and IntelliSound 7+8, including 34720/34760, as in preparation. No matching model/firmware CV table is established. IntelliSound 6 and earlier manuals are not applied."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "IntelliSound 8 33250 / Herstellerarchiv",
+        "url": "https://www.uhlenbrock.de/de_DE/I14EE3E1-003.apd/Decoder%2BSound%2B2026.pdf",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "Uhlenbrock · Herstellerhinweis zum Entwicklungsstand",
+        "url": "https://www.uhlenbrock.de/de_DE/index.htm",
+        "version": "Herstellerseite, geprüft 21.10.2026",
+        "scope": "e24-Decoder und IntelliSound 7+8 mit 34720/34760 als in Vorbereitung gekennzeichnet; keine CV-Tabelle.",
+        "retrievedAt": "2026-10-21"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-lenz-legacy",
+    "revision": "2026-10-21.5",
+    "modelIds": [
+      "lenz-legacy-le075",
+      "lenz-legacy-le1000",
+      "lenz-legacy-le103x",
+      "lenz-legacy-le103xfjst",
+      "lenz-legacy-le110-v1",
+      "lenz-legacy-le200-v1",
+      "lenz-legacy-le200-v2",
+      "lenz-legacy-le911",
+      "lenz-legacy-lf100"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: lenz-legacy",
+      "en": "CV documentation gap: lenz-legacy"
+    },
+    "note": {
+      "de": "Nachprüfung 21.10.2026: Für die verbleibenden Modell-/Firmwarefassungen ist keine eindeutig passende CV-Tabelle belegt. LE030 und LE0511A/D besitzen jetzt eigene Originalnachweise. LE103XF belegt nicht LE103X oder LE103XFJST; LE110 Version 4.1 belegt nicht LE110 v1. LE230 ersetzt keine Unterlage zu LE200 v1/v2. LE1000A und LF100XF sind ohne ausdrücklichen Gleichheitsnachweis kein Ersatz für LE1000 und LF100. Registernummern werden nicht als CVs geraten.",
+      "en": "Rechecked 21 October 2026: no exact CV table is established for the remaining model/firmware editions. LE030 and LE0511A/D now have separate original evidence. LE103XF does not establish LE103X or LE103XFJST; LE110 version 4.1 does not establish LE110 v1. LE230 is no substitute for LE200 v1/v2 documentation. LE1000A and LF100XF do not establish LE1000 and LF100 without explicit equivalence. Register numbers are not guessed as CV numbers."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "Lenz · historische Decoderidentifikation",
+        "url": "https://www.lenz-elektronik.de/media/e7/58/f9/1733842032/Decoderidenttabelle_01.pdf?ts=1733842032",
+        "version": "Hersteller-Identifikation, nachgeprüft 21.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-21"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-lenz-silver",
+    "revision": "2026-10-21.3",
+    "modelIds": [
+      "lenz-silver-silver-mini-v2"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: lenz-silver",
+      "en": "CV documentation gap: lenz-silver"
+    },
+    "note": {
+      "de": "Nachprüfung 21.10.2026: SILVERmini+ V2 10310-03/10311-03 ist als eigene Generation belegt. Die Produktseite verlinkt b_10312.pdf (SILVER+ PluX12); dies belegt keine CV-Gleichheit. Ohne ausdrücklich passende V2-Anleitung bleiben die CV-Zuordnungen offen.",
+      "en": "Rechecked 21 October 2026: SILVERmini+ V2 10310-03/10311-03 is a distinct generation. Its product page links b_10312.pdf (SILVER+ PluX12), which does not establish identical CV mappings. An explicit V2 manual is still required."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "SILVER mini+ V2 / Herstellerarchiv",
+        "url": "https://www.lenz-elektronik.de/en/Digital-Plus/Lokdecoder/Locomotive-decoder-in-detail/NEW-SILVERmini-V2/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SILVER mini+ V2 / Herstellerarchiv",
+        "url": "https://www.lenz-elektronik.de/media/11/fd/c2/1734005792/GOLD_SILVER_plus_manual.pdf?ts=1734005792",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SILVER mini+ V2 / Herstellerarchiv",
+        "url": "https://www.lenz-elektronik.de/Hilfe-Info/Downloads-Manuals/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SILVER mini+ V2 / Herstellerarchiv",
+        "url": "https://www.lenz-elektronik.de/Hilfe-Info/FAQ-Digital-plus/",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-kuehn-t",
+    "revision": "2026-10-21.3",
+    "modelIds": [
+      "kuehn-t-t62"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: kuehn-t",
+      "en": "CV documentation gap: kuehn-t"
+    },
+    "note": {
+      "de": "Nachprüfung 21.10.2026: T62 mit den Artikeln 82510/82520/82560/82570 ist im Herstellerkatalog belegt. Keine eindeutig passende T62-CV-Tabelle gefunden. Die Anleitungen für T65 oder N45 ersetzen den Modellnachweis nicht.",
+      "en": "Rechecked 21 October 2026: the manufacturer catalog establishes T62 articles 82510/82520/82560/82570. No unambiguous T62 CV table was found. T65 or N45 manuals do not establish T62 applicability."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "T62 / Herstellerarchiv",
+        "url": "https://kuehn-digital.de/files/Katalog_2021_web.pdf",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  }
+]

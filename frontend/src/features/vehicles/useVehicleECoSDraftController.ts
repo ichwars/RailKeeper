@@ -71,7 +71,10 @@ export function useVehicleECoSDraftController({
         symbolKey: item.symbolKey || "",
         functionType: item.functionType || "standard",
         mode: item.mode || "dauer",
-        directionDependent: Boolean(item.directionDependent),
+        directionDependent: item.directionDependent ?? null,
+        inverted: item.inverted ?? null,
+        legacyDirectionDependent: item.legacyDirectionDependent ?? null,
+        flagsVersion: item.flagsVersion ?? 2,
         notes: item.notes || "",
         persisted: false
       }

@@ -47,6 +47,7 @@ export const masterDataTypes: MasterDataType[] = [
   { type: "gauge" },
   { type: "railway_company" },
   { type: "cv8_manufacturer" },
+  { type: "decoder_profile" },
   { type: "symbols" }
 ];
 

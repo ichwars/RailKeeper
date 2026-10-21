@@ -1,11 +1,12 @@
 import { Cpu } from "lucide-react";
 import { useI18n } from "../../shared/i18n";
 import { DecoderProfileSelect, useDecoderProfile } from "./DecoderProfileSelect";
+import { DecoderLibraryNotice } from "./DecoderLibraryNotice";
 
 export function DecoderProfileStrip({ state }: { state: ReturnType<typeof useDecoderProfile> }) {
   const { t } = useI18n();
   const a = state.analysis;
-  return <div className="decoder-profile-strip">
+  return <><div className="decoder-profile-strip">
     <Cpu size={20} aria-hidden="true" />
     <div className="decoder-profile-identity">
       {state.profiles.length > 1 ? <DecoderProfileSelect {...state} />
@@ -14,5 +15,5 @@ export function DecoderProfileStrip({ state }: { state: ReturnType<typeof useDec
     </div>
     <span>{a.address == null ? t("vehicles.decoder.unknown")
       : t("vehicles.decoder.profileAddress", { address: a.address })}</span>
-  </div>;
+  </div><DecoderLibraryNotice values={a.rows} profile={state.profile} /></>;
 }

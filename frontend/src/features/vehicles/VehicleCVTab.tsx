@@ -4,6 +4,7 @@ import { DecoderProfileStrip } from "./DecoderProfileStrip";
 import { useDecoderProfile } from "./DecoderProfileSelect";
 import { VehicleCVDetails } from "./VehicleCVDetails";
 import { VehicleCVExplained } from "./VehicleCVExplained";
+import { RailComPlusPreview } from "./RailComPlusPreview";
 import { CVImportRowsTable } from "./CVImportRowsTable";
 import { VehicleCVValuesTable } from "./VehicleCVValuesTable";
 import { api, Vehicle, VehicleCVFile, VehicleCVValue, VehicleCVValueInput } from "../../shared/api";
@@ -12,6 +13,7 @@ import { CVFileUploadPreview, CVImportPreview, cvCategories, cvProtocols } from 
 import { cvFileAccept } from "./vehicleFiles";
 import { formatDateTime, formatFileSize } from "./vehicleFormat";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { ManufacturerCVProvider, ManufacturerCVStatus } from "./ManufacturerCVProvider";
 
 type ECoSDraftPreview = {
   cvValues: VehicleCVValueInput[];
@@ -124,7 +126,8 @@ export function VehicleCVTab({
   const activeView = view;
   const decoder = useDecoderProfile(values);
   const viewIcons = { explained: CircleHelp, raw: Database, files: FolderOpen };
-  return <section className="cv-tab" ref={sectionRef}>
+  return <ManufacturerCVProvider values={values} profile={detailValue?.decoderProfile ?? decoder.profile}
+    manualType={selected?.decoderType || ""}><section className="cv-tab" ref={sectionRef}>
     <div className="cv-entry-actions"><h3>{t("vehicles.decoder.dataTitle")}</h3><div className="cv-toolbar">
       <input ref={cvImportInputRef} type="file" accept=".json,.csv,.txt" className="visually-hidden"
         onChange={(event) => importCVValues(event.target.files)} disabled={readonly || !selected || saving} />
@@ -179,6 +182,7 @@ export function VehicleCVTab({
                         )}
 
     <DecoderProfileStrip state={decoder} />
+    <ManufacturerCVStatus />
     <nav className="cv-subtabs" aria-label={t("vehicles.decoder.cvViews")}>
       {(["explained", "raw", "files"] as const).map((tab) => { const Icon = viewIcons[tab]; return <button type="button" key={tab}
         className={activeView === tab ? "active" : ""} aria-pressed={activeView === tab} onClick={() => setView(tab)}>
@@ -336,6 +340,7 @@ export function VehicleCVTab({
                               ) : (
                                 <p>{t("vehicles.cv.noMetadata")}</p>
                               )}
+                              {!preview.cvImportError && <RailComPlusPreview values={preview.suggestedCvValues || []} defaultProfile={preview.suggestedDecoderProfile} />}
                               {((preview.suggestedCvValues?.length || 0) > 0 || (preview.suggestedFunctions?.length || 0) > 0) && (
                                 <div className="decoder-preview-summary">
                                   {(preview.suggestedCvValues?.length || 0) > 0 && (
@@ -391,5 +396,5 @@ export function VehicleCVTab({
     {detailValue && <VehicleCVDetails value={detailValue} values={values} files={selected?.cvFiles || []}
       sourceLabel={draftSource} readonly={readonly || !selected} saving={saving} onClose={() => setDetailId(null)}
       onEdit={value => { if (!selected) return; setDetailId(null); setView("raw"); editCVValue(value); }} />}
-  </section>;
+  </section></ManufacturerCVProvider>;
 }

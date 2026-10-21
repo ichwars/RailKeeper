@@ -1,0 +1,227 @@
+[
+  {
+    "id": "cv-ref-lenz-gold-maxi-identification",
+    "revision": "2026-10-21.3",
+    "modelIds": [
+      "lenz-legacy-gold-maxi"
+    ],
+    "title": {
+      "de": "Lenz GOLD maxi · Kennung / identification",
+      "en": "Lenz GOLD maxi · Kennung / identification"
+    },
+    "note": {
+      "de": "Nur CV7/CV8 sind durch die aktuelle Hersteller-FAQ belegt. Die vollständige, zur jeweiligen Generation passende CV-Tabelle bleibt offen. Es werden keine Kennwerte oder Werksparameter aus Plus-/Nachfolgemodellen übernommen. Kurze CV-Zuordnungen; keine vollständige Bit-/Firmwareauswertung und keine Änderung gespeicherter Fahrzeugwerte.",
+      "en": "Only CV7/CV8 are evidenced by the current manufacturer FAQ. A complete generation-specific CV table is still missing. No identification or default values are borrowed from plus/successor models. Short CV mappings only; no complete bit/firmware interpretation or changes to saved vehicle values."
+    },
+    "status": "partial",
+    "sources": [
+      {
+        "title": "Lenz · offizielle FAQ Digital plus",
+        "url": "https://www.lenz-elektronik.de/en/Help-Info/FAQ-Digital-plus/",
+        "version": "Abruf 21.10.2026",
+        "scope": "Abschnitt Lokdecoder: Herstellerkennung CV8=99 und modellspezifische Kennungen in CV7. Keine vollständige CV-Tabelle.",
+        "sha256": "6d1069a1f822bfcf8d5d275c7c3e6c51c9143c1f08d281f28db64af27809bf76",
+        "retrievedAt": "2026-10-21"
+      }
+    ],
+    "active": true,
+    "rows": [
+      {
+        "cv": 7,
+        "label": "Decodertypkennung gemäß Lenz-FAQ",
+        "page": 0,
+        "sourceIndex": 0,
+        "indexScope": "base",
+        "applicability": "manual"
+      },
+      {
+        "cv": 8,
+        "label": "Herstellerkennung",
+        "page": 0,
+        "sourceIndex": 0,
+        "indexScope": "base",
+        "applicability": "manual"
+      }
+    ]
+  },
+  {
+    "id": "cv-ref-lenz-silver-mini-identification",
+    "revision": "2026-10-21.3",
+    "modelIds": [
+      "lenz-legacy-silver-mini"
+    ],
+    "title": {
+      "de": "Lenz SILVER mini · Kennung / identification",
+      "en": "Lenz SILVER mini · Kennung / identification"
+    },
+    "note": {
+      "de": "Nur CV7/CV8 sind durch die aktuelle Hersteller-FAQ belegt. Die vollständige, zur jeweiligen Generation passende CV-Tabelle bleibt offen. Es werden keine Kennwerte oder Werksparameter aus Plus-/Nachfolgemodellen übernommen. Kurze CV-Zuordnungen; keine vollständige Bit-/Firmwareauswertung und keine Änderung gespeicherter Fahrzeugwerte.",
+      "en": "Only CV7/CV8 are evidenced by the current manufacturer FAQ. A complete generation-specific CV table is still missing. No identification or default values are borrowed from plus/successor models. Short CV mappings only; no complete bit/firmware interpretation or changes to saved vehicle values."
+    },
+    "status": "partial",
+    "sources": [
+      {
+        "title": "Lenz · offizielle FAQ Digital plus",
+        "url": "https://www.lenz-elektronik.de/en/Help-Info/FAQ-Digital-plus/",
+        "version": "Abruf 21.10.2026",
+        "scope": "Abschnitt Lokdecoder: Herstellerkennung CV8=99 und modellspezifische Kennungen in CV7. Keine vollständige CV-Tabelle.",
+        "sha256": "6d1069a1f822bfcf8d5d275c7c3e6c51c9143c1f08d281f28db64af27809bf76",
+        "retrievedAt": "2026-10-21"
+      }
+    ],
+    "active": true,
+    "rows": [
+      {
+        "cv": 7,
+        "label": "Decodertypkennung gemäß Lenz-FAQ",
+        "page": 0,
+        "sourceIndex": 0,
+        "indexScope": "base",
+        "applicability": "manual"
+      },
+      {
+        "cv": 8,
+        "label": "Herstellerkennung",
+        "page": 0,
+        "sourceIndex": 0,
+        "indexScope": "base",
+        "applicability": "manual"
+      }
+    ]
+  },
+  {
+    "id": "cv-ref-lenz-silver-direct-identification",
+    "revision": "2026-10-21.3",
+    "modelIds": [
+      "lenz-legacy-silver-direct"
+    ],
+    "title": {
+      "de": "Lenz SILVER direct · Kennung / identification",
+      "en": "Lenz SILVER direct · Kennung / identification"
+    },
+    "note": {
+      "de": "Nur CV7/CV8 sind durch die aktuelle Hersteller-FAQ belegt. Die vollständige, zur jeweiligen Generation passende CV-Tabelle bleibt offen. Es werden keine Kennwerte oder Werksparameter aus Plus-/Nachfolgemodellen übernommen. Kurze CV-Zuordnungen; keine vollständige Bit-/Firmwareauswertung und keine Änderung gespeicherter Fahrzeugwerte.",
+      "en": "Only CV7/CV8 are evidenced by the current manufacturer FAQ. A complete generation-specific CV table is still missing. No identification or default values are borrowed from plus/successor models. Short CV mappings only; no complete bit/firmware interpretation or changes to saved vehicle values."
+    },
+    "status": "partial",
+    "sources": [
+      {
+        "title": "Lenz · offizielle FAQ Digital plus",
+        "url": "https://www.lenz-elektronik.de/en/Help-Info/FAQ-Digital-plus/",
+        "version": "Abruf 21.10.2026",
+        "scope": "Abschnitt Lokdecoder: Herstellerkennung CV8=99 und modellspezifische Kennungen in CV7. Keine vollständige CV-Tabelle.",
+        "sha256": "6d1069a1f822bfcf8d5d275c7c3e6c51c9143c1f08d281f28db64af27809bf76",
+        "retrievedAt": "2026-10-21"
+      }
+    ],
+    "active": true,
+    "rows": [
+      {
+        "cv": 7,
+        "label": "Decodertypkennung gemäß Lenz-FAQ",
+        "page": 0,
+        "sourceIndex": 0,
+        "indexScope": "base",
+        "applicability": "manual"
+      },
+      {
+        "cv": 8,
+        "label": "Herstellerkennung",
+        "page": 0,
+        "sourceIndex": 0,
+        "indexScope": "base",
+        "applicability": "manual"
+      }
+    ]
+  },
+  {
+    "id": "cv-ref-lenz-silver-21-identification",
+    "revision": "2026-10-21.3",
+    "modelIds": [
+      "lenz-legacy-silver-21"
+    ],
+    "title": {
+      "de": "Lenz SILVER 21 · Kennung / identification",
+      "en": "Lenz SILVER 21 · Kennung / identification"
+    },
+    "note": {
+      "de": "Nur CV7/CV8 sind durch die aktuelle Hersteller-FAQ belegt. Die vollständige, zur jeweiligen Generation passende CV-Tabelle bleibt offen. Es werden keine Kennwerte oder Werksparameter aus Plus-/Nachfolgemodellen übernommen. Kurze CV-Zuordnungen; keine vollständige Bit-/Firmwareauswertung und keine Änderung gespeicherter Fahrzeugwerte.",
+      "en": "Only CV7/CV8 are evidenced by the current manufacturer FAQ. A complete generation-specific CV table is still missing. No identification or default values are borrowed from plus/successor models. Short CV mappings only; no complete bit/firmware interpretation or changes to saved vehicle values."
+    },
+    "status": "partial",
+    "sources": [
+      {
+        "title": "Lenz · offizielle FAQ Digital plus",
+        "url": "https://www.lenz-elektronik.de/en/Help-Info/FAQ-Digital-plus/",
+        "version": "Abruf 21.10.2026",
+        "scope": "Abschnitt Lokdecoder: Herstellerkennung CV8=99 und modellspezifische Kennungen in CV7. Keine vollständige CV-Tabelle.",
+        "sha256": "6d1069a1f822bfcf8d5d275c7c3e6c51c9143c1f08d281f28db64af27809bf76",
+        "retrievedAt": "2026-10-21"
+      }
+    ],
+    "active": true,
+    "rows": [
+      {
+        "cv": 7,
+        "label": "Decodertypkennung gemäß Lenz-FAQ",
+        "page": 0,
+        "sourceIndex": 0,
+        "indexScope": "base",
+        "applicability": "manual"
+      },
+      {
+        "cv": 8,
+        "label": "Herstellerkennung",
+        "page": 0,
+        "sourceIndex": 0,
+        "indexScope": "base",
+        "applicability": "manual"
+      }
+    ]
+  },
+  {
+    "id": "cv-ref-lenz-lf101xf-identification",
+    "revision": "2026-10-21.3",
+    "modelIds": [
+      "lenz-legacy-lf101xf"
+    ],
+    "title": {
+      "de": "Lenz LF101XF · Kennung / identification",
+      "en": "Lenz LF101XF · Kennung / identification"
+    },
+    "note": {
+      "de": "Nur CV7/CV8 sind durch die aktuelle Hersteller-FAQ belegt. Die vollständige, zur jeweiligen Generation passende CV-Tabelle bleibt offen. Es werden keine Kennwerte oder Werksparameter aus Plus-/Nachfolgemodellen übernommen. Kurze CV-Zuordnungen; keine vollständige Bit-/Firmwareauswertung und keine Änderung gespeicherter Fahrzeugwerte.",
+      "en": "Only CV7/CV8 are evidenced by the current manufacturer FAQ. A complete generation-specific CV table is still missing. No identification or default values are borrowed from plus/successor models. Short CV mappings only; no complete bit/firmware interpretation or changes to saved vehicle values."
+    },
+    "status": "partial",
+    "sources": [
+      {
+        "title": "Lenz · offizielle FAQ Digital plus",
+        "url": "https://www.lenz-elektronik.de/en/Help-Info/FAQ-Digital-plus/",
+        "version": "Abruf 21.10.2026",
+        "scope": "Abschnitt Lokdecoder: Herstellerkennung CV8=99 und modellspezifische Kennungen in CV7. Keine vollständige CV-Tabelle.",
+        "sha256": "6d1069a1f822bfcf8d5d275c7c3e6c51c9143c1f08d281f28db64af27809bf76",
+        "retrievedAt": "2026-10-21"
+      }
+    ],
+    "active": true,
+    "rows": [
+      {
+        "cv": 7,
+        "label": "Decodertypkennung gemäß Lenz-FAQ",
+        "page": 0,
+        "sourceIndex": 0,
+        "indexScope": "base",
+        "applicability": "manual"
+      },
+      {
+        "cv": 8,
+        "label": "Herstellerkennung",
+        "page": 0,
+        "sourceIndex": 0,
+        "indexScope": "base",
+        "applicability": "manual"
+      }
+    ]
+  }
+]

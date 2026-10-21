@@ -3,6 +3,7 @@ import { Gauge } from "lucide-react";
 import type { Vehicle, VehicleCVValueInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { buildSpeedCurveProfiles, SpeedCurvePoint, SpeedCurveProfile } from "./speedCurve";
+import { useDecoderLibrary } from "../../shared/DecoderLibraryProvider";
 
 type ECoSDraftPreview = {
   cvValues: VehicleCVValueInput[];
@@ -20,10 +21,11 @@ export function VehicleSpeedCurveTab({
   ecosDraft: ECoSDraftPreview | null;
 }) {
   const { t } = useI18n();
+  const library = useDecoderLibrary();
   const sourceValues = selected?.cvValues || ecosDraft?.cvValues || [];
   const profiles = useMemo(
-    () => buildSpeedCurveProfiles(sourceValues, t("vehicles.speedCurve.noProfile")),
-    [sourceValues, t]
+    () => buildSpeedCurveProfiles(sourceValues, t("vehicles.speedCurve.noProfile"), library.profiles, library.inventory),
+    [sourceValues, t, library.profiles, library.inventory]
   );
   const [selectedProfileId, setSelectedProfileId] = useState("");
 
@@ -40,6 +42,7 @@ export function VehicleSpeedCurveTab({
   const activeProfile = profiles.find((profile) => profile.id === selectedProfileId) || profiles[0];
   const activePoints = activeProfile ? pointsForPrimaryCurve(activeProfile) : [];
   const hasCurve = Boolean(activeProfile && activePoints.length > 0);
+  const smoothed = Boolean(activeProfile?.zimoCurve || activeProfile?.lenzCurve || activeProfile?.kuehnCurve || activeProfile?.uhlenbrockCurve);
 
   return (
     <section className="speed-curve-tab">
@@ -84,11 +87,11 @@ export function VehicleSpeedCurveTab({
               <strong>{cv29Label(activeProfile, t)}</strong>
             </div>
             <div>
-              <span>{t("vehicles.speedCurve.points")}</span>
+              <span>{t(smoothed ? "vehicles.speedCurve.plottedPoints" : "vehicles.speedCurve.points")}</span>
               <strong>{activePoints.length}</strong>
             </div>
             <div>
-              <span>{t("vehicles.speedCurve.trim")}</span>
+              <span>{t(activeProfile.uhlenbrockCurve ? "vehicles.speedCurve.uhlenbrock.trim" : "vehicles.speedCurve.trim")}</span>
               <strong>{trimLabel(activeProfile)}</strong>
             </div>
           </div>
@@ -96,7 +99,10 @@ export function VehicleSpeedCurveTab({
           <section className={hasCurve ? "speed-chart-panel" : "speed-chart-panel empty"}>
             <div className="speed-chart-head">
               <div>
-                <h4>{t("vehicles.speedCurve.chartTitle")}</h4>
+                <h4>{t(smoothed && activeProfile.speedTableActive === false
+                  ? activeProfile.uhlenbrockCurve ? "vehicles.speedCurve.uhlenbrock.title" : activeProfile.kuehnCurve ? "vehicles.speedCurve.kuehnTitle"
+                    : activeProfile.lenzCurve ? "vehicles.speedCurve.lenzSmoothed" : "vehicles.speedCurve.zimoSmoothed"
+                  : "vehicles.speedCurve.chartTitle")}</h4>
                 <p>{chartSubtitle(activeProfile, t)}</p>
               </div>
               <span>{t("vehicles.speedCurve.realValues")}</span>
@@ -109,13 +115,27 @@ export function VehicleSpeedCurveTab({
                 valueLabel={t("vehicles.speedCurve.axisValue")}
               />
             ) : (
-              <p className="empty-state compact">{t("vehicles.speedCurve.noCurve")}</p>
+              <p className="empty-state compact">{activeProfile.motorCharacteristic
+                ? t("vehicles.speedCurve.manufacturerCharacteristic", {
+                  cv: activeProfile.motorCharacteristic.cvNumber,
+                  value: activeProfile.motorCharacteristic.value ?? t("vehicles.decoder.unknown")
+                }) : activeProfile.uhlenbrockCurve && activeProfile.speedTableActive === false
+                  ? t("vehicles.speedCurve.uhlenbrock.noPlot") : activeProfile.kuehnCurve && activeProfile.speedTableActive === false
+                  ? t("vehicles.speedCurve.kuehnNoPlot") : activeProfile.lenzCurve && activeProfile.speedTableActive === false
+                  ? t("vehicles.speedCurve.lenzParameters") : activeProfile.zimoCurve && activeProfile.speedTableActive === false
+                  ? t("vehicles.speedCurve.zimoParameters", {
+                    maximum: activeProfile.zimoCurve.maximum ?? t("vehicles.decoder.unknown"),
+                    middle: activeProfile.zimoCurve.defaultMiddle ? t("vehicles.speedCurve.zimoDefaultMiddle")
+                      : activeProfile.zimoCurve.middle ?? t("vehicles.decoder.unknown")
+                  }) : t("vehicles.speedCurve.noCurve")}</p>
             )}
           </section>
 
-          <section className="speed-curve-detail-grid">
+          {!activeProfile.motorCharacteristic && <section className="speed-curve-detail-grid">
             <article>
-              <h4>{t("vehicles.speedCurve.threePoint")}</h4>
+              <h4>{t(activeProfile.uhlenbrockCurve ? "vehicles.speedCurve.uhlenbrock.rawParameters" : activeProfile.kuehnCurve ? "vehicles.speedCurve.kuehnRawParameters"
+                : activeProfile.lenzCurve ? "vehicles.speedCurve.lenzRawParameters"
+                : activeProfile.zimoCurve ? "vehicles.speedCurve.zimoRawParameters" : "vehicles.speedCurve.threePoint")}</h4>
               <SpeedPointList points={activeProfile.threePoint} emptyText={t("vehicles.speedCurve.noThreePoint")} />
               {activeProfile.missingThreePointCVs.length > 0 && (
                 <p className="speed-missing">{t("vehicles.speedCurve.missingCVs", { cvs: activeProfile.missingThreePointCVs.join(", ") })}</p>
@@ -128,7 +148,7 @@ export function VehicleSpeedCurveTab({
                 <p className="speed-missing">{t("vehicles.speedCurve.missingCount", { count: activeProfile.missingSpeedTableCVs.length })}</p>
               )}
             </article>
-          </section>
+          </section>}
 
           {ecosDraft && !selected && (
             <p className="ecos-draft-mapping-preview">
@@ -148,6 +168,17 @@ function pointsForPrimaryCurve(profile: SpeedCurveProfile) {
 }
 
 function curveModeLabel(profile: SpeedCurveProfile, t: (key: string, values?: Record<string, string | number>) => string) {
+  if (profile.motorCharacteristic) return t("vehicles.speedCurve.manufacturerMode", { cv: profile.motorCharacteristic.cvNumber });
+  if ((profile.rocoCurve || profile.pikoCurve) && profile.speedTableActive !== null) return t(profile.speedTableActive
+    ? "vehicles.speedCurve.modeSpeedTable" : "vehicles.speedCurve.modeThreePoint");
+  if (profile.uhlenbrockCurve && profile.speedTableActive !== null) return t(profile.speedTableActive
+    ? "vehicles.speedCurve.modeSpeedTable" : "vehicles.speedCurve.uhlenbrock.mode");
+  if (profile.kuehnCurve && profile.speedTableActive === false) return t("vehicles.speedCurve.kuehnMode");
+  if (profile.kuehnCurve && profile.speedTableActive === true) return t("vehicles.speedCurve.modeSpeedTable");
+  if (profile.lenzCurve && profile.speedTableActive === false) return t("vehicles.speedCurve.lenzMode");
+  if (profile.lenzCurve && profile.speedTableActive === true) return t("vehicles.speedCurve.modeSpeedTable");
+  if (profile.zimoCurve && profile.speedTableActive === false) return t("vehicles.speedCurve.zimoMode");
+  if (profile.zimoCurve && profile.speedTableActive === true) return t("vehicles.speedCurve.modeSpeedTable");
   if (profile.primaryCurve === "speedTable") return t("vehicles.speedCurve.modeSpeedTable");
   if (profile.primaryCurve === "threePoint") return t("vehicles.speedCurve.modeThreePoint");
   return t("vehicles.speedCurve.modeUnknown");
@@ -155,12 +186,26 @@ function curveModeLabel(profile: SpeedCurveProfile, t: (key: string, values?: Re
 
 function cv29Label(profile: SpeedCurveProfile, t: (key: string, values?: Record<string, string | number>) => string) {
   if (profile.cv29Value === null) return t("vehicles.speedCurve.cv29Unknown");
+  if (profile.motorCharacteristic || ((profile.zimoCurve || profile.lenzCurve || profile.kuehnCurve || profile.uhlenbrockCurve || profile.rocoCurve || profile.pikoCurve) && profile.speedTableActive === null)) {
+    return t("vehicles.speedCurve.rawRegister", { value: profile.cv29Value });
+  }
+  if (profile.uhlenbrockCurve && profile.speedTableActive === false) return t("vehicles.speedCurve.uhlenbrock.cv29", { value: profile.cv29Value });
+  if (profile.kuehnCurve && profile.speedTableActive !== null) return t(profile.speedTableActive
+    ? "vehicles.speedCurve.kuehnCV29Table" : "vehicles.speedCurve.kuehnCV29", { value: profile.cv29Value });
+  if (profile.lenzCurve && profile.speedTableActive === false) return t("vehicles.speedCurve.lenzCV29", { value: profile.cv29Value });
   return profile.speedTableActive
     ? t("vehicles.speedCurve.cv29SpeedTable", { value: profile.cv29Value })
     : t("vehicles.speedCurve.cv29ThreePoint", { value: profile.cv29Value });
 }
 
 function chartSubtitle(profile: SpeedCurveProfile, t: (key: string, values?: Record<string, string | number>) => string) {
+  if (profile.motorCharacteristic) return t("vehicles.speedCurve.manufacturerSubtitle", { cv: profile.motorCharacteristic.cvNumber });
+  if (profile.uhlenbrockCurve && profile.speedTableActive !== null) return t(profile.speedTableActive
+    ? "vehicles.speedCurve.uhlenbrock.table" : "vehicles.speedCurve.uhlenbrock.help");
+  if (profile.kuehnCurve && profile.speedTableActive !== null) return t(profile.speedTableActive
+    ? "vehicles.speedCurve.kuehnTable" : "vehicles.speedCurve.kuehnHelp");
+  if (profile.lenzCurve && profile.speedTableActive === false) return t("vehicles.speedCurve.lenzSmoothingHelp");
+  if (profile.zimoCurve && profile.speedTableActive === false) return t("vehicles.speedCurve.zimoSmoothingHelp");
   if (profile.primaryCurve === "speedTable") {
     return t("vehicles.speedCurve.speedTableSubtitle", { count: profile.speedTable.length });
   }

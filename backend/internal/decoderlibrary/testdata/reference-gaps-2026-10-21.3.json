@@ -1,0 +1,150 @@
+[
+  {
+    "id": "cv-gap-lenz-legacy",
+    "revision": "2026-10-21.3",
+    "modelIds": [
+      "lenz-legacy-le030",
+      "lenz-legacy-le0511a",
+      "lenz-legacy-le0511d",
+      "lenz-legacy-le075",
+      "lenz-legacy-le1000",
+      "lenz-legacy-le103x",
+      "lenz-legacy-le103xfjst",
+      "lenz-legacy-le110-v1",
+      "lenz-legacy-le200-v1",
+      "lenz-legacy-le200-v2",
+      "lenz-legacy-le911",
+      "lenz-legacy-lf100"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: lenz-legacy",
+      "en": "CV documentation gap: lenz-legacy"
+    },
+    "note": {
+      "de": "Nachprüfung 21.10.2026: Die geprüften Produkt-, Download- und Archivquellen belegen weiterhin keine eindeutig passende CV-Tabelle für diese Modell-/Firmwarefassung. Ähnliche Namen, gleiche Artikelnummern anderer Generationen und Registernummern ersetzen keinen CV-Nachweis.",
+      "en": "Rechecked 21 October 2026: reviewed product/download/archive sources still do not establish an unambiguous CV table for this model/firmware edition. Similar names, reused article numbers and register numbers are not substitutes for CV evidence."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "GOLD maxi / Herstellerarchiv",
+        "url": "https://www.lenz-elektronik.de/media/e7/58/f9/1733842032/Decoderidenttabelle_01.pdf?ts=1733842032",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-uhlenbrock-intellisound-8",
+    "revision": "2026-10-21.3",
+    "modelIds": [
+      "uhlenbrock-intellisound-8-intellisound-8-33250",
+      "uhlenbrock-intellisound-8-intellisound-8-34720",
+      "uhlenbrock-intellisound-8-intellisound-8-34760"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: uhlenbrock-intellisound-8",
+      "en": "CV documentation gap: uhlenbrock-intellisound-8"
+    },
+    "note": {
+      "de": "Nachprüfung 21.10.2026: Katalog und Produktankündigung belegen IntelliSound 8. Keine passende Modell-/Firmware-CV-Tabelle für 33250, 34720 oder 34760 erfasst. CVs von IntelliSound 6, 74xxx oder älteren Sounddecodern werden nicht übertragen.",
+      "en": "Rechecked 21 October 2026: catalog/product announcements establish IntelliSound 8. No matching model/firmware CV table was captured for 33250, 34720 or 34760. Mappings from IntelliSound 6, 74xxx or legacy sound decoders are not substituted."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "IntelliSound 8 33250 / Herstellerarchiv",
+        "url": "https://www.uhlenbrock.de/de_DE/I14EE3E1-003.apd/Decoder%2BSound%2B2026.pdf",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  },
+  {
+    "id": "cv-gap-piko-sound-products",
+    "revision": "2026-10-21.3",
+    "modelIds": [
+      "piko-sound-products-56560",
+      "piko-sound-products-56579",
+      "piko-sound-products-56658",
+      "piko-sound-products-56659",
+      "piko-sound-products-56663",
+      "piko-sound-products-56666"
+    ],
+    "title": {
+      "de": "CV-Dokumentation offen: piko-sound-products",
+      "en": "CV documentation gap: piko-sound-products"
+    },
+    "note": {
+      "de": "Nachprüfung 21.10.2026: Für diese Artikel wurde keine eindeutig passende CV-/Soundprojekt-Tabelle gefunden. Produktseiten 56560/56579 und Neuheiten 56658/56659/56663/56666 belegen keine gemeinsamen Projektparameter. Die BR491-Tabelle 36520 gilt ausschließlich für deren dokumentierte XP-5.1-Fassung.",
+      "en": "Rechecked 21 October 2026: no unambiguous article/project-specific CV table was found. Product pages for 56560/56579 and new 56658/56659/56663/56666 do not establish shared project parameters. The BR491 table for 36520 is restricted to its documented XP 5.1 edition."
+    },
+    "status": "unavailable",
+    "sources": [
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-s-rh-2800-plux22-inkl.-lautsprecher-35119.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/warengruppe/digital-421/l-100/o-artikelnr_asc.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-s-rh-1110.5-plux22-inkl.-lautsprecher-35138.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-xp-sound-cc-65000-plux22-inkl.-lautsprecher-49608.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-xp-sound-mz-plux22-inkl.-lautsprecher-49609.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-xp-sound-tr12-pkp-plux22-inkl.-lautsprecher-49615.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/piko-smartdecoder-xp-sound-br-110-csd-plux22-inkl.-lautsprecher-51829.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      },
+      {
+        "title": "SmartDecoder S Rh 2800 PluX22 inkl. Lautsprecher / Herstellerarchiv",
+        "url": "https://www.piko-shop.de/de/artikel/g-piko-smartdecoder-s-inkl.-lautsprecher-fuer-g-br-491-db-33964.html",
+        "version": "Recherche 20.10.2026",
+        "scope": "Modell-/Artikelnachweis; keine eindeutig auswertbare passende CV-Tabelle.",
+        "retrievedAt": "2026-10-20"
+      }
+    ],
+    "active": true,
+    "rows": []
+  }
+]

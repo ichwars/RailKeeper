@@ -1,0 +1,223 @@
+{
+  "id": "cv-ref-44b6dd44ba5cb681",
+  "revision": "2026-10-20.1",
+  "modelIds": [
+    "roco-motor-10882-plux16-decoder-nem-658"
+  ],
+  "title": {
+    "de": "Roco: 10882 · PluX16-Decoder (NEM 658)",
+    "en": "Roco: 10882 · PluX16-Decoder (NEM 658)"
+  },
+  "note": {
+    "de": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen. Erfasst sind die kurzen CV-Bezeichnungen und eindeutigen Tabellenangaben. Vollständige Bitlogik und alle Firmwarestände sind damit noch nicht abgedeckt.",
+    "en": "Manufacturer manual reference, with model, hardware, sound-project and firmware restrictions. Short CV headings and unambiguous table facts only; this is not complete bit-level or firmware coverage. No automatic interpretation is enabled. Unknown bank pages remain explicit."
+  },
+  "status": "partial",
+  "sources": [
+    {
+      "title": "Roco: 10882 · PluX16-Decoder (NEM 658)",
+      "url": "https://www.roco.cc/documents/pdf/Anleitung_10882.pdf",
+      "version": "Herstellerfassung, geprüft 20.10.2026",
+      "scope": "Roco-Artikelbezug bzw. ausdrücklich benannter ZIMO-OEM-Typ. Handelsmarke und technische Herstellerkennung bleiben getrennt; projektspezifische Werte dürfen abweichen.",
+      "sha256": "a5fe8303c15db927b125ef4dfd15d0ffa7e4f3f404850537971b0cfe669b9883",
+      "retrievedAt": "2026-10-20"
+    }
+  ],
+  "active": true,
+  "rows": [
+    {
+      "cv": 1,
+      "label": "Lokadresse",
+      "page": 4,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "DCC: 01 – 127 Motorola3): 01 – 80",
+      "factoryValue": "DCC: 01 – 127 Motorola3): 01 – 80"
+    },
+    {
+      "cv": 2,
+      "label": "Anfahrspannung",
+      "page": 4,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "01 – 255",
+      "factoryValue": "01 – 255"
+    },
+    {
+      "cv": 3,
+      "label": "Beschleunigungszeit",
+      "page": 4,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "01 – 255",
+      "factoryValue": "01 – 255"
+    },
+    {
+      "cv": 4,
+      "label": "Bremsverzögerung",
+      "page": 4,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "01 – 255",
+      "factoryValue": "01 – 255"
+    },
+    {
+      "cv": 5,
+      "label": "Maximalspannung",
+      "page": 4,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "01 – 255",
+      "factoryValue": "01 – 255"
+    },
+    {
+      "cv": 6,
+      "label": "Mittenspannung",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "01 – 252",
+      "factoryValue": "01 – 252"
+    },
+    {
+      "cv": 7,
+      "label": "Versionsnummer",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "-------",
+      "factoryValue": "-------"
+    },
+    {
+      "cv": 8,
+      "label": "Hersteller ID",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "08 (Reset)",
+      "factoryValue": "08 (Reset)"
+    },
+    {
+      "cv": 17,
+      "label": "Lange Adresse",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "192 – 231",
+      "factoryValue": "192 – 231"
+    },
+    {
+      "cv": 18,
+      "label": "Lange Adresse",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0 – 255",
+      "factoryValue": "0 – 255"
+    },
+    {
+      "cv": 28,
+      "label": "RailCom1)",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0 – 3",
+      "factoryValue": "0 – 3"
+    },
+    {
+      "cv": 29,
+      "label": "Konfigurationsregister",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "00 – 255",
+      "factoryValue": "00 – 255"
+    },
+    {
+      "cv": 60,
+      "label": "Dimmen",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0 – 255",
+      "factoryValue": "0 – 255"
+    },
+    {
+      "cv": 65,
+      "label": "Software-Version",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual"
+    },
+    {
+      "cv": 112,
+      "label": "Spezielle Konfiguration",
+      "page": 7,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual"
+    },
+    {
+      "cv": 114,
+      "label": "Dimm-Ausnahmen Achtung! Bei den Decodern 10882 und 10884 können nur das Stirnlicht und die Funktionausgänge AUX1 und AUX2 gedimmt werden",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0 – 255",
+      "factoryValue": "0 – 255"
+    },
+    {
+      "cv": 124,
+      "label": "Spezielle Konfiguration",
+      "page": 7,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual"
+    },
+    {
+      "cv": 152,
+      "label": "Dimm-Ausnahmen Achtung! Nur für 10883",
+      "page": 6,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0 – 255",
+      "factoryValue": "0 – 255"
+    },
+    {
+      "cv": 155,
+      "label": "Rangiertaste",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0 – 12",
+      "factoryValue": "0 – 12"
+    },
+    {
+      "cv": 156,
+      "label": "VerzögerungsDeaktivierung",
+      "page": 5,
+      "sourceIndex": 0,
+      "indexScope": "base",
+      "applicability": "manual",
+      "valueRange": "0 – 12",
+      "factoryValue": "0 – 12"
+    }
+  ]
+}

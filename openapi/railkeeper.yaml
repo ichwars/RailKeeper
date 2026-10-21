@@ -32,6 +32,63 @@ components:
       name: X-CSRF-Token
       description: Required together with the session cookie for API mutations.
   schemas:
+    VehicleFunctionInput:
+      type: object
+      properties:
+        name: {type: string, maxLength: 120}
+        symbolKey: {type: string, maxLength: 80}
+        functionType: {type: string, enum: [standard, sound, licht, kupplung, rauch, sonderfunktion]}
+        mode: {type: string, enum: [dauer, moment]}
+        directionDependent:
+          type: boolean
+          nullable: true
+          description: Confirmed direction dependency; null means unknown. Independent of inversion.
+        inverted:
+          type: boolean
+          nullable: true
+          description: Confirmed inversion; null means unknown. Never inferred from direction dependency.
+        legacyDirectionDependent:
+          type: boolean
+          nullable: true
+          description: Preserved ambiguous value from the old mislabelled checkbox, not a confirmed flag. An existing legacy reference is never overwritten.
+        flagsVersion:
+          type: integer
+          enum: [0, 1, 2]
+          default: 0
+          description: Set 2 for independent nullable flags. Missing/older versions preserve supplied flags as ambiguous legacy data and cannot replace confirmed flags.
+        notes: {type: string, maxLength: 1000}
+    VehicleFunctionChange:
+      type: object
+      required: [functionKey, expectedRevision]
+      description: Staged function change committed atomically with the vehicle. An empty expectedRevision requires a new key; otherwise it must match the revision read from the vehicle. Conflicts return 409 without applying any vehicle, image or function changes. Omitting functionChanges preserves all functions.
+      properties:
+        functionKey: {type: string, pattern: '^F([0-9]|[12][0-9]|3[01])$'}
+        expectedRevision: {type: string, pattern: '^([0-9a-f]{64})?$'}
+        value: {$ref: '#/components/schemas/VehicleFunctionInput'}
+        delete: {type: boolean, default: false}
+      oneOf:
+        - required: [value]
+          properties:
+            delete: {const: false}
+        - required: [delete]
+          properties:
+            delete: {const: true}
+          not:
+            required: [value]
+    VehicleFunction:
+      allOf:
+        - $ref: '#/components/schemas/VehicleFunctionInput'
+        - type: object
+          required: [id, vehicleId, functionKey, functionType, mode, directionDependent, inverted, flagsVersion, sortOrder, createdAt, updatedAt, revision]
+          properties:
+            id: {type: string}
+            vehicleId: {type: string}
+            functionKey: {type: string, pattern: '^F([0-9]|[12][0-9]|3[01])$'}
+            flagsVersion: {type: integer, enum: [2], default: 2}
+            sortOrder: {type: integer}
+            createdAt: {type: string, format: date-time}
+            updatedAt: {type: string, format: date-time}
+            revision: {type: string, pattern: '^[0-9a-f]{64}$', readOnly: true}
     Problem:
       type: object
       required: [error, message]
@@ -1743,6 +1800,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/VehicleImageInput"
+        functionChanges:
+          type: array
+          maxItems: 32
+          description: Distinct keys; each value requires flagsVersion 2. Functions not listed remain unchanged.
+          items: {$ref: '#/components/schemas/VehicleFunctionChange'}
     VehicleSetInput:
       type: object
       required: [name, manufacturer, gauge, category, gattung]
@@ -2390,6 +2452,283 @@ components:
               type: array
               items:
                 type: object
+    DecoderText:
+      type: object
+      required: [de, en]
+      properties:
+        de: {type: string}
+        en: {type: string}
+    DecoderSource:
+      type: object
+      required: [title, url, version, scope]
+      properties:
+        title: {type: string}
+        url: {type: string, format: uri, pattern: '^https://'}
+        version: {type: string}
+        scope: {type: string}
+        sha256: {type: string, pattern: '^[0-9a-f]{64}$', description: Fingerprint of the reviewed source document when available.}
+        retrievedAt: {type: string, format: date}
+    DecoderDefinition:
+      type: object
+      required: [cv, name, help, topic, minimum, maximum]
+      properties:
+        cv: {type: integer, minimum: 1, maximum: 1024}
+        cvEnd: {type: integer, minimum: 1, maximum: 1024}
+        cvStride: {type: integer, minimum: 1, maximum: 256, description: 'Optional step within the CV range; addresses between steps are not covered.'}
+        firmwareMin: {type: string, description: 'Minimum documented firmware for this definition. Known older firmware receives no interpretation from it.'}
+        indexCV31: {type: integer, minimum: 0, maximum: 255}
+        indexCV32: {type: integer, minimum: 0, maximum: 255}
+        indexCV32End: {type: integer, minimum: 0, maximum: 255}
+        name: {$ref: '#/components/schemas/DecoderText'}
+        help: {$ref: '#/components/schemas/DecoderText'}
+        topic: {type: string, enum: [address, motor, braking, outputs, communication]}
+        minimum: {type: integer, minimum: 0, maximum: 255}
+        maximum: {type: integer, minimum: 0, maximum: 255}
+        reference:
+          type: object
+          required: [sourceIndex, location]
+          description: Reviewed table or section within this profile's sources array.
+          properties:
+            sourceIndex: {type: integer, minimum: 0, maximum: 9}
+            location: {type: string, minLength: 1, maxLength: 200}
+        factoryDefault: {type: integer, minimum: 0, maximum: 255, description: 'Documented factory value, never a replacement for a missing reading. Absent for variable or unknown defaults.'}
+        reserved: {type: boolean, description: 'Explicitly reserved in the cited source. Has no functional semantics, unit, default or access and does not count as an interpreted value.'}
+        allowedValues:
+          type: array
+          maxItems: 256
+          uniqueItems: true
+          items: {type: integer, minimum: 0, maximum: 255}
+          description: Optional finite set, for registers whose documented values are not a continuous range.
+        access: {type: string, enum: [read-only, read-write, command], description: 'Documented register access; does not authorize hardware writes.'}
+        unit: {$ref: '#/components/schemas/DecoderText'}
+        bits:
+          type: array
+          maxItems: 8
+          items:
+            type: object
+            required: [bit, name, off, on]
+            properties:
+              bit: {type: integer, minimum: 0, maximum: 7}
+              name: {$ref: '#/components/schemas/DecoderText'}
+              "off": {$ref: '#/components/schemas/DecoderText'}
+              "on": {$ref: '#/components/schemas/DecoderText'}
+    DecoderBitRule:
+      type: object
+      required: [cv, mask]
+      properties:
+        cv: {type: integer, minimum: 1, maximum: 1024}
+        mask: {type: integer, minimum: 1, maximum: 255}
+    DecoderLibraryProfile:
+      type: object
+      required: [id, name, nameEn, revision, protocol, kind, aliases, familyAliases, sources, definitions, active]
+      description: Declarative local documentation, stored as decoder_profile master-data metadata. No hardware writes.
+      properties:
+        id: {type: string, pattern: '^[a-z0-9][a-z0-9-]{0,79}$'}
+        name: {type: string}
+        nameEn: {type: string}
+        revision: {type: string}
+        protocol: {type: string, enum: [DCC]}
+        kind: {type: string, enum: [standard, model]}
+        manufacturerId: {type: integer, minimum: 0, maximum: 255}
+        family: {type: string}
+        model: {type: string}
+        parentId: {type: string}
+        firmwareMin: {type: string}
+        aliases: {type: array, items: {type: string}}
+        familyAliases: {type: array, items: {type: string}}
+        sources: {type: array, items: {$ref: '#/components/schemas/DecoderSource'}}
+        definitions: {type: array, items: {$ref: '#/components/schemas/DecoderDefinition'}}
+        active: {type: boolean}
+        rules:
+          type: object
+          properties:
+            modelDefinitionsOnly: {type: boolean, description: 'For a matched compatible model, use only its own reviewed CV definitions. Undocumented addresses remain unknown instead of inheriting generic DCC meanings. Does not enable executable rules.'}
+            piko56500: {type: boolean, description: 'Enables only reviewed PIKO56500 PluX22 rules: simple mapping conditional on CV96=1, exact output bank18/0, braking triggers and communication permissions. Conflicting firmware-dependent analog thresholds remain unknown. No function-key mode or inversion inference.'}
+            roco10882: {type: boolean, description: 'Enables only the reviewed Roco 10882 (2012, technical manufacturer145) algorithm: model-limited shifted outputs, documented braking/analog conditions, RailCom permissions, dimming and selected speed characteristic. No ZIMO MN rules, key mode/inversion or metadata executable formula.'}
+            uhlenbrock76420: {type: boolean, description: 'Enables only the reviewed manufacturer85 IntelliDrive 76420 evaluation: uniform function masks, analog and braking conditions, timed outputs and raw speed parameters. No RailCom, ABC, key mode/inversion or executable metadata formula is inferred.'}
+            kuehnN45: {type: boolean, description: 'Enables the reviewed manufacturer157 N45 algorithm, exact family/model N45 with ABC CV27/mask3: shifted output masks, SUSI gating, decimal effects, motor and DC braking parameters. No key mode/inversion or executable metadata formula.'}
+            lenzStandardV2: {type: boolean, description: 'Enables the reviewed STANDARD+ V2 algorithm for manufacturer99, exact family/model STANDARD+ V2: CV51 braking, motor configuration, RailCom channels, output masks and smoothed characteristic. Missing values stay unknown; no metadata-supplied formula or hardware write.'}
+            zimoMN: {type: boolean, description: 'Enables the reviewed MN180N18 summary algorithm for source scope SW5.29: consist extension, function permissions, stopping parameters and smoothed speed characteristic. No executable formula is accepted in metadata.'}
+            motorCurveCV: {type: integer, minimum: 1, maximum: 256, description: 'Documented model-specific motor characteristic register. Disables generic DCC curve plotting; no characteristic points are inferred from this scalar value.'}
+            abc: {$ref: '#/components/schemas/DecoderBitRule'}
+            dcAnalog: {$ref: '#/components/schemas/DecoderBitRule'}
+            constantBrake:
+              type: object
+              required: [forwardCV, reverseCV]
+              properties:
+                forwardCV: {type: integer, minimum: 1, maximum: 1024}
+                reverseCV: {type: integer, minimum: 1, maximum: 1024}
+                enableCV: {type: integer, minimum: 1, maximum: 1024, description: 'Optional register that must be positive to enable constant braking.'}
+        mapping:
+          type: object
+          description: Only the reviewed ESU LokPilot 5 layout is currently accepted.
+          required: [rows, rowsPerPage, stride, startCV, indexCV31, conditionPage, actionPage]
+          properties:
+            rows: {type: integer, const: 72}
+            rowsPerPage: {type: integer, const: 16}
+            stride: {type: integer, const: 16}
+            startCV: {type: integer, const: 257}
+            indexCV31: {type: integer, const: 16}
+            conditionPage: {type: integer, const: 3}
+            actionPage: {type: integer, const: 8}
+    DecoderLibrary:
+      type: object
+      required: [schemaVersion, profiles]
+      properties:
+        schemaVersion: {type: integer, const: 1}
+        profiles: {type: array, items: {$ref: '#/components/schemas/DecoderLibraryProfile'}}
+        inventory: {$ref: '#/components/schemas/DecoderInventory'}
+        referenceCoverage:
+          type: array
+          items: {$ref: '#/components/schemas/DecoderReferenceCoverage'}
+    DecoderReferenceCoverage:
+      type: object
+      required: [id, modelIds, status, rowCount, active]
+      properties:
+        id: {type: string}
+        modelIds: {type: array, minItems: 1, maxItems: 2048, uniqueItems: true, items: {type: string}}
+        status: {type: string, enum: [table, partial, unavailable]}
+        rowCount: {type: integer, minimum: 0, maximum: 1024}
+        active: {type: boolean}
+    DecoderCVReference:
+      type: object
+      description: Documentation-only manufacturer CV facts stored as decoder_reference master data. Unknown index pages remain explicit. Does not enable executable interpretation or decoder identification.
+      required: [id, revision, modelIds, title, note, status, sources, rows, active]
+      properties:
+        id: {type: string}
+        revision: {type: string}
+        modelIds: {type: array, minItems: 1, maxItems: 2048, uniqueItems: true, items: {type: string}}
+        title: {$ref: '#/components/schemas/DecoderText'}
+        note: {$ref: '#/components/schemas/DecoderText'}
+        status: {type: string, enum: [table, partial, unavailable]}
+        sources: {type: array, minItems: 1, maxItems: 10, items: {$ref: '#/components/schemas/DecoderSource'}}
+        active: {type: boolean}
+        rows: {type: array, maxItems: 1024, items: {$ref: '#/components/schemas/DecoderCVReferenceRow'}}
+    DecoderCVReferenceRow:
+      type: object
+      required: [cv, label, page, sourceIndex, indexScope, applicability]
+      properties:
+        cv: {type: integer, minimum: 1, maximum: 1024}
+        cvEnd: {type: integer, minimum: 1, maximum: 1024}
+        label: {type: string, maxLength: 200}
+        valueRange: {type: string, maxLength: 160}
+        factoryValue: {type: string, maxLength: 160}
+        page: {type: integer, minimum: 0, maximum: 1000, description: One-based PDF page, or zero for nonpaged source evidence.}
+        sourceIndex: {type: integer, minimum: 0, maximum: 9}
+        indexScope: {type: string, enum: [base, indexed, unspecified]}
+        indexCV31: {type: integer, minimum: 0, maximum: 255}
+        indexCV32: {type: integer, minimum: 0, maximum: 255}
+        applicability: {type: string, enum: [model, manual]}
+    DecoderInventory:
+      type: object
+      description: Curated model directory stored as decoder_catalog/library master-data metadata. A model entry alone never enables manufacturer CV interpretation.
+      required: [revision, reviewedAt, manufacturers, families, models]
+      properties:
+        revision: {type: string}
+        reviewedAt: {type: string, format: date}
+        manufacturers:
+          type: array
+          minItems: 1
+          maxItems: 128
+          items: {$ref: '#/components/schemas/DecoderManufacturer'}
+        families:
+          type: array
+          minItems: 1
+          maxItems: 512
+          items: {$ref: '#/components/schemas/DecoderFamily'}
+        models:
+          type: array
+          minItems: 1
+          maxItems: 2048
+          items: {$ref: '#/components/schemas/DecoderModel'}
+    DecoderManufacturer:
+      type: object
+      required: [id, name, cv8, website, source]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        cv8: {type: integer, minimum: 0, maximum: 255}
+        website: {type: string, format: uri, pattern: '^https://'}
+        source: {$ref: '#/components/schemas/DecoderSource'}
+        coverage: {$ref: '#/components/schemas/DecoderText'}
+    DecoderFamily:
+      type: object
+      required: [id, manufacturerId, name, sources, notes, identification]
+      properties:
+        id: {type: string}
+        manufacturerId: {type: string}
+        name: {type: string}
+        sources: {type: array, items: {$ref: '#/components/schemas/DecoderSource'}}
+        notes: {$ref: '#/components/schemas/DecoderText'}
+        identification: {$ref: '#/components/schemas/DecoderText'}
+    DecoderModel:
+      type: object
+      required: [id, familyId, name, kind, interfaces, articleNumbers]
+      properties:
+        id: {type: string}
+        familyId: {type: string}
+        name: {type: string}
+        kind: {type: string, enum: [motor, sound, function]}
+        interfaces: {type: array, items: {type: string}}
+        articleNumbers: {type: array, items: {type: string}}
+        profileId: {type: string, description: 'Optional link to a reviewed interpretation profile, never inferred from CV8 alone.'}
+        documentationProfileId: {type: string, description: 'Reference-only manual for a branded product. Does not enable model identification or transfer the retail brand CV8.'}
+        notes: {$ref: '#/components/schemas/DecoderText'}
+        sources: {type: array, maxItems: 10, items: {$ref: '#/components/schemas/DecoderSource'}}
+        identification: {$ref: '#/components/schemas/DecoderIdentityRule'}
+        variants:
+          type: array
+          maxItems: 64
+          description: Explicit source-backed article/connection pairs; never inferred from parallel summary arrays.
+          items: {$ref: '#/components/schemas/DecoderVariant'}
+        brandOnly:
+          type: boolean
+          description: Retail brand entry with unconfirmed technical CV8. Cannot link to an interpretation profile or identity rule.
+        documentStatus: {type: string, enum: [historical, announced]}
+    DecoderVariant:
+      type: object
+      required: [articleNumber, interface, source]
+      properties:
+        articleNumber: {type: string}
+        interface: {type: string}
+        source: {$ref: '#/components/schemas/DecoderSource'}
+    DecoderIdentityRule:
+      type: object
+      description: Requires matching unindexed CV8 in addition to the documented type register. Family scope never confirms an interface variant.
+      required: [cv, values, scope, name]
+      properties:
+        cv: {type: integer, minimum: 1, maximum: 1024, not: {enum: [8, 31, 32]}}
+        values: {type: array, minItems: 1, maxItems: 16, uniqueItems: true, items: {type: integer, minimum: 0, maximum: 255}}
+        scope: {type: string, enum: [model, family]}
+        name: {type: string}
+    DecoderIdentityEvidence:
+      type: object
+      required: [scope, name, cvNumber, value]
+      properties:
+        scope: {type: string, enum: [model, family]}
+        name: {type: string}
+        cvNumber: {type: integer, minimum: 1, maximum: 1024}
+        value: {type: integer, minimum: 0, maximum: 255}
+        modelId: {type: string}
+    DecoderLibraryMatch:
+      type: object
+      required: [status, knownValues, totalValues]
+      properties:
+        status:
+          type: string
+          enum: [matched, identified, family, manufacturer, suggested, conflict, standard, unsupported, unavailable]
+        profileId: {type: string}
+        profileName: {type: string}
+        matchedBy: {type: string, enum: [name, cv]}
+        identification: {$ref: '#/components/schemas/DecoderIdentityEvidence'}
+        revision: {type: string}
+        manufacturerId: {type: integer}
+        firmware: {type: string}
+        firmwareCompatible: {type: boolean}
+        knownValues:
+          type: integer
+          description: Values associated with a documented individual CV or memory range, not necessarily a fully decoded field.
+        totalValues: {type: integer}
     VehicleCVFilePreview:
       type: object
       required: [fileName, sizeBytes, mimeType, hasMetadata]
@@ -2424,6 +2763,10 @@ components:
         cvImportError:
           type: string
           description: A malformed LokProgrammer CV list cannot be imported. No partial CV suggestions are returned.
+        decoderLibraryMatches:
+          type: object
+          description: Conservative matches by source decoder profile; raw suggestions remain unchanged.
+          additionalProperties: {$ref: '#/components/schemas/DecoderLibraryMatch'}
         suggestedCvValues:
           type: array
           maxItems: 10000
@@ -7488,6 +7831,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /decoder-library:
+    get:
+      tags: [MasterData]
+      summary: Read the local decoder definition catalog
+      description: Admin, Editor and Viewer may read. includeInactive is used by master-data management. CV8 alone never identifies a model.
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: query
+          name: includeInactive
+          schema: {type: boolean, default: false}
+      responses:
+        "200":
+          description: Versioned local decoder definitions
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderLibrary'}
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Problem'}
+        "403":
+          description: Viewer role required
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Problem'}
+        "500":
+          description: Stored decoder definitions could not be loaded; raw vehicle readings remain available.
+  /decoder-library/references/{modelID}:
+    get:
+      tags: [MasterData]
+      summary: Read manufacturer CV reference tables for one catalog model
+      description: Admin, Editor and Viewer may read. Only active references are returned. An unknown model returns an empty array. References do not activate automatic CV interpretations.
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: modelID
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Manufacturer references including explicit documentation gaps
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/DecoderCVReference'}}
+        "401": {description: Authentication required}
+        "403": {description: Viewer role required}
+        "500": {description: Stored manufacturer references could not be loaded}
   /master-data/export:
     get:
       tags: [MasterData]
@@ -9328,10 +9721,20 @@ paths:
       responses:
         "200":
           description: Vehicle functions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/VehicleFunction'}
   /vehicles/{id}/functions/{functionKey}:
     put:
       tags: [Vehicles]
       summary: Create or update a decoder function
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VehicleFunctionInput'}
       parameters:
         - name: id
           in: path
@@ -9346,6 +9749,9 @@ paths:
       responses:
         "200":
           description: Vehicle function stored
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VehicleFunction'}
     delete:
       tags: [Vehicles]
       summary: Delete a decoder function

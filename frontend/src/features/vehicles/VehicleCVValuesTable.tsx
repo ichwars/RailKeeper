@@ -4,7 +4,9 @@ import type { VehicleCVValue } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { decoderAnalysis } from "./decoderAnalysis";
+import { useDecoderLibrary } from "../../shared/DecoderLibraryProvider";
 import { cvValueInfo } from "./cvValueInfo";
+import { useManufacturerCVHints } from "./ManufacturerCVProvider";
 import { CVPageControls, cvIndexLabel, cvPageSize } from "./CVPageControls";
 import { formatDateTime } from "./vehicleFormat";
 
@@ -14,6 +16,8 @@ export function VehicleCVValuesTable({ values, readonly, saving, edit, remove, o
   onExplain?: (value: VehicleCVValue) => void;
 }) {
   const { language, t } = useI18n();
+  const library = useDecoderLibrary();
+  const hints = useManufacturerCVHints();
   const [profile, setProfile] = useState("*");
   const [index, setIndex] = useState("*");
   const [search, setSearch] = useState("");
@@ -22,9 +26,9 @@ export function VehicleCVValuesTable({ values, readonly, saving, edit, remove, o
   const profiles = Array.from(new Set(values.map((value) => value.decoderProfile || "")));
   const profileValues = values.filter((value) => profile === "*" || (value.decoderProfile || "") === profile);
   const indexes = Array.from(new Map(profileValues.map((value) => [indexKey(value), value])).entries());
-  const analyses = new Map(profiles.map(profile => [profile, decoderAnalysis(values, profile)]));
+  const analyses = new Map(profiles.map(profile => [profile, decoderAnalysis(values, profile, library.profiles, library.inventory ?? null)]));
   const info = (value: VehicleCVValue) => cvValueInfo(value,
-    analyses.get(value.decoderProfile || "") || decoderAnalysis([], ""), t);
+    analyses.get(value.decoderProfile || "") || decoderAnalysis([], "", library.profiles, library.inventory ?? null), t, language, hints.lookup(value));
   const meaning = (value: VehicleCVValue) => value.description || info(value).name;
   const cvSearch = search.trim().match(/^CV\s*(\d+)$/i);
   const filtered = profileValues.filter((value) => (index === "*" || indexKey(value) === index) &&
@@ -52,7 +56,8 @@ export function VehicleCVValuesTable({ values, readonly, saving, edit, remove, o
       </tr></thead><tbody>
         {filtered.slice(page * cvPageSize, (page + 1) * cvPageSize).map((value) => <Fragment key={value.id}>
           <tr><td>CV {value.cvNumber}</td>
-            <td>{meaning(value)}{value.category && <small> · {value.category}</small>}
+            <td>{meaning(value)}{info(value).manufacturerHint && <small> · {t("decoderLibrary.hintTitle")}</small>}
+              {value.category && <small> · {value.category}</small>}
               {value.protocol && <small> · {value.protocol}</small>}</td>
             <td>{value.value}</td><td>{cvIndexLabel(value, t("vehicles.cv.base"))}</td><td>{value.decoderProfile || "-"}</td>
             <td><div className="table-actions">
