@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 23
+	backupVersion = 24
 )
 
 var (
@@ -395,6 +395,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	if err := restoreBundledFunctionSymbols(ctx, tx, bundledFunctionSymbols); err != nil {
 		return nil, err
 	}
+	if err := restoreMissingDecoderLibrary(ctx, tx); err != nil {
+		return nil, err
+	}
 	if err := reconcileBundledMasterDataIdentities(ctx, tx, bundledMasterData); err != nil {
 		return nil, err
 	}
@@ -580,6 +583,10 @@ func backupRowForRestore(table string, row map[string]any) map[string]any {
 }
 
 func backupRowsForRestore(doc *BackupDocument, table string) []map[string]any {
+	if table == "vehicle_functions" && doc.Version < 24 {
+		return legacyFunctionRowsForRestore(doc.Tables[table])
+	}
+
 	rows := doc.Tables[table]
 	legacyColumns := []string{}
 	if doc.Version <= 10 {
@@ -725,6 +732,9 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 			}
 		}
 		item.UnknownColumns = sortedKeys(unknownColumns)
+		if table == "vehicle_functions" {
+			result.Errors = append(result.Errors, validateBackupFunctionFlags(doc.Version, rows)...)
+		}
 		if table == "vehicle_cv_values" {
 			result.Errors = append(result.Errors, validateBackupCVProvenance(rows)...)
 		}
@@ -742,6 +752,9 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 		}
 		if table == "master_data_entries" && doc.Version >= 3 {
 			result.Errors = append(result.Errors, validateBackupProtectedArticleTypes(rows)...)
+		}
+		if table == "master_data_entries" {
+			result.Errors = append(result.Errors, validateBackupDecoderLibrary(rows)...)
 		}
 		result.Tables = append(result.Tables, item)
 	}

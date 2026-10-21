@@ -44,6 +44,10 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 		return nil, err
 	}
 	vehicle.Images = images
+	vehicle.Functions, err = s.loadVehicleFunctions(ctx, vehicle.ID)
+	if err != nil {
+		return nil, err
+	}
 
 	return vehicle, nil
 }
@@ -70,6 +74,9 @@ func (s *VehicleService) Update(ctx context.Context, id string, input CreateVehi
 	}
 	if !isValidVehicleOperationalInput(input) {
 		return nil, ErrVehicleOperationalValidation
+	}
+	if err := validateVehicleFunctionChanges(input.FunctionChanges); err != nil {
+		return nil, err
 	}
 	if s.imageLocalizer != nil && replaceImages && len(input.Images) > 0 {
 		input.Images, err = s.imageLocalizer(ctx, id, input.Images)
@@ -214,6 +221,10 @@ VALUES(?, ?, 'VehicleUpdated', 'vehicle', ?, ?, '{}')
 		if err = saveVehicleImages(ctx, tx, vehicle.ID, input.Images, now); err != nil {
 			return nil, err
 		}
+	}
+
+	if err = applyVehicleFunctionChanges(ctx, tx, vehicle.ID, input.FunctionChanges, now); err != nil {
+		return nil, err
 	}
 
 	if err = tx.Commit(); err != nil {

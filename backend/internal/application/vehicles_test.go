@@ -956,13 +956,14 @@ func TestVehiclePersistsFunctions(t *testing.T) {
 		SymbolKey:          "sound",
 		FunctionType:       "sound",
 		Mode:               "moment",
-		DirectionDependent: true,
+		DirectionDependent: boolPtr(true),
+		FlagsVersion:       2,
 		Notes:              "Lokpfeife",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if function.FunctionKey != "F1" || function.SymbolKey != "sound" || !function.DirectionDependent {
+	if function.FunctionKey != "F1" || function.SymbolKey != "sound" || (function.DirectionDependent == nil || !*function.DirectionDependent) {
 		t.Fatalf("unexpected function: %#v", function)
 	}
 
@@ -975,6 +976,7 @@ func TestVehiclePersistsFunctions(t *testing.T) {
 	}
 
 	updated, err := service.UpsertFunction(ctx, created.ID, "f1", application.VehicleFunctionInput{
+		FlagsVersion: 2,
 		Name:         "Licht",
 		SymbolKey:    "light",
 		FunctionType: "licht",
@@ -983,7 +985,7 @@ func TestVehiclePersistsFunctions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.FunctionKey != "F1" || updated.Name != "Licht" || updated.DirectionDependent {
+	if updated.FunctionKey != "F1" || updated.Name != "Licht" || updated.DirectionDependent != nil {
 		t.Fatalf("unexpected function update: %#v", updated)
 	}
 
@@ -1187,3 +1189,5 @@ func TestCreateSparePartUpdatesDuplicateArticleNumber(t *testing.T) {
 		t.Fatalf("expected duplicate create to enrich price/link, got %#v", parts[0])
 	}
 }
+
+func boolPtr(value bool) *bool { return &value }

@@ -145,7 +145,6 @@ WHERE type=?`
 	if activeOnly {
 		query += " AND active=1"
 	}
-	query += " ORDER BY active DESC, sort_order ASC, label ASC"
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -164,6 +163,7 @@ WHERE type=?`
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate master data: %w", err)
 	}
+	sortMasterDataEntries(out)
 	return out, nil
 }
 
@@ -194,7 +194,6 @@ func loadMasterDataSnapshot(ctx context.Context, db *sql.DB) (map[string][]Maste
 SELECT id, type, key, label, active, sort_order, COALESCE(source_url, ''), metadata_json,
        created_at, updated_at, origin
 FROM master_data_entries`
-	query += " ORDER BY type ASC, active DESC, sort_order ASC, label ASC"
 
 	rows, err := db.QueryContext(ctx, query)
 	if err != nil {
@@ -213,6 +212,9 @@ FROM master_data_entries`
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate all master data: %w", err)
 	}
+	for _, entries := range out {
+		sortMasterDataEntries(entries)
+	}
 
 	return out, nil
 }
@@ -228,6 +230,9 @@ func (s *MasterDataService) Create(ctx context.Context, typeName string, input M
 	}
 	if input.Key == "" {
 		input.Key = slugKey(input.Label)
+	}
+	if err := validateDecoderProfile(typeName, input.Key, input.Metadata); err != nil {
+		return nil, err
 	}
 	if typeName == accessoryCustomField {
 		metadata, err := normalizeAccessoryCustomFieldMetadata(input.Key, true, input.Metadata)
@@ -314,6 +319,9 @@ func (s *MasterDataService) Update(ctx context.Context, typeName, key string, in
 	if typeName == accessoryCustomField {
 		return s.updateAccessoryCustomField(ctx, key, input)
 	}
+	if err := validateDecoderProfile(typeName, key, input.Metadata); err != nil {
+		return nil, err
+	}
 	active := true
 	if input.Active != nil {
 		active = *input.Active
@@ -393,6 +401,13 @@ func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument)
 	if doc == nil || doc.Format != masterDataExportFormat || doc.Version < 1 ||
 		doc.Version > masterDataExportVersion {
 		return nil, ErrMasterDataValidation
+	}
+	for typeName, entries := range doc.Entries {
+		for _, entry := range entries {
+			if err := validateDecoderProfile(effectiveMasterDataType(typeName, entry), entry.Key, entry.Metadata); err != nil {
+				return nil, err
+			}
+		}
 	}
 	importedArticleTypes, err := validateImportedArticleTypes(doc.Entries)
 	if err != nil {

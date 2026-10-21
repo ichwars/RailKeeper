@@ -29,6 +29,10 @@ func (a *App) createVehicle(w http.ResponseWriter, r *http.Request) {
 	vehicle, err := a.vehicleService.Create(r.Context(), input, actorUserID(r))
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleFunctionValidation):
+			respondProblem(w, http.StatusBadRequest, "vehicle_function_validation", "Function changes are invalid.")
+		case errors.Is(err, application.ErrVehicleFunctionConflict):
+			respondProblem(w, http.StatusConflict, "vehicle_function_conflict", "A function changed since this editor was opened. Reload and compare before saving.")
 		case errors.Is(err, application.ErrVehicleOperationalValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_operational_validation",
 				"Maximum speed must be a whole number between 1 and 1000 km/h, and home depot / operating location must not exceed 200 characters.")
@@ -61,6 +65,10 @@ func (a *App) createVehicleSet(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, application.ErrVehicleSetValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_set_validation",
 				"Set name, manufacturer, gauge, category, subtype and between 2 and 100 members are required.")
+		case errors.Is(err, application.ErrVehicleFunctionValidation):
+			respondProblem(w, http.StatusBadRequest, "vehicle_function_validation", "Function changes are invalid.")
+		case errors.Is(err, application.ErrVehicleFunctionConflict):
+			respondProblem(w, http.StatusConflict, "vehicle_function_conflict", "A function changed since this editor was opened. Reload and compare before saving.")
 		case errors.Is(err, application.ErrVehicleOperationalValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_operational_validation",
 				"Maximum speed must be a whole number between 1 and 1000 km/h, and home depot / operating location must not exceed 200 characters.")
@@ -146,6 +154,10 @@ func (a *App) updateVehicle(w http.ResponseWriter, r *http.Request) {
 	vehicle, err := a.vehicleService.Update(r.Context(), r.PathValue("id"), input, actorUserID(r))
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleFunctionValidation):
+			respondProblem(w, http.StatusBadRequest, "vehicle_function_validation", "Function changes are invalid.")
+		case errors.Is(err, application.ErrVehicleFunctionConflict):
+			respondProblem(w, http.StatusConflict, "vehicle_function_conflict", "A function changed since this editor was opened. Reload and compare before saving.")
 		case errors.Is(err, application.ErrVehicleOperationalValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_operational_validation",
 				"Maximum speed must be a whole number between 1 and 1000 km/h, and home depot / operating location must not exceed 200 characters.")

@@ -15,6 +15,9 @@ func validateCreateVehicleInput(input CreateVehicleInput) (CreateVehicleInput, e
 	if !isValidVehicleOperationalInput(input) {
 		return CreateVehicleInput{}, ErrVehicleOperationalValidation
 	}
+	if err := validateVehicleFunctionChanges(input.FunctionChanges); err != nil {
+		return CreateVehicleInput{}, err
+	}
 	return input, nil
 }
 
@@ -62,6 +65,9 @@ VALUES(?, ?, 'VehicleCreated', 'vehicle', ?, ?, '{}')
 		return nil, fmt.Errorf("write vehicle audit log: %w", err)
 	}
 	if err = saveVehicleImages(ctx, tx, vehicle.ID, input.Images, now); err != nil {
+		return nil, err
+	}
+	if err = applyVehicleFunctionChanges(ctx, tx, vehicle.ID, input.FunctionChanges, now); err != nil {
 		return nil, err
 	}
 	return &vehicle, nil
