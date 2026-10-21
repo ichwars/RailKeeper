@@ -81,9 +81,9 @@ export function DecoderLibraryModelDetail({ model, inventory, profiles, roles, s
         <p className="decoder-library-note">{t("decoderLibrary.noValueChanges")}</p>
       </>}
       {tab === "definitions" && <>
-        {model && <DecoderManufacturerReferences key={model.id} modelId={model.id} />}
+        {model && <DecoderManufacturerReferences key={`references-${model.id}`} modelId={model.id} />}
         <h5>{t("decoderLibrary.interpretation")}</h5>
-        <DecoderLibraryDefinitions key={model?.id || "standard"} profile={profile} profiles={profiles} />
+        <DecoderLibraryDefinitions key={`definitions-${model?.id || "standard"}`} profile={profile} profiles={profiles} />
       </>}
       {tab === "identification" && <>
         <h5>{t("decoderLibrary.identificationTitle")}</h5>

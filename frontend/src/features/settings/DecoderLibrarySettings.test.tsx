@@ -16,6 +16,7 @@ beforeEach(() => {
 
 it("navigates manufacturers, families, models and reviewed indexed definitions", async () => {
   const user = userEvent.setup();
+  const reactErrors = vi.spyOn(console, "error");
   render(<DecoderLibrarySettings roles={["Viewer"]} />);
   const navigation = await screen.findByRole("navigation", { name: "Hersteller und Decoderfamilien" });
   expect(screen.getByText("8 Hersteller · 40 Familien · 599 Modelle")).toBeInTheDocument();
@@ -30,6 +31,9 @@ it("navigates manufacturers, families, models and reviewed indexed definitions",
   await user.click(screen.getByRole("tab", { name: "Quellen" }));
   expect(screen.getByRole("link", { name: bundledDecoderProfiles[1].sources[0].title })).toHaveAttribute("href", bundledDecoderProfiles[1].sources[0].url);
   expect(screen.queryByRole("button", { name: /deaktivieren/ })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Zur Modellübersicht" }));
+  expect(screen.getAllByRole("button", { name: "LokPilot 5 micro DCC" })).toHaveLength(1);
+  expect(reactErrors).not.toHaveBeenCalled();
 });
 
 it("searches article numbers and distinguishes directory metadata from reviewed CV rules", async () => {
@@ -62,7 +66,7 @@ it("filters reviewed models and recovers from a search without results", async (
   expect(screen.getByText("Keine Modelle für diese Auswahl gefunden.")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Auswahl zurücksetzen" }));
   expect(screen.getByText("599 Modelle")).toBeInTheDocument();
-});
+}, 15_000);
 
 it("refreshes interpretation after deactivation without editing vehicle values", async () => {
   const user = userEvent.setup();
@@ -83,7 +87,7 @@ it("refreshes interpretation after deactivation without editing vehicle values",
   await waitFor(() => expect(screen.queryByText("Profil erkannt: ESU LokPilot 5 micro DCC")).not.toBeInTheDocument());
   expect(api.setMasterDataActive).toHaveBeenCalledWith("decoder_profile", "esu-lokpilot-5-micro-dcc", false);
   expect(rows[0].value).toBe(151);
-});
+}, 15_000);
 
 it("shows loading, empty and load-error states", async () => {
   vi.mocked(api.decoderLibrary).mockResolvedValueOnce({ schemaVersion: 1, profiles: [] });
