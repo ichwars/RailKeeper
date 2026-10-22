@@ -1327,6 +1327,69 @@ components:
           uniqueItems: true
           items:
             $ref: "#/components/schemas/DigitalCenterWriteField"
+    ECoSImageTarget:
+      type: object
+      required: [objectId, name, address, protocol]
+      properties:
+        objectId: {type: integer, minimum: 1}
+        name: {type: string}
+        address: {type: integer}
+        protocol: {type: string}
+    ECoSImageOptions:
+      type: object
+      required: [host, locomotives]
+      properties:
+        host: {type: string}
+        locomotives:
+          type: array
+          items:
+            $ref: "#/components/schemas/ECoSImageTarget"
+    ECoSImagePreview:
+      type: object
+      description: Read-only preview; one-use actor/vehicle/image/target-bound grant, valid for five minutes. A new preview replaces the same actor's previous preview. Restarting RailKeeper invalidates grants.
+      required: [token, expiresAt, host, target, current, slot, description, sha256, currentImage, newImage]
+      properties:
+        token: {type: string}
+        expiresAt: {type: string, format: date-time}
+        host: {type: string}
+        target:
+          $ref: "#/components/schemas/ECoSImageTarget"
+        current:
+          type: object
+          required: [locomotiveType, imageType, index]
+          properties:
+            locomotiveType: {type: string, enum: [LOCO_TYPE_E, LOCO_TYPE_DIESEL, LOCO_TYPE_STEAM, LOCO_TYPE_MISC]}
+            imageType: {type: string, enum: [IMAGE_TYPE_INT, IMAGE_TYPE_USER]}
+            index: {type: integer, minimum: 0}
+        slot: {type: integer, minimum: 0, maximum: 499}
+        description: {type: string, maxLength: 80}
+        sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+        currentImage: {type: string, pattern: '^data:image/png;base64,'}
+        newImage: {type: string, pattern: '^data:image/png;base64,'}
+    ECoSImageConfirmInput:
+      type: object
+      additionalProperties: false
+      required: [token, confirm]
+      properties:
+        token: {type: string}
+        confirm: {type: boolean, const: true}
+    ECoSImageResult:
+      type: object
+      description: Upload and assignment are separate device writes. Partial or ambiguous results must be inspected on the ECoS; never retry automatically or reboot the device.
+      required: [status, slot, objectId, imageVerified, assignmentVerified, auditRecorded, liveMonitor]
+      properties:
+        status: {type: string, enum: [verified, upload_unknown, image_unverified, assignment_unknown]}
+        slot: {type: integer, minimum: 0, maximum: 499}
+        objectId: {type: integer, minimum: 1}
+        imageVerified: {type: boolean}
+        assignmentVerified: {type: boolean}
+        auditRecorded: {type: boolean}
+        liveMonitor:
+          type: object
+          required: [wasRunning, restarted]
+          properties:
+            wasRunning: {type: boolean}
+            restarted: {type: boolean}
     DigitalCenterWritePreview:
       type: object
       required: [sessionId, itemId, provider, objectId, operation, direction, fields, changes, token, expiresAt]
@@ -8799,6 +8862,209 @@ paths:
           description: ECoS locomotive count
         "403":
           description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/ecos-image/options:
+    get:
+      tags: [DigitalCenters]
+      summary: Read ECoS locomotive targets for a saved vehicle
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: ECoSImageOptions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ECoSImageOptions"
+        "400":
+          description: Invalid input or missing explicit confirmation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required; POST also requires CSRF
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Vehicle or configured ECoS not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Inactive center, expired/replayed grant, occupied slot or changed preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: ECoS TCP or HTTP interface unavailable or unsupported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "503":
+          description: Workspace or audit unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/ecos-image/preview:
+    post:
+      tags: [DigitalCenters]
+      summary: Validate an image and create a read-only ECoS transfer preview
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [objectId, description, image]
+              properties:
+                objectId: {type: integer, minimum: 1}
+                description: {type: string, minLength: 1, maxLength: 80}
+                image:
+                  type: string
+                  format: binary
+                  description: Exactly 22934 bytes; uncompressed 190 × 40 Windows BMP, RGB24 with a 40-byte BITMAPINFOHEADER. Entire multipart request limited to 64 KiB. No client-supplied host, port or upload URL is accepted.
+      responses:
+        "200":
+          description: ECoSImagePreview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ECoSImagePreview"
+        "400":
+          description: Invalid input or missing explicit confirmation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required; POST also requires CSRF
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Vehicle or configured ECoS not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Inactive center, expired/replayed grant, occupied slot or changed preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: ECoS TCP or HTTP interface unavailable or unsupported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "503":
+          description: Workspace or audit unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/ecos-image/confirm:
+    post:
+      tags: [DigitalCenters]
+      summary: Upload the confirmed image once and assign it to the previewed ECoS locomotive
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ECoSImageConfirmInput"
+      responses:
+        "200":
+          description: ECoSImageResult
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ECoSImageResult"
+        "400":
+          description: Invalid input or missing explicit confirmation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required; POST also requires CSRF
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Vehicle or configured ECoS not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Inactive center, expired/replayed grant, occupied slot or changed preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: ECoS TCP or HTTP interface unavailable or unsupported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "503":
+          description: Workspace or audit unavailable
           content:
             application/json:
               schema:
