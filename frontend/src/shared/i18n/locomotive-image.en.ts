@@ -1,4 +1,8 @@
 export const locomotiveImageENTranslations: Record<string, string> = {
+  "ecosImage.error.ecos_image_form": "The ECoS upload form could not be checked. Check the user image upload page. Nothing was uploaded or assigned.",
+  "ecosImage.error.ecos_image_inventory": "The ECoS image inventory could not be checked completely. Check its user image list and try again. Nothing was uploaded or assigned.",
+  "ecosImage.error.ecos_image_read": "A locomotive image could not be read from the ECoS or has an unsupported format. Check the assigned image and user images on the ECoS. Nothing was uploaded or assigned.",
+  "ecosImage.currentMissing": "The locomotive references image slot {slot}, but that slot is empty. You can preview a new image and assign it after confirmation.",
   "ecosImage.blockedHelp": "Check the connection and target locomotive. A fresh preview and confirmation are required. Existing identical images are reused.",
   "ecosImage.result.upload_blocked": "The transfer to locomotive #{objectId} stopped before upload. No image was uploaded and no image assignment was written.",
   "ecosImage.controlHelp": "Deselect the target locomotive on both ECoS driving displays and in any other control applications. Then check and confirm a fresh preview. RailKeeper requests locomotive control before upload and never forces takeover.",

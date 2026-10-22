@@ -132,6 +132,12 @@ func (a *App) respondECoSImageError(w http.ResponseWriter, err error) {
 		respondProblem(w, http.StatusConflict, "ecos_image_slot_occupied", "The image slot is now occupied. Create a fresh preview.")
 	case errors.Is(err, ecospkg.ErrImageSlotsFull):
 		respondProblem(w, http.StatusConflict, "ecos_image_slots_full", "No free user image slot was found.")
+	case errors.Is(err, ecospkg.ErrImageRead):
+		respondProblem(w, http.StatusBadGateway, "ecos_image_read", "An ECoS image could not be read or has an unsupported format. No device write was started.")
+	case errors.Is(err, ecospkg.ErrImageInventory):
+		respondProblem(w, http.StatusBadGateway, "ecos_image_inventory", "The ECoS image inventory could not be checked completely. No device write was started.")
+	case errors.Is(err, ecospkg.ErrImageUploadForm):
+		respondProblem(w, http.StatusBadGateway, "ecos_image_form", "The ECoS image upload form could not be checked. No device write was started.")
 	case errors.Is(err, ecospkg.ErrImageWeb):
 		respondProblem(w, http.StatusBadGateway, "ecos_image_web", "The ECoS web interface on port 80 is unavailable or incompatible.")
 	case errors.Is(err, application.ErrDigitalCenterPreviewStale), errors.Is(err, application.ErrDigitalCenterGrantMismatch),

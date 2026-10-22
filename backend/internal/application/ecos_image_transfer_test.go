@@ -67,25 +67,40 @@ func (d *imageDeviceStub) Assign(_ context.Context, index int) error {
 }
 
 type imageWebStub struct {
-	address     string
-	image       []byte
-	uploads     int
-	uploadError error
-	checkError  error
-	storedError error
-	badImage    bool
-	afterUpload func()
-	existing    bool
+	address      string
+	image        []byte
+	uploads      int
+	uploadError  error
+	checkError   error
+	storedError  error
+	badImage     bool
+	afterUpload  func()
+	existing     bool
+	storedBySlot map[int]error
+	readErrors   map[int]error
+	imageReads   map[int]int
 }
 
 func (w *imageWebStub) Address() string { return w.address }
 func (w *imageWebStub) FindImageSlot(context.Context, []byte) (int, bool, error) {
 	return 7, w.existing, nil
 }
-func (w *imageWebStub) CheckFreeSlot(context.Context, int) error   { return w.checkError }
-func (w *imageWebStub) CheckStoredSlot(context.Context, int) error { return w.storedError }
+func (w *imageWebStub) CheckFreeSlot(context.Context, int) error { return w.checkError }
+func (w *imageWebStub) CheckStoredSlot(_ context.Context, index int) error {
+	if err, ok := w.storedBySlot[index]; ok {
+		return err
+	}
+	return w.storedError
+}
 func (w *imageWebStub) CheckUploadForm(context.Context, int) error { return nil }
-func (w *imageWebStub) ReadImage(_ context.Context, kind string, _ int) ([]byte, error) {
+func (w *imageWebStub) ReadImage(_ context.Context, kind string, index int) ([]byte, error) {
+	if w.imageReads == nil {
+		w.imageReads = map[int]int{}
+	}
+	w.imageReads[index]++
+	if err := w.readErrors[index]; err != nil {
+		return nil, err
+	}
 	if w.badImage && kind == "user" {
 		return []byte("invalid"), nil
 	}

@@ -28,6 +28,9 @@ const ImageBMPSize = 22934 // 54-byte header + 572-byte rows, 190 × 40 RGB24.
 var (
 	ErrImageFormat       = errors.New("invalid ECoS image format")
 	ErrImageWeb          = errors.New("unsupported or unreachable ECoS image web interface")
+	ErrImageRead         = errors.New("ECoS image could not be read")
+	ErrImageInventory    = errors.New("ECoS image inventory could not be checked")
+	ErrImageUploadForm   = errors.New("ECoS image upload form could not be checked")
 	ErrImageSlotOccupied = errors.New("ECoS image slot is occupied")
 	ErrImageNotStored    = errors.New("ECoS image slot is still free after upload")
 	ErrImageSlotsFull    = errors.New("ECoS image slots are full")
@@ -194,7 +197,12 @@ func (web *ImageWeb) CheckStoredSlot(ctx context.Context, index int) error {
 	return web.checkSlot(ctx, index, true)
 }
 
-func (web *ImageWeb) checkSlot(ctx context.Context, index int, occupied bool) error {
+func (web *ImageWeb) checkSlot(ctx context.Context, index int, occupied bool) (err error) {
+	defer func() {
+		if err != nil && !errors.Is(err, ErrImageSlotOccupied) && !errors.Is(err, ErrImageNotStored) {
+			err = fmt.Errorf("%w: slot %d: %w", ErrImageInventory, index, err)
+		}
+	}()
 	if index < 0 || index > 499 {
 		return ErrImageWeb
 	}
@@ -215,7 +223,12 @@ func (web *ImageWeb) checkSlot(ctx context.Context, index int, occupied bool) er
 	return nil
 }
 
-func (web *ImageWeb) ReadImage(ctx context.Context, kind string, index int) ([]byte, error) {
+func (web *ImageWeb) ReadImage(ctx context.Context, kind string, index int) (result []byte, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("%w: %s slot %d: %w", ErrImageRead, kind, index, err)
+		}
+	}()
 	if (kind != "user" && kind != "system") || index < 0 || index > 65535 {
 		return nil, ErrImageWeb
 	}
@@ -242,7 +255,12 @@ func (web *ImageWeb) ReadImage(ctx context.Context, kind string, index int) ([]b
 	return normalized.Bytes(), nil
 }
 
-func (web *ImageWeb) CheckUploadForm(ctx context.Context, index int) error {
+func (web *ImageWeb) CheckUploadForm(ctx context.Context, index int) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("%w: slot %d: %w", ErrImageUploadForm, index, err)
+		}
+	}()
 	if index < 0 || index > 499 {
 		return ErrImageWeb
 	}

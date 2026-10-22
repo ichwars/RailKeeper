@@ -60,6 +60,19 @@ can be assigned. RailKeeper never restarts the station automatically.
   bytes/hash, target name/address/protocol/descriptor, old image, free slot and configured center.
   The store holds at most 64 grants, one per actor; a new preview invalidates that actor's
   preceding preview. Restart discards all grants. Neither grants nor image buffers enter backups.
+- A locomotive can retain a `USER` image reference after that image was deleted on the
+  station. A complete inventory reporting that referenced slot free is represented as
+  `currentImageMissing: true` with an empty `currentImage`. Preview shows a specific
+  warning and still allows a reviewed replacement. Confirmation and the control-held
+  pre-upload check verify that the slot remains empty; refilling it invalidates preview.
+  A 404, unreadable image or failed inventory alone never proves absence and never
+  permits this fallback. This stale reference was observed on firmware 4.3.3 while the
+  web interface and upload form remained reachable.
+- API errors distinguish image content/read failures (`ecos_image_read`), incomplete
+  inventory checks (`ecos_image_inventory`), unsupported/unreadable upload forms
+  (`ecos_image_form`) and connection/interface checks (`ecos_image_web`). UI text identifies
+  the failed preparation step instead of treating every image failure as an unreachable
+  HTTP service. None of these preview errors start an image upload or assignment.
 - The existing workspace operation mutex serializes transfers and workspace operations. Before
   the first write, RailKeeper consumes the grant, pauses passive monitoring, rechecks identity,
   descriptor, current image and free slot, and records audit intent. An unavailable audit store

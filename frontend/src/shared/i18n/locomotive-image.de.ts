@@ -1,4 +1,8 @@
 export const locomotiveImageDETranslations: Record<string, string> = {
+  "ecosImage.error.ecos_image_form": "Das Uploadformular der ECoS konnte nicht geprüft werden. Prüfe die Seite zum Hochladen von Benutzerbildern. Es wurde nichts hochgeladen oder zugeordnet.",
+  "ecosImage.error.ecos_image_inventory": "Der Bildbestand der ECoS konnte nicht vollständig geprüft werden. Prüfe die Benutzerbildliste und versuche es erneut. Es wurde nichts hochgeladen oder zugeordnet.",
+  "ecosImage.error.ecos_image_read": "Ein Lokbild konnte nicht von der ECoS gelesen werden oder hat ein nicht unterstütztes Format. Prüfe das zugeordnete Bild und die Benutzerbilder auf der ECoS. Es wurde nichts hochgeladen oder zugeordnet.",
+  "ecosImage.currentMissing": "Der Lok ist Bildplatz {slot} zugeordnet, dieser ist aber leer. Du kannst ein neues Bild prüfen und nach Bestätigung zuordnen.",
   "ecosImage.blockedHelp": "Prüfe die Verbindung und die Ziel-Lok. Eine neue Vorschau und Bestätigung sind erforderlich. Vorhandene identische Bilder werden wiederverwendet.",
   "ecosImage.result.upload_blocked": "Die Übertragung zu Lok #{objectId} wurde vor dem Upload abgebrochen. Es wurde kein Bild hochgeladen und keine Bildzuordnung geschrieben.",
   "ecosImage.controlHelp": "Wähle die Ziel-Lok an beiden ECoS-Fahrreglern und gegebenenfalls anderen Steuerprogrammen ab. Prüfe danach die Vorschau erneut und bestätige sie. RailKeeper fordert die Loksteuerung vor dem Upload an und erzwingt keine Übernahme.",
