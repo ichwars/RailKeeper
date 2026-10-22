@@ -125,9 +125,9 @@ func TestImageUploadUsesOnlyKnownEndpointAndRechecksSlot(t *testing.T) {
 				switch r.URL.Path {
 				case "/fcgi/ecos-locoimages":
 					gets++
-					io.WriteString(w, imagePage(0, func(i int) bool { return i == 0 || occupied && i == 1 }))
+					_, _ = io.WriteString(w, imagePage(0, func(i int) bool { return i == 0 || occupied && i == 1 }))
 				case "/fcgi/ecos-uploadimage":
-					io.WriteString(w, imageForm(1))
+					_, _ = io.WriteString(w, imageForm(1))
 				case "/fcgi/ecos-douploadimage":
 					if r.Method != "POST" {
 						t.Error("not POST")
@@ -137,7 +137,7 @@ func TestImageUploadUsesOnlyKnownEndpointAndRechecksSlot(t *testing.T) {
 						t.Error(err)
 						return
 					}
-					defer r.MultipartForm.RemoveAll()
+					defer func() { _ = r.MultipartForm.RemoveAll() }()
 					if r.FormValue("id") != "1" || r.FormValue("type") != "d" || r.FormValue("desc") != "BR 218" {
 						t.Error("wrong form fields")
 					}
@@ -146,7 +146,7 @@ func TestImageUploadUsesOnlyKnownEndpointAndRechecksSlot(t *testing.T) {
 						t.Error(err)
 						return
 					}
-					defer f.Close()
+					defer func() { _ = f.Close() }()
 					data, _ := io.ReadAll(f)
 					if !bytes.Equal(data, testImageBMP()) {
 						t.Error("changed uploaded image")
@@ -189,7 +189,7 @@ func TestImagePageRequiresCompleteUnambiguousInventory(t *testing.T) {
 func TestImageFindFreeSlotFollowsOnlyBoundedPagination(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		page, _ := strconv.Atoi(r.URL.Query().Get("start"))
-		io.WriteString(w, imagePage(page, func(i int) bool { return i < 51 }))
+		_, _ = io.WriteString(w, imagePage(page, func(i int) bool { return i < 51 }))
 	}))
 	defer server.Close()
 	web := &ImageWeb{base: server.URL, client: server.Client()}
@@ -213,7 +213,7 @@ func TestImageWebNeverFollowsRedirectsOrRetriesFailedUpload(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
 				case "/fcgi/ecos-locoimages":
-					io.WriteString(w, imagePage(0, func(int) bool { return false }))
+					_, _ = io.WriteString(w, imagePage(0, func(int) bool { return false }))
 				case "/fcgi/ecos-uploadimage":
 					if mode == "redirect" {
 						http.Redirect(w, r, "/login", http.StatusFound)
@@ -223,13 +223,13 @@ func TestImageWebNeverFollowsRedirectsOrRetriesFailedUpload(t *testing.T) {
 					if mode == "changed_form" {
 						form = strings.Replace(form, "ecos-douploadimage", "other-endpoint", 1)
 					}
-					io.WriteString(w, form)
+					_, _ = io.WriteString(w, form)
 				case "/fcgi/ecos-douploadimage":
 					posts++
 					w.WriteHeader(http.StatusBadGateway)
 				case "/login":
 					redirects++
-					io.WriteString(w, "login")
+					_, _ = io.WriteString(w, "login")
 				default:
 					t.Errorf("unexpected path %s", r.URL)
 				}
@@ -263,9 +263,9 @@ func TestImageWebReadsInternalPreviewAndRequiresStoredUploadSlot(t *testing.T) {
 			if r.URL.Query().Get("type") != "internal" || r.URL.Query().Get("index") != "118" {
 				t.Errorf("wrong image query %s", r.URL)
 			}
-			w.Write(pngBytes.Bytes())
+			_, _ = w.Write(pngBytes.Bytes())
 		case "/fcgi/ecos-locoimages":
-			io.WriteString(w, imagePage(0, func(i int) bool { return i == 1 }))
+			_, _ = io.WriteString(w, imagePage(0, func(i int) bool { return i == 1 }))
 		default:
 			t.Errorf("unexpected path %s", r.URL)
 		}

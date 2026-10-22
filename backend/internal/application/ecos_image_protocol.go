@@ -66,7 +66,7 @@ func (s *ECoSService) AssignUserImage(ctx context.Context, input ECoSConnectionI
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	exchange := func(command string) error {
 		if err := s.client.Send(conn, command); err != nil {
 			return err

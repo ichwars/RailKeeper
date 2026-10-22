@@ -40,7 +40,7 @@ func (a *App) previewECoSImage(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusBadRequest, "ecos_image_input", "A 190 × 40 RGB24 BMP and target locomotive are required.")
 		return
 	}
-	defer r.MultipartForm.RemoveAll()
+	defer func() { _ = r.MultipartForm.RemoveAll() }()
 	if len(r.MultipartForm.Value) != 2 || len(r.MultipartForm.Value["objectId"]) != 1 ||
 		len(r.MultipartForm.Value["description"]) != 1 || len(r.MultipartForm.File) != 1 || len(r.MultipartForm.File["image"]) != 1 {
 		respondProblem(w, http.StatusBadRequest, "ecos_image_input", "Unexpected or missing image transfer fields.")
@@ -56,7 +56,7 @@ func (a *App) previewECoSImage(w http.ResponseWriter, r *http.Request) {
 		a.respondECoSImageError(w, application.ErrECoSImageInput)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	data, err := io.ReadAll(io.LimitReader(file, ecospkg.ImageBMPSize+1))
 	if err != nil || len(data) > ecospkg.ImageBMPSize {
 		a.respondECoSImageError(w, application.ErrECoSImageInput)

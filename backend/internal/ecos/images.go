@@ -102,7 +102,7 @@ func (web *ImageWeb) request(ctx context.Context, method, path, contentType stri
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrImageWeb, err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		return nil, ErrImageWeb
 	}
@@ -370,7 +370,7 @@ func VerifyImage(sourceBMP, deviceImage []byte) bool {
 					index = 0
 					distance := uint32(1 << 17)
 					for candidate, level := range levels[channel] {
-						delta := level
+						var delta uint32
 						if value > level {
 							delta = value - level
 						} else {

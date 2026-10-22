@@ -40,7 +40,7 @@ func TestECoSImageAssignmentUsesControlWithoutForceAndOnlyLocodesc(t *testing.T)
 				}
 				return []string{"<REPLY " + command + ">", end}
 			})
-			defer listener.Close()
+			defer func() { _ = listener.Close() }()
 			host, port := splitTestAddress(t, listener.Addr().String())
 			err := NewECoSService().AssignUserImage(t.Context(), ECoSConnectionInput{Host: host, Port: port}, 1001, 7)
 			mu.Lock()
