@@ -846,12 +846,21 @@ func (s *ECoSService) ProbeLocomotiveRaw(ctx context.Context, input ECoSConnecti
 		supported := map[string]bool{}
 		missing := map[string]bool{}
 		for _, probe := range probes {
+			if !probe.OK || probe.Error != "" {
+				continue
+			}
 			for _, detail := range parseECoSLocomotives(probe.RawLines) {
 				if detail.ObjectID == raw.ObjectID {
 					mergeECoSRawLocomotive(&raw, detail)
 				}
 			}
-			for key, values := range probe.Attributes {
+			objectLines := []string{}
+			for _, line := range probe.RawLines {
+				if strings.HasPrefix(line, strconv.Itoa(raw.ObjectID)+" ") {
+					objectLines = append(objectLines, line)
+				}
+			}
+			for key, values := range parseECoSAttributes(objectLines) {
 				raw.Attributes[key] = append(raw.Attributes[key], values...)
 				supported[strings.ToLower(key)] = true
 			}
@@ -1250,7 +1259,7 @@ func interestingECoSFields(attributes map[string][]string) []string {
 func parseECoSCVValues(attributes map[string][]string) []ECoSCVValue {
 	parsed := map[int]int{}
 	add := func(number int, value int) {
-		if number <= 0 {
+		if !validCVNumber(number) || !validCVValue(value) {
 			return
 		}
 		parsed[number] = value
@@ -1263,12 +1272,18 @@ func parseECoSCVValues(attributes map[string][]string) []ECoSCVValue {
 			parts := splitECoSParams(value)
 			if len(parts) >= 2 {
 				for index := 0; index+1 < len(parts); index += 2 {
-					add(parseECoSInt(parts[index]), parseECoSInt(parts[index+1]))
+					number, numberErr := strconv.Atoi(strings.TrimSpace(parts[index]))
+					cvValue, valueErr := strconv.Atoi(strings.TrimSpace(parts[index+1]))
+					if numberErr == nil && valueErr == nil {
+						add(number, cvValue)
+					}
 				}
 				continue
 			}
 			if keyNumber > 0 && len(parts) == 1 {
-				add(keyNumber, parseECoSInt(parts[0]))
+				if cvValue, err := strconv.Atoi(strings.TrimSpace(parts[0])); err == nil {
+					add(keyNumber, cvValue)
+				}
 				continue
 			}
 			number, cvValue, ok := parseECoSCVTextPair(value)
@@ -1330,9 +1345,9 @@ func parseECoSCVTextPair(value string) (int, int, bool) {
 		if len(parts) != 2 {
 			continue
 		}
-		number := parseECoSInt(parts[0])
-		cvValue := parseECoSInt(parts[1])
-		if number > 0 {
+		number, numberErr := strconv.Atoi(strings.TrimSpace(parts[0]))
+		cvValue, valueErr := strconv.Atoi(strings.TrimSpace(parts[1]))
+		if numberErr == nil && valueErr == nil && validCVNumber(number) && validCVValue(cvValue) {
 			return number, cvValue, true
 		}
 	}
