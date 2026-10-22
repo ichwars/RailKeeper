@@ -106,6 +106,20 @@ it("explains HTTP firewall failures", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("Port 80");
 });
 
+it("explains a slot still reported free without claiming the image was stored or retrying", async () => {
+  vi.mocked(api.confirmECoSImage).mockResolvedValueOnce({
+    ...result, status: "image_not_stored", imageVerified: false, assignmentVerified: false
+  });
+  render(panel()); await openPreview();
+  fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(screen.getByRole("button", { name: "Jetzt hochladen und zuordnen" }));
+  expect(await screen.findByText(/Bildplatz 7 nach dem Upload weiterhin als frei/)).toBeVisible();
+  expect(screen.getByText(/Ein weiterer Upload benötigt eine neue Vorschau und Bestätigung/)).toBeVisible();
+  expect(screen.queryByText(/bereits hochgeladene Bild dort zuordnen/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Jetzt hochladen und zuordnen" })).not.toBeInTheDocument();
+  expect(api.confirmECoSImage).toHaveBeenCalledExactlyOnceWith("vehicle-1", "once");
+});
+
 it("blocks transfer when the station has no target locomotives", async () => {
   vi.mocked(api.ecosImageOptions).mockResolvedValueOnce({ host: "ecos.local", locomotives: [] });
   render(panel()); fireEvent.click(screen.getByRole("button", { name: "Direkt an ECoS übertragen …" }));

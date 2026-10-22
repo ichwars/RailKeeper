@@ -49,6 +49,7 @@ type imageWebStub struct {
 	uploads     int
 	uploadError error
 	checkError  error
+	storedError error
 	badImage    bool
 	afterUpload func()
 }
@@ -56,7 +57,7 @@ type imageWebStub struct {
 func (w *imageWebStub) Address() string                            { return w.address }
 func (w *imageWebStub) FindFreeSlot(context.Context) (int, error)  { return 7, nil }
 func (w *imageWebStub) CheckFreeSlot(context.Context, int) error   { return w.checkError }
-func (w *imageWebStub) CheckStoredSlot(context.Context, int) error { return nil }
+func (w *imageWebStub) CheckStoredSlot(context.Context, int) error { return w.storedError }
 func (w *imageWebStub) CheckUploadForm(context.Context, int) error { return nil }
 func (w *imageWebStub) ReadImage(_ context.Context, kind string, _ int) ([]byte, error) {
 	if w.badImage && kind == "user" {
@@ -190,7 +191,7 @@ func TestECoSImageConfirmationRejectsChangedTargetsAndGrants(t *testing.T) {
 }
 
 func TestECoSImageReportsPartialResultsWithoutRetryOrUnsafeAssignment(t *testing.T) {
-	for _, status := range []string{"upload_unknown", "image_unverified", "assignment_unknown", "concurrent_change"} {
+	for _, status := range []string{"upload_unknown", "image_not_stored", "inventory_unavailable", "image_unverified", "assignment_unknown", "concurrent_change"} {
 		t.Run(status, func(t *testing.T) {
 			s, d, w, _, data := imageTransferFixture(t)
 			p := previewImage(t, s, data)
@@ -199,6 +200,10 @@ func TestECoSImageReportsPartialResultsWithoutRetryOrUnsafeAssignment(t *testing
 				w.uploadError = errors.New("lost reply")
 			case "image_unverified":
 				w.badImage = true
+			case "image_not_stored":
+				w.storedError = ecospkg.ErrImageNotStored
+			case "inventory_unavailable":
+				w.storedError = ecospkg.ErrImageWeb
 			case "assignment_unknown":
 				d.assignError = ErrECoSWriteStateUnknown
 			case "concurrent_change":
@@ -209,11 +214,24 @@ func TestECoSImageReportsPartialResultsWithoutRetryOrUnsafeAssignment(t *testing
 			if want == "concurrent_change" {
 				want = "assignment_unknown"
 			}
+			if want == "inventory_unavailable" {
+				want = "image_unverified"
+			}
 			if err != nil || result.Status != want || w.uploads != 1 || result.AssignmentVerified {
 				t.Fatalf("result=%+v err=%v uploads=%d", result, err, w.uploads)
 			}
 			if status != "assignment_unknown" && d.assigns != 0 {
 				t.Fatal("assigned an unverified/changed target")
+			}
+			if (status == "image_not_stored" || status == "inventory_unavailable") && result.ImageVerified {
+				t.Fatal("verified an image without a confirmed occupied slot")
+			}
+			entries := s.auth.(*digitalCenterWriteAuditStub).entries
+			if !result.AuditRecorded || len(entries) != 2 || !strings.Contains(entries[1].details, `"status":"`+want+`"`) {
+				t.Fatal("partial result not recorded in audit log")
+			}
+			if _, err := s.ConfirmECoSImage(t.Context(), "vehicle-1", ECoSImageConfirmInput{Token: p.Token, Confirm: true}, "admin"); !errors.Is(err, ErrDigitalCenterGrantMismatch) || w.uploads != 1 {
+				t.Fatal("repeated a partial transfer with its consumed confirmation")
 			}
 		})
 	}

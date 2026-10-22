@@ -133,23 +133,34 @@ func TestImageUploadUsesOnlyKnownEndpointAndRechecksSlot(t *testing.T) {
 						t.Error("not POST")
 					}
 					posts++
-					if err := r.ParseMultipartForm(64 << 10); err != nil {
-						t.Error(err)
-						return
+					if r.ContentLength <= ImageBMPSize || len(r.TransferEncoding) != 0 {
+						t.Error("upload must have a known length without chunked encoding")
 					}
-					defer func() { _ = r.MultipartForm.RemoveAll() }()
-					if r.FormValue("id") != "1" || r.FormValue("type") != "d" || r.FormValue("desc") != "BR 218" {
-						t.Error("wrong form fields")
-					}
-					f, _, err := r.FormFile("uploaded_file")
+					reader, err := r.MultipartReader()
 					if err != nil {
 						t.Error(err)
 						return
 					}
-					defer func() { _ = f.Close() }()
-					data, _ := io.ReadAll(f)
-					if !bytes.Equal(data, testImageBMP()) {
-						t.Error("changed uploaded image")
+					// Model the actual ECoS HTML form submission on the wire, rather
+					// than accepting Go's unordered parsed form with any file media type.
+					for _, field := range [][2]string{{"desc", "BR 218"}, {"type", "d"},
+						{"uploaded_file", string(testImageBMP())}, {"lang", "en"}, {"id", "1"},
+						{"start", "0"}, {"items", "50"}, {"submit", "Submit"}} {
+						part, err := reader.NextPart()
+						if err != nil {
+							t.Error(err)
+							return
+						}
+						data, err := io.ReadAll(part)
+						if err != nil || part.FormName() != field[0] || string(data) != field[1] {
+							t.Errorf("unexpected multipart field, wanted %s, got %s (read error %v)", field[0], part.FormName(), err)
+						}
+						if field[0] == "uploaded_file" && (part.FileName() != "railkeeper.bmp" || part.Header.Get("Content-Type") != "image/bmp") {
+							t.Error("file must be submitted as image/bmp with a fixed BMP filename")
+						}
+					}
+					if _, err := reader.NextPart(); !errors.Is(err, io.EOF) {
+						t.Error("unexpected extra multipart field")
 					}
 				default:
 					t.Errorf("unexpected request %s", r.URL)
@@ -278,7 +289,25 @@ func TestImageWebReadsInternalPreviewAndRequiresStoredUploadSlot(t *testing.T) {
 	if err := web.CheckStoredSlot(t.Context(), 1); err != nil {
 		t.Fatal(err)
 	}
-	if err := web.CheckStoredSlot(t.Context(), 2); err == nil {
-		t.Fatal("accepted an empty upload slot")
+	if err := web.CheckStoredSlot(t.Context(), 2); !errors.Is(err, ErrImageNotStored) {
+		t.Fatalf("empty slot must report not stored, got %v", err)
+	}
+}
+
+func TestImageWebDoesNotReportNotStoredForUnreadableInventory(t *testing.T) {
+	for _, response := range []string{"<html>Login</html>", "unavailable"} {
+		t.Run(response, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				if response == "unavailable" {
+					w.WriteHeader(http.StatusServiceUnavailable)
+				}
+				_, _ = io.WriteString(w, response)
+			}))
+			defer server.Close()
+			web := &ImageWeb{base: server.URL, client: server.Client()}
+			if err := web.CheckStoredSlot(t.Context(), 1); !errors.Is(err, ErrImageWeb) || errors.Is(err, ErrImageNotStored) {
+				t.Fatalf("unreadable inventory misreported as empty slot: %v", err)
+			}
+		})
 	}
 }

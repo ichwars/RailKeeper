@@ -1378,7 +1378,7 @@ components:
       description: Upload and assignment are separate device writes. Partial or ambiguous results must be inspected on the ECoS; never retry automatically or reboot the device.
       required: [status, slot, objectId, imageVerified, assignmentVerified, auditRecorded, liveMonitor]
       properties:
-        status: {type: string, enum: [verified, upload_unknown, image_unverified, assignment_unknown]}
+        status: {type: string, enum: [verified, upload_unknown, image_not_stored, image_unverified, assignment_unknown]}
         slot: {type: integer, minimum: 0, maximum: 499}
         objectId: {type: integer, minimum: 1}
         imageVerified: {type: boolean}

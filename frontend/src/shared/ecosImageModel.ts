@@ -13,7 +13,7 @@ export type ECoSImagePreview = {
   newImage: string;
 };
 export type ECoSImageResult = {
-  status: "verified" | "upload_unknown" | "image_unverified" | "assignment_unknown";
+  status: "verified" | "upload_unknown" | "image_not_stored" | "image_unverified" | "assignment_unknown";
   slot: number;
   objectId: number;
   imageVerified: boolean;

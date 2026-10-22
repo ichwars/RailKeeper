@@ -26,6 +26,11 @@ Vehicle edits, local original images, CV values and external mappings are not mo
   50-slot pages before writing; changed/login pages fail closed. Only advertised pagination
   is read, bounded to 500 image slots. These web endpoints are observed firmware behavior,
   not a vendor guarantee for every firmware version.
+- The multipart request follows the observed form order (`desc`, `type`, file, then hidden
+  fields and submit), with fixed filename `railkeeper.bmp`, `Content-Type: image/bmp` and a
+  known request length. A generic binary file type and unordered fields are avoided for
+  compatibility with the embedded upload handler. This is browser-form compatibility,
+  not evidence that a particular firmware rejects every other valid multipart request.
 - The existing [ESU format evidence](locomotive-image-export.md) supplies 190 × 40 RGB24 BMP.
   The exact output is 22,934 bytes, with a 40-byte Windows DIB header and 572-byte aligned rows.
 
@@ -62,11 +67,14 @@ can be assigned. RailKeeper never restarts the station automatically.
   Unrecognized conversions fail verification and prevent assignment. Only verified images reach
   the separate `locodesc` assignment, under `request(id, control)` without `force`, followed by
   release and a descriptor readback. No speed, direction, functions, address or CV is written.
-- Upload and assignment cannot be atomic. `upload_unknown`, `image_unverified` and
+- Upload and assignment cannot be atomic. `upload_unknown`, `image_not_stored`, `image_unverified` and
   `assignment_unknown` preserve the chosen slot and object ID, explain possible partial effects
   and direct the user to inspect the ECoS. No POST is retried, no rollback/delete or reboot is
   attempted. A lost browser reply is also explicitly uncertain. An already uploaded image can be
   assigned manually on the ECoS; the first version does not retry assignment independently.
+  `image_not_stored` specifically means a complete refreshed inventory still reports the slot
+  as free. An unreadable or changed inventory remains `image_unverified`; it never proves the
+  image absent. Neither case allows assignment or an automatic repeat of the upload.
 - Audit intent and result contain actor, vehicle, object ID, slot and source SHA-256, never token,
   image bytes or credentials. A result audit failure is reported without hiding verified effects.
 
