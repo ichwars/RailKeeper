@@ -18,10 +18,14 @@ import (
 
 type imageDeviceStub struct {
 	workspaceECoSReaderStub
-	loco        ECoSLocomotive
-	descriptor  ECoSImageDescriptor
-	assigns     int
-	assignError error
+	loco               ECoSLocomotive
+	descriptor         ECoSImageDescriptor
+	assigns            int
+	assignError        error
+	controlError       error
+	acquires, releases int
+	controlled         bool
+	afterAcquire       func()
 }
 
 func (d *imageDeviceStub) ListLocomotives(context.Context, ECoSConnectionInput) ([]ECoSLocomotive, error) {
@@ -33,8 +37,27 @@ func (d *imageDeviceStub) ReadLocomotive(context.Context, ECoSConnectionInput, i
 func (d *imageDeviceStub) ReadImageDescriptor(context.Context, ECoSConnectionInput, int) (ECoSImageDescriptor, error) {
 	return d.descriptor, nil
 }
-func (d *imageDeviceStub) AssignUserImage(_ context.Context, _ ECoSConnectionInput, _ int, index int) error {
+func (d *imageDeviceStub) AcquireImageControl(context.Context, ECoSConnectionInput, int) (ECoSImageControl, error) {
+	d.acquires++
+	if d.controlError != nil {
+		return nil, d.controlError
+	}
+	d.controlled = true
+	if d.afterAcquire != nil {
+		d.afterAcquire()
+	}
+	return d, nil
+}
+func (d *imageDeviceStub) Close() error {
+	d.releases++
+	d.controlled = false
+	return nil
+}
+func (d *imageDeviceStub) Assign(_ context.Context, index int) error {
 	d.assigns++
+	if !d.controlled {
+		return errors.New("no control reservation")
+	}
 	if d.assignError != nil {
 		return d.assignError
 	}
@@ -52,10 +75,13 @@ type imageWebStub struct {
 	storedError error
 	badImage    bool
 	afterUpload func()
+	existing    bool
 }
 
-func (w *imageWebStub) Address() string                            { return w.address }
-func (w *imageWebStub) FindFreeSlot(context.Context) (int, error)  { return 7, nil }
+func (w *imageWebStub) Address() string { return w.address }
+func (w *imageWebStub) FindImageSlot(context.Context, []byte) (int, bool, error) {
+	return 7, w.existing, nil
+}
 func (w *imageWebStub) CheckFreeSlot(context.Context, int) error   { return w.checkError }
 func (w *imageWebStub) CheckStoredSlot(context.Context, int) error { return w.storedError }
 func (w *imageWebStub) CheckUploadForm(context.Context, int) error { return nil }

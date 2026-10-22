@@ -1366,7 +1366,7 @@ components:
         sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
         currentImage: {type: string, pattern: '^data:image/png;base64,'}
         newImage: {type: string, pattern: '^data:image/png;base64,'}
-        existingImage: {type: boolean, description: True for assignment-only reuse of a pixel-verified stored image.}
+        existingImage: {type: boolean, description: True for assignment-only reuse of a pixel-verified stored image. Identical images are detected automatically during preview.}
     ECoSImageConfirmInput:
       type: object
       additionalProperties: false
@@ -1376,10 +1376,10 @@ components:
         confirm: {type: boolean, const: true}
     ECoSImageResult:
       type: object
-      description: Upload and assignment are separate device writes. Partial or ambiguous results must be inspected on the ECoS; never retry automatically or reboot the device.
+      description: Locomotive control is reserved on the same connection before upload. control_busy and upload_blocked mean no image POST or assignment was sent. Upload and assignment remain separate device writes; later partial or ambiguous results require a fresh preview, which reuses verified identical images. Never retry writes automatically or reboot the device.
       required: [status, slot, objectId, imageVerified, assignmentVerified, auditRecorded, liveMonitor]
       properties:
-        status: {type: string, enum: [verified, upload_unknown, image_not_stored, image_unverified, assignment_unknown, control_busy]}
+        status: {type: string, enum: [verified, upload_blocked, upload_unknown, image_not_stored, image_unverified, assignment_unknown, control_busy]}
         slot: {type: integer, minimum: 0, maximum: 499}
         objectId: {type: integer, minimum: 1}
         imageVerified: {type: boolean}

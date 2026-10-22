@@ -60,7 +60,7 @@ type ECoSImageConfirmInput struct {
 }
 
 type ECoSImageResult struct {
-	Status             string                       `json:"status"` // verified, upload_unknown, image_not_stored, image_unverified, assignment_unknown, control_busy
+	Status             string                       `json:"status"` // verified, upload_blocked, upload_unknown, image_not_stored, image_unverified, assignment_unknown, control_busy
 	Slot               int                          `json:"slot"`
 	ObjectID           int                          `json:"objectId"`
 	ImageVerified      bool                         `json:"imageVerified"`
@@ -83,12 +83,12 @@ type ecosImageDevice interface {
 	ListLocomotives(context.Context, ECoSConnectionInput) ([]ECoSLocomotive, error)
 	ReadLocomotive(context.Context, ECoSConnectionInput, int) (ECoSLocomotive, error)
 	ReadImageDescriptor(context.Context, ECoSConnectionInput, int) (ECoSImageDescriptor, error)
-	AssignUserImage(context.Context, ECoSConnectionInput, int, int) error
+	AcquireImageControl(context.Context, ECoSConnectionInput, int) (ECoSImageControl, error)
 }
 
 type ecosImageWeb interface {
 	Address() string
-	FindFreeSlot(context.Context) (int, error)
+	FindImageSlot(context.Context, []byte) (int, bool, error)
 	CheckUploadForm(context.Context, int) error
 	CheckFreeSlot(context.Context, int) error
 	CheckStoredSlot(context.Context, int) error
@@ -198,7 +198,7 @@ func (service *DigitalCenterWorkspaceService) PreviewECoSImage(ctx context.Conte
 		if err != nil {
 			return err
 		}
-		slot, err := previewECoSImageSlot(ctx, web, input)
+		slot, existingImage, err := previewECoSImageSlot(ctx, web, input)
 		if err != nil {
 			return err
 		}
@@ -228,7 +228,7 @@ func (service *DigitalCenterWorkspaceService) PreviewECoSImage(ctx context.Conte
 		}
 		result = ECoSImagePreview{Token: token, ExpiresAt: now.Add(5 * time.Minute).Format(time.RFC3339), Host: center.Host,
 			Target: imageTarget(locomotive), Current: descriptor, Slot: slot, Description: strings.TrimSpace(input.Description),
-			SHA256: hex.EncodeToString(digest[:]), CurrentImage: imageDataURL(oldImage), NewImage: imageDataURL(encoded.Bytes()), ExistingImage: input.ExistingSlot != nil}
+			SHA256: hex.EncodeToString(digest[:]), CurrentImage: imageDataURL(oldImage), NewImage: imageDataURL(encoded.Bytes()), ExistingImage: existingImage}
 		service.imageGrants[hash] = ecosImageGrant{preview: result, actor: actor, vehicleID: vehicleID, center: center,
 			pinnedHost: web.Address(), data: bytes.Clone(input.BMP), expires: now.Add(5 * time.Minute)}
 		return nil
@@ -331,55 +331,11 @@ func (service *DigitalCenterWorkspaceService) confirmECoSImageGrant(ctx context.
 	if err := service.auditECoSImage(ctx, grant, "confirmed"); err != nil {
 		return err
 	}
-	*result = ECoSImageResult{Status: "upload_unknown", Slot: preview.Slot, ObjectID: preview.Target.ObjectID}
+	*result = ECoSImageResult{Status: "upload_blocked", Slot: preview.Slot, ObjectID: preview.Target.ObjectID, ImageVerified: preview.ExistingImage}
 	writeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 45*time.Second)
 	defer cancel()
 	defer func() { result.AuditRecorded = service.auditECoSImage(writeCtx, grant, result.Status) == nil }()
-	if !preview.ExistingImage {
-		if err := web.Upload(writeCtx, preview.Slot, preview.Description, imageUploadKind(descriptor.LocomotiveType), grant.data); err != nil {
-			return nil
-		}
-	}
-	result.Status = "image_unverified"
-	if err := web.CheckStoredSlot(writeCtx, preview.Slot); err != nil {
-		if errors.Is(err, ecospkg.ErrImageNotStored) {
-			result.Status = "image_not_stored"
-		}
-		return nil
-	}
-	actual, err := web.ReadImage(writeCtx, "user", preview.Slot)
-	if err != nil || !ecospkg.VerifyImage(grant.data, actual) {
-		return nil
-	}
-	result.ImageVerified = true
-	result.Status = "assignment_unknown"
-	// An upload and assignment cannot be atomic. Re-read the locomotive once more
-	// before assignment; preserve a concurrent change made from the ECoS handset.
-	locomotive, err = device.ReadLocomotive(writeCtx, connection, preview.Target.ObjectID)
-	if err != nil {
-		return nil
-	}
-	descriptor, err = device.ReadImageDescriptor(writeCtx, connection, preview.Target.ObjectID)
-	if err != nil || imageTarget(locomotive) != preview.Target || descriptor != preview.Current {
-		return nil
-	}
-	if descriptor.ImageType == "IMAGE_TYPE_USER" && descriptor.Index == preview.Slot {
-		result.AssignmentVerified = true
-		result.Status = "verified"
-		return nil
-	}
-	if err := device.AssignUserImage(writeCtx, connection, preview.Target.ObjectID, preview.Slot); err != nil {
-		if errors.Is(err, ErrECoSImageControlBusy) {
-			result.Status = "control_busy"
-		}
-		return nil
-	}
-	verified, err := device.ReadImageDescriptor(writeCtx, connection, preview.Target.ObjectID)
-	if err == nil && verified.ImageType == "IMAGE_TYPE_USER" && verified.Index == preview.Slot && verified.LocomotiveType == preview.Current.LocomotiveType {
-		result.AssignmentVerified = true
-		result.Status = "verified"
-	}
-	return nil
+	return completeECoSImageTransfer(writeCtx, device, web, grant, result)
 }
 
 func imageUploadKind(kind string) string {

@@ -42,8 +42,9 @@ Vehicle edits, local original images, CV values and external mappings are not mo
 
 Sources and read-only device behavior were checked on 22 October 2026. No manufacturer PDF,
 vendor image or firmware is bundled. The user previously confirmed manual export/import.
-The new direct upload/assignment has automated simulated-device coverage; a confirmed physical
-write remains a separate acceptance step. Older firmware may require a restart before a new image
+The user confirmed direct upload and automatic assignment on firmware 4.3.3. The subsequent
+pre-upload control reservation and duplicate detection have simulated-device coverage;
+their revised order still needs hardware acceptance. Older firmware may require a restart before a new image
 can be assigned. RailKeeper never restarts the station automatically.
 
 ## Boundaries and failure behavior
@@ -63,10 +64,24 @@ can be assigned. RailKeeper never restarts the station automatically.
   the first write, RailKeeper consumes the grant, pauses passive monitoring, rechecks identity,
   descriptor, current image and free slot, and records audit intent. An unavailable audit store
   prevents writing. Monitoring resumes with its interruption callback; restart failure is shown.
-- Only a free image slot is used. The form and slot are checked again immediately before POST.
+- New uploads use only a free image slot. The form and slot are checked again immediately before POST.
   Existing images are never intentionally overwritten or deleted. The ECoS has no atomic slot
   reservation, so another operator must not edit image slots during transfer; a race after the
   final check cannot be eliminated by this client. There is no forced locomotive control.
+- Preview reads every advertised inventory page (at most ten pages/500 slots) and compares
+  occupied images pixel by pixel before choosing a free slot. An identical image is reused,
+  including one beyond the first free slot or uploaded before a browser/application restart.
+  Existing descriptions are retained. An unreadable image or incomplete inventory blocks
+  preparation; it must not silently permit another upload. Reads are sequential, bounded by
+  the preview deadline and stop once a verified match is found. This requires no mapping DB
+  or source bytes in persistent storage. Confirmation rechecks the selected image/free slot.
+- After explicit confirmation and audit intent, RailKeeper requests locomotive control
+  **before** uploading. The same TCP connection stays open through the HTTP upload,
+  image verification, `locodesc` assignment and descriptor readback. Control is released
+  on every exit, and the socket is closed at the operation deadline. A failed control
+  request (`control_busy` for error 25, otherwise `upload_blocked`) sends no image POST
+  and no assignment. Target identity/descriptor are rechecked after acquisition.
+  An already verified, correctly assigned image needs no control request or upload.
 - Uploaded slots must appear occupied in the refreshed inventory, and images are read back and
   compared pixel by pixel. Exact RGB pixels or an exact
   supported RGB332 palette conversion are accepted; there is no general similarity threshold.
@@ -85,9 +100,14 @@ can be assigned. RailKeeper never restarts the station automatically.
   are idempotent under that conversion. Verification still requires an exact device
   readback; the next physical upload remains an acceptance check, not a presumed success.
   Unrecognized conversions fail verification and prevent assignment. Only verified images reach
-  the separate `locodesc` assignment, under `request(id, control)` without `force`, followed by
-  release and a descriptor readback. No speed, direction, functions, address or CV is written.
-- Upload and assignment cannot be atomic. `upload_unknown`, `image_not_stored`, `image_unverified`, `control_busy` and
+  the separate `locodesc` assignment, under the control reservation acquired before upload,
+  without `force`, followed by descriptor readback and release. No speed, direction,
+  functions, address or CV is written.
+- Upload and assignment cannot be atomic. A later network interruption, forced takeover by
+  another controller or failed image readback can still leave an uploaded, unassigned image.
+  No automatic deletion is safe: another locomotive may already use it. A fresh preview
+  reuses a matching stored image instead of allocating another slot.
+  `upload_unknown`, `image_not_stored`, `image_unverified` and
   `assignment_unknown` preserve the chosen slot and object ID, explain possible partial effects
   and direct the user to inspect the ECoS. No POST is retried, no rollback/delete or reboot is
   attempted. A lost browser reply is also explicitly uncertain. An already uploaded image can be
@@ -95,7 +115,7 @@ can be assigned. RailKeeper never restarts the station automatically.
   retry: multipart preview includes `existingSlot` (0–499), checks its occupied state and
   pixels against the supplied BMP, and issues a fresh grant with `existingImage: true`.
   Confirmation rechecks image content, current target and all normal grant constraints,
-  audits intent, skips the upload entirely, then attempts assignment once without force.
+  audits intent, acquires control, skips the upload entirely, then attempts assignment once without force.
   Failure or cancellation of that preview retains the known slot in the open dialog.
   Unverified images and lost upload replies do not offer this retry. Changed image bytes
   require a fresh preparation; changing target always requires a new target-bound preview.

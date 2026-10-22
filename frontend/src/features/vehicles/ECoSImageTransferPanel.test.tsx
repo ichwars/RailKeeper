@@ -89,7 +89,7 @@ it("keeps partial and ambiguous writes visible without offering an automatic ret
   const { unmount } = render(panel()); await openPreview();
   fireEvent.click(screen.getByRole("checkbox")); fireEvent.click(screen.getByRole("button", { name: "Jetzt hochladen und zuordnen" }));
   expect(await screen.findByText(/Die Zuordnung zu Lok #1001 ist nicht bestätigt/)).toBeVisible();
-  expect(screen.getByText(/bereits hochgeladene Bild dort zuordnen/)).toBeVisible();
+  expect(screen.getByText(/ohne erneuten Upload/)).toBeVisible();
   expect(screen.queryByRole("button", { name: "Übertragung prüfen und Vorschau laden" })).not.toBeInTheDocument();
   unmount(); vi.mocked(api.confirmECoSImage).mockRejectedValueOnce(new Error("reply lost"));
   render(panel()); await openPreview(); fireEvent.click(screen.getByRole("checkbox"));
@@ -128,13 +128,12 @@ it("blocks transfer when the station has no target locomotives", async () => {
   expect(api.previewECoSImage).not.toHaveBeenCalled(); expect(api.confirmECoSImage).not.toHaveBeenCalled();
 });
 
-it("explains control refusal and requires a fresh checked preview for assignment without another upload", async () => {
-  vi.mocked(api.confirmECoSImage).mockResolvedValueOnce({ ...result, status: "control_busy", assignmentVerified: false });
+it("requires a fresh checked preview for a verified partial assignment without another upload", async () => {
+  vi.mocked(api.confirmECoSImage).mockResolvedValueOnce({ ...result, status: "assignment_unknown", assignmentVerified: false });
   render(panel()); await openPreview();
   fireEvent.click(screen.getByRole("checkbox"));
   fireEvent.click(screen.getByRole("button", { name: "Jetzt hochladen und zuordnen" }));
-  expect(await screen.findByText(/ECoS verweigert die Loksteuerung/)).toBeVisible();
-  expect(screen.getByText(/an beiden ECoS-Fahrreglern/)).toBeVisible();
+  expect(await screen.findByText(/Die Zuordnung zu Lok #1001 ist nicht bestätigt/)).toBeVisible();
   expect(api.previewECoSImage).toHaveBeenCalledTimes(1);
   vi.mocked(api.previewECoSImage).mockRejectedValueOnce(new ApiError("changed", "digital_center_write_preview_stale", 409));
   fireEvent.click(screen.getByRole("button", { name: "Nur Zuordnung erneut prüfen …" }));
@@ -151,4 +150,29 @@ it("explains control refusal and requires a fresh checked preview for assignment
   fireEvent.click(screen.getByRole("checkbox")); fireEvent.click(assign);
   expect(await screen.findByText(/Die Zuordnung wurde zurückgelesen und geprüft/)).toBeVisible();
   expect(api.confirmECoSImage).toHaveBeenCalledTimes(2);
+});
+
+it.each(["control_busy", "upload_blocked"] as const)("explains %s before upload and requires another preview and confirmation", async status => {
+  vi.mocked(api.confirmECoSImage).mockResolvedValueOnce({ ...result, status, imageVerified: false, assignmentVerified: false });
+  render(panel()); await openPreview();
+  fireEvent.click(screen.getByRole("checkbox")); fireEvent.click(screen.getByRole("button", { name: "Jetzt hochladen und zuordnen" }));
+  expect(await screen.findByText(/Es wurde kein Bild hochgeladen und keine Bildzuordnung geschrieben/)).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Nur Zuordnung erneut prüfen …" })).not.toBeInTheDocument();
+  expect(api.confirmECoSImage).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: "Übertragung prüfen und Vorschau laden" }));
+  await screen.findByAltText("Neues Lokbild · freier Bildplatz 7");
+  expect(api.previewECoSImage).toHaveBeenLastCalledWith("vehicle-1", 1001, "BR 218", image);
+  expect(screen.getByRole("button", { name: "Jetzt hochladen und zuordnen" })).toBeDisabled();
+});
+
+it("uses an automatically detected identical image in a new dialog without offering another upload", async () => {
+  vi.mocked(api.previewECoSImage).mockResolvedValueOnce({ ...preview, existingImage: true });
+  render(panel());
+  fireEvent.click(screen.getByRole("button", { name: "Direkt an ECoS übertragen …" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Übertragung prüfen und Vorschau laden" }));
+  await screen.findByAltText("Bereits geprüftes Bild · Bildplatz 7");
+  expect(screen.getByText(/Die Bildbezeichnung auf der ECoS bleibt erhalten/)).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Jetzt hochladen und zuordnen" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Vorhandenes Bild jetzt zuordnen" })).toBeDisabled();
+  expect(api.confirmECoSImage).not.toHaveBeenCalled();
 });

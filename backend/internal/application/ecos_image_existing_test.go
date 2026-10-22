@@ -8,12 +8,12 @@ import (
 	ecospkg "railkeeper/backend/internal/ecos"
 )
 
-func TestECoSImageControlRefusalCanBeRetriedWithoutAnotherUpload(t *testing.T) {
+func TestECoSImagePartialAssignmentCanBeRetriedWithoutAnotherUpload(t *testing.T) {
 	s, d, w, _, data := imageTransferFixture(t)
 	p := previewImage(t, s, data)
-	d.assignError = ErrECoSImageControlBusy
+	d.assignError = ErrECoSWriteStateUnknown
 	result, err := s.ConfirmECoSImage(t.Context(), "vehicle-1", ECoSImageConfirmInput{Token: p.Token, Confirm: true}, "admin")
-	if err != nil || result.Status != "control_busy" || !result.ImageVerified || result.AssignmentVerified || w.uploads != 1 {
+	if err != nil || result.Status != "assignment_unknown" || !result.ImageVerified || result.AssignmentVerified || w.uploads != 1 {
 		t.Fatalf("result=%+v err=%v uploads=%d", result, err, w.uploads)
 	}
 	input := ECoSImagePreviewInput{ObjectID: 1001, Description: "BR 218", BMP: data, ExistingSlot: &result.Slot}
@@ -27,7 +27,7 @@ func TestECoSImageControlRefusalCanBeRetriedWithoutAnotherUpload(t *testing.T) {
 		t.Fatalf("result=%+v err=%v uploads=%d assignments=%d", result, err, w.uploads, d.assigns)
 	}
 	entries := s.auth.(*digitalCenterWriteAuditStub).entries
-	if len(entries) != 4 || !strings.Contains(entries[1].details, `"status":"control_busy"`) || !strings.Contains(entries[3].details, `"existingImage":true`) {
+	if len(entries) != 4 || !strings.Contains(entries[1].details, `"status":"assignment_unknown"`) || !strings.Contains(entries[3].details, `"existingImage":true`) {
 		t.Fatal("missing refusal/reuse provenance")
 	}
 	if _, err := s.ConfirmECoSImage(t.Context(), "vehicle-1", ECoSImageConfirmInput{Token: p.Token, Confirm: true}, "admin"); !errors.Is(err, ErrDigitalCenterGrantMismatch) || w.uploads != 1 || d.assigns != 2 {
@@ -87,7 +87,7 @@ func TestECoSExistingImageAlreadyAssignedDoesNotRequestControl(t *testing.T) {
 	s, d, w, _, data := imageTransferFixture(t)
 	d.descriptor.ImageType = "IMAGE_TYPE_USER"
 	d.descriptor.Index = 1
-	d.assignError = ErrECoSImageControlBusy
+	d.controlError = ErrECoSImageControlBusy
 	p, err := s.PreviewECoSImage(t.Context(), "vehicle-1", ECoSImagePreviewInput{ObjectID: 1001, Description: "BR 218", BMP: data, ExistingSlot: &d.descriptor.Index}, "admin")
 	if err != nil {
 		t.Fatal(err)

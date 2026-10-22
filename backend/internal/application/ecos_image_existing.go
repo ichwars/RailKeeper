@@ -8,15 +8,18 @@ import (
 
 // Reusing a slot never permits replacing its content. Both preview and confirmation
 // require the same pixel verification as a new upload, alongside the target grant.
-func previewECoSImageSlot(ctx context.Context, web ecosImageWeb, input ECoSImagePreviewInput) (int, error) {
+func previewECoSImageSlot(ctx context.Context, web ecosImageWeb, input ECoSImagePreviewInput) (int, bool, error) {
 	if input.ExistingSlot != nil {
-		return *input.ExistingSlot, verifyExistingECoSImage(ctx, web, *input.ExistingSlot, input.BMP)
+		return *input.ExistingSlot, true, verifyExistingECoSImage(ctx, web, *input.ExistingSlot, input.BMP)
 	}
-	slot, err := web.FindFreeSlot(ctx)
+	slot, existing, err := web.FindImageSlot(ctx, input.BMP)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
-	return slot, web.CheckUploadForm(ctx, slot)
+	if existing {
+		return slot, true, nil
+	}
+	return slot, false, web.CheckUploadForm(ctx, slot)
 }
 
 func verifyExistingECoSImage(ctx context.Context, web ecosImageWeb, slot int, source []byte) error {
