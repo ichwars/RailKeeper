@@ -16,7 +16,8 @@ export function CVPageControls({ page, total, onChange }: { page: number; total:
   </div>;
 }
 
-export function cvIndexLabel(value: { indexCV31?: number | null; indexCV32?: number | null }, baseLabel: string) {
-  return value.indexCV31 == null && value.indexCV32 == null ? baseLabel
+export function cvIndexLabel(value: { indexCV31?: number | null; indexCV32?: number | null }, baseLabel: string,
+  unknownLabel?: string) {
+  return value.indexCV31 == null && value.indexCV32 == null ? unknownLabel || baseLabel
     : `CV31=${value.indexCV31 ?? "?"} / CV32=${value.indexCV32 ?? "?"}`;
 }

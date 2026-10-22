@@ -15,5 +15,6 @@ export function DecoderProfileStrip({ state }: { state: ReturnType<typeof useDec
     </div>
     <span>{a.address == null ? t("vehicles.decoder.unknown")
       : t("vehicles.decoder.profileAddress", { address: a.address })}</span>
-  </div><DecoderLibraryNotice values={a.rows} profile={state.profile} /></>;
+  </div><DecoderLibraryNotice values={a.rows} profile={state.profile} match={a.libraryMatch}
+    vehicleDecoderType={a.vehicleDecoderType} /></>;
 }

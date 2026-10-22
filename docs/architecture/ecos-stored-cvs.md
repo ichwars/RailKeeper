@@ -34,8 +34,32 @@ Repeating the import adds no duplicate values. No CV import writes to the ECoS.
 Imported readings use profile/category `ECoS`. Their description records the ECoS host, object,
 CV number and UTC read time and labels the value as cached memory. Export dates, source lines,
 decoder freshness and index pages are not invented. Indexed vehicle readings remain distinct;
-higher memory CVs are unindexed with an explicit unknown-page explanation in the UI. No schema
+higher memory CVs without an explicit unindexed definition carry an unknown-page explanation in the UI. No schema
 or backup format change is required.
+
+## Library interpretation
+
+The source profile `ECoS` remains separate from the decoder model. For that source only, the
+vehicle's recorded decoder type can select a library profile when CV8 agrees and the existing
+model-identification checks report no conflict. A missing CV8 permits no manufacturer-specific
+interpretation from the name alone. CV-based identification continues to work without a vehicle
+type. Readings from other source profiles are never merged to supply missing identity or values.
+The UI states whether the selection uses the vehicle type and CV8, or decoder identity CVs.
+
+Definitions match exact register addresses. Explicitly unindexed model definitions are usable even
+above CV256; the number alone does not make a register indexed. An ECoS value with no page must
+not match an indexed definition, including when the catalog currently documents only one page.
+If the selected profile documents indexed and unindexed definitions for the same number, a
+page-less ECoS reading remains unresolved. Current CV31/CV32, factory defaults and matching byte
+values cannot supply the missing identity of older cache entries. Unknown higher entries appear
+as **Unknown index page** in the raw table, page filter and detail drawer, without bit meanings
+or a guessed table hint. The drawer exposes cache provenance separately from manufacturer sources.
+An explicitly unindexed, model-specific manufacturer table row may remain a documentation hint
+when CV8 is available and neither the selected profile nor the loaded references document an
+indexed or unspecified alternative for that number. It never becomes an executable analysis rule.
+
+Interpretation is computed on display, including for existing imported ECoS entries. It does not
+rewrite values, profile labels, index fields, provenance or history, and performs no device writes.
 
 ## Evidence and limits
 

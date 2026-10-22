@@ -2661,7 +2661,7 @@ export const deTranslations: Record<string, string> = {
     "digitalCenters.assignment.saving": "Zuordnung wird gespeichert …",
     "digitalCenters.cvs.title": "Gespeicherte CV-Werte der ECoS",
     "digitalCenters.cvs.explanation": "Liest den gesamten CV-Speicherbereich (CV1–CV1024) der gewählten Lok. Das sind ECoS-Speicherwerte, deren Aktualität gegenüber dem Decoder ungeprüft ist.",
-    "digitalCenters.cvs.indexHint": "Die ECoS übermittelt hier keine Indexseiten. Höhere CVs werden mit unbekannter Indexseite getrennt von indexierten Decoderwerten gespeichert.",
+    "digitalCenters.cvs.indexHint": "Die ECoS übermittelt hier keine Indexseiten. Die Decoderbibliothek erklärt eindeutig adressierte Werte bei passender Decoderzuordnung. Mehrdeutige Register bleiben als Indexseite unbekannt getrennt von indexierten Decoderwerten erhalten.",
     "digitalCenters.cvs.readAll": "Alle gespeicherten CVs lesen",
     "digitalCenters.cvs.reading": "CV-Speicher wird gelesen …",
     "digitalCenters.cvs.resume": "Lesen fortsetzen",

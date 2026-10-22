@@ -18,7 +18,7 @@ export function ManufacturerCVProvider({ values, profile, manualType, children }
 }) {
   const library = useDecoderLibrary();
   const model = useMemo(() => manufacturerReferenceModel(
-    decoderAnalysis(values, profile, library.profiles, library.inventory ?? null), library.inventory, profile, manualType
+    decoderAnalysis(values, profile, library.profiles, library.inventory ?? null, manualType), library.inventory, profile, manualType
   ), [values, profile, manualType, library]);
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<{

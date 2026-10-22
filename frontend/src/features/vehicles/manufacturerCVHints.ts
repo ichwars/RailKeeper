@@ -2,9 +2,11 @@ import type {
   DecoderCVReference, DecoderCVReferenceRow, DecoderInventory, DecoderModel, DecoderReading
 } from "../../shared/decoderLibraryModel";
 import type { DecoderAnalysis } from "./decoderAnalysis";
+import { isECoSReading } from "../../shared/decoderLibrary";
 
 export type ManufacturerCVHint = {
   model: DecoderModel; reference: DecoderCVReference; row: DecoderCVReferenceRow;
+  unindexedAddressConfirmed?: boolean;
 };
 
 const normalized = (text: string) => text.trim().replace(/\s+/g, " ").toLowerCase();
@@ -36,14 +38,17 @@ export function manufacturerReferenceModel(analysis: DecoderAnalysis, inventory:
 export function manufacturerCVHints(model: DecoderModel, references: DecoderCVReference[]) {
   const hints = new Map<string, ManufacturerCVHint>();
   const conflicts = new Set<string>();
+  const nonBaseNumbers = new Set<number>();
   for (const reference of references) {
     if (!reference.active || reference.status === "unavailable" || !reference.modelIds.includes(model.id)) continue;
     for (const row of reference.rows) {
-      if (row.indexScope === "unspecified" || !reference.sources[row.sourceIndex]) continue;
-      if (row.indexScope === "indexed" && (row.indexCV31 == null || row.indexCV32 == null)) continue;
-      if (row.indexScope === "base" && (row.indexCV31 != null || row.indexCV32 != null)) continue;
+      if (!reference.sources[row.sourceIndex]) continue;
       const end = row.cvEnd ?? row.cv;
       if (!Number.isInteger(row.cv) || !Number.isInteger(end) || row.cv < 1 || end > 1024 || end < row.cv) continue;
+      if (row.indexScope !== "base") for (let cv = row.cv; cv <= end; cv++) nonBaseNumbers.add(cv);
+      if (row.indexScope === "unspecified") continue;
+      if (row.indexScope === "indexed" && (row.indexCV31 == null || row.indexCV32 == null)) continue;
+      if (row.indexScope === "base" && (row.indexCV31 != null || row.indexCV32 != null)) continue;
       for (let cv = row.cv; cv <= end; cv++) {
         const identity = key(cv, row.indexCV31, row.indexCV32);
         const previous = hints.get(identity);
@@ -58,5 +63,10 @@ export function manufacturerCVHints(model: DecoderModel, references: DecoderCVRe
     }
   }
   for (const identity of conflicts) hints.delete(identity);
-  return (value: DecoderReading) => hints.get(key(value.cvNumber, value.indexCV31, value.indexCV32));
+  return (value: DecoderReading) => {
+    const hint = hints.get(key(value.cvNumber, value.indexCV31, value.indexCV32));
+    if (!hint || !isECoSReading(value) || value.indexCV31 != null || value.indexCV32 != null) return hint;
+    if (nonBaseNumbers.has(value.cvNumber)) return undefined;
+    return { ...hint, unindexedAddressConfirmed: hint.row.indexScope === "base" && hint.row.applicability === "model" };
+  };
 }

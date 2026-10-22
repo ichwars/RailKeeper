@@ -124,7 +124,7 @@ export function VehicleCVTab({
     if (body) body.scrollTop = 0;
   }, [view]);
   const activeView = view;
-  const decoder = useDecoderProfile(values);
+  const decoder = useDecoderProfile(values, selected?.decoderType);
   const viewIcons = { explained: CircleHelp, raw: Database, files: FolderOpen };
   return <ManufacturerCVProvider values={values} profile={detailValue?.decoderProfile ?? decoder.profile}
     manualType={selected?.decoderType || ""}><section className="cv-tab" ref={sectionRef}>
@@ -263,7 +263,7 @@ export function VehicleCVTab({
                         </div>
 
       </details>}
-      <VehicleCVValuesTable values={values} readonly={readonly || !selected} saving={saving} edit={editCVValue} remove={deleteCVValue} onExplain={value => setDetailId(value.id)} />
+      <VehicleCVValuesTable values={values} decoderType={selected?.decoderType} readonly={readonly || !selected} saving={saving} edit={editCVValue} remove={deleteCVValue} onExplain={value => setDetailId(value.id)} />
     </section>}
     <div hidden={activeView !== "files"} className="cv-files-view">
       <div className="cv-section-heading"><div><h3>{t("vehicles.decoder.view.files")}</h3><p>{t("vehicles.decoder.filesIntro")}</p></div></div>
@@ -394,6 +394,7 @@ export function VehicleCVTab({
 
     </div>
     {detailValue && <VehicleCVDetails value={detailValue} values={values} files={selected?.cvFiles || []}
+      decoderType={selected?.decoderType}
       sourceLabel={draftSource} readonly={readonly || !selected} saving={saving} onClose={() => setDetailId(null)}
       onEdit={value => { if (!selected) return; setDetailId(null); setView("raw"); editCVValue(value); }} />}
   </section></ManufacturerCVProvider>;

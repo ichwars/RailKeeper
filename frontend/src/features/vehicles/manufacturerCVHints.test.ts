@@ -65,6 +65,25 @@ it("isolates base/indexed/unknown pages, unindexed high CVs, conflicts and activ
     expect(manufacturerCVHints(model, [reference([row], patch)])({ cvNumber: 54, value: 1 })).toBeUndefined();
 });
 
+it("uses explicit model-specific unindexed table evidence for ECoS and blocks indexed or unspecified alternatives", () => {
+  const value = { cvNumber: 900, value: 42, decoderProfile: "ECoS" };
+  const a = decoderAnalysis([value, { cvNumber: 8, value: 157, decoderProfile: "ECoS" }], "ECoS");
+  const explicit = { ...row, cv: 900, applicability: "model" as const };
+  const lookup = manufacturerCVHints(model, [reference([explicit])]);
+  expect(cvValueInfo(value, a, key => translate("de", key), "de", lookup(value)))
+    .toMatchObject({ known: false, indexUnknown: false, name: row.label, definition: undefined });
+  expect(a.get(900)).toBeUndefined();
+  for (const indexScope of ["indexed", "unspecified"] as const) {
+    const ambiguous = manufacturerCVHints(model, [reference([explicit,
+      { ...explicit, indexScope, indexCV31: 16, indexCV32: 0 }])]);
+    expect(ambiguous(value)).toBeUndefined();
+  }
+  const manual = manufacturerCVHints(model, [reference([{ ...explicit, applicability: "manual" }])]);
+  expect(cvValueInfo(value, a, key => translate("de", key), "de", manual(value)).indexUnknown).toBe(true);
+  const noIdentity = decoderAnalysis([value], "ECoS");
+  expect(cvValueInfo(value, noIdentity, key => translate("de", key), "de", lookup(value)).indexUnknown).toBe(true);
+});
+
 it("uses the reviewed BR491 effect and sound pages independently without changing vehicle values", () => {
   const br491 = inventory.models.find(current => current.id === "piko-sound-products-36520")!;
   const hints = manufacturerCVHints(br491, references);

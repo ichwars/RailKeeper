@@ -1,4 +1,10 @@
 export const decoderDETranslations: Record<string, string> = {
+  "vehicles.decoder.vehicleEvidence": "Zuordnung über den hinterlegten Decodertyp und CV8={manufacturer}. Die Quelle bleibt ECoS.",
+  "vehicles.decoder.indexUnknown": "Indexseite unbekannt",
+  "vehicles.decoder.indexUnresolved": "Zuordnung ungeklärt",
+  "vehicles.decoder.indexUnknownHelp": "Zu diesem gespeicherten Wert fehlt die vollständige Indexseite. Eine sichere Registerzuordnung ist nicht möglich. Decodertyp, Werkseinstellungen und aktuelle CV31/CV32 ersetzen diese Angabe nicht; der Rohwert bleibt erhalten.",
+  "vehicles.decoder.ecosCache": "Gespeicherter ECoS-Cachewert, keine neue Decoderlesung. Erklärungen gelten nur für eindeutig adressierte Register; fehlende Werte werden nicht ergänzt.",
+  "vehicles.decoder.sourceECoS": "Aus ECoS-Speicher",
   "vehicles.decoder.lenz.mappingRowHelp": "Ausgangsmaske dieser Taste. Die angeschlossene Fahrzeugfunktion ist nicht bekannt.",
   "vehicles.decoder.lenz.railcomHelp": "RailCom benötigt CV29 Bit 3 und mindestens einen freigegebenen Kanal in CV28. Keine Aussage über RailComPlus oder eine aktuelle Verbindung.",
   "vehicles.speedCurve.lenzMode": "Lenz, intern geglättet",

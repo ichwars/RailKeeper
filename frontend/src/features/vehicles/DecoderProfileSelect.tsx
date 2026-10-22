@@ -5,13 +5,13 @@ import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { useDecoderLibrary } from "../../shared/DecoderLibraryProvider";
 
-export function useDecoderProfile(values: DecoderCV[]) {
+export function useDecoderProfile(values: DecoderCV[], decoderType = "") {
   const library = useDecoderLibrary();
   const [requested, setProfile] = useState<string | null>(null);
   const profiles = decoderProfiles(values);
   const profile = requested != null && profiles.includes(requested) ? requested : profiles[0] || "";
-  const analysis = useMemo(() => decoderAnalysis(values, profile, library.profiles, library.inventory ?? null),
-    [values, profile, library.profiles, library.inventory]);
+  const analysis = useMemo(() => decoderAnalysis(values, profile, library.profiles, library.inventory ?? null, decoderType),
+    [values, profile, library.profiles, library.inventory, decoderType]);
   return { profiles, profile, setProfile, analysis, failed: library.failed, loading: !library.failed && library.profiles.length === 0 };
 }
 

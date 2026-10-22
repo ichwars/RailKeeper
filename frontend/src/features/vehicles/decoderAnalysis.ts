@@ -1,5 +1,5 @@
 import type { VehicleCVValueInput } from "../../shared/api";
-import { decoderDefinition, resolveDecoderLibrary } from "../../shared/decoderLibrary";
+import { decoderDefinition, decoderIndexUnknown, isECoSReading, resolveDecoderLibrary } from "../../shared/decoderLibrary";
 import { bundledDecoderInventory, bundledDecoderProfiles, type DecoderInventory } from "../../shared/decoderLibraryModel";
 import { railComPlus } from "../../shared/railComPlus";
 import { zimoMNAnalysis } from "./zimoMNAnalysis";
@@ -16,10 +16,13 @@ export function decoderProfiles(values: DecoderCV[]) {
   return Array.from(new Set(values.map((value) => value.decoderProfile || ""))).sort();
 }
 
-export function decoderAnalysis(values: DecoderCV[], profile: string, catalog = bundledDecoderProfiles, inventory: DecoderInventory | null = bundledDecoderInventory) {
+export function decoderAnalysis(values: DecoderCV[], profile: string, catalog = bundledDecoderProfiles,
+  inventory: DecoderInventory | null = bundledDecoderInventory, decoderType = "") {
   const rows = values.filter((value) => (value.decoderProfile || "") === profile);
   // Never resolve a base CV from an indexed page, including page 0/0.
-  const libraryMatch = resolveDecoderLibrary(rows, profile, catalog, inventory);
+  const modelLabel = isECoSReading({ decoderProfile: profile }) && decoderType.trim()
+    ? decoderType : profile;
+  const libraryMatch = resolveDecoderLibrary(rows, profile, catalog, inventory, modelLabel);
   const libraryProfile = catalog.find(p => p.active && p.id === libraryMatch.profileId);
   const modelRules = libraryProfile?.kind === "model" && ["matched", "family"].includes(libraryMatch.status) && libraryMatch.firmwareCompatible !== false;
   const ownDefinitionsScope = Boolean(modelRules && libraryProfile?.rules?.modelDefinitionsOnly);
@@ -79,7 +82,9 @@ export function decoderAnalysis(values: DecoderCV[], profile: string, catalog = 
     dcAnalog: roco ? roco.analog : uhlenbrock ? uhlenbrock.dcAnalog : kuehn ? kuehn.dcAnalog : zimo ? zimo.dcAnalog : dcAnalog, zimo, lenz, kuehn, uhlenbrock, roco, piko,
     railcomEnabled: piko ? piko.railcomEnabled : roco ? roco.railcomEnabled : uhlenbrock ? undefined : lenz ? lenz.railcom : config == null ? undefined : Boolean(config & 8),
     libraryMatch, libraryProfile, catalog, railComPlus: railComPlus(rows, libraryProfile, libraryMatch),
-    definition: (value: DecoderCV) => decoderDefinition(catalog, libraryMatch, value),
+    vehicleDecoderType: modelLabel !== profile && libraryMatch.matchedBy === "name" ? modelLabel : undefined,
+    definition: (value: DecoderCV) => decoderDefinition(catalog, libraryMatch, { ...value, decoderProfile: profile }),
+    indexUnknown: (value: DecoderCV) => decoderIndexUnknown(catalog, libraryMatch, { ...value, decoderProfile: profile }),
     consistAddress: kuehn && consist != null && consist > 127 ? undefined
       : zimo ? zimo.consistAddress : consist == null ? undefined : consist & 127,
     consistReverse: lenz || kuehn ? undefined : zimo ? zimo.consistReverse : consist == null ? undefined : Boolean(consist & 128),

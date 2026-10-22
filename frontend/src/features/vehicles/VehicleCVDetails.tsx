@@ -11,10 +11,11 @@ import { cvValueInfo } from "./cvValueInfo";
 import { useManufacturerCVHints } from "./ManufacturerCVProvider";
 import { formatCVExportTimestamp } from "./cvProvenance";
 import { formatDateTime } from "./vehicleFormat";
+import { isECoSReading } from "../../shared/decoderLibrary";
 
-export function VehicleCVDetails({ value, values, files, sourceLabel, readonly, saving, onClose, onEdit }: {
+export function VehicleCVDetails({ value, values, files, sourceLabel, decoderType = "", readonly, saving, onClose, onEdit }: {
   value: VehicleCVValue; values: VehicleCVValue[]; files: VehicleCVFile[];
-  sourceLabel?: string;
+  sourceLabel?: string; decoderType?: string;
   readonly: boolean; saving: boolean; onClose: () => void; onEdit: (value: VehicleCVValue) => void;
 }) {
   const { language, t } = useI18n();
@@ -22,7 +23,7 @@ export function VehicleCVDetails({ value, values, files, sourceLabel, readonly, 
   const closeRef = useRef<HTMLButtonElement>(null);
   const { anchorRef, layerRef, onKeyDown } = useModalDialogLayer(onClose, closeRef);
   const library = useDecoderLibrary();
-  const analysis = decoderAnalysis(values, value.decoderProfile || "", library.profiles, library.inventory ?? null);
+  const analysis = decoderAnalysis(values, value.decoderProfile || "", library.profiles, library.inventory ?? null, decoderType);
   const hints = useManufacturerCVHints();
   const info = cvValueInfo(value, analysis, t, language, hints.lookup(value));
   const hint = info.manufacturerHint;
@@ -42,18 +43,21 @@ export function VehicleCVDetails({ value, values, files, sourceLabel, readonly, 
             aria-label={t("vehicles.decoder.closeDetails")}><X size={18} aria-hidden="true" /></button>
         </header>
         <div className={info.known ? "cv-detail-notice" : "cv-detail-notice unassigned"}><CircleHelp size={17} aria-hidden="true" /><p>{info.help}</p></div>
+        {isECoSReading(value) && <p className="decoder-hint">{t("vehicles.decoder.ecosCache")}</p>}
         <dl className="cv-detail-values">
           <dt>{t("vehicles.decoder.readValue")}</dt><dd><strong className="cv-detail-reading">{value.value}</strong></dd>
           <dt>{t("vehicles.decoder.hexadecimal")}</dt><dd className="cv-detail-code">0x{value.value.toString(16).toUpperCase().padStart(2, "0")}</dd>
           <dt>{t("vehicles.decoder.binary")}</dt><dd className="cv-detail-code">{value.value.toString(2).padStart(8, "0")}</dd>
-          <dt>{t("vehicles.cv.index")}</dt><dd>{cvIndexLabel(value, t("vehicles.cv.base"))}</dd>
+          <dt>{t("vehicles.cv.index")}</dt><dd>{cvIndexLabel(value, t("vehicles.cv.base"),
+            info.indexUnknown ? t("vehicles.decoder.indexUnknown") : undefined)}</dd>
           {info.definition?.unit && <><dt>{t("decoderLibrary.unit")}</dt><dd>{info.definition.unit[language]}</dd></>}
           {info.definition?.factoryDefault != null && <>
             <dt>{t("decoderLibrary.documentedDefault")}</dt><dd>{info.definition.factoryDefault}
               <small>{t("decoderLibrary.defaultIsReference")}</small></dd>
           </>}
           <dt>{t("vehicle.field.decoderProfile")}</dt><dd>{value.decoderProfile || t("vehicles.cv.noProfile")}</dd>
-          <dt>{t("vehicles.decoder.source")}</dt><dd>{source?.originalName || sourceLabel || t(value.sourceExportedAt || value.sourceLine != null ? "vehicles.decoder.importedSource" : "vehicles.decoder.sourceUnlinked")}
+          <dt>{t("vehicles.decoder.source")}</dt><dd>{source?.originalName || sourceLabel ||
+            (isECoSReading(value) ? value.description || "ECoS" : t(value.sourceExportedAt || value.sourceLine != null ? "vehicles.decoder.importedSource" : "vehicles.decoder.sourceUnlinked"))}
             <small>{t("vehicles.decoder.sourceLine")}: <span>{value.sourceLine ?? t("vehicles.decoder.notRecorded")}</span></small>
             <small>{t("vehicles.decoder.exportedAt")}: <span>{value.sourceExportedAt
               ? formatCVExportTimestamp(value.sourceExportedAt, language) : t("vehicles.decoder.notRecorded")}</span></small></dd>
@@ -65,6 +69,9 @@ export function VehicleCVDetails({ value, values, files, sourceLabel, readonly, 
         </section>}
         {info.profile && <section className="decoder-documentation"><h3>{t("decoderLibrary.definitionSource")}</h3>
           <p>{language === "en" ? info.profile.nameEn : info.profile.name} · {info.profile.revision}</p>
+          {analysis.vehicleDecoderType && <p>{t("vehicles.decoder.vehicleEvidence", {
+            manufacturer: analysis.libraryMatch.manufacturerId ?? "?"
+          })}</p>}
           {(info.definition?.firmwareMin || info.profile.firmwareMin) && <p>{t("decoderLibrary.minimumFirmware", {
             minimum: info.definition?.firmwareMin || info.profile.firmwareMin || ""
           })}</p>}
