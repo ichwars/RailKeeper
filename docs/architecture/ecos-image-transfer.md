@@ -64,6 +64,16 @@ can be assigned. RailKeeper never restarts the station automatically.
 - Uploaded slots must appear occupied in the refreshed inventory, and images are read back and
   compared pixel by pixel. Exact RGB pixels or an exact
   supported RGB332 palette conversion are accepted; there is no general similarity threshold.
+  Firmware 4.3.3 was also verified with integer Floyd–Steinberg diffusion: top-down,
+  left-to-right, nearest palette colour with lower-level tie breaking, clamping after an
+  arithmetic shift of accumulated error by four bits, and weights 7/3/5/1. Exact
+  RGB(182,182,182) background pixels discard incoming error and do not propagate error.
+  This conversion requires the observed 8×8×4 palette (red/green 0,36,73,109,146,182,219,255;
+  blue 0,73,182,255). All 7,600 pixels of two stored device images matched the original BMP,
+  whose hash matched the upload audit record. Synthetic reference vectors cover rounding,
+  background reset, image boundaries and rejection of changed or displaced images; private
+  vehicle images are not bundled as fixtures. This verifies stored image content, not a
+  completed locomotive assignment. Unknown conversions remain unverified.
   Unrecognized conversions fail verification and prevent assignment. Only verified images reach
   the separate `locodesc` assignment, under `request(id, control)` without `force`, followed by
   release and a descriptor readback. No speed, direction, functions, address or CV is written.

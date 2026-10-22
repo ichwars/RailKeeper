@@ -16,7 +16,6 @@ import (
 	"net/textproto"
 	"net/url"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -320,106 +319,4 @@ func (web *ImageWeb) Upload(ctx context.Context, index int, description, kind st
 	}
 	_, err = web.request(ctx, http.MethodPost, "/fcgi/ecos-douploadimage", writer.FormDataContentType(), &body, 256<<10)
 	return err // A missing reply is ambiguous. The caller must never retry this POST.
-}
-
-// ECoS serves RGB24 uploads as a palette PNG. Require exact pixels, or an exact
-// whole-image match after a supported RGB332 palette conversion. No similarity
-// threshold may turn a merely similar or displaced image into verified content.
-func VerifyImage(sourceBMP, deviceImage []byte) bool {
-	if ValidateImageBMP(sourceBMP) != nil {
-		return false
-	}
-	want, err := bmp.Decode(bytes.NewReader(sourceBMP))
-	if err != nil {
-		return false
-	}
-	config, _, err := image.DecodeConfig(bytes.NewReader(deviceImage))
-	if err != nil || config.Width != 190 || config.Height != 40 {
-		return false
-	}
-	got, _, err := image.Decode(bytes.NewReader(deviceImage))
-	if err != nil {
-		return false
-	}
-	if equalImagePixels(want, got, nil) {
-		return true
-	}
-	paletted, ok := got.(*image.Paletted)
-	if !ok || len(paletted.Palette) != 256 {
-		return false
-	}
-	channels := [3]map[uint32]bool{{}, {}, {}}
-	colors := map[[3]uint32]bool{}
-	for _, color := range paletted.Palette {
-		r, g, b, a := color.RGBA()
-		if a != 65535 {
-			return false
-		}
-		channels[0][r] = true
-		channels[1][g] = true
-		channels[2][b] = true
-		colors[[3]uint32{r, g, b}] = true
-	}
-	if len(channels[0]) != 8 || len(channels[1]) != 8 || len(channels[2]) != 4 || len(colors) != 256 {
-		return false
-	}
-	levels := [3][]uint32{}
-	for channel, values := range channels {
-		for value := range values {
-			levels[channel] = append(levels[channel], value)
-		}
-		sort.Slice(levels[channel], func(i, j int) bool { return levels[channel][i] < levels[channel][j] })
-		if levels[channel][0] != 0 || levels[channel][len(levels[channel])-1] != 65535 {
-			return false
-		}
-	}
-	for _, nearest := range []bool{false, true} {
-		convert := func(r, g, b uint32) (uint32, uint32, uint32) {
-			values := [3]uint32{r, g, b}
-			for channel, value := range values {
-				index := int(value >> 13)
-				if channel == 2 {
-					index = int(value >> 14)
-				}
-				if nearest {
-					index = 0
-					distance := uint32(1 << 17)
-					for candidate, level := range levels[channel] {
-						var delta uint32
-						if value > level {
-							delta = value - level
-						} else {
-							delta = level - value
-						}
-						if delta < distance {
-							index = candidate
-							distance = delta
-						}
-					}
-				}
-				values[channel] = levels[channel][index]
-			}
-			return values[0], values[1], values[2]
-		}
-		if equalImagePixels(want, got, convert) {
-			return true
-		}
-	}
-	return false
-}
-
-func equalImagePixels(want, got image.Image, convert func(uint32, uint32, uint32) (uint32, uint32, uint32)) bool {
-	for y := 0; y < 40; y++ {
-		for x := 0; x < 190; x++ {
-			r, g, b, _ := want.At(x, y).RGBA()
-			if convert != nil {
-				r, g, b = convert(r, g, b)
-			}
-			rr, gg, bb, a := got.At(x, y).RGBA()
-			if a != 65535 || r != rr || g != gg || b != bb {
-				return false
-			}
-		}
-	}
-	return true
 }
