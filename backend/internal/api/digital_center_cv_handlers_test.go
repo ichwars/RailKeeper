@@ -67,7 +67,7 @@ func TestECoSStoredCVRoutesUseTrustedSnapshotAndProtectExistingData(t *testing.T
 		assertStatus(t, authedJSONRequest(t, router, viewer, http.MethodPost, path+"/"+suffix, map[string]any{}, true), http.StatusForbidden)
 		assertStatus(t, authedJSONRequest(t, router, admin, http.MethodPost, path+"/"+suffix, map[string]any{}, false), http.StatusForbidden)
 	}
-	for _, input := range []map[string]any{{"startCV": 0}, {"startCV": 1025}, {"startCV": 2}, {"startCV": 1, "host": "attacker.local"}} {
+	for _, input := range []map[string]any{{"startCV": 0}, {"startCV": 1025}, {"startCV": 2}, {"startCV": 33, "restart": true}, {"startCV": 1, "host": "attacker.local"}} {
 		assertStatus(t, authedJSONRequest(t, router, admin, http.MethodPost, path+"/cv-read", input, true), http.StatusBadRequest)
 	}
 	read := authedJSONRequest(t, router, admin, http.MethodPost, path+"/cv-read", map[string]any{"startCV": 1}, true)
@@ -75,23 +75,28 @@ func TestECoSStoredCVRoutesUseTrustedSnapshotAndProtectExistingData(t *testing.T
 	if reader.input.Host != "trusted.local" {
 		t.Fatal("untrusted target")
 	}
+	assertStatus(t, authedJSONRequest(t, router, admin, http.MethodPost, path+"/cv-import", map[string]any{"vehicleId": v.ID}, true), http.StatusConflict)
 	before, _ := vehicles.ListCVValues(t.Context(), v.ID)
 	if len(before) != 0 {
 		t.Fatal("reading imported CVs implicitly")
 	}
 	assertStatus(t, authedJSONRequest(t, router, admin, http.MethodPost, path+"/cv-import",
 		map[string]any{"vehicleId": v.ID, "values": []int{99}}, true), http.StatusBadRequest)
-	for _, wantImported := range []int{1, 0} {
+	for start := 33; start <= 1024; start += 32 {
+		r := authedJSONRequest(t, router, admin, http.MethodPost, path+"/cv-read", map[string]any{"startCV": start}, true)
+		assertStatus(t, r, http.StatusOK)
+	}
+	for _, wantImported := range []int{32, 0} {
 		r := authedJSONRequest(t, router, admin, http.MethodPost, path+"/cv-import", map[string]any{"vehicleId": v.ID}, true)
 		assertStatus(t, r, http.StatusOK)
 		var result application.ECoSCVImportResult
 		decodeResponse(t, r, &result)
-		if result.Imported != wantImported || result.Preserved != 1-wantImported {
+		if result.Imported != wantImported || result.Preserved != 32-wantImported {
 			t.Fatalf("result=%+v", result)
 		}
 	}
 	stored, _ := vehicles.ListCVValues(t.Context(), v.ID)
-	if len(stored) != 1 || stored[0].Value != 0 {
+	if len(stored) != 32 || stored[0].Value != 0 {
 		t.Fatal("zero value lost")
 	}
 }

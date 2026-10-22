@@ -30,6 +30,7 @@ export function ECoSStoredCVPanel({ item, onChange, onBusy, externalReading = fa
   const state = item.center.cvRead;
   const checked = state ? state.nextCV - 1 : 0;
   const complete = checked === 1024;
+  const readFailed = Boolean(error || externalError);
 
   const readAll = async () => {
     if (busy.current) return;
@@ -41,7 +42,8 @@ export function ECoSStoredCVPanel({ item, onChange, onBusy, externalReading = fa
     setResult(null);
     try {
       await readECoSStoredCVs(item, (next) => { if (alive.current) onChange(next); }, {
-        restart: complete, isCancelled: () => cancelled.current || !alive.current
+        restart: complete && !readFailed, refresh: complete && readFailed,
+        isCancelled: () => cancelled.current || !alive.current
       });
     } catch {
       if (alive.current) setError(t("digitalCenters.cvs.readError"));
@@ -61,7 +63,7 @@ export function ECoSStoredCVPanel({ item, onChange, onBusy, externalReading = fa
     try {
       setReading(true);
       const snapshot = await readECoSStoredCVs(item, (next) => { if (alive.current) onChange(next); },
-        { isCancelled: () => cancelled.current || !alive.current });
+        { refresh: true, isCancelled: () => cancelled.current || !alive.current });
       if (!snapshot) return;
       if (!snapshot.center.cvs?.length) { setResult(null); return; }
       setReading(false);
@@ -82,7 +84,7 @@ export function ECoSStoredCVPanel({ item, onChange, onBusy, externalReading = fa
     <div className="ecos-stored-cvs-actions">
       <button type="button" className="digital-center-button" disabled={reading || saving || externalReading}
         onClick={() => void readAll()}>
-        {reading || externalReading ? t("digitalCenters.cvs.reading") : checked > 0 && !complete
+        {reading || externalReading ? t("digitalCenters.cvs.reading") : (checked > 0 && !complete) || readFailed
           ? t("digitalCenters.cvs.resume") : t("digitalCenters.cvs.readAll")}
       </button>
       {(reading || externalReading) && <button type="button" className="digital-center-button"

@@ -9355,7 +9355,7 @@ paths:
         Admin only. Uses the saved session target, never a client-supplied host or CV values.
         Reads stored locomotive-object memory, without decoder programming or control takeover.
         Index pages are unknown. No raw reply is interpreted as a zero default.
-        Import preserves existing unindexed values across profiles and all indexed readings.
+        Import requires a completed scan and preserves existing unindexed values across profiles and all indexed readings.
       security:
         - sessionCookie: []
           csrfHeader: []
@@ -9383,7 +9383,11 @@ paths:
                   type: integer
                   minimum: 1
                   maximum: 993
-                  description: Start at 1; then use cvRead.nextCV. Start 1 replaces the session snapshot.
+                  description: Start at 1; then use cvRead.nextCV. Retried cursors return saved progress.
+                restart:
+                  type: boolean
+                  default: false
+                  description: Explicitly replace the saved scan; allowed only with startCV 1.
       responses:
         "200":
           description: Confirmed result; CV batches update only the comparison workspace
@@ -9429,7 +9433,7 @@ paths:
         Admin only. Uses the saved session target, never a client-supplied host or CV values.
         Reads stored locomotive-object memory, without decoder programming or control takeover.
         Index pages are unknown. No raw reply is interpreted as a zero default.
-        Import preserves existing unindexed values across profiles and all indexed readings.
+        Import requires a completed scan and preserves existing unindexed values across profiles and all indexed readings.
       security:
         - sessionCookie: []
           csrfHeader: []

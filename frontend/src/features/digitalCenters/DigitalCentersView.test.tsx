@@ -33,6 +33,7 @@ type Workspace = ReturnType<typeof useDigitalCentersWorkspace>;
 
 describe("DigitalCentersView", () => {
   beforeEach(() => {
+    vi.spyOn(api, "readDigitalCenterCVBatch").mockResolvedValue(unmatchedWorkItem());
     setLanguage("de");
     workspaceHook.mockReturnValue(workspaceFixture());
     adoptionHook.mockReturnValue(adoptionFixture());

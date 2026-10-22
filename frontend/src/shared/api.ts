@@ -1844,10 +1844,11 @@ export const api = {
     request<DigitalCenterWorkItem>(
       `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/items/${encodeURIComponent(itemID)}`
     ),
-  readDigitalCenterCVBatch: (sessionID: string, itemID: string, startCV: number) =>
+  readDigitalCenterCVBatch: (sessionID: string, itemID: string, startCV: number,
+    options: { restart?: boolean } = {}) =>
     request<DigitalCenterWorkItem>(
       `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/items/${encodeURIComponent(itemID)}/cv-read`,
-      { method: "POST", body: JSON.stringify({ startCV }) },
+      { method: "POST", body: JSON.stringify({ startCV, restart: Boolean(options.restart) }) },
       { timeoutMs: 20000 }
     ),
   importDigitalCenterCVs: (sessionID: string, itemID: string, vehicleId: string) =>

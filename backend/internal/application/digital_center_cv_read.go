@@ -15,6 +15,11 @@ type ECoSCVReadState struct {
 	SourceHost  string `json:"sourceHost"`
 }
 
+type ECoSCVReadInput struct {
+	StartCV int  `json:"startCV"`
+	Restart bool `json:"restart,omitempty"`
+}
+
 type digitalCenterStoredCVReader interface {
 	ReadStoredCVs(context.Context, ECoSConnectionInput, int, int) (ECoSStoredCVBatch, error)
 }
@@ -25,10 +30,11 @@ type digitalCenterStoredCVImporter interface {
 
 // A small batch per request keeps cancellation and progress visible without a background job.
 func (service *DigitalCenterWorkspaceService) ReadStoredCVBatch(
-	ctx context.Context, sessionID, itemID string, startCV int,
+	ctx context.Context, sessionID, itemID string, input ECoSCVReadInput,
 ) (item DigitalCenterWorkItem, err error) {
+	startCV := input.StartCV
 	err = service.runECoSOperation(ctx, func() error {
-		if !validCVNumber(startCV) || (startCV-1)%ECoSStoredCVBatchSize != 0 {
+		if !validCVNumber(startCV) || (startCV-1)%ECoSStoredCVBatchSize != 0 || (input.Restart && startCV != 1) {
 			return ErrDigitalCenterFilterValidation
 		}
 		var session DigitalCenterReadSession
@@ -51,14 +57,15 @@ func (service *DigitalCenterWorkspaceService) ReadStoredCVBatch(
 		if err != nil {
 			return err
 		}
+		if !input.Restart && startCV < state.NextCV {
+			// Includes CV1: a lost first response must not reset another client's
+			// progress or depend on the device remaining reachable.
+			return nil
+		}
 		if startCV == 1 {
 			values = []ECoSCVValue{}
 			state = ECoSCVReadState{NextCV: 1, SourceHost: session.Host,
 				ReadAt: service.now().UTC().Format(time.RFC3339)}
-		} else if startCV < state.NextCV {
-			// A response may have been lost after the workspace commit. Returning
-			// its confirmed snapshot makes resuming safe without repeating device IO.
-			return nil
 		} else if state.NextCV != startCV {
 			return ErrDigitalCenterReadNotFresh
 		}
@@ -106,6 +113,9 @@ func (service *DigitalCenterWorkspaceService) ImportStoredCVs(
 		}
 		if len(values) == 0 {
 			return ErrDigitalCenterFilterValidation
+		}
+		if state.NextCV != ECoSStoredCVLimit+1 {
+			return ErrDigitalCenterReadNotFresh
 		}
 		importer, ok := service.vehicles.(digitalCenterStoredCVImporter)
 		if !ok {

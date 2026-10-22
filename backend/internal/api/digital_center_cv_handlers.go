@@ -12,14 +12,12 @@ func (a *App) readDigitalCenterCVBatch(w http.ResponseWriter, r *http.Request) {
 	if !a.requireDigitalCenterWorkspace(w) {
 		return
 	}
-	var input struct {
-		StartCV int `json:"startCV"`
-	}
+	var input application.ECoSCVReadInput
 	if !decodeDigitalCenterCVRequest(w, r, &input) {
 		return
 	}
 	item, err := a.digitalCenterWorkspace.ReadStoredCVBatch(r.Context(),
-		r.PathValue("id"), r.PathValue("itemID"), input.StartCV)
+		r.PathValue("id"), r.PathValue("itemID"), input)
 	if err != nil {
 		a.respondDigitalCenterWorkspaceError(w, err)
 		return

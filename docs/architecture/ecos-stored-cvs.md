@@ -7,8 +7,9 @@ before adoption. The separate read button allows reviewing it beforehand. The re
 32 consecutive numbers per authenticated, CSRF-protected call, retaining confirmed progress in
 the existing work-item snapshot. Missing numbers never terminate the scan. Stopping prevents
 the next batch; a failed batch does not advance the cursor and can be resumed. Restarting a
-completed scan replaces its workspace snapshot, not vehicle data. Retrying a committed cursor after a lost response
-returns the confirmed workspace snapshot without repeating device reads.
+completed scan explicitly uses `restart: true` to replace its workspace snapshot, not vehicle data. Retrying a committed cursor after a lost response
+returns the confirmed workspace snapshot without repeating device reads, including CV1.
+Adoption refreshes the saved progress first; the server rejects incomplete snapshots on import.
 
 Each request uses `get(id, cv[nr])`, documented in ESU's *Netzwerkspezifikation für das PC-Interface*,
 third edition, June 2011, section 7.11, page 8. It reads the locomotive object's stored memory,

@@ -50,7 +50,8 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
     setPreparingCVs(true);
     setCVReadError("");
     try {
-      return await readECoSStoredCVs(item, workspace.acceptCVRead, { isCancelled: () => cvCancelled.current });
+      return await readECoSStoredCVs(item, workspace.acceptCVRead,
+        { refresh: true, isCancelled: () => cvCancelled.current });
     } catch {
       if (!cvCancelled.current) setCVReadError(t("digitalCenters.cvs.readError"));
       return null;
@@ -140,7 +141,7 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
       {workspace.dialog?.kind === "comparison" && workspace.selectedItem && (
         <LocomotiveComparisonDialog item={workspace.selectedItem}
           canReadCVs={roles.includes("Admin") && adoptionProvider === "ecos"}
-          onCVRead={workspace.acceptCVRead}
+          onCVRead={(item) => { workspace.acceptCVRead(item); setCVReadError(""); }}
           preparingCVs={preparingCVs}
           cvReadError={cvReadError}
           onCancelCVRead={() => { cvCancelled.current = true; }}

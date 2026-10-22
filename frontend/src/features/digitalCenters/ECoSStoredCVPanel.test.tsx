@@ -59,8 +59,8 @@ describe("ECoSStoredCVPanel", () => {
     render(<Harness initial={batch(1)} />);
     fireEvent.click(screen.getByRole("button", { name: "CV-Werte ergänzen" }));
     await screen.findByText("1024 CV-Werte ergänzt · 0 vorhandene Angaben geschützt.");
-    expect(read).toHaveBeenCalledTimes(31);
-    expect(read.mock.calls[0][2]).toBe(33);
+    expect(read).toHaveBeenCalledTimes(32);
+    expect(read.mock.calls[0][2]).toBe(1);
     expect(save).toHaveBeenCalledOnce();
   });
 
@@ -75,6 +75,20 @@ describe("ECoSStoredCVPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Lesen fortsetzen" }));
     await screen.findByText(/1024 Werte verfügbar · 1024 von 1024/);
     expect(read.mock.calls.slice(0, 3).map((call) => call[2])).toEqual([1, 33, 33]);
+  });
+
+  it("resumes a lost first restart response without requesting another reset", async () => {
+    const read = vi.spyOn(api, "readDigitalCenterCVBatch")
+      .mockRejectedValueOnce(new Error("response lost after commit"))
+      .mockImplementation(async (_, __, start) => batch(start));
+    render(<Harness initial={batch(993)} />);
+    fireEvent.click(screen.getByRole("button", { name: "Alle gespeicherten CVs lesen" }));
+    await screen.findByRole("alert");
+    fireEvent.click(screen.getByRole("button", { name: "Lesen fortsetzen" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+    await screen.findByText(/1024 Werte verfügbar · 1024 von 1024/);
+    expect(read.mock.calls.slice(0, 3).map((call) => [call[2], call[3]?.restart]))
+      .toEqual([[1, true], [1, false], [33, false]]);
   });
 
   it("stops after the running batch without requesting more CVs", async () => {
