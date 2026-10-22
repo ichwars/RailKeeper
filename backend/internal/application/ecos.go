@@ -33,6 +33,7 @@ type ECoSService struct {
 	liveCount                int
 	liveGeneration           uint64
 	liveInterruptionNotified bool
+	liveOnInterrupted        func()
 }
 
 type ECoSConnectionInput struct {
@@ -282,6 +283,7 @@ func (s *ECoSService) StartLiveWithInterruption(
 	s.liveGeneration++
 	generation := s.liveGeneration
 	s.liveInterruptionNotified = false
+	s.liveOnInterrupted = onInterrupted
 	s.liveCancel = cancel
 	done := make(chan struct{})
 	s.liveDone = done
@@ -318,6 +320,7 @@ func (s *ECoSService) StopLive() ECoSLiveStatus {
 	defer s.liveMu.Unlock()
 	s.flushCurrentLivePulseLocked(time.Now().UTC())
 	s.stopLiveLocked()
+	s.liveOnInterrupted = nil
 	s.liveGeneration++
 	s.liveStatus.Connected = false
 	s.liveStatus.State = ECoSLiveStopped
