@@ -13,6 +13,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"regexp"
 	"sort"
@@ -29,6 +30,7 @@ var (
 	ErrImageFormat       = errors.New("invalid ECoS image format")
 	ErrImageWeb          = errors.New("unsupported or unreachable ECoS image web interface")
 	ErrImageSlotOccupied = errors.New("ECoS image slot is occupied")
+	ErrImageNotStored    = errors.New("ECoS image slot is still free after upload")
 	ErrImageSlotsFull    = errors.New("ECoS image slots are full")
 	imageLinks           = regexp.MustCompile(`(?i)\b(?:href|src)\s*=\s*["']([^"']+)["']`)
 	imageInput           = regexp.MustCompile(`(?is)<input\b[^>]*>`)
@@ -209,7 +211,7 @@ func (web *ImageWeb) checkSlot(ctx context.Context, index int, occupied bool) er
 		return ErrImageSlotOccupied
 	}
 	if occupied && !states[index] {
-		return ErrImageWeb
+		return ErrImageNotStored
 	}
 	return nil
 }
@@ -288,17 +290,30 @@ func (web *ImageWeb) Upload(ctx context.Context, index int, description, kind st
 	}
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
-	for name, value := range map[string]string{"desc": description, "type": kind, "lang": "en", "id": strconv.Itoa(index), "start": strconv.Itoa(index / 50), "items": "50", "submit": "Submit"} {
-		if err := writer.WriteField(name, value); err != nil {
+	// Follow the station's HTML form order, including the file between the radio
+	// selection and hidden fields. Older embedded form parsers can be order-sensitive.
+	for _, field := range [][2]string{{"desc", description}, {"type", kind}} {
+		if err := writer.WriteField(field[0], field[1]); err != nil {
 			return err
 		}
 	}
-	part, err := writer.CreateFormFile("uploaded_file", "railkeeper.bmp")
+	// CreateFormFile uses application/octet-stream. Send the actual BMP media type,
+	// as a browser does when submitting the ECoS upload form.
+	part, err := writer.CreatePart(textproto.MIMEHeader{
+		"Content-Disposition": {`form-data; name="uploaded_file"; filename="railkeeper.bmp"`},
+		"Content-Type":        {"image/bmp"},
+	})
 	if err != nil {
 		return err
 	}
 	if _, err = part.Write(data); err != nil {
 		return err
+	}
+	for _, field := range [][2]string{{"lang", "en"}, {"id", strconv.Itoa(index)},
+		{"start", strconv.Itoa(index / 50)}, {"items", "50"}, {"submit", "Submit"}} {
+		if err := writer.WriteField(field[0], field[1]); err != nil {
+			return err
+		}
 	}
 	if err = writer.Close(); err != nil {
 		return err

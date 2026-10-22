@@ -141,7 +141,7 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
     {result && <div className={result.status === "verified" ? "ecos-image-success" : "ecos-image-warning"} role="status">
       <strong>{result.status === "verified" ? <CircleCheck size={18} aria-hidden="true" /> : <TriangleAlert size={18} aria-hidden="true" />}
         {t(`ecosImage.result.${result.status}`, { slot: result.slot, objectId: result.objectId })}</strong>
-      {result.status !== "verified" && <p>{t("ecosImage.partialHelp")}</p>}
+      {result.status !== "verified" && <p>{t(result.status === "image_not_stored" ? "ecosImage.notStoredHelp" : "ecosImage.partialHelp")}</p>}
       {!result.auditRecorded && <p>{t("ecosImage.auditMissing")}</p>}
       {result.liveMonitor.wasRunning && !result.liveMonitor.restarted && <p>{t("ecosImage.liveStopped")}</p>}
     </div>}

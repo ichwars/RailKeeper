@@ -58,7 +58,7 @@ type ECoSImageConfirmInput struct {
 }
 
 type ECoSImageResult struct {
-	Status             string                       `json:"status"` // verified, upload_unknown, image_unverified, assignment_unknown
+	Status             string                       `json:"status"` // verified, upload_unknown, image_not_stored, image_unverified, assignment_unknown
 	Slot               int                          `json:"slot"`
 	ObjectID           int                          `json:"objectId"`
 	ImageVerified      bool                         `json:"imageVerified"`
@@ -332,6 +332,9 @@ func (service *DigitalCenterWorkspaceService) confirmECoSImageGrant(ctx context.
 	}
 	result.Status = "image_unverified"
 	if err := web.CheckStoredSlot(writeCtx, preview.Slot); err != nil {
+		if errors.Is(err, ecospkg.ErrImageNotStored) {
+			result.Status = "image_not_stored"
+		}
 		return nil
 	}
 	actual, err := web.ReadImage(writeCtx, "user", preview.Slot)
