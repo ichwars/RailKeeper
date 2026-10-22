@@ -622,6 +622,12 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setPageSize,
     selectedItemId,
     selectedItem,
+    acceptCVRead: (item: DigitalCenterWorkItem) => {
+      if (!mountedRef.current || item.sessionId !== readSessionIDRef.current || item.id !== selectedItemIDRef.current) return;
+      setSelectedItem(item);
+      setWorkItems((current) => ({ ...current,
+        items: current.items.map((entry) => entry.id === item.id ? item : entry) }));
+    },
     selectItem,
     closeDetail,
     tab,

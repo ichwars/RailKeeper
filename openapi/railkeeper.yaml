@@ -1075,6 +1075,59 @@ components:
           type: integer
         protocol:
           type: string
+        profile:
+          type: string
+        cvs:
+          type: array
+          maxItems: 1024
+          items:
+            $ref: "#/components/schemas/ECoSStoredCVValue"
+        cvRead:
+          $ref: "#/components/schemas/ECoSCVReadState"
+    ECoSStoredCVValue:
+      type: object
+      required: [number, value]
+      additionalProperties: false
+      properties:
+        number:
+          type: integer
+          minimum: 1
+          maximum: 1024
+        value:
+          type: integer
+          minimum: 0
+          maximum: 255
+    ECoSCVReadState:
+      type: object
+      required: [nextCV, unavailable, readAt, sourceHost]
+      additionalProperties: false
+      properties:
+        nextCV:
+          type: integer
+          minimum: 1
+          maximum: 1025
+        unavailable:
+          type: integer
+          minimum: 0
+          maximum: 1024
+        readAt:
+          type: string
+          format: date-time
+        sourceHost:
+          type: string
+    ECoSCVImportResult:
+      type: object
+      required: [imported, preserved]
+      additionalProperties: false
+      properties:
+        imported:
+          type: integer
+          minimum: 0
+          maximum: 1024
+        preserved:
+          type: integer
+          minimum: 0
+          maximum: 1024
     DigitalCenterVehicleSnapshot:
       type: object
       additionalProperties: false
@@ -9290,6 +9343,157 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "404":
           description: Read session or work item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}/items/{itemID}/cv-read:
+    post:
+      tags: [DigitalCenters]
+      summary: Read the next 32 stored ECoS CV numbers (CV1 through CV1024)
+      description: >
+        Admin only. Uses the saved session target, never a client-supplied host or CV values.
+        Reads stored locomotive-object memory, without decoder programming or control takeover.
+        Index pages are unknown. No raw reply is interpreted as a zero default.
+        Import requires a completed scan and preserves existing unindexed values across profiles and all indexed readings.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [startCV]
+              properties:
+                startCV:
+                  type: integer
+                  minimum: 1
+                  maximum: 993
+                  description: Start at 1; then use cvRead.nextCV. Retried cursors return saved progress.
+                restart:
+                  type: boolean
+                  default: false
+                  description: Explicitly replace the saved scan; allowed only with startCV 1.
+      responses:
+        "200":
+          description: Confirmed result; CV batches update only the comparison workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterWorkItem"
+        "400":
+          description: Invalid request or unsupported provider
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role or CSRF check failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Read session or work item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Restart the read or check the vehicle mapping
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: Invalid or incomplete ECoS response; no CVs imported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}/items/{itemID}/cv-import:
+    post:
+      tags: [DigitalCenters]
+      summary: Atomically add reviewed ECoS memory values without overwriting existing CVs
+      description: >
+        Admin only. Uses the saved session target, never a client-supplied host or CV values.
+        Reads stored locomotive-object memory, without decoder programming or control takeover.
+        Index pages are unknown. No raw reply is interpreted as a zero default.
+        Import requires a completed scan and preserves existing unindexed values across profiles and all indexed readings.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [vehicleId]
+              properties:
+                vehicleId:
+                  type: string
+                  minLength: 1
+                  description: Vehicle must already be mapped to this ECoS object.
+      responses:
+        "200":
+          description: Confirmed result; CV batches update only the comparison workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ECoSCVImportResult"
+        "400":
+          description: Invalid request or unsupported provider
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role or CSRF check failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Read session or work item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Restart the read or check the vehicle mapping
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: Invalid or incomplete ECoS response; no CVs imported
           content:
             application/json:
               schema:

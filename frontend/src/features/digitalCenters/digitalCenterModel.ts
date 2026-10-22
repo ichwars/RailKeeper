@@ -78,6 +78,9 @@ export type DigitalCenterStationSnapshot = {
   name?: string;
   decoderAddress?: number;
   protocol?: string;
+  profile?: string;
+  cvs?: Array<{ number: number; value: number }>;
+  cvRead?: { nextCV: number; unavailable: number; readAt: string; sourceHost: string };
 };
 
 export type DigitalCenterVehicleSnapshot = {

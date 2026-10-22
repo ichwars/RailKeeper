@@ -64,6 +64,9 @@ export function VehicleAssignmentDialog({
         </header>
 
         <div className="digital-assignment-body">
+          {provider === "ecos" && Boolean(item.center.cvs?.length) && <p>
+            {t("digitalCenters.cvs.assignHint", { count: item.center.cvs!.length })}
+          </p>}
           <AppTextInput ref={searchRef} label={t("digitalCenters.assignment.search")}
             value={query} onChange={(event) => setQuery(event.target.value)}
             placeholder={t("digitalCenters.assignment.searchPlaceholder")} />

@@ -42,12 +42,13 @@ export function buildDigitalCenterVehicleDraft(
   return {
     source: provider === "cs3" ? "cs3" : "ecos",
     mode: "create",
+    sourceWorkItemId: item.id,
     sourceSummary: {
       objectId: Number(mapping.externalId),
       name,
       address: mapping.externalAddress || "",
       protocol: mapping.externalProtocol || "",
-      profile: ""
+      profile: item.center.profile || ""
     },
     vehicle: {
       ...emptyVehicle,
@@ -58,7 +59,16 @@ export function buildDigitalCenterVehicleDraft(
     },
     importedKeys: ["name", "category", "digital", "digitalDecoderNumber"],
     externalMapping: mapping,
-    cvValues: [],
+    cvValues: provider === "ecos" ? (item.center.cvs || []).map((value) => ({
+      cvNumber: value.number,
+      value: value.value,
+      decoderProfile: "ECoS",
+      protocol: item.protocol,
+      category: "ECoS",
+      description: `ECoS #${item.centerObjectId} · CV${value.number} · ` +
+        `${item.center.cvRead?.readAt || item.updatedAt} · Cache/Speicher · CV31/CV32: ?`,
+      sourceFileId: ""
+    })) : [],
     functionValues: [],
     unclearFields: ["manufacturer", "gauge", "gattung"],
     returnToDigitalCenters: {

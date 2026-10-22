@@ -101,6 +101,7 @@ export type InventoryReportMode = "summary" | "details";
 export type InventoryReportSelection = "all" | "selected";
 export type ECoSRequiredField = "manufacturer" | "name" | "gauge" | "category" | "gattung";
 export type ECoSVehicleDraftPayload = {
+  sourceWorkItemId?: string;
   source: "ecos" | "cs3";
   mode: "create" | "update";
   targetVehicleId?: string;

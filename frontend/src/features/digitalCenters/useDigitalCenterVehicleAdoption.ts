@@ -58,13 +58,18 @@ export function useDigitalCenterVehicleAdoption({ onAssigned }: DigitalCenterVeh
     setSelectedVehicleId(vehicleId);
     setError("");
     setSaving(true);
+    let mappingSaved = false;
     try {
       await api.upsertVehicleExternalMapping(vehicleId, digitalCenterExternalMapping(item, provider));
+      mappingSaved = true;
+      if (provider === "ecos" && item.center.cvs?.length) {
+        await api.importDigitalCenterCVs(item.sessionId, item.id, vehicleId);
+      }
       await onAssigned();
     } catch (assignError) {
       setError(assignError instanceof ApiError && assignError.code === "external_mapping_conflict"
         ? t("digitalCenters.assignment.mappingConflict")
-        : t("digitalCenters.assignment.saveError"));
+        : t(mappingSaved ? "digitalCenters.cvs.importError" : "digitalCenters.assignment.saveError"));
     } finally {
       setSaving(false);
     }

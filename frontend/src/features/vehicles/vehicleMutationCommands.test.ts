@@ -80,6 +80,7 @@ describe("createVehicleMutationCommands", () => {
     const draft: ECoSVehicleDraftPayload = {
       source: "ecos",
       mode: "create",
+      sourceWorkItemId: "item-77",
       sourceSummary: { objectId: 77, name: "BR 106", address: "3", protocol: "DCC", profile: "" },
       vehicle: { ...emptyVehicle, name: "BR 106", category: "Lokomotive", digital: true },
       importedKeys: ["name", "category", "digital"],
@@ -87,12 +88,14 @@ describe("createVehicleMutationCommands", () => {
         provider: "ecos", externalId: "77", externalName: "BR 106",
         externalAddress: "3", externalProtocol: "DCC", syncStatus: "linked"
       },
-      cvValues: [],
+      cvValues: [{ cvNumber: 1024, value: 0, decoderProfile: "ECoS" }],
       functionValues: [],
       unclearFields: [],
       returnToDigitalCenters: { sessionId: "session-1", objectId: "77" }
     };
     options.ecos.draft = draft;
+    vi.spyOn(api, "importDigitalCenterCVs").mockResolvedValue({ imported: 1, preserved: 0 });
+    const createCV = vi.spyOn(api, "createVehicleCVValue");
     vi.spyOn(api, "createVehicle").mockResolvedValue(created);
     vi.spyOn(api, "upsertVehicleExternalMapping").mockResolvedValue({
       id: "mapping-1", vehicleId: created.id, provider: "ecos", externalId: "77",
@@ -103,6 +106,8 @@ describe("createVehicleMutationCommands", () => {
     await createVehicleMutationCommands(options).submit(submitEvent());
 
     expect(api.upsertVehicleExternalMapping).toHaveBeenCalledWith(created.id, draft.externalMapping);
+    expect(api.importDigitalCenterCVs).toHaveBeenCalledWith("session-1", "item-77", created.id);
+    expect(createCV).not.toHaveBeenCalled();
     expect(options.ecos.markSaved).toHaveBeenCalledWith(draft, created.id);
     expect(options.editor.close).toHaveBeenCalledOnce();
     expect(options.ecos.returnToSession).toHaveBeenCalledWith(draft);

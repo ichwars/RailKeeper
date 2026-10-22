@@ -365,6 +365,7 @@ func newDigitalCenterWorkItem(locomotive ECoSRawLocomotive) DigitalCenterWorkIte
 		Center: map[string]any{
 			"objectId": locomotive.ObjectID, "name": locomotive.Name,
 			"decoderAddress": locomotive.Address, "protocol": locomotive.Protocol,
+			"profile": locomotive.Profile, "cvs": locomotive.CVs,
 		},
 		RailKeeper: map[string]any{}, Proposed: map[string]any{}, Conflicts: []map[string]any{},
 	}
@@ -540,9 +541,14 @@ func normalizeDigitalCenterLocomotives(probe *ECoSRawProbe) ([]ECoSRawLocomotive
 		if err != nil {
 			return nil, err
 		}
+		cvs, err := validateStoredECoSCVs(locomotive.CVs)
+		if err != nil {
+			return nil, err
+		}
 		normalized = append(normalized, ECoSRawLocomotive{
 			ObjectID: locomotive.ObjectID, Name: name, Address: locomotive.Address,
 			Protocol: protocol, DetailError: strings.TrimSpace(locomotive.DetailError),
+			CVs: cvs, Profile: locomotive.Profile,
 		})
 	}
 	return normalized, nil

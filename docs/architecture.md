@@ -72,6 +72,8 @@ Node.js is only used to build the frontend.
   discarded. See `docs/architecture/z21-read-scope.md` for protocol evidence, bounds, and hardware gaps.
 - Decoder CV identity is vehicle + exact trimmed decoder profile + CV number + optional CV31/CV32 pair.
   Unindexed values and zero index pages remain distinct. Reviewed CV selections commit atomically.
+  ECoS stored-memory CVs have a bounded full-range read and additive adoption with provenance;
+  see [stored ECoS CV values](architecture/ecos-stored-cvs.md) for unknown index pages and firmware limits.
 - Decoder definitions are local `decoder_profile` master-data entries, separate from vehicle readings.
   `internal/decoderlibrary/catalog.json` holds reviewed DCC and selected model CV rules for all eight catalogued brands.
   Coverage remains model- and document-specific, not a blanket family guarantee. `inventory.json` separately describes manufacturers, families and products, persisted as

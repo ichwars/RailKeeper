@@ -210,8 +210,8 @@ func TestDigitalCenterOperationalAndSettingsRoutesRemainAdminOnly(t *testing.T) 
 			wantSettings[settingsKey] = true
 		}
 	}
-	if operationalRoutes != 21 {
-		t.Fatalf("digital center operational routes = %d, want 21", operationalRoutes)
+	if operationalRoutes != 23 {
+		t.Fatalf("digital center operational routes = %d, want 23", operationalRoutes)
 	}
 	for route, found := range wantSettings {
 		if !found {
@@ -246,6 +246,8 @@ func TestDigitalCenterMutationsRequireAdminSessionAndCSRF(t *testing.T) {
 		"/api/v1/digital-centers/ecos/live/start",
 		"/api/v1/digital-centers/ecos/live/stop",
 		"/api/v1/digital-centers/ecos/read-sessions",
+		"/api/v1/digital-centers/read-sessions/session-1/items/item-1/cv-read",
+		"/api/v1/digital-centers/read-sessions/session-1/items/item-1/cv-import",
 		"/api/v1/digital-centers/read-sessions/session-1/items/item-1/write-preview",
 		"/api/v1/digital-centers/read-sessions/session-1/items/item-1/write-confirm",
 		"/api/v1/digital-centers/ecos/locomotives/sync",

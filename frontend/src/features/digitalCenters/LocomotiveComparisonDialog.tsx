@@ -4,6 +4,7 @@ import { CheckCircle2, TriangleAlert, X } from "lucide-react";
 import { useI18n, type Language } from "../../shared/i18n";
 import { AppCheckbox } from "../../shared/ui/AppCheckbox";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
+import { ECoSStoredCVPanel } from "./ECoSStoredCVPanel";
 import type {
   DigitalCenterWorkItem,
   DigitalCenterWriteConfirmation,
@@ -14,7 +15,8 @@ import type {
 
 export function LocomotiveComparisonDialog({
   item, canWrite, canAdopt, loading, preview, confirmation, error, onPreview, onConfirm,
-  onCreateVehicle, onAssignVehicle, onClose
+  onCreateVehicle, onAssignVehicle, onClose, canReadCVs = false, onCVRead,
+  preparingCVs = false, cvReadError = "", onCancelCVRead
 }: {
   item: DigitalCenterWorkItem;
   canWrite: boolean;
@@ -30,9 +32,15 @@ export function LocomotiveComparisonDialog({
   onCreateVehicle: () => void;
   onAssignVehicle: () => void;
   onClose: () => void;
+  canReadCVs?: boolean;
+  onCVRead?: (item: DigitalCenterWorkItem) => void;
+  preparingCVs?: boolean;
+  cvReadError?: string;
+  onCancelCVRead?: () => void;
 }) {
   const { t, language } = useI18n();
   const [confirmed, setConfirmed] = useState(false);
+  const [cvBusy, setCVBusy] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const { anchorRef, layerRef, onKeyDown } = useModalDialogLayer(onClose, closeButtonRef);
   const rows = comparisonRows(item, t);
@@ -62,6 +70,9 @@ export function LocomotiveComparisonDialog({
             </button></header>
 
           {!preview && <ComparisonTable rows={rows} t={t} />}
+          {!preview && canReadCVs && item.stationStatus !== "missing" && onCVRead &&
+            <ECoSStoredCVPanel key={item.id} item={item} onChange={onCVRead} onBusy={setCVBusy}
+              externalReading={preparingCVs} externalError={cvReadError} onCancelRead={onCancelCVRead} />}
           {preview && <WritePreview preview={preview} t={t} language={language} />}
           {error && <p className="digital-write-result error" role="alert"
             aria-label={t("digitalCenters.error.write")}>
@@ -91,10 +102,11 @@ export function LocomotiveComparisonDialog({
           <footer>
             {!preview && canAdopt && adoptable && <>
               <button type="button" className="digital-center-button digital-center-button-primary"
-                onClick={onCreateVehicle}>
+                disabled={cvBusy || preparingCVs || loading} onClick={onCreateVehicle}>
                 {t("digitalCenters.assignment.create")}
               </button>
-              <button type="button" className="digital-center-button" onClick={onAssignVehicle}>
+              <button type="button" className="digital-center-button"
+                disabled={cvBusy || preparingCVs || loading} onClick={onAssignVehicle}>
                 {t("digitalCenters.assignment.open")}
               </button>
             </>}
@@ -106,7 +118,7 @@ export function LocomotiveComparisonDialog({
               {t("digitalCenters.write.createInEcos")}
             </button>}
             {!preview && !unassigned && !missingInCenter && <button type="button" className="digital-center-button"
-              disabled={!canWrite || loading || changedFields.length === 0}
+              disabled={!canWrite || loading || cvBusy || preparingCVs || changedFields.length === 0}
               onClick={() => void onPreview(changedFields).catch(() => undefined)}>
               {t("digitalCenters.write.createPreview")}
             </button>}

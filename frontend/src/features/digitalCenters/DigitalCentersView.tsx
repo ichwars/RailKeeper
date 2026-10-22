@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { DigitalCenterList } from "./DigitalCenterList";
 import { useI18n } from "../../shared/i18n";
@@ -13,6 +13,8 @@ import { LocomotiveWorklist } from "./LocomotiveWorklist";
 import { useDigitalCenterVehicleAdoption } from "./useDigitalCenterVehicleAdoption";
 import { useDigitalCentersWorkspace } from "./useDigitalCentersWorkspace";
 import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
+import { readECoSStoredCVs } from "./readECoSStoredCVs";
+import type { DigitalCenterWorkItem } from "./digitalCenterModel";
 
 function openDigitalSettings() {
   window.history.pushState(null, "", "/settings?tab=digital");
@@ -23,6 +25,10 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
   const { t } = useI18n();
   const workspace = useDigitalCentersWorkspace();
   const returnReadStartedRef = useRef(false);
+  const cvCancelled = useRef(false);
+  const cvPreparing = useRef(false);
+  const [preparingCVs, setPreparingCVs] = useState(false);
+  const [cvReadError, setCVReadError] = useState("");
   const adoption = useDigitalCenterVehicleAdoption({
     onAssigned: async () => {
       workspace.closeDialog();
@@ -33,6 +39,27 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
   const adoptionProvider = isDigitalCenterVehicleAdoptionProvider(workspace.readSession?.provider)
     ? workspace.readSession.provider
     : null;
+
+  useEffect(() => () => { cvCancelled.current = true; }, [workspace.selectedItem?.id, workspace.readSession?.id]);
+
+  const prepareAdoption = async (item: DigitalCenterWorkItem) => {
+    if (adoptionProvider !== "ecos") return item;
+    if (cvPreparing.current) return null;
+    cvPreparing.current = true;
+    cvCancelled.current = false;
+    setPreparingCVs(true);
+    setCVReadError("");
+    try {
+      return await readECoSStoredCVs(item, workspace.acceptCVRead,
+        { refresh: true, isCancelled: () => cvCancelled.current });
+    } catch {
+      if (!cvCancelled.current) setCVReadError(t("digitalCenters.cvs.readError"));
+      return null;
+    } finally {
+      cvPreparing.current = false;
+      setPreparingCVs(false);
+    }
+  };
 
   useEffect(() => {
     if (returnReadStartedRef.current || !workspace.actions.canRead) return;
@@ -113,6 +140,11 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
 
       {workspace.dialog?.kind === "comparison" && workspace.selectedItem && (
         <LocomotiveComparisonDialog item={workspace.selectedItem}
+          canReadCVs={roles.includes("Admin") && adoptionProvider === "ecos"}
+          onCVRead={(item) => { workspace.acceptCVRead(item); setCVReadError(""); }}
+          preparingCVs={preparingCVs}
+          cvReadError={cvReadError}
+          onCancelCVRead={() => { cvCancelled.current = true; }}
           canWrite={workspace.actions.canWrite}
           canAdopt={roles.includes("Admin") && adoptionProvider !== null}
           loading={workspace.loading.write}
@@ -121,16 +153,21 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
           error={workspace.errors.write}
           onPreview={workspace.previewWrite}
           onConfirm={workspace.confirmWrite}
-          onCreateVehicle={() => {
+          onCreateVehicle={async () => {
             if (adoptionProvider) {
-              openDigitalCenterVehicleDraft(workspace.selectedItem!, adoptionProvider);
+              const ready = await prepareAdoption(workspace.selectedItem!);
+              if (ready) openDigitalCenterVehicleDraft(ready, adoptionProvider);
             }
           }}
-          onAssignVehicle={() => {
-            workspace.openDialog("assignment", workspace.selectedItem!.id);
-            void adoption.commands.load(workspace.selectedItem!);
+          onAssignVehicle={async () => {
+            const ready = await prepareAdoption(workspace.selectedItem!);
+            if (!ready) return;
+            workspace.openDialog("assignment", ready.id);
+            void adoption.commands.load(ready);
           }}
           onClose={() => {
+            cvCancelled.current = true;
+            setCVReadError("");
             workspace.closeDialog();
             workspace.closeDetail();
           }} />
