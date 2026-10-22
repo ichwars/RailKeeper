@@ -1378,10 +1378,11 @@ export const api = {
     request<void>("/data-transfer/artifacts/open-folder", { method: "POST" }),
   ecosImageOptions: (vehicleId: string) => request<ECoSImageOptions>(
     `/vehicles/${encodeURIComponent(vehicleId)}/ecos-image/options`, {}, { timeoutMs: 35000 }),
-  previewECoSImage: (vehicleId: string, objectId: number, description: string, image: Blob) => {
+  previewECoSImage: (vehicleId: string, objectId: number, description: string, image: Blob, existingSlot?: number) => {
     const body = new FormData();
     body.append("objectId", String(objectId)); body.append("description", description);
     body.append("image", image, "railkeeper.bmp");
+    if (existingSlot !== undefined) body.append("existingSlot", String(existingSlot));
     return request<ECoSImagePreview>(`/vehicles/${encodeURIComponent(vehicleId)}/ecos-image/preview`,
       { method: "POST", body }, { timeoutMs: 80000 });
   },

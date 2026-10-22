@@ -1,6 +1,8 @@
 package api
 
 import (
+	"bytes"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -35,6 +37,27 @@ func TestECoSImageRoutesRequireAdminCSRFAndConfirmation(t *testing.T) {
 	assertProblem(t, response, http.StatusBadRequest, "digital_center_confirmation_required")
 	for _, input := range []map[string]any{{"token": "token", "confirm": true, "host": "8.8.8.8"}, {"token": "token", "confirm": true, "objectId": 1001}} {
 		response := authedJSONRequest(t, router, admin, http.MethodPost, "/api/v1/vehicles/vehicle-1/ecos-image/confirm", input, true)
+		assertProblem(t, response, http.StatusBadRequest, "ecos_image_input")
+	}
+}
+
+func TestECoSImagePreviewRejectsMalformedExistingSlotBeforeDeviceAccess(t *testing.T) {
+	app := &App{digitalCenterWorkspace: application.NewDigitalCenterWorkspaceService(nil, nil, nil, nil, nil, nil)}
+	for _, values := range [][]string{{"-1"}, {"500"}, {""}, {"1", "2"}, {"1.5"}} {
+		var body bytes.Buffer
+		writer := multipart.NewWriter(&body)
+		_ = writer.WriteField("objectId", "1001")
+		_ = writer.WriteField("description", "Test")
+		for _, value := range values {
+			_ = writer.WriteField("existingSlot", value)
+		}
+		file, _ := writer.CreateFormFile("image", "railkeeper.bmp")
+		_, _ = file.Write([]byte("invalid"))
+		_ = writer.Close()
+		request := httptest.NewRequest(http.MethodPost, "/", &body)
+		request.Header.Set("Content-Type", writer.FormDataContentType())
+		response := httptest.NewRecorder()
+		app.previewECoSImage(response, request)
 		assertProblem(t, response, http.StatusBadRequest, "ecos_image_input")
 	}
 }

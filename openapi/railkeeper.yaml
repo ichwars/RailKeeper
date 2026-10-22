@@ -1347,7 +1347,7 @@ components:
     ECoSImagePreview:
       type: object
       description: Read-only preview; one-use actor/vehicle/image/target-bound grant, valid for five minutes. A new preview replaces the same actor's previous preview. Restarting RailKeeper invalidates grants.
-      required: [token, expiresAt, host, target, current, slot, description, sha256, currentImage, newImage]
+      required: [token, expiresAt, host, target, current, slot, description, sha256, currentImage, newImage, existingImage]
       properties:
         token: {type: string}
         expiresAt: {type: string, format: date-time}
@@ -1366,6 +1366,7 @@ components:
         sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
         currentImage: {type: string, pattern: '^data:image/png;base64,'}
         newImage: {type: string, pattern: '^data:image/png;base64,'}
+        existingImage: {type: boolean, description: True for assignment-only reuse of a pixel-verified stored image.}
     ECoSImageConfirmInput:
       type: object
       additionalProperties: false
@@ -1378,7 +1379,7 @@ components:
       description: Upload and assignment are separate device writes. Partial or ambiguous results must be inspected on the ECoS; never retry automatically or reboot the device.
       required: [status, slot, objectId, imageVerified, assignmentVerified, auditRecorded, liveMonitor]
       properties:
-        status: {type: string, enum: [verified, upload_unknown, image_not_stored, image_unverified, assignment_unknown]}
+        status: {type: string, enum: [verified, upload_unknown, image_not_stored, image_unverified, assignment_unknown, control_busy]}
         slot: {type: integer, minimum: 0, maximum: 499}
         objectId: {type: integer, minimum: 1}
         imageVerified: {type: boolean}
@@ -8949,6 +8950,11 @@ paths:
               properties:
                 objectId: {type: integer, minimum: 1}
                 description: {type: string, minLength: 1, maxLength: 80}
+                existingSlot:
+                  type: integer
+                  minimum: 0
+                  maximum: 499
+                  description: Optional assignment-only reuse. The stored image must match the supplied BMP at preview and confirmation. No upload is performed.
                 image:
                   type: string
                   format: binary

@@ -1,7 +1,8 @@
 import {
-  alphaBounds, encodeBMP24, fitLocomotiveImage, imageBackgroundColors, validImageSize,
+  encodeBMP24, fitLocomotiveImage, imageBackgroundColors, validImageSize,
   type ImageBackground, type ImageCrop, type LocomotiveImageTarget
 } from "./locomotiveImage";
+import { locomotiveImageBounds, quantizeECoSImage } from "./locomotiveImagePixels";
 
 const maxSourceBytes = 20 * 1024 * 1024;
 
@@ -41,7 +42,7 @@ export async function loadLocomotiveImage(url: string, signal: AbortSignal) {
   return bitmap;
 }
 
-export function transparentImageBounds(bitmap: ImageBitmap) {
+export function suggestedImageBounds(bitmap: ImageBitmap) {
   const canvas = document.createElement("canvas");
   // Bound analysis memory and leave a margin around the proposed, user-reviewed trim.
   const scale = Math.min(1, 1200 / bitmap.width, 1200 / bitmap.height);
@@ -50,7 +51,7 @@ export function transparentImageBounds(bitmap: ImageBitmap) {
   const context = canvas.getContext("2d", { willReadFrequently: true });
   if (!context) throw new Error("unsupported");
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  const bounds = alphaBounds(context.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
+  const bounds = locomotiveImageBounds(context.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
   if (!bounds) return null;
   const x = Math.max(0, Math.floor(bounds.x / scale) - 1);
   const y = Math.max(0, Math.floor(bounds.y / scale) - 1);
@@ -72,9 +73,12 @@ export function renderLocomotiveImage(
   context.imageSmoothingEnabled = true; context.imageSmoothingQuality = "high";
   const fit = fitLocomotiveImage(crop, target);
   context.drawImage(bitmap, crop.x, crop.y, crop.width, crop.height, fit.x, fit.y, fit.width, fit.height);
-  if (target.format === "bmp") return Promise.resolve(new Blob([
-    encodeBMP24(context.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height)
-  ], { type: "image/bmp" }));
+  if (target.format === "bmp") {
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+    pixels.data.set(quantizeECoSImage(pixels.data, canvas.width, canvas.height));
+    context.putImageData(pixels, 0, 0);
+    return Promise.resolve(new Blob([encodeBMP24(pixels.data, canvas.width, canvas.height)], { type: "image/bmp" }));
+  }
   return new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => {
     if (blob && blob.size < 5 * 1024 * 1024) resolve(blob);
     else reject(new Error("exportFailed"));

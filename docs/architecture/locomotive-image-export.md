@@ -30,16 +30,25 @@ RailKeeper export. Direct RailKeeper-to-ECoS transfer requires its own hardware 
 - Source streams are bounded to 20 MiB and PNG/JPEG/WebP signatures are checked. Existing backend
   upload checks remain. Browser preparation caps each side at 12,000 pixels and the image at 40 million
   pixels. PNG dimensions are additionally checked before bitmap decode.
-- Alpha analysis is bounded to 1200 × 1200 pixels. Transparent-margin removal is an explicit,
-  previewed user action with a safety margin; opaque photographic backgrounds are not inferred empty.
+- Crop analysis is bounded to 1200 × 1200 pixels. Alpha bounds or uniform outer-background
+  bounds produce the initial visible crop, with a one-source-pixel safety margin. Opaque
+  trimming requires agreeing corners and at least 85% matching edge pixels (per-channel
+  tolerance 16), then floods only matching pixels connected to the edge. Ambiguous
+  photographic backgrounds and blank opaque images retain the full image. “Whole image”
+  restores the original crop; the crop suggestion is reviewable and manually adjustable.
   Fully transparent images cannot export. No subject, sharpness or perspective detection is claimed.
 - Pointer selection and keyboard pixel fields define a bounded crop. Aspect ratio is retained and
-  the whole crop is fitted into the target with a small margin. Enlarging, poor target-area use and
-  large transparent borders produce specific warnings. Technical usability does not certify the subject.
+  the whole crop is fitted into the full available target width/height without an extra
+  export margin, distortion or clipping. Tall crops remain height-limited. Enlarging,
+  poor target-area use and large outer borders produce specific warnings. Technical
+  usability does not certify the subject.
 - Actual-size preview scrolls inside its bounded frame. Background fills transparency/spare margins;
   BMP always has an opaque background. Grey is a RailKeeper display choice, not a mandatory vendor colour.
 - BMP uses a 40-byte Windows DIB header, bottom-up BGR pixels and four-byte row alignment, with
-  24-bit colour and no compression/alpha. Browser-encoded PNG is bounded below 5 MiB.
+  24-bit colour and no compression/alpha. ECoS pixels are prepared with the observed
+  firmware 4.3.3 palette and integer diffusion described in the transfer document; the
+  actual-size preview shows those exported pixels. Other PNG targets keep their normal
+  colour processing. Browser-encoded PNG is bounded below 5 MiB.
 - Target/crop/background changes invalidate the previous download. Stale async encodes are discarded;
   object URLs and bitmaps are released on replacement/close. Filenames are sanitized and target-suffixed.
 

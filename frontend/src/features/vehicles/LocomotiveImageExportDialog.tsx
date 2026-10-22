@@ -12,7 +12,7 @@ import {
   imageSuitability, locomotiveImageFileName, locomotiveImageTargets, validImageCrop,
   type ImageBackground, type ImageCrop, type LocomotiveImageTarget
 } from "./locomotiveImage";
-import { loadLocomotiveImage, renderLocomotiveImage, transparentImageBounds } from "./locomotiveImageCanvas";
+import { loadLocomotiveImage, renderLocomotiveImage, suggestedImageBounds } from "./locomotiveImageCanvas";
 
 type ExportFile = { key: string; url: string; size: number; blob: Blob };
 const fullCrop = (image: ImageBitmap): ImageCrop => ({ x: 0, y: 0, width: image.width, height: image.height });
@@ -60,7 +60,8 @@ export function LocomotiveImageExportDialog({ image, onClose, transfer }: {
     void loadLocomotiveImage(image.url, controller.signal).then(value => {
       loaded = value;
       if (controller.signal.aborted) { value.close(); return; }
-      setTrim(transparentImageBounds(value)); setCrop(fullCrop(value)); setBitmap(value);
+      const suggestion = suggestedImageBounds(value);
+      setTrim(suggestion); setCrop(suggestion || fullCrop(value)); setBitmap(value);
     }).catch(error => {
       if (!controller.signal.aborted) setLoadError(error instanceof Error && errorKeys.has(error.message) ? error.message : "loadFailed");
     });

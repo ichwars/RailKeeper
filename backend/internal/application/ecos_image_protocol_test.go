@@ -1,6 +1,7 @@
 package application
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -36,7 +37,7 @@ func TestECoSImageAssignmentUsesControlWithoutForceAndOnlyLocodesc(t *testing.T)
 				mu.Unlock()
 				end := "<END 0 (OK)>"
 				if refuse && strings.HasPrefix(command, "request(") {
-					end = "<END 5 (CONTROL LOCKED)>"
+					end = "<END 25 (couldn't get control)>"
 				}
 				return []string{"<REPLY " + command + ">", end}
 			})
@@ -46,7 +47,7 @@ func TestECoSImageAssignmentUsesControlWithoutForceAndOnlyLocodesc(t *testing.T)
 			mu.Lock()
 			defer mu.Unlock()
 			if refuse {
-				if err == nil || len(commands) != 1 {
+				if !errors.Is(err, ErrECoSImageControlBusy) || len(commands) != 1 {
 					t.Fatalf("refused: %v %v", err, commands)
 				}
 			} else if err != nil || strings.Join(commands, ";") != "request(1001, control);set(1001, locodesc[IMAGE_TYPE_USER,7]);release(1001, control)" {

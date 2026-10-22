@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { loadLocomotiveImage } from "./locomotiveImageCanvas";
+import { loadLocomotiveImage, renderLocomotiveImage } from "./locomotiveImageCanvas";
+import { locomotiveImageTargets } from "./locomotiveImage";
 
 afterEach(() => vi.unstubAllGlobals());
 const signal = () => new AbortController().signal;
@@ -54,4 +55,20 @@ it("uses authenticated same-origin reads, returns the original dimensions and ho
   controller.abort();
   await expect(loadLocomotiveImage('/api/v1/images/source', controller.signal)).rejects.toThrow();
   expect(bitmap.close).toHaveBeenCalled();
+});
+
+it("uses the same palette pixels for the ECoS preview and the exported RGB24 BMP", async () => {
+  const bitmap = decoder(1000, 100).bitmap;
+  const pixels = { data: new Uint8ClampedArray(190 * 40 * 4) };
+  for (let i = 0; i < pixels.data.length; i += 4) pixels.data.set([17, 91, 43, 255], i);
+  const context = { getImageData: vi.fn(() => pixels), putImageData: vi.fn(), fillRect: vi.fn(), drawImage: vi.fn() };
+  const canvas = document.createElement("canvas");
+  const mock = vi.spyOn(canvas, "getContext").mockReturnValue(context as unknown as CanvasRenderingContext2D);
+  try {
+    const blob = await renderLocomotiveImage(canvas, bitmap, { x: 0, y: 0, width: 1000, height: 100 }, locomotiveImageTargets[0], "white");
+    expect(context.drawImage).toHaveBeenCalledWith(bitmap, 0, 0, 1000, 100, 0, 10.5, 190, 19);
+    expect(context.putImageData).toHaveBeenCalledExactlyOnceWith(pixels, 0, 0);
+    expect(blob.type).toBe("image/bmp"); expect(blob.size).toBe(22934);
+    expect([...pixels.data.slice(0, 4)]).toEqual([0, 73, 73, 255]);
+  } finally { mock.mockRestore(); }
 });
