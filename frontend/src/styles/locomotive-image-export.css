@@ -46,6 +46,28 @@
 .locomotive-image-dialog > header p { overflow-wrap: anywhere; color: var(--muted); font-size: var(--font-size-sm); }
 .locomotive-image-dialog > header .icon-button { flex: 0 0 44px; height: 44px; }
 .locomotive-image-body { min-width: 0; padding: var(--space-xl); overflow: auto; }
+.locomotive-image-controls { min-width: 0; margin: 0; padding: 0; border: 0; }
+.ecos-image-start { margin-top: var(--space-xl); }
+.ecos-image-transfer { margin-top: var(--space-xl); padding-top: var(--space-xl); border-top: 1px solid var(--line); }
+.ecos-image-fields,
+.ecos-image-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-lg); margin: var(--space-lg) 0; }
+.ecos-image-fields { align-items: end; }
+.ecos-image-fields > label { min-width: 0; }
+.ecos-image-host { color: var(--muted); overflow-wrap: anywhere; }
+.ecos-image-confirm { margin-top: var(--space-lg); padding: var(--space-lg); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); }
+.ecos-image-confirm > strong { overflow-wrap: anywhere; }
+.ecos-image-comparison figure { min-width: 0; margin: 0; padding: var(--space-md); background: var(--panel-subtle); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.ecos-image-comparison figcaption { margin-bottom: var(--space-md); font-size: var(--font-size-sm); }
+.ecos-image-comparison img { display: block; width: 190px; max-width: 100%; height: auto; }
+.locomotive-image-dialog .ecos-image-check { display: flex; align-items: center; gap: var(--space-sm); min-height: 44px; font-size: var(--font-size-base); }
+.ecos-image-check input[type=checkbox] { flex: 0 0 18px; width: 18px; height: 18px; min-height: 18px; margin: 0; }
+.ecos-image-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: var(--space-md); margin-top: var(--space-lg); }
+.ecos-image-success,
+.ecos-image-warning { margin-top: var(--space-lg); padding: var(--space-lg); border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-soft); }
+.ecos-image-warning { border-color: var(--warm); background: color-mix(in srgb, var(--warm) 10%, var(--panel)); }
+.ecos-image-success > strong,
+.ecos-image-warning > strong { display: flex; align-items: start; gap: var(--space-sm); }
+.ecos-image-transfer svg { flex-shrink: 0; }
 .locomotive-image-target { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-lg); }
 .locomotive-image-dialog label { display: grid; gap: var(--field-gap); font-size: var(--font-size-sm); }
 .locomotive-image-target > div { display: grid; gap: var(--space-xs); font-size: var(--font-size-sm); }
@@ -90,6 +112,8 @@
 .locomotive-image-dialog > footer .primary-button { display: inline-flex; gap: var(--space-sm); align-items: center; text-decoration: none; }
 .locomotive-image-dialog :is(button, a, input, select, summary, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @container (max-width: 760px) {
+  .ecos-image-fields,
+  .ecos-image-comparison { grid-template-columns: minmax(0, 1fr); }
   .locomotive-image-workspace { grid-template-columns: minmax(0, 1fr); }
   .locomotive-image-workspace > section:last-child { order: -1; }
   .locomotive-image-target { grid-template-columns: minmax(0, 1fr); gap: var(--space-sm); }

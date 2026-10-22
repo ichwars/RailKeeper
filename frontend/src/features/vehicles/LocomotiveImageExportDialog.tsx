@@ -7,20 +7,26 @@ import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import type { PendingArticleImage } from "./vehicleTransforms";
 import { LocomotiveImageCrop } from "./LocomotiveImageCrop";
+import { ECoSImageTransferPanel } from "./ECoSImageTransferPanel";
 import {
   imageSuitability, locomotiveImageFileName, locomotiveImageTargets, validImageCrop,
   type ImageBackground, type ImageCrop, type LocomotiveImageTarget
 } from "./locomotiveImage";
 import { loadLocomotiveImage, renderLocomotiveImage, transparentImageBounds } from "./locomotiveImageCanvas";
 
-type ExportFile = { key: string; url: string; size: number };
+type ExportFile = { key: string; url: string; size: number; blob: Blob };
 const fullCrop = (image: ImageBitmap): ImageCrop => ({ x: 0, y: 0, width: image.width, height: image.height });
 const errorKeys = new Set(["localImage", "loadFailed", "tooLarge", "typeBlocked", "unsupported"]);
 
-export function LocomotiveImageExportDialog({ image, onClose }: { image: PendingArticleImage; onClose: () => void }) {
+export function LocomotiveImageExportDialog({ image, onClose, transfer }: {
+  image: PendingArticleImage; onClose: () => void;
+  transfer?: { vehicleId: string; mappedObjectId?: string };
+}) {
   const { t } = useI18n();
+  const [transferBusy, setTransferBusy] = useState(false);
+  const close = () => { if (!transferBusy) onClose(); };
   const closeRef = useRef<HTMLButtonElement>(null);
-  const { anchorRef, layerRef, onKeyDown } = useModalDialogLayer(onClose, closeRef);
+  const { anchorRef, layerRef, onKeyDown } = useModalDialogLayer(close, closeRef);
   const resultRef = useRef<HTMLCanvasElement>(null);
   const [target, setTarget] = useState<LocomotiveImageTarget>(locomotiveImageTargets[0]);
   const [background, setBackground] = useState<ImageBackground>(target.background);
@@ -40,12 +46,12 @@ export function LocomotiveImageExportDialog({ image, onClose }: { image: Pending
     // Clicking noninteractive preview space can leave focus on the document body.
     const escape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !event.defaultPrevented && document.activeElement === document.body) {
-        event.preventDefault(); onClose();
+        event.preventDefault(); if (!transferBusy) onClose();
       }
     };
     window.addEventListener("keydown", escape);
     return () => window.removeEventListener("keydown", escape);
-  }, [onClose]);
+  }, [onClose, transferBusy]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -69,7 +75,7 @@ export function LocomotiveImageExportDialog({ image, onClose }: { image: Pending
       const canvas = resultRef.current;
       void Promise.resolve().then(() => renderLocomotiveImage(canvas, bitmap, crop, target, background)).then(blob => {
         if (!active) return;
-        url = URL.createObjectURL(blob); setFile({ key, url, size: blob.size });
+        url = URL.createObjectURL(blob); setFile({ key, url, size: blob.size, blob });
       }).catch(() => { if (active) setOutputError(true); });
     }
     return () => { active = false; if (url) URL.revokeObjectURL(url); };
@@ -87,10 +93,11 @@ export function LocomotiveImageExportDialog({ image, onClose }: { image: Pending
         <header>
           <div><h2><Image size={20} aria-hidden="true" />{t("locomotiveImage.title")}</h2>
             <p>{image.title || t("locomotiveImage.original")}</p></div>
-          <button type="button" className="icon-button" ref={closeRef} onClick={onClose}
+          <button type="button" className="icon-button" ref={closeRef} onClick={close} disabled={transferBusy}
             aria-label={t("vehicles.close")}><X size={19} aria-hidden="true" /></button>
         </header>
         <div className="locomotive-image-body">
+          <fieldset className="locomotive-image-controls" disabled={transferBusy} inert={transferBusy}>
           <div className="locomotive-image-target">
             <label>{t("locomotiveImage.target")}<AppSelect aria-label={t("locomotiveImage.target")} value={target.id} onChange={event => {
               const next = locomotiveImageTargets.find(item => item.id === event.target.value);
@@ -143,10 +150,14 @@ export function LocomotiveImageExportDialog({ image, onClose }: { image: Pending
               </div>
             </section>
           </div>}
+          </fieldset>
+          {target.id === "ecos" && transfer && <ECoSImageTransferPanel key={key}
+            vehicleId={transfer.vehicleId} mappedObjectId={transfer.mappedObjectId} title={image.title || "Lokbild"}
+            blob={ready ? file.blob : null} onBusyChange={setTransferBusy} />}
         </div>
         <footer>
           <span>{ready ? `${filename} · ${Math.ceil(file.size / 1024)} KB` : t("locomotiveImage.originalSafe")}</span>
-          <button type="button" className="secondary-button" onClick={onClose}>{t("vehicles.close")}</button>
+          <button type="button" className="secondary-button" onClick={close} disabled={transferBusy}>{t("vehicles.close")}</button>
           {ready ? <a className="primary-button" href={file.url} download={filename}>
             <Download size={16} aria-hidden="true" />{t("locomotiveImage.download")}</a> :
             <button type="button" className="primary-button" disabled><Download size={16} aria-hidden="true" />{t("locomotiveImage.download")}</button>}

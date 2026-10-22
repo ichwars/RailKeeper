@@ -998,6 +998,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             },
             uploads: {
               selected,
+              canTransferToECoS: roles.includes("Admin") && !readonly,
               readonly,
               saving,
               imageInputRef,

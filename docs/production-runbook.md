@@ -49,6 +49,21 @@ Mindestanforderungen:
 
 Wenn lokal oder nur über HTTP getestet wird, muss `RAILKEEPER_COOKIE_SECURE=false` bleiben, sonst sendet der Browser die Session-Cookies nicht.
 
+## ECoS-Lokbilder direkt übertragen
+
+Für den direkten Bild-Upload benötigt RailKeeper zusätzlich zur TCP-Protokollverbindung
+(standardmäßig Port 15471) Zugriff auf die ECoS-Weboberfläche über TCP-Port 80. Bei einer
+ausgehenden Firewall beide Ports gezielt für die konfigurierte Zentrale freigeben. Die Anwendung
+ändert keine Firewall-Regeln. Passwortgeschützte oder abweichende Webformulare werden derzeit
+nicht unterstützt und führen zu einer verständlichen Fehlermeldung.
+
+Der Ablauf befindet sich bei einem gespeicherten Fahrzeug unter Uploads → Zentralenbild erstellen
+→ Direkt an ECoS übertragen. Nur Admins können schreiben. Vor jedem Upload werden Ziel-Lok,
+freier Bildplatz und Vorher-/Nachher-Vorschau bestätigt. Während der Übertragung die Bildbibliothek
+und Lokdaten der ECoS nicht parallel bearbeiten. Bei einem Teilerfolg oder Verbindungsabbruch
+Bildplatz und Lokzuordnung auf der ECoS prüfen; RailKeeper wiederholt keine Schreibzugriffe und
+startet die Zentrale nicht neu. Details: [ECoS-Bildübertragung](architecture/ecos-image-transfer.md).
+
 ## Daten Und Backups
 
 Wichtige Daten liegen im konfigurierten Data-Verzeichnis:

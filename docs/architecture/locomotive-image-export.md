@@ -2,8 +2,10 @@
 
 The vehicle Uploads tab exposes one preparation dialog per source image. The browser reads the
 local authenticated original, checks technical suitability and downloads a separate file. Original
-images, vehicle data and devices are unchanged. No API routes, schema, backup fields or runtime
-libraries are added; existing source-image authorization applies.
+images and vehicle data are unchanged. Existing source-image authorization applies. A separate,
+Admin-only [ECoS transfer flow](ecos-image-transfer.md) offers a confirmed device write after preview;
+creating/downloading an image alone never writes to a device. No backup fields or runtime libraries
+are added.
 
 ## Target evidence
 
@@ -18,7 +20,8 @@ Sources reviewed on 21 October 2026. Uhlenbrock's package was extracted without 
 software. SHA-256: `9ca92d91788ba636fa73824664d361ff3ecb9fb0a19d1ab096df97ff1256cdd2`.
 The original `Config/IB3_Release Notes.txt` inside that package supplies the release notes. A direct
 notes link returned another binary and was not treated as text. Vendor software and pictures remain
-ignored research artifacts and are not bundled. No physical-device image upload has been tested.
+ignored research artifacts and are not bundled. The user has confirmed manual ECoS upload of a
+RailKeeper export. Direct RailKeeper-to-ECoS transfer requires its own hardware acceptance.
 
 ## Processing and limits
 
