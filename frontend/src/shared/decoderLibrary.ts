@@ -15,6 +15,10 @@ export function firmwareAtLeast(actual: string, minimum: string) {
 
 export function decoderDefinition(profiles: DecoderLibraryProfile[], match: DecoderLibraryMatch, value: DecoderReading) {
   if (match.status === "unsupported" || match.status === "unavailable") return undefined;
+  // ECoS supplies a numbered cache entry, not the index-page identity of that entry.
+  // Even a documented base definition cannot disambiguate a banked number by itself.
+  if (isECoSReading(value) && value.indexCV31 == null && value.indexCV32 == null &&
+    decoderNumberIsIndexed(profiles, match, value.cvNumber)) return undefined;
   const ordered = [
     ...profiles.filter(p => p.id === match.profileId && p.kind === "model" &&
       ["matched", "family"].includes(match.status) && match.firmwareCompatible !== false),
@@ -33,6 +37,19 @@ export function decoderDefinition(profiles: DecoderLibraryProfile[], match: Deco
   return undefined;
 }
 
+export const isECoSReading = (value: Pick<DecoderReading, "decoderProfile">) => normalized(value.decoderProfile || "") === "ecos";
+
+export function decoderNumberIsIndexed(profiles: DecoderLibraryProfile[], match: DecoderLibraryMatch, cv: number) {
+  return profiles.some(p => p.active && p.id === match.profileId && p.kind === "model" &&
+    p.definitions.some(d => d.indexCV31 != null && decoderCVMatches(d, cv)));
+}
+
+export function decoderIndexUnknown(profiles: DecoderLibraryProfile[], match: DecoderLibraryMatch, value: DecoderReading) {
+  if (value.indexCV31 != null || value.indexCV32 != null)
+    return value.indexCV31 == null || value.indexCV32 == null;
+  return isECoSReading(value) && value.cvNumber > 256 && !decoderDefinition(profiles, match, value);
+}
+
 export function decoderCVMatches(d: DecoderDefinition, cv: number) {
   return cv >= d.cv && cv <= (d.cvEnd ?? d.cv) && (cv - d.cv) % (d.cvStride || 1) === 0;
 }
@@ -44,7 +61,7 @@ function matchesDefinitionIndex(d: DecoderDefinition, value: DecoderReading) {
 }
 
 export function resolveDecoderLibrary(values: DecoderReading[], label: string, profiles = bundledDecoderProfiles,
-  inventory: DecoderInventory | null = bundledDecoderInventory): DecoderLibraryMatch {
+  inventory: DecoderInventory | null = bundledDecoderInventory, modelLabel = label): DecoderLibraryMatch {
   const rows = values.filter(v => (v.decoderProfile || "").trim() === label.trim());
   const base = rows.filter(v => v.indexCV31 == null && v.indexCV32 == null);
   const manufacturers = new Set(base.filter(v => v.cvNumber === 8).map(v => v.value));
@@ -54,11 +71,11 @@ export function resolveDecoderLibrary(values: DecoderReading[], label: string, p
   if (rows.some(v => v.protocol?.trim() && !/^DCC(?: ?(?:14|28|128))?$/i.test(v.protocol.trim()))) {
     return { ...match, status: "unsupported" };
   }
-  const { identity, conflict: identityConflict } = identifyDecoder(inventory, label, rows, manufacturerId);
+  const { identity, conflict: identityConflict } = identifyDecoder(inventory, modelLabel, rows, manufacturerId);
   let selected = profiles.find(p => p.active && p.kind === "standard" && p.id === "dcc-basics");
   const models = profiles.filter(p => p.active && p.kind === "model");
-  const exact = models.filter(p => includes(p.aliases, label));
-  const candidates = exact.length ? exact : models.filter(p => includes(p.familyAliases, label));
+  const exact = models.filter(p => includes(p.aliases, modelLabel));
+  const candidates = exact.length ? exact : models.filter(p => includes(p.familyAliases, modelLabel));
   if (manufacturers.size > 1 || identityConflict || candidates.length > 1) match.status = "conflict";
   else if (candidates.length === 1) {
     const p = candidates[0];

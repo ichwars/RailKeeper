@@ -9,9 +9,11 @@ import { cvValueInfo } from "./cvValueInfo";
 import { useManufacturerCVHints } from "./ManufacturerCVProvider";
 import { CVPageControls, cvIndexLabel, cvPageSize } from "./CVPageControls";
 import { formatDateTime } from "./vehicleFormat";
+import { isECoSReading } from "../../shared/decoderLibrary";
 
-export function VehicleCVValuesTable({ values, readonly, saving, edit, remove, onExplain }: {
+export function VehicleCVValuesTable({ values, decoderType = "", readonly, saving, edit, remove, onExplain }: {
   values: VehicleCVValue[]; readonly: boolean; saving: boolean;
+  decoderType?: string;
   edit: (value: VehicleCVValue) => void; remove: (value: VehicleCVValue) => void;
   onExplain?: (value: VehicleCVValue) => void;
 }) {
@@ -25,15 +27,26 @@ export function VehicleCVValuesTable({ values, readonly, saving, edit, remove, o
   const [requestedPage, setPage] = useState(0);
   const profiles = Array.from(new Set(values.map((value) => value.decoderProfile || "")));
   const profileValues = values.filter((value) => profile === "*" || (value.decoderProfile || "") === profile);
-  const indexes = Array.from(new Map(profileValues.map((value) => [indexKey(value), value])).entries());
-  const analyses = new Map(profiles.map(profile => [profile, decoderAnalysis(values, profile, library.profiles, library.inventory ?? null)]));
-  const info = (value: VehicleCVValue) => cvValueInfo(value,
-    analyses.get(value.decoderProfile || "") || decoderAnalysis([], "", library.profiles, library.inventory ?? null), t, language, hints.lookup(value));
-  const meaning = (value: VehicleCVValue) => value.description || info(value).name;
+  const analyses = new Map(profiles.map(profile => [profile, decoderAnalysis(values, profile, library.profiles, library.inventory ?? null, decoderType)]));
+  const information = new Map<VehicleCVValue, ReturnType<typeof cvValueInfo>>();
+  const info = (value: VehicleCVValue) => {
+    const cached = information.get(value);
+    if (cached) return cached;
+    const result = cvValueInfo(value, analyses.get(value.decoderProfile || "") ||
+      decoderAnalysis([], "", library.profiles, library.inventory ?? null), t, language, hints.lookup(value));
+    information.set(value, result);
+    return result;
+  };
+  const meaning = (value: VehicleCVValue) => isECoSReading(value) ? info(value).name : value.description || info(value).name;
+  const pageKey = (value: VehicleCVValue) => info(value).indexUnknown && value.indexCV31 == null && value.indexCV32 == null
+    ? "unknown" : indexKey(value);
+  const pageLabel = (value: VehicleCVValue) => cvIndexLabel(value, t("vehicles.cv.base"),
+    info(value).indexUnknown ? t("vehicles.decoder.indexUnknown") : undefined);
+  const indexes = Array.from(new Map(profileValues.map(value => [pageKey(value), value])).entries());
   const cvSearch = search.trim().match(/^CV\s*(\d+)$/i);
-  const filtered = profileValues.filter((value) => (index === "*" || indexKey(value) === index) &&
+  const filtered = profileValues.filter((value) => (index === "*" || pageKey(value) === index) &&
     (!hideZero || value.value !== 0) && (cvSearch ? value.cvNumber === Number(cvSearch[1]) :
-      `${value.cvNumber} ${value.value} ${meaning(value)} ${info(value).name} ${value.category || ""}`.toLowerCase().includes(search.toLowerCase())));
+      `${value.cvNumber} ${value.value} ${meaning(value)} ${info(value).name} ${value.description || ""} ${value.category || ""}`.toLowerCase().includes(search.toLowerCase())));
   const page = Math.min(requestedPage, Math.max(0, Math.ceil(filtered.length / cvPageSize) - 1));
   return <>
     <div className="cv-value-filters">
@@ -43,7 +56,7 @@ export function VehicleCVValuesTable({ values, readonly, saving, edit, remove, o
       </AppSelect></label>
       <label>{t("vehicles.cv.index")}<AppSelect value={index} onChange={(event) => { setIndex(event.target.value); setPage(0); }}>
         <option value="*">{t("vehicles.cv.allPages")}</option>
-        {indexes.map(([key, value]) => <option key={key} value={key}>{cvIndexLabel(value, t("vehicles.cv.base"))}</option>)}
+        {indexes.map(([key, value]) => <option key={key} value={key}>{pageLabel(value)}</option>)}
       </AppSelect></label>
       <label>{t("common.search")}<input type="search" placeholder="CV29 / Text" value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} /></label>
     </div>
@@ -59,7 +72,7 @@ export function VehicleCVValuesTable({ values, readonly, saving, edit, remove, o
             <td>{meaning(value)}{info(value).manufacturerHint && <small> · {t("decoderLibrary.hintTitle")}</small>}
               {value.category && <small> · {value.category}</small>}
               {value.protocol && <small> · {value.protocol}</small>}</td>
-            <td>{value.value}</td><td>{cvIndexLabel(value, t("vehicles.cv.base"))}</td><td>{value.decoderProfile || "-"}</td>
+            <td>{value.value}</td><td>{pageLabel(value)}</td><td>{value.decoderProfile || "-"}</td>
             <td><div className="table-actions">
               {onExplain && <button type="button" className="icon-button" aria-haspopup="dialog" onClick={() => onExplain(value)}
                 aria-label={t("vehicles.decoder.explainValue", { number: value.cvNumber })}><CircleHelp size={15} /></button>}
@@ -79,5 +92,5 @@ export function VehicleCVValuesTable({ values, readonly, saving, edit, remove, o
 }
 
 function indexKey(value: VehicleCVValue) {
-  return value.indexCV31 == null ? "base" : `${value.indexCV31}/${value.indexCV32}`;
+  return value.indexCV31 == null && value.indexCV32 == null ? "base" : `${value.indexCV31}/${value.indexCV32}`;
 }

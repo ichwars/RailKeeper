@@ -2661,7 +2661,7 @@ export const enTranslations: Record<string, string> = {
     "digitalCenters.assignment.saving": "Saving assignment…",
     "digitalCenters.cvs.title": "Stored ECoS CV values",
     "digitalCenters.cvs.explanation": "Reads the complete CV memory range (CV1–CV1024) of the selected locomotive. These are ECoS memory values; their agreement with the decoder has not been verified.",
-    "digitalCenters.cvs.indexHint": "The ECoS does not supply index pages here. Higher CVs are stored with an unknown index page, separately from indexed decoder readings.",
+    "digitalCenters.cvs.indexHint": "The ECoS does not supply index pages here. The decoder library explains unambiguously addressed values when the decoder matches. Ambiguous registers retain an unknown index page and remain separate from indexed decoder readings.",
     "digitalCenters.cvs.readAll": "Read all stored CVs",
     "digitalCenters.cvs.reading": "Reading CV memory …",
     "digitalCenters.cvs.resume": "Resume reading",

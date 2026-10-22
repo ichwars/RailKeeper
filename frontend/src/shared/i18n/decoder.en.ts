@@ -1,4 +1,10 @@
 export const decoderENTranslations: Record<string, string> = {
+  "vehicles.decoder.vehicleEvidence": "Matched using the vehicle's recorded decoder type and CV8={manufacturer}. The source remains ECoS.",
+  "vehicles.decoder.indexUnknown": "Unknown index page",
+  "vehicles.decoder.indexUnresolved": "Register unresolved",
+  "vehicles.decoder.indexUnknownHelp": "The complete index page was not recorded for this stored value. Its register cannot be identified reliably. Decoder type, factory defaults and current CV31/CV32 do not replace that information; the raw value is preserved.",
+  "vehicles.decoder.ecosCache": "Stored ECoS cache value, not a fresh decoder reading. Explanations apply only to unambiguously addressed registers; missing values are not filled in.",
+  "vehicles.decoder.sourceECoS": "From ECoS memory",
   "vehicles.decoder.lenz.mappingRowHelp": "Output mask for this key. The connected vehicle function is unknown.",
   "vehicles.decoder.lenz.railcomHelp": "RailCom requires CV29 bit 3 and at least one enabled channel in CV28. Does not establish RailComPlus or a live connection.",
   "vehicles.speedCurve.lenzMode": "Lenz, internally smoothed",

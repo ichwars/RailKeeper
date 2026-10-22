@@ -4,6 +4,7 @@ import { useI18n } from "../../shared/i18n";
 import type { VehicleCVValue } from "../../shared/api";
 import type { DecoderAnalysis } from "./decoderAnalysis";
 import { cvExplanationRows, type CVTopic } from "./cvExplanationRows";
+import { isECoSReading } from "../../shared/decoderLibrary";
 
 const topics = [
   { key: "address", icon: Radio }, { key: "motor", icon: Gauge },
@@ -44,7 +45,8 @@ export function VehicleCVExplained({ analysis: a, values, onOpenValue }: {
       <div className="cv-explained-content">
         <div className="cv-section-heading"><div><h3>{t(`vehicles.decoder.topic.${topic}`)}</h3>
           <p>{t("vehicles.decoder.explainedIntro")}</p></div>
-          <span className="cv-source-badge"><FileText size={13} aria-hidden="true" />{t("vehicles.decoder.sourceList")}</span>
+          <span className="cv-source-badge"><FileText size={13} aria-hidden="true" />{t(isECoSReading(a.rows[0] || {})
+            ? "vehicles.decoder.sourceECoS" : "vehicles.decoder.sourceList")}</span>
         </div>
         <div className="cv-explain-list">{renderRows(mainRows)}</div>
         {!!extraRows.length && <details className="cv-additional-readings" key={topic}>

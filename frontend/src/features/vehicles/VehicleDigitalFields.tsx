@@ -27,12 +27,13 @@ export function VehicleDigitalFields({ form, values, readonly, update, onOpenCV 
 }) {
   const { t } = useI18n();
   const dtNumberId = useId();
-  const state = useDecoderProfile(values), a = state.analysis;
+  const state = useDecoderProfile(values, form.decoderType), a = state.analysis;
   const { inventory } = useDecoderLibrary();
   const manufacturerName = inventory?.manufacturers.find(maker => maker.cv8 === a.get(8))?.name;
   const unknown = t("vehicles.decoder.unknown");
   const typeName = a.libraryMatch.matchedBy === "cv" && ["matched", "identified", "family"].includes(a.libraryMatch.status)
-    ? a.libraryMatch.identification?.name : a.modelRules ? state.profile : undefined;
+    ? a.libraryMatch.identification?.name : a.modelRules ? a.vehicleDecoderType
+      ? a.libraryProfile?.model || a.libraryProfile?.name : state.profile : undefined;
   const yesNo = (value: boolean | undefined) => value == null ? unknown : t(value ? "common.yes" : "common.no");
   const apply = () => update({
     ...(a.address != null ? { digital: true, digitalDecoderNumber: String(a.address) } : {}),
@@ -50,7 +51,8 @@ export function VehicleDigitalFields({ form, values, readonly, update, onOpenCV 
   const abcBits = Array.from({ length: 8 }, (_, bit) => bit).filter(bit => (a.rules?.abc?.mask || 0) & (1 << bit));
 
   return <div className="vehicle-digital-fields">
-    <DecoderLibraryNotice values={values} profile={state.profile} />
+    <DecoderLibraryNotice values={values} profile={state.profile} match={a.libraryMatch}
+      vehicleDecoderType={a.vehicleDecoderType} />
     <div className="digital-state-row">
       <label className="digital-equipped"><input type="checkbox" checked={Boolean(form.digital)}
         aria-label="Digital" onChange={(event) => update({ digital: event.target.checked })}

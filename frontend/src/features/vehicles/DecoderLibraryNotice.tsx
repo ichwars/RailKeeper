@@ -2,12 +2,14 @@ import { BookOpen } from "lucide-react";
 import { useI18n } from "../../shared/i18n";
 import { useDecoderLibrary } from "../../shared/DecoderLibraryProvider";
 import { resolveDecoderLibrary } from "../../shared/decoderLibrary";
-import type { DecoderReading } from "../../shared/decoderLibraryModel";
+import type { DecoderLibraryMatch, DecoderReading } from "../../shared/decoderLibraryModel";
 
-export function DecoderLibraryNotice({ values, profile }: { values: DecoderReading[]; profile: string }) {
+export function DecoderLibraryNotice({ values, profile, match: suppliedMatch, vehicleDecoderType }: {
+  values: DecoderReading[]; profile: string; match?: DecoderLibraryMatch; vehicleDecoderType?: string;
+}) {
   const { t, language } = useI18n();
   const library = useDecoderLibrary();
-  const match = resolveDecoderLibrary(values, profile, library.profiles, library.inventory ?? null);
+  const match = suppliedMatch || resolveDecoderLibrary(values, profile, library.profiles, library.inventory ?? null);
   const definition = library.profiles.find(p => p.id === match.profileId);
   const name = match.matchedBy === "cv" ? match.identification?.name
     : match.status === "family" ? definition?.family : language === "en" ? definition?.nameEn : definition?.name;
@@ -19,6 +21,10 @@ export function DecoderLibraryNotice({ values, profile }: { values: DecoderReadi
       {match.identification && <small>{t("decoderLibrary.identityEvidence", {
         manufacturer: match.manufacturerId ?? "?", cv: match.identification.cvNumber, value: match.identification.value
       })}</small>}
+      {vehicleDecoderType && <small>{t("vehicles.decoder.vehicleEvidence", {
+        manufacturer: match.manufacturerId ?? "?"
+      })}</small>}
+      {values.some(value => value.decoderProfile === "ECoS") && <small>{t("vehicles.decoder.ecosCache")}</small>}
       {match.status === "family" && match.matchedBy === "cv" && <small>{t("decoderLibrary.identityFamilyLimits")}</small>}
       {definition?.kind === "model" && definition.firmwareMin && <small>{t(match.firmwareCompatible === false ? "decoderLibrary.firmwareOutside"
         : !match.firmware ? "decoderLibrary.firmwareUnknown" : "decoderLibrary.firmwareScope", {

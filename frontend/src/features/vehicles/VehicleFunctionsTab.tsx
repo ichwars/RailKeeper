@@ -26,7 +26,7 @@ export function VehicleFunctionsTab({ selected, draftMode = false, draftCVValues
 }) {
   const { t, language } = useI18n(), [message, setMessage] = useState("");
   useEffect(() => setMessage(""), [selected?.updatedAt, selected?.functions]);
-  const state = useDecoderProfile(selected?.cvValues || draftCVValues || []);
+  const state = useDecoderProfile(selected?.cvValues || draftCVValues || [], selected?.decoderType);
   const mappings = useMemo(() => esuMapping(state.analysis, (key, args) => translate(language, key, args)), [state.analysis, language]);
   const recognized = new Set(mappings.map(row => row.functionKey));
   const relevant = functionKeys.filter(key => recognized.has(key) || configuredFunctionKeys.includes(key));
