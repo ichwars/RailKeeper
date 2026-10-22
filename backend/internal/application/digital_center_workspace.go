@@ -52,14 +52,16 @@ type DigitalCenterTransport struct {
 }
 
 type DigitalCenterWorkspaceService struct {
-	operationMu    sync.Mutex
-	repository     DigitalCenterWorkspaceRepository
-	settings       digitalCenterSettingsReader
-	ecos           digitalCenterECoSReader
-	digitalCenters *DigitalCenterService
-	vehicles       digitalCenterVehicleReader
-	auth           digitalCenterAuditRecorder
-	now            func() time.Time
+	operationMu     sync.Mutex
+	imageGrants     map[string]ecosImageGrant
+	imageWebFactory func(context.Context, string) (ecosImageWeb, error)
+	repository      DigitalCenterWorkspaceRepository
+	settings        digitalCenterSettingsReader
+	ecos            digitalCenterECoSReader
+	digitalCenters  *DigitalCenterService
+	vehicles        digitalCenterVehicleReader
+	auth            digitalCenterAuditRecorder
+	now             func() time.Time
 }
 
 func NewDigitalCenterWorkspaceService(
