@@ -217,6 +217,9 @@ func (a *App) respondDigitalCenterWorkspaceError(w http.ResponseWriter, err erro
 	case errors.Is(err, application.ErrDigitalCenterFilterValidation):
 		respondProblem(w, http.StatusBadRequest, "digital_center_filter_invalid",
 			"Digital center work-list filter is invalid.")
+	case errors.Is(err, application.ErrDigitalCenterDeviceOutput):
+		respondProblem(w, http.StatusBadGateway, "digital_center_device_output_invalid",
+			"The digital center response was incomplete or invalid; no CV values were imported.")
 	case errors.Is(err, application.ErrDigitalCenterReadNotFresh):
 		respondProblem(w, http.StatusConflict, "digital_center_read_not_fresh",
 			"Create a fresh digital center read before writing.")
