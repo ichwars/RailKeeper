@@ -149,9 +149,13 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
       <strong>{result.status === "verified" ? <CircleCheck size={18} aria-hidden="true" /> : <TriangleAlert size={18} aria-hidden="true" />}
         {t(`ecosImage.result.${result.status}`, { slot: result.slot, objectId: result.objectId })}</strong>
       {result.status !== "verified" && <p>{t(result.status === "control_busy" ? "ecosImage.controlHelp"
+        : result.status === "upload_blocked" ? "ecosImage.blockedHelp"
         : result.status === "image_not_stored" ? "ecosImage.notStoredHelp" : "ecosImage.partialHelp")}</p>}
       {result.imageVerified && !result.assignmentVerified && <button type="button" className="secondary-button"
         disabled={phase !== "idle" || !blob} onClick={() => void prepare(result.slot)}>{t("ecosImage.retryAssignment")}</button>}
+      {!result.imageVerified && (result.status === "control_busy" || result.status === "upload_blocked") &&
+        <button type="button" className="secondary-button" disabled={phase !== "idle" || !blob}
+          onClick={() => void prepare()}>{t("ecosImage.prepare")}</button>}
       {!result.auditRecorded && <p>{t("ecosImage.auditMissing")}</p>}
       {result.liveMonitor.wasRunning && !result.liveMonitor.restarted && <p>{t("ecosImage.liveStopped")}</p>}
     </div>}

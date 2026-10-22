@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
-
-	ecospkg "railkeeper/backend/internal/ecos"
 )
 
 var ErrECoSImageControlBusy = errors.New("ECoS locomotive control is held by another controller")
@@ -56,47 +53,6 @@ func parseECoSImageDescriptor(lines []string, objectID int) (ECoSImageDescriptor
 		return ECoSImageDescriptor{}, ErrDigitalCenterDeviceOutput
 	}
 	return *found, nil
-}
-
-func (s *ECoSService) AssignUserImage(ctx context.Context, input ECoSConnectionInput, objectID, index int) error {
-	if objectID < 1 || objectID > maxDigitalCenterObjectID || index < 0 || index > 499 {
-		return ErrDigitalCenterDeviceOutput
-	}
-	target, err := ecospkg.NormalizeTarget(input.Host, input.Port)
-	if err != nil {
-		return err
-	}
-	conn, reader, err := s.client.Dial(ctx, target)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = conn.Close() }()
-	exchange := func(command string) error {
-		if err := s.client.Send(conn, command); err != nil {
-			return err
-		}
-		lines, err := ecospkg.ReadReply(conn, reader, s.timeout)
-		if err != nil {
-			return err
-		}
-		if status, ok := parseECoSEndStatus(lines); !ok {
-			// ESU PC interface §6.6: NERROR_NOCONTROL (25). Never use force.
-			if strings.HasPrefix(command, "request(") && strings.HasPrefix(status, "25 ") {
-				return ErrECoSImageControlBusy
-			}
-			return ErrDigitalCenterDeviceWrite
-		}
-		return nil
-	}
-	// Do not steal control from a driver or another application.
-	if err := exchange(fmt.Sprintf("request(%d, control)", objectID)); err != nil {
-		return err
-	}
-	defer func() { _ = exchange(fmt.Sprintf("release(%d, control)", objectID)) }()
-	if err := exchange(fmt.Sprintf("set(%d, locodesc[IMAGE_TYPE_USER,%d])", objectID, index)); err != nil {
-		return fmt.Errorf("%w: %v", ErrECoSWriteStateUnknown, err)
-	}
-	return nil
 }
 
 // Preserve the workspace interruption callback across the exclusive image write.

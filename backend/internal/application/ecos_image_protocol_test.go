@@ -43,7 +43,24 @@ func TestECoSImageAssignmentUsesControlWithoutForceAndOnlyLocodesc(t *testing.T)
 			})
 			defer func() { _ = listener.Close() }()
 			host, port := splitTestAddress(t, listener.Addr().String())
-			err := NewECoSService().AssignUserImage(t.Context(), ECoSConnectionInput{Host: host, Port: port}, 1001, 7)
+			control, err := NewECoSService().AcquireImageControl(t.Context(), ECoSConnectionInput{Host: host, Port: port}, 1001)
+			if err == nil {
+				mu.Lock()
+				if strings.Join(commands, ";") != "request(1001, control)" {
+					t.Error("assigned or released before upload phase", commands)
+				}
+				mu.Unlock()
+				err = control.Assign(t.Context(), 7)
+				if control.Assign(t.Context(), 8) == nil {
+					t.Error("allowed repeated assignment")
+				}
+				if closeErr := control.Close(); closeErr != nil {
+					t.Fatal(closeErr)
+				}
+				if control.Close() != nil || control.Assign(t.Context(), 9) == nil {
+					t.Error("invalid closed reservation")
+				}
+			}
 			mu.Lock()
 			defer mu.Unlock()
 			if refuse {
