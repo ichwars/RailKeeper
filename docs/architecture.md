@@ -44,8 +44,10 @@ Node.js is only used to build the frontend.
 ## Scope Decisions
 
 - Local vehicle images can be prepared for ECoS 50200 onward, CS3, IB3 Configuration and the Z21
-  app. Browser checks, crop/preview and a separate download preserve originals and never write to a
-  device. See [image export](architecture/locomotive-image-export.md) for evidence and limits.
+  app. Browser checks, crop/preview and a separate download preserve originals. Admins can additionally
+  preview and explicitly confirm an ECoS image upload and locomotive assignment. See
+  [image export](architecture/locomotive-image-export.md) and
+  [ECoS image transfer](architecture/ecos-image-transfer.md) for evidence and limits.
 
 - Vehicles are the core inventory aggregate. A vehicle set owns shared catalogue and acquisition data,
   while its ordered members remain ordinary vehicles with their own inventory numbers, technical data,

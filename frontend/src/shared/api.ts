@@ -1,4 +1,5 @@
 import { createAccessoriesAPI } from "./apiAccessories";
+import type { ECoSImageOptions, ECoSImagePreview, ECoSImageResult } from "./ecosImageModel";
 import type { DecoderLibrary, DecoderLibraryMatch } from "./decoderLibraryModel";
 import type {
   DataTransferCSVMappingInput,
@@ -1375,6 +1376,18 @@ export const api = {
     request<void>(`/data-transfer/artifacts/${encodeURIComponent(id)}`, { method: "DELETE" }),
   openDataTransferArtifactFolder: () =>
     request<void>("/data-transfer/artifacts/open-folder", { method: "POST" }),
+  ecosImageOptions: (vehicleId: string) => request<ECoSImageOptions>(
+    `/vehicles/${encodeURIComponent(vehicleId)}/ecos-image/options`, {}, { timeoutMs: 35000 }),
+  previewECoSImage: (vehicleId: string, objectId: number, description: string, image: Blob) => {
+    const body = new FormData();
+    body.append("objectId", String(objectId)); body.append("description", description);
+    body.append("image", image, "railkeeper.bmp");
+    return request<ECoSImagePreview>(`/vehicles/${encodeURIComponent(vehicleId)}/ecos-image/preview`,
+      { method: "POST", body }, { timeoutMs: 80000 });
+  },
+  confirmECoSImage: (vehicleId: string, token: string) => request<ECoSImageResult>(
+    `/vehicles/${encodeURIComponent(vehicleId)}/ecos-image/confirm`,
+    { method: "POST", body: JSON.stringify({ token, confirm: true }) }, { timeoutMs: 105000 }),
   setupStatus: () => request<SetupStatus>("/setup/status"),
   createAdmin: (input: CreateAdminRequest) =>
     request<{ status: string }>("/setup/admin", {

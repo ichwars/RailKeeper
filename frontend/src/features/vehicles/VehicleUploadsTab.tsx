@@ -103,6 +103,7 @@ function AttachmentPreviewDialog({
 
 export function VehicleUploadsTab({
   selected,
+  canTransferToECoS = false,
   readonly,
   saving,
   imageInputRef,
@@ -143,6 +144,7 @@ export function VehicleUploadsTab({
   onToggleAllDocuments
 }: {
   selected: Vehicle | null;
+  canTransferToECoS?: boolean;
   readonly: boolean;
   saving: boolean;
   imageInputRef: RefObject<HTMLInputElement | null>;
@@ -503,7 +505,10 @@ export function VehicleUploadsTab({
           />
         )}
       </section>
-      {exportImage && <LocomotiveImageExportDialog key={exportImage.id} image={exportImage} onClose={() => setExportImage(null)} />}
+      {exportImage && <LocomotiveImageExportDialog key={exportImage.id} image={exportImage}
+        transfer={canTransferToECoS && selected ? { vehicleId: selected.id,
+          mappedObjectId: selected.externalMappings?.find(mapping => mapping.provider === "ecos")?.externalId } : undefined}
+        onClose={() => setExportImage(null)} />}
     </section>
   );
 }
