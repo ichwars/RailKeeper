@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setLanguage } from "../../shared/i18n";
+import { api } from "../../shared/api";
 import { ecosVehicleDraftStorageKey, emptyVehicle } from "../vehicles/vehicleViewModel";
 import type {
   DigitalCenterReadSession,
@@ -280,6 +281,29 @@ describe("DigitalCentersView", () => {
       });
   });
 
+  it("automatically reads the whole CV range before creating the vehicle draft", async () => {
+    const unmatched = unmatchedWorkItem();
+    unmatched.center = { ...unmatched.center, cvRead: undefined };
+    const workspace = workspaceFixture({ selectedItemId: unmatched.id, selectedItem: unmatched,
+      dialog: { kind: "comparison", itemId: unmatched.id } });
+    workspaceHook.mockReturnValue(workspace);
+    const read = vi.spyOn(api, "readDigitalCenterCVBatch").mockImplementation(async (_, __, start) => ({
+      ...unmatched, center: { ...unmatched.center,
+        cvs: Array.from({ length: start + 31 }, (_, i) => ({ number: i + 1, value: (i + 1) % 256 })),
+        cvRead: { nextCV: start + 32, unavailable: 0, readAt: "2026-10-22T11:00:00Z", sourceHost: "ecos.local" }
+      }
+    }));
+    try {
+      render(<DigitalCentersView roles={["Admin"]} />);
+      fireEvent.click(screen.getByRole("button", { name: "Neues Fahrzeug anlegen" }));
+      await waitFor(() => expect(window.location.pathname).toBe("/vehicles"));
+      expect(read).toHaveBeenCalledTimes(32);
+      const draft = JSON.parse(window.sessionStorage.getItem(ecosVehicleDraftStorageKey) || "null");
+      expect(draft.cvValues).toHaveLength(1024);
+      expect(draft.cvValues[1023]).toMatchObject({ cvNumber: 1024, value: 0 });
+    } finally { read.mockRestore(); }
+  });
+
   it("does not expose vehicle adoption actions without the Admin role", () => {
     const unmatchedItem = unmatchedWorkItem();
     workspaceHook.mockReturnValue(workspaceFixture({
@@ -293,6 +317,7 @@ describe("DigitalCentersView", () => {
     expect(screen.queryByRole("button", { name: "Neues Fahrzeug anlegen" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Bestehendem Fahrzeug zuordnen" }))
       .not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Alle gespeicherten CVs lesen" })).not.toBeInTheDocument();
   });
 
   it("renders the explicit vehicle picker and forwards the confirmed assignment", async () => {
@@ -464,7 +489,9 @@ function unmatchedWorkItem(): DigitalCenterWorkItem {
       objectId: 77,
       name: "LokPilot 5 micro",
       decoderAddress: 1001,
-      protocol: "DCC"
+      protocol: "DCC",
+      cvs: [],
+      cvRead: { nextCV: 1025, unavailable: 1024, readAt: "2026-10-22T11:00:00Z", sourceHost: "ecos.local" }
     },
     railkeeper: {}
   };
@@ -493,7 +520,7 @@ function workspaceFixture(overrides: Partial<Workspace> = {}): Workspace {
     sessionTotal: 42,
     messages: [], search: "", setSearch: vi.fn(), compareStatus: "all", setCompareStatus: vi.fn(),
     page: 1, setPage: vi.fn(), pageSize: 10, setPageSize: vi.fn(), selectedItemId: null,
-    selectedItem: null, selectItem: vi.fn(), closeDetail: vi.fn(), tab: "live", setTab: vi.fn(),
+    acceptCVRead: vi.fn(), selectedItem: null, selectItem: vi.fn(), closeDetail: vi.fn(), tab: "live", setTab: vi.fn(),
     dialog: null, openDialog: vi.fn(), closeDialog: vi.fn(), writePreview: null, writeConfirmation: null,
     previewWrite: vi.fn(async () => writePreview), confirmWrite: vi.fn(async () => writeConfirmation),
     startLive: vi.fn(async () => liveStatus),

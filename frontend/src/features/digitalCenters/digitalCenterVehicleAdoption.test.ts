@@ -29,6 +29,17 @@ const workItem: DigitalCenterWorkItem = {
 };
 
 describe("digitalCenterVehicleAdoption", () => {
+  it("passes every supplied CV into the ECoS draft without inventing index pages or export dates", () => {
+    const cvs = Array.from({ length: 1024 }, (_, i) => ({ number: i + 1, value: (i + 1) % 256 }));
+    const source = { ...workItem, center: { ...workItem.center, cvs } };
+    const draft = buildDigitalCenterVehicleDraft(source, "ecos");
+    expect(draft.sourceWorkItemId).toBe(workItem.id);
+    expect(draft.cvValues).toHaveLength(1024);
+    expect(draft.cvValues[1023]).toMatchObject({ cvNumber: 1024, value: 0, decoderProfile: "ECoS" });
+    expect(draft.cvValues.every((value) => value.indexCV31 == null && value.indexCV32 == null &&
+      value.sourceExportedAt == null && value.description?.includes("Cache/Speicher"))).toBe(true);
+    expect(buildDigitalCenterVehicleDraft(source, "cs3").cvValues).toEqual([]);
+  });
   afterEach(() => {
     window.sessionStorage.clear();
     window.history.replaceState(null, "", "/");

@@ -1,0 +1,9 @@
+.ecos-stored-cvs { padding: 16px; border-top: 1px solid var(--line); }
+.ecos-stored-cvs h3 { margin: 0 0 8px; font-size: var(--font-size-lg); }
+.ecos-stored-cvs p { margin: 8px 0; overflow-wrap: anywhere; }
+.ecos-stored-cvs-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.ecos-stored-cvs-actions button { min-height: 44px; max-width: 100%; white-space: normal; }
+.ecos-stored-cvs progress { width: 100%; accent-color: var(--accent); }
+.ecos-stored-cvs summary { cursor: pointer; padding: 12px 0; }
+.ecos-stored-cvs-table { max-height: 240px; overflow: auto; }
+.ecos-stored-cvs-table thead { position: sticky; top: 0; background: var(--panel); }

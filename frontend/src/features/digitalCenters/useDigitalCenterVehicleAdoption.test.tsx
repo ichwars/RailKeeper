@@ -17,6 +17,20 @@ const item: DigitalCenterWorkItem = {
 };
 
 describe("useDigitalCenterVehicleAdoption", () => {
+  it("adds reviewed CVs from the server snapshot after explicit vehicle assignment", async () => {
+    vi.spyOn(api, "upsertVehicleExternalMapping").mockResolvedValue({
+      id: "mapping", vehicleId: "vehicle-2", provider: "ecos", externalId: "77",
+      syncStatus: "linked", createdAt: "", updatedAt: ""
+    });
+    const save = vi.spyOn(api, "importDigitalCenterCVs").mockResolvedValue({ imported: 1, preserved: 1 });
+    const onAssigned = vi.fn();
+    const { result } = renderHook(() => useDigitalCenterVehicleAdoption({ onAssigned }));
+    await act(async () => result.current.commands.assign({ ...item,
+      center: { ...item.center, cvs: [{ number: 1, value: 3 }, { number: 1024, value: 0 }] }
+    }, "ecos", "vehicle-2"));
+    expect(save).toHaveBeenCalledWith(item.sessionId, item.id, "vehicle-2");
+    expect(onAssigned).toHaveBeenCalledOnce();
+  });
   beforeEach(() => {
     vi.restoreAllMocks();
     setLanguage("de");

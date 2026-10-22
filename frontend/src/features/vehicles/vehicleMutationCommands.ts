@@ -146,13 +146,18 @@ export function createVehicleMutationCommands({
       if (ecos.draft && (editor.mode === "create" || editor.mode === "edit")) {
         const savedDraft = ecos.draft;
         await api.upsertVehicleExternalMapping(vehicle.id, savedDraft.externalMapping);
-        const detailBeforeECoSValues = await api.vehicle(vehicle.id);
-        for (const cvValue of savedDraft.cvValues) {
-          const existing = (detailBeforeECoSValues.cvValues || []).find((entry) => (
-            cvValueKey(entry) === cvValueKey(cvValue)
-          ));
-          if (existing) await api.updateVehicleCVValue(vehicle.id, existing.id, cvValue);
-          else await api.createVehicleCVValue(vehicle.id, cvValue);
+        if (savedDraft.source === "ecos" && savedDraft.returnToDigitalCenters && savedDraft.cvValues.length) {
+          await api.importDigitalCenterCVs(savedDraft.returnToDigitalCenters.sessionId,
+            savedDraft.sourceWorkItemId || "", vehicle.id);
+        } else {
+          const detailBeforeECoSValues = await api.vehicle(vehicle.id);
+          for (const cvValue of savedDraft.cvValues) {
+            const existing = (detailBeforeECoSValues.cvValues || []).find((entry) => (
+              cvValueKey(entry) === cvValueKey(cvValue)
+            ));
+            if (existing) await api.updateVehicleCVValue(vehicle.id, existing.id, cvValue);
+            else await api.createVehicleCVValue(vehicle.id, cvValue);
+          }
         }
         ecos.markSaved(savedDraft, vehicle.id);
         vehicle = await api.vehicle(vehicle.id);
