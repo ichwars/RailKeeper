@@ -7,7 +7,10 @@ on:
       - backend/go.sum
       - frontend/package.json
       - frontend/package-lock.json
+      - docs/package.json
+      - docs/package-lock.json
       - .github/workflows/security-audit.yml
+      - .github/scripts/test_security_audit_workflow.py
   schedule:
     - cron: "41 3 * * 1"
   workflow_dispatch:
@@ -41,19 +44,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Test audit failure handling
+        run: python3 .github/scripts/test_security_audit_workflow.py
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
+          cache-dependency-path: |
+            frontend/package-lock.json
+            docs/package-lock.json
+      - name: Install frontend and documentation dependencies
+        run: |
+          npm ci --prefix frontend
+          npm ci --prefix docs
       - name: Scan runtime and development dependencies
-        working-directory: frontend
         shell: bash
         run: |
-          if ! npm audit --include=dev --audit-level=high > "$RUNNER_TEMP/npm-audit.txt" 2>&1; then
-            echo "::error::npm dependency audit failed. Re-run npm audit locally for details."
-            exit 1
-          fi
+          status=0
+          for directory in frontend docs; do
+            if ! (cd "$directory" && npm audit --include=dev --audit-level=high) > "$RUNNER_TEMP/npm-audit-$directory.txt" 2>&1; then
+              echo "::error::npm dependency audit failed in $directory. Re-run npm audit there for details."
+              status=1
+            fi
+          done
+          exit "$status"
