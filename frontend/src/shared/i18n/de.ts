@@ -2675,7 +2675,7 @@ export const deTranslations: Record<string, string> = {
     "digitalCenters.cvs.unavailable": "Die ECoS hat für diese Lok keine gespeicherten CV-Werte bereitgestellt. Nicht unterstützte oder fehlende Antworten werden nicht als Wert 0 übernommen.",
     "digitalCenters.cvs.imported": "{imported} CV-Werte ergänzt · {preserved} vorhandene Angaben geschützt.",
     "digitalCenters.cvs.readError": "Die CV-Abfrage wurde unterbrochen. Der letzte bestätigte Teilstand bleibt erhalten. Verbindung prüfen und Lesen fortsetzen.",
-    "digitalCenters.cvs.importError": "Die CV-Werte konnten nicht übernommen werden. Fahrzeugzuordnung und gespeicherte Werte prüfen. Der CV-Import verändert bei einem Fehler keine Werte.",
+    "digitalCenters.cvs.importError": "Die Übernahme konnte nicht bestätigt werden. Fahrzeugzuordnung und gespeicherte Werte prüfen. Vorhandene Angaben bleiben geschützt; eine erneute Übernahme erzeugt keine Duplikate.",
     "digitalCenters.cvs.showValues": "Gelieferte Werte und Herkunft ansehen",
     "digitalCenters.cvs.value": "Wert",
     "digitalCenters.cvs.preserveHint": "Beim Erfassen oder Zuordnen werden diese Werte ergänzt. Vorhandene CV-Werte und ihre Herkunft bleiben erhalten.",

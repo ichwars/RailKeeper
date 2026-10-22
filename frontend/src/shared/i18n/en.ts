@@ -2675,7 +2675,7 @@ export const enTranslations: Record<string, string> = {
     "digitalCenters.cvs.unavailable": "The ECoS supplied no stored CV values for this locomotive. Unsupported or missing replies are never imported as value 0.",
     "digitalCenters.cvs.imported": "{imported} CV values added · {preserved} existing entries protected.",
     "digitalCenters.cvs.readError": "The CV query was interrupted. The last confirmed partial result is retained. Check the connection and resume reading.",
-    "digitalCenters.cvs.importError": "CV values could not be imported. Check the vehicle mapping and stored values. A failed CV import does not change any CV values.",
+    "digitalCenters.cvs.importError": "The import could not be confirmed. Check the vehicle mapping and stored values. Existing entries remain protected; repeating the import creates no duplicates.",
     "digitalCenters.cvs.showValues": "Show supplied values and provenance",
     "digitalCenters.cvs.value": "Value",
     "digitalCenters.cvs.preserveHint": "These values are added when creating or assigning the vehicle. Existing CV values and their provenance are preserved.",
