@@ -14,6 +14,12 @@ Vehicle edits, local original images, CV values and external mappings are not mo
   [ESU download directory](https://www.esu.eu/en/downloads/instruction-manuals/digital-systems/).
   The reviewed public copy is pinned at
   [RailEssentials revision 6ae221d](https://github.com/cbries/railessentials/blob/6ae221d51865a6ce2e32ed97f9c991e64f7b5b8a/ecoslibNet48/Documentation/ecos_pc_interface3.pdf).
+- Section 6.6 documents error 25 (NERROR_NOCONTROL) when another controller owns a
+  locomotive, including a locomotive selected on an ECoS driving display. A separately
+  authorized single hardware probe confirmed `request(id, control)` returning
+  `<END 25 (couldn't get control)>` on firmware 4.3.3. No assignment command followed.
+  RailKeeper reports `control_busy` and asks the operator to deselect the locomotive on
+  both driving displays and other control applications. It never adds `force`.
 - Read-only checks on ECoS firmware 4.3.3 confirmed descriptors for both internal images
   (`LOCO_TYPE_DIESEL,IMAGE_TYPE_INT,118`) and a user image
   (`LOCO_TYPE_MISC,IMAGE_TYPE_USER,0`). Deprecated `symbol` is not used.
@@ -74,18 +80,30 @@ can be assigned. RailKeeper never restarts the station automatically.
   background reset, image boundaries and rejection of changed or displaced images; private
   vehicle images are not bundled as fixtures. This verifies stored image content, not a
   completed locomotive assignment. Unknown conversions remain unverified.
+  New browser exports pre-quantize to the observed palette using this same integer
+  diffusion, displaying the exported pixels in the preview. Palette-exact source pixels
+  are idempotent under that conversion. Verification still requires an exact device
+  readback; the next physical upload remains an acceptance check, not a presumed success.
   Unrecognized conversions fail verification and prevent assignment. Only verified images reach
   the separate `locodesc` assignment, under `request(id, control)` without `force`, followed by
   release and a descriptor readback. No speed, direction, functions, address or CV is written.
-- Upload and assignment cannot be atomic. `upload_unknown`, `image_not_stored`, `image_unverified` and
+- Upload and assignment cannot be atomic. `upload_unknown`, `image_not_stored`, `image_unverified`, `control_busy` and
   `assignment_unknown` preserve the chosen slot and object ID, explain possible partial effects
   and direct the user to inspect the ECoS. No POST is retried, no rollback/delete or reboot is
   attempted. A lost browser reply is also explicitly uncertain. An already uploaded image can be
-  assigned manually on the ECoS; the first version does not retry assignment independently.
+  assigned manually on the ECoS. A verified image also offers an explicit assignment-only
+  retry: multipart preview includes `existingSlot` (0–499), checks its occupied state and
+  pixels against the supplied BMP, and issues a fresh grant with `existingImage: true`.
+  Confirmation rechecks image content, current target and all normal grant constraints,
+  audits intent, skips the upload entirely, then attempts assignment once without force.
+  Failure or cancellation of that preview retains the known slot in the open dialog.
+  Unverified images and lost upload replies do not offer this retry. Changed image bytes
+  require a fresh preparation; changing target always requires a new target-bound preview.
   `image_not_stored` specifically means a complete refreshed inventory still reports the slot
   as free. An unreadable or changed inventory remains `image_unverified`; it never proves the
   image absent. Neither case allows assignment or an automatic repeat of the upload.
-- Audit intent and result contain actor, vehicle, object ID, slot and source SHA-256, never token,
+- Audit intent and result contain actor, vehicle, object ID, slot, source SHA-256 and whether
+  the stored image was reused, never token,
   image bytes or credentials. A result audit failure is reported without hiding verified effects.
 
 For deployment, the application container needs outbound TCP to the configured ECoS on both

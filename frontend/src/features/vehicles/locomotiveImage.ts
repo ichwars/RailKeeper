@@ -35,8 +35,7 @@ export function validImageCrop(crop: ImageCrop, size: ImageSize) {
 }
 
 export function fitLocomotiveImage(crop: ImageCrop, target: ImageSize) {
-  const padding = Math.max(1, Math.round(target.height * 0.04));
-  const scale = Math.min((target.width - padding * 2) / crop.width, (target.height - padding * 2) / crop.height);
+  const scale = Math.min(target.width / crop.width, target.height / crop.height);
   const width = crop.width * scale;
   const height = crop.height * scale;
   return { x: (target.width - width) / 2, y: (target.height - height) / 2, width, height, scale };

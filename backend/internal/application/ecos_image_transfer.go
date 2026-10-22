@@ -34,22 +34,24 @@ type ECoSImageOptions struct {
 }
 
 type ECoSImagePreviewInput struct {
-	ObjectID    int
-	Description string
-	BMP         []byte
+	ObjectID     int
+	Description  string
+	BMP          []byte
+	ExistingSlot *int
 }
 
 type ECoSImagePreview struct {
-	Token        string              `json:"token"`
-	ExpiresAt    string              `json:"expiresAt"`
-	Host         string              `json:"host"`
-	Target       ECoSImageTarget     `json:"target"`
-	Current      ECoSImageDescriptor `json:"current"`
-	Slot         int                 `json:"slot"`
-	Description  string              `json:"description"`
-	SHA256       string              `json:"sha256"`
-	CurrentImage string              `json:"currentImage"`
-	NewImage     string              `json:"newImage"`
+	Token         string              `json:"token"`
+	ExpiresAt     string              `json:"expiresAt"`
+	Host          string              `json:"host"`
+	Target        ECoSImageTarget     `json:"target"`
+	Current       ECoSImageDescriptor `json:"current"`
+	Slot          int                 `json:"slot"`
+	Description   string              `json:"description"`
+	SHA256        string              `json:"sha256"`
+	CurrentImage  string              `json:"currentImage"`
+	NewImage      string              `json:"newImage"`
+	ExistingImage bool                `json:"existingImage"`
 }
 
 type ECoSImageConfirmInput struct {
@@ -58,7 +60,7 @@ type ECoSImageConfirmInput struct {
 }
 
 type ECoSImageResult struct {
-	Status             string                       `json:"status"` // verified, upload_unknown, image_not_stored, image_unverified, assignment_unknown
+	Status             string                       `json:"status"` // verified, upload_unknown, image_not_stored, image_unverified, assignment_unknown, control_busy
 	Slot               int                          `json:"slot"`
 	ObjectID           int                          `json:"objectId"`
 	ImageVerified      bool                         `json:"imageVerified"`
@@ -164,6 +166,9 @@ func (service *DigitalCenterWorkspaceService) PreviewECoSImage(ctx context.Conte
 	if err = ecospkg.ValidateImageBMP(input.BMP); err != nil {
 		return result, err
 	}
+	if input.ExistingSlot != nil && (*input.ExistingSlot < 0 || *input.ExistingSlot > 499) {
+		return result, ErrECoSImageInput
+	}
 	err = service.runECoSOperation(ctx, func() error {
 		center, device, err := service.imageCenter(ctx, vehicleID)
 		if err != nil {
@@ -193,11 +198,8 @@ func (service *DigitalCenterWorkspaceService) PreviewECoSImage(ctx context.Conte
 		if err != nil {
 			return err
 		}
-		slot, err := web.FindFreeSlot(ctx)
+		slot, err := previewECoSImageSlot(ctx, web, input)
 		if err != nil {
-			return err
-		}
-		if err := web.CheckUploadForm(ctx, slot); err != nil {
 			return err
 		}
 		token, hash, err := newDigitalCenterWriteToken()
@@ -226,7 +228,7 @@ func (service *DigitalCenterWorkspaceService) PreviewECoSImage(ctx context.Conte
 		}
 		result = ECoSImagePreview{Token: token, ExpiresAt: now.Add(5 * time.Minute).Format(time.RFC3339), Host: center.Host,
 			Target: imageTarget(locomotive), Current: descriptor, Slot: slot, Description: strings.TrimSpace(input.Description),
-			SHA256: hex.EncodeToString(digest[:]), CurrentImage: imageDataURL(oldImage), NewImage: imageDataURL(encoded.Bytes())}
+			SHA256: hex.EncodeToString(digest[:]), CurrentImage: imageDataURL(oldImage), NewImage: imageDataURL(encoded.Bytes()), ExistingImage: input.ExistingSlot != nil}
 		service.imageGrants[hash] = ecosImageGrant{preview: result, actor: actor, vehicleID: vehicleID, center: center,
 			pinnedHost: web.Address(), data: bytes.Clone(input.BMP), expires: now.Add(5 * time.Minute)}
 		return nil
@@ -315,8 +317,14 @@ func (service *DigitalCenterWorkspaceService) confirmECoSImageGrant(ctx context.
 	if imageDataURL(oldImage) != preview.CurrentImage {
 		return ErrDigitalCenterPreviewStale
 	}
-	if err := web.CheckFreeSlot(ctx, preview.Slot); err != nil {
-		return err
+	if preview.ExistingImage {
+		if err := verifyExistingECoSImage(ctx, web, preview.Slot, grant.data); err != nil {
+			return err
+		}
+	} else {
+		if err := web.CheckFreeSlot(ctx, preview.Slot); err != nil {
+			return err
+		}
 	}
 	// Persist intent before the first device write. If audit storage is unavailable,
 	// do not upload. The token itself and image bytes never enter the audit log.
@@ -327,8 +335,10 @@ func (service *DigitalCenterWorkspaceService) confirmECoSImageGrant(ctx context.
 	writeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 45*time.Second)
 	defer cancel()
 	defer func() { result.AuditRecorded = service.auditECoSImage(writeCtx, grant, result.Status) == nil }()
-	if err := web.Upload(writeCtx, preview.Slot, preview.Description, imageUploadKind(descriptor.LocomotiveType), grant.data); err != nil {
-		return nil
+	if !preview.ExistingImage {
+		if err := web.Upload(writeCtx, preview.Slot, preview.Description, imageUploadKind(descriptor.LocomotiveType), grant.data); err != nil {
+			return nil
+		}
 	}
 	result.Status = "image_unverified"
 	if err := web.CheckStoredSlot(writeCtx, preview.Slot); err != nil {
@@ -353,7 +363,15 @@ func (service *DigitalCenterWorkspaceService) confirmECoSImageGrant(ctx context.
 	if err != nil || imageTarget(locomotive) != preview.Target || descriptor != preview.Current {
 		return nil
 	}
+	if descriptor.ImageType == "IMAGE_TYPE_USER" && descriptor.Index == preview.Slot {
+		result.AssignmentVerified = true
+		result.Status = "verified"
+		return nil
+	}
 	if err := device.AssignUserImage(writeCtx, connection, preview.Target.ObjectID, preview.Slot); err != nil {
+		if errors.Is(err, ErrECoSImageControlBusy) {
+			result.Status = "control_busy"
+		}
 		return nil
 	}
 	verified, err := device.ReadImageDescriptor(writeCtx, connection, preview.Target.ObjectID)
@@ -381,6 +399,6 @@ func (service *DigitalCenterWorkspaceService) auditECoSImage(ctx context.Context
 	if service.auth == nil {
 		return ErrDigitalCenterWorkspaceUnavailable
 	}
-	details, _ := json.Marshal(map[string]any{"status": status, "objectId": grant.preview.Target.ObjectID, "slot": grant.preview.Slot, "sha256": grant.preview.SHA256})
+	details, _ := json.Marshal(map[string]any{"status": status, "objectId": grant.preview.Target.ObjectID, "slot": grant.preview.Slot, "sha256": grant.preview.SHA256, "existingImage": grant.preview.ExistingImage})
 	return service.auth.RecordAudit(ctx, grant.actor, "ECoSImageTransfer", "vehicle", grant.vehicleID, string(details))
 }

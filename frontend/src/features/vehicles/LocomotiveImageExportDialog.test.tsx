@@ -2,10 +2,10 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { LocomotiveImageExportDialog } from "./LocomotiveImageExportDialog";
-import { loadLocomotiveImage, renderLocomotiveImage, transparentImageBounds } from "./locomotiveImageCanvas";
+import { loadLocomotiveImage, renderLocomotiveImage, suggestedImageBounds } from "./locomotiveImageCanvas";
 
 vi.mock("./locomotiveImageCanvas", () => ({
-  loadLocomotiveImage: vi.fn(), renderLocomotiveImage: vi.fn(), transparentImageBounds: vi.fn()
+  loadLocomotiveImage: vi.fn(), renderLocomotiveImage: vi.fn(), suggestedImageBounds: vi.fn()
 }));
 const bitmap = { width: 1000, height: 200, close: vi.fn() };
 const image = { id: "original", url: "/api/v1/images/original", title: "BR 86", source: "local" };
@@ -13,7 +13,7 @@ const revoke = vi.fn();
 let sequence = 0;
 beforeEach(() => {
   vi.mocked(loadLocomotiveImage).mockResolvedValue(bitmap);
-  vi.mocked(transparentImageBounds).mockReturnValue({ x: 0, y: 0, width: 1000, height: 200 });
+  vi.mocked(suggestedImageBounds).mockReturnValue({ x: 0, y: 0, width: 1000, height: 200 });
   vi.mocked(renderLocomotiveImage).mockImplementation(async () => new Blob(["output"]));
   vi.stubGlobal("URL", class extends URL {
     static createObjectURL() { return `blob:export-${++sequence}`; }
@@ -52,15 +52,27 @@ it("blocks invalid crops, retains the editable controls and recovers without cha
   expect(await screen.findByRole("link", { name: "Bild herunterladen" })).toBeVisible();
 });
 
+it("starts with the visible crop suggestion and lets the user restore the whole source", async () => {
+  const suggestion = { x: 0, y: 60, width: 1000, height: 80 };
+  vi.mocked(suggestedImageBounds).mockReturnValueOnce(suggestion);
+  render(<LocomotiveImageExportDialog image={image} onClose={vi.fn()} />);
+  await screen.findByRole("link", { name: "Bild herunterladen" });
+  expect(vi.mocked(renderLocomotiveImage).mock.calls.at(-1)?.[2]).toEqual(suggestion);
+  fireEvent.click(screen.getByRole("button", { name: "Ganzes Bild" }));
+  await waitFor(() => expect(vi.mocked(renderLocomotiveImage).mock.calls.at(-1)?.[2]).toEqual({ x: 0, y: 0, width: 1000, height: 200 }));
+  fireEvent.click(screen.getByRole("button", { name: "Außenränder entfernen" }));
+  await waitFor(() => expect(vi.mocked(renderLocomotiveImage).mock.calls.at(-1)?.[2]).toEqual(suggestion));
+});
+
 it("warns about enlargement and never presents an empty transparent image as usable", async () => {
   vi.mocked(loadLocomotiveImage).mockResolvedValueOnce({ ...bitmap, width: 20, height: 5 });
-  vi.mocked(transparentImageBounds).mockReturnValueOnce({ x: 0, y: 0, width: 20, height: 5 });
+  vi.mocked(suggestedImageBounds).mockReturnValueOnce({ x: 0, y: 0, width: 20, height: 5 });
   const { unmount } = render(<LocomotiveImageExportDialog image={image} onClose={vi.fn()} />);
   await screen.findByRole("link", { name: "Bild herunterladen" });
   expect(screen.getByText("Qualität prüfen")).toBeVisible();
   expect(screen.getByText(/muss vergrößert werden/)).toBeVisible();
   unmount();
-  vi.mocked(transparentImageBounds).mockReturnValueOnce(null);
+  vi.mocked(suggestedImageBounds).mockReturnValueOnce(null);
   render(<LocomotiveImageExportDialog image={image} onClose={vi.fn()} />);
   expect(await screen.findByRole("alert")).toHaveTextContent("vollständig transparent");
   expect(screen.getByRole("button", { name: "Bild herunterladen" })).toBeDisabled();

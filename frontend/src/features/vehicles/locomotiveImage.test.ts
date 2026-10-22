@@ -44,9 +44,12 @@ describe("command station image compatibility", () => {
     const crop = { x: 20, y: 30, width: 800, height: 100 };
     const fit = fitLocomotiveImage(crop, locomotiveImageTargets[0]);
     expect(fit.width / fit.height).toBeCloseTo(8);
-    expect(fit.x).toBeGreaterThanOrEqual(1);
-    expect(fit.y).toBeGreaterThanOrEqual(1);
-    expect(fit.width + fit.x).toBeLessThan(190);
+    expect(fit.x).toBe(0);
+    expect(fit.width).toBe(190);
+    expect(fit.y).toBeGreaterThan(0);
+    const tall = fitLocomotiveImage({ x: 0, y: 0, width: 10, height: 100 }, locomotiveImageTargets[0]);
+    expect(tall.height).toBe(40);
+    expect(tall.width).toBe(4);
     expect(crop).toEqual({ x: 20, y: 30, width: 800, height: 100 });
   });
 

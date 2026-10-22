@@ -11,9 +11,10 @@ export type ECoSImagePreview = {
   sha256: string;
   currentImage: string;
   newImage: string;
+  existingImage: boolean;
 };
 export type ECoSImageResult = {
-  status: "verified" | "upload_unknown" | "image_not_stored" | "image_unverified" | "assignment_unknown";
+  status: "verified" | "upload_unknown" | "image_not_stored" | "image_unverified" | "assignment_unknown" | "control_busy";
   slot: number;
   objectId: number;
   imageVerified: boolean;

@@ -2,12 +2,16 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	ecospkg "railkeeper/backend/internal/ecos"
 )
+
+var ErrECoSImageControlBusy = errors.New("ECoS locomotive control is held by another controller")
 
 // ESU PC interface specification, third edition, section 7.11 (locodesc).
 // Keep image commands separate from the read-only locomotive/CV import commands.
@@ -75,7 +79,11 @@ func (s *ECoSService) AssignUserImage(ctx context.Context, input ECoSConnectionI
 		if err != nil {
 			return err
 		}
-		if _, ok := parseECoSEndStatus(lines); !ok {
+		if status, ok := parseECoSEndStatus(lines); !ok {
+			// ESU PC interface §6.6: NERROR_NOCONTROL (25). Never use force.
+			if strings.HasPrefix(command, "request(") && strings.HasPrefix(status, "25 ") {
+				return ErrECoSImageControlBusy
+			}
 			return ErrDigitalCenterDeviceWrite
 		}
 		return nil

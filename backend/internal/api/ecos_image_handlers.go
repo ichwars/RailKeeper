@@ -41,10 +41,29 @@ func (a *App) previewECoSImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() { _ = r.MultipartForm.RemoveAll() }()
-	if len(r.MultipartForm.Value) != 2 || len(r.MultipartForm.Value["objectId"]) != 1 ||
+	_, existing := r.MultipartForm.Value["existingSlot"]
+	expectedFields := 2
+	if existing {
+		expectedFields++
+	}
+	if len(r.MultipartForm.Value) != expectedFields || len(r.MultipartForm.Value["objectId"]) != 1 ||
 		len(r.MultipartForm.Value["description"]) != 1 || len(r.MultipartForm.File) != 1 || len(r.MultipartForm.File["image"]) != 1 {
 		respondProblem(w, http.StatusBadRequest, "ecos_image_input", "Unexpected or missing image transfer fields.")
 		return
+	}
+	var existingSlot *int
+	if existing {
+		values := r.MultipartForm.Value["existingSlot"]
+		if len(values) != 1 {
+			a.respondECoSImageError(w, application.ErrECoSImageInput)
+			return
+		}
+		slot, parseErr := strconv.Atoi(values[0])
+		if parseErr != nil || slot < 0 || slot > 499 {
+			a.respondECoSImageError(w, application.ErrECoSImageInput)
+			return
+		}
+		existingSlot = &slot
 	}
 	objectID, err := strconv.Atoi(r.MultipartForm.Value["objectId"][0])
 	if err != nil {
@@ -65,7 +84,7 @@ func (a *App) previewECoSImage(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
 	result, err := a.digitalCenterWorkspace.PreviewECoSImage(ctx, r.PathValue("id"), application.ECoSImagePreviewInput{
-		ObjectID: objectID, Description: r.MultipartForm.Value["description"][0], BMP: data,
+		ObjectID: objectID, Description: r.MultipartForm.Value["description"][0], BMP: data, ExistingSlot: existingSlot,
 	}, actorUserID(r))
 	if err != nil {
 		a.respondECoSImageError(w, err)

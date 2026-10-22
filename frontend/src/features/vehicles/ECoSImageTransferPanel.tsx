@@ -30,6 +30,7 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
   const [checked, setChecked] = useState(false);
   const [expired, setExpired] = useState(false);
   const [result, setResult] = useState<ECoSImageResult | null>(null);
+  const [storedSlot, setStoredSlot] = useState<number>();
   const [error, setError] = useState("");
   const [uncertain, setUncertain] = useState(false);
   const revision = useRef(0);
@@ -66,11 +67,13 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
     } catch (error) { if (alive.current) report(error); }
     finally { if (alive.current) setPhase("idle"); }
   }
-  async function prepare() {
+  async function prepare(existingSlot = storedSlot) {
     if (!blob || !objectId || !description.trim()) return;
     invalidate(); const version = revision.current; setPhase("previewing"); setUncertain(false);
     try {
-      const value = await api.previewECoSImage(vehicleId, Number(objectId), description, blob);
+      const value = existingSlot === undefined
+        ? await api.previewECoSImage(vehicleId, Number(objectId), description, blob)
+        : await api.previewECoSImage(vehicleId, Number(objectId), description, blob, existingSlot);
       if (alive.current && version === revision.current) { setPreview(value); setExpired(false); }
     } catch (error) { if (alive.current && version === revision.current) report(error); }
     finally { if (alive.current) setPhase("idle"); }
@@ -83,7 +86,10 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
     setPreview(null); setChecked(false);
     try {
       const value = await api.confirmECoSImage(vehicleId, token);
-      if (alive.current) setResult(value);
+      if (alive.current) {
+        setResult(value);
+        if (value.imageVerified) setStoredSlot(value.slot);
+      }
     } catch (error) {
       if (alive.current) {
         if (error instanceof ApiError && error.status >= 400 && error.status < 500) report(error);
@@ -117,23 +123,24 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
       </div>}
       {!result && !uncertain && !preview && <button type="button" className="secondary-button"
         disabled={phase !== "idle" || !objectId || !description.trim() || !blob} onClick={() => void prepare()}>
-        {t(phase === "previewing" ? "ecosImage.previewing" : "ecosImage.prepare")}</button>}
+        {t(phase === "previewing" ? "ecosImage.previewing" : storedSlot !== undefined ? "ecosImage.retryAssignment" : "ecosImage.prepare")}</button>}
     </>}
     {preview && <div className="ecos-image-confirm" ref={confirmationRef} tabIndex={-1} role="region"
       aria-label={t("ecosImage.review")}>
       <strong>{preview.target.name} · {t("ecosImage.address", { address: preview.target.address })} · {preview.target.protocol} · #{preview.target.objectId}</strong>
       <div className="ecos-image-comparison">
         <figure><figcaption>{t("ecosImage.before")}</figcaption><img src={preview.currentImage} alt={t("ecosImage.before")} width={190} height={40} /></figure>
-        <figure><figcaption>{t("ecosImage.after", { slot: preview.slot })}</figcaption><img src={preview.newImage} alt={t("ecosImage.after", { slot: preview.slot })} width={190} height={40} /></figure>
+        <figure><figcaption>{t(preview.existingImage ? "ecosImage.existing" : "ecosImage.after", { slot: preview.slot })}</figcaption>
+          <img src={preview.newImage} alt={t(preview.existingImage ? "ecosImage.existing" : "ecosImage.after", { slot: preview.slot })} width={190} height={40} /></figure>
       </div>
-      <p>{t("ecosImage.confirmHelp", { description: preview.description })}</p>
+      <p>{t(preview.existingImage ? "ecosImage.assignHelp" : "ecosImage.confirmHelp", { description: preview.description, slot: preview.slot })}</p>
       <AppCheckbox className="ecos-image-check" checked={checked} onChange={event => setChecked(event.target.checked)}
         label={t("ecosImage.checked")} />
       {expired && <p role="status">{t("ecosImage.expired")}</p>}
       <div className="ecos-image-actions">
         <button type="button" className="secondary-button" onClick={invalidate}>{t("ecosImage.back")}</button>
         <button type="button" className="primary-button" disabled={!checked || expired} onClick={() => void confirm()}>
-          <Send size={16} aria-hidden="true" />{t("ecosImage.confirm")}</button>
+          <Send size={16} aria-hidden="true" />{t(preview.existingImage ? "ecosImage.assign" : "ecosImage.confirm")}</button>
       </div>
     </div>}
     {busy && <p role="status">{t("ecosImage.sending")}</p>}
@@ -141,7 +148,10 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
     {result && <div className={result.status === "verified" ? "ecos-image-success" : "ecos-image-warning"} role="status">
       <strong>{result.status === "verified" ? <CircleCheck size={18} aria-hidden="true" /> : <TriangleAlert size={18} aria-hidden="true" />}
         {t(`ecosImage.result.${result.status}`, { slot: result.slot, objectId: result.objectId })}</strong>
-      {result.status !== "verified" && <p>{t(result.status === "image_not_stored" ? "ecosImage.notStoredHelp" : "ecosImage.partialHelp")}</p>}
+      {result.status !== "verified" && <p>{t(result.status === "control_busy" ? "ecosImage.controlHelp"
+        : result.status === "image_not_stored" ? "ecosImage.notStoredHelp" : "ecosImage.partialHelp")}</p>}
+      {result.imageVerified && !result.assignmentVerified && <button type="button" className="secondary-button"
+        disabled={phase !== "idle" || !blob} onClick={() => void prepare(result.slot)}>{t("ecosImage.retryAssignment")}</button>}
       {!result.auditRecorded && <p>{t("ecosImage.auditMissing")}</p>}
       {result.liveMonitor.wasRunning && !result.liveMonitor.restarted && <p>{t("ecosImage.liveStopped")}</p>}
     </div>}
