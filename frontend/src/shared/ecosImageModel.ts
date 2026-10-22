@@ -10,6 +10,7 @@ export type ECoSImagePreview = {
   description: string;
   sha256: string;
   currentImage: string;
+  currentImageMissing: boolean;
   newImage: string;
   existingImage: boolean;
 };

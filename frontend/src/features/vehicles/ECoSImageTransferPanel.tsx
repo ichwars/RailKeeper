@@ -15,7 +15,7 @@ type Props = {
   onBusyChange: (busy: boolean) => void;
 };
 
-const knownErrors = new Set(["ecos_image_web", "ecos_image_slots_full", "ecos_image_slot_occupied",
+const knownErrors = new Set(["ecos_image_web", "ecos_image_read", "ecos_image_inventory", "ecos_image_form", "ecos_image_slots_full", "ecos_image_slot_occupied",
   "ecos_image_input", "digital_center_write_preview_stale", "digital_center_write_grant_conflict",
   "digital_center_not_configured", "digital_center_inactive"]);
 
@@ -129,7 +129,10 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
       aria-label={t("ecosImage.review")}>
       <strong>{preview.target.name} · {t("ecosImage.address", { address: preview.target.address })} · {preview.target.protocol} · #{preview.target.objectId}</strong>
       <div className="ecos-image-comparison">
-        <figure><figcaption>{t("ecosImage.before")}</figcaption><img src={preview.currentImage} alt={t("ecosImage.before")} width={190} height={40} /></figure>
+        <figure><figcaption>{t("ecosImage.before")}</figcaption>
+          {preview.currentImageMissing ? <p className="ecos-image-warning" role="status">
+            <TriangleAlert size={18} aria-hidden="true" /> {t("ecosImage.currentMissing", { slot: preview.current.index })}
+          </p> : <img src={preview.currentImage} alt={t("ecosImage.before")} width={190} height={40} />}</figure>
         <figure><figcaption>{t(preview.existingImage ? "ecosImage.existing" : "ecosImage.after", { slot: preview.slot })}</figcaption>
           <img src={preview.newImage} alt={t(preview.existingImage ? "ecosImage.existing" : "ecosImage.after", { slot: preview.slot })} width={190} height={40} /></figure>
       </div>

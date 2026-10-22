@@ -2,6 +2,7 @@ package ecos
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 )
 
@@ -27,11 +28,11 @@ func (web *ImageWeb) FindImageSlot(ctx context.Context, source []byte) (int, boo
 		visited[page] = true
 		data, err := web.request(ctx, http.MethodGet, imageListPath(page), "", nil, 256<<10)
 		if err != nil {
-			return 0, false, err
+			return 0, false, fmt.Errorf("%w: page %d: %w", ErrImageInventory, page, err)
 		}
 		entries, available, err := parseImagePage(data, page)
 		if err != nil {
-			return 0, false, err
+			return 0, false, fmt.Errorf("%w: page %d: %w", ErrImageInventory, page, err)
 		}
 		for index, occupied := range entries {
 			states[index] = occupied

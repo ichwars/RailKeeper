@@ -10,7 +10,7 @@ const preview: ECoSImagePreview = {
   target: { objectId: 1001, name: "BR 218", address: 3, protocol: "DCC128" },
   current: { locomotiveType: "LOCO_TYPE_DIESEL", imageType: "IMAGE_TYPE_INT", index: 118 },
   slot: 7, description: "BR 218", sha256: "a".repeat(64), existingImage: false,
-  currentImage: "data:image/png;base64,old", newImage: "data:image/png;base64,new"
+  currentImage: "data:image/png;base64,old", currentImageMissing: false, newImage: "data:image/png;base64,new"
 };
 const result: ECoSImageResult = {
   status: "verified", slot: 7, objectId: 1001, imageVerified: true, assignmentVerified: true,
@@ -104,6 +104,28 @@ it("explains HTTP firewall failures", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Direkt an ECoS übertragen …" }));
   fireEvent.click(await screen.findByRole("button", { name: "Übertragung prüfen und Vorschau laden" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Port 80");
+});
+
+it.each(["ecos_image_read", "ecos_image_inventory", "ecos_image_form"])("distinguishes %s from a failed HTTP connection", async code => {
+  vi.mocked(api.previewECoSImage).mockRejectedValueOnce(new ApiError("image preparation failed",code,502));
+  render(panel());
+  fireEvent.click(screen.getByRole("button",{name:"Direkt an ECoS übertragen …"}));
+  fireEvent.click(await screen.findByRole("button",{name:"Übertragung prüfen und Vorschau laden"}));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Es wurde nichts hochgeladen oder zugeordnet");
+  expect(screen.getByRole("alert")).not.toHaveTextContent("Port 80");
+  expect(api.confirmECoSImage).not.toHaveBeenCalled();
+});
+
+it("explains a deleted current user image and permits reviewed replacement without rendering a broken image", async () => {
+  vi.mocked(api.previewECoSImage).mockResolvedValueOnce({...preview,currentImage:"",currentImageMissing:true,
+    current:{...preview.current,imageType:"IMAGE_TYPE_USER",index:3}});
+  render(panel());await openPreview();
+  expect(screen.getByText(/Der Lok ist Bildplatz 3 zugeordnet, dieser ist aber leer/)).toBeVisible();
+  expect(screen.queryByAltText("Bisheriges Lokbild")).not.toBeInTheDocument();
+  expect(screen.getByRole("button",{name:"Jetzt hochladen und zuordnen"})).toBeDisabled();
+  expect(api.confirmECoSImage).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("checkbox"));fireEvent.click(screen.getByRole("button",{name:"Jetzt hochladen und zuordnen"}));
+  expect(await screen.findByText(/Die Zuordnung wurde zurückgelesen und geprüft/)).toBeVisible();
 });
 
 it("explains a slot still reported free without claiming the image was stored or retrying", async () => {

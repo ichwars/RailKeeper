@@ -72,6 +72,9 @@ func TestImageSlotSearchReusesIdenticalImageBeyondFreeSlotOnAnotherPage(t *testi
 				if !errors.Is(err, ErrImageWeb) {
 					t.Fatal("allowed upload without complete image check", err)
 				}
+				if mode == "unreadable" && !errors.Is(err, ErrImageRead) || mode == "incomplete_inventory" && !errors.Is(err, ErrImageInventory) {
+					t.Fatal("lost image preparation phase", err)
+				}
 			}
 			if posts != 0 || mode != "incomplete_inventory" && reads != 1 {
 				t.Fatal("invalid device reads/writes", reads, posts)

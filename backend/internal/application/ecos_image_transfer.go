@@ -41,17 +41,18 @@ type ECoSImagePreviewInput struct {
 }
 
 type ECoSImagePreview struct {
-	Token         string              `json:"token"`
-	ExpiresAt     string              `json:"expiresAt"`
-	Host          string              `json:"host"`
-	Target        ECoSImageTarget     `json:"target"`
-	Current       ECoSImageDescriptor `json:"current"`
-	Slot          int                 `json:"slot"`
-	Description   string              `json:"description"`
-	SHA256        string              `json:"sha256"`
-	CurrentImage  string              `json:"currentImage"`
-	NewImage      string              `json:"newImage"`
-	ExistingImage bool                `json:"existingImage"`
+	Token               string              `json:"token"`
+	ExpiresAt           string              `json:"expiresAt"`
+	Host                string              `json:"host"`
+	Target              ECoSImageTarget     `json:"target"`
+	Current             ECoSImageDescriptor `json:"current"`
+	Slot                int                 `json:"slot"`
+	Description         string              `json:"description"`
+	SHA256              string              `json:"sha256"`
+	CurrentImage        string              `json:"currentImage"`
+	CurrentImageMissing bool                `json:"currentImageMissing"`
+	NewImage            string              `json:"newImage"`
+	ExistingImage       bool                `json:"existingImage"`
 }
 
 type ECoSImageConfirmInput struct {
@@ -190,11 +191,7 @@ func (service *DigitalCenterWorkspaceService) PreviewECoSImage(ctx context.Conte
 		if err != nil {
 			return err
 		}
-		kind := "system"
-		if descriptor.ImageType == "IMAGE_TYPE_USER" {
-			kind = "user"
-		}
-		oldImage, err := web.ReadImage(ctx, kind, descriptor.Index)
+		oldImage, currentImageMissing, err := currentECoSImage(ctx, web, descriptor)
 		if err != nil {
 			return err
 		}
@@ -228,7 +225,7 @@ func (service *DigitalCenterWorkspaceService) PreviewECoSImage(ctx context.Conte
 		}
 		result = ECoSImagePreview{Token: token, ExpiresAt: now.Add(5 * time.Minute).Format(time.RFC3339), Host: center.Host,
 			Target: imageTarget(locomotive), Current: descriptor, Slot: slot, Description: strings.TrimSpace(input.Description),
-			SHA256: hex.EncodeToString(digest[:]), CurrentImage: imageDataURL(oldImage), NewImage: imageDataURL(encoded.Bytes()), ExistingImage: existingImage}
+			SHA256: hex.EncodeToString(digest[:]), CurrentImage: oldImage, CurrentImageMissing: currentImageMissing, NewImage: imageDataURL(encoded.Bytes()), ExistingImage: existingImage}
 		service.imageGrants[hash] = ecosImageGrant{preview: result, actor: actor, vehicleID: vehicleID, center: center,
 			pinnedHost: web.Address(), data: bytes.Clone(input.BMP), expires: now.Add(5 * time.Minute)}
 		return nil
@@ -306,16 +303,8 @@ func (service *DigitalCenterWorkspaceService) confirmECoSImageGrant(ctx context.
 	if imageTarget(locomotive) != preview.Target || descriptor != preview.Current {
 		return ErrDigitalCenterPreviewStale
 	}
-	kind := "system"
-	if descriptor.ImageType == "IMAGE_TYPE_USER" {
-		kind = "user"
-	}
-	oldImage, err := web.ReadImage(ctx, kind, descriptor.Index)
-	if err != nil {
+	if err := checkCurrentECoSImage(ctx, web, preview); err != nil {
 		return err
-	}
-	if imageDataURL(oldImage) != preview.CurrentImage {
-		return ErrDigitalCenterPreviewStale
 	}
 	if preview.ExistingImage {
 		if err := verifyExistingECoSImage(ctx, web, preview.Slot, grant.data); err != nil {

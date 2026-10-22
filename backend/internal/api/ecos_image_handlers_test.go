@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -9,7 +10,24 @@ import (
 	"testing"
 
 	"railkeeper/backend/internal/application"
+	ecospkg "railkeeper/backend/internal/ecos"
 )
+
+func TestECoSImagePreparationErrorsRetainTheirSpecificPhase(t *testing.T) {
+	app := &App{}
+	for _, test := range []struct {
+		err  error
+		code string
+	}{
+		{ecospkg.ErrImageRead, "ecos_image_read"},
+		{ecospkg.ErrImageInventory, "ecos_image_inventory"},
+		{ecospkg.ErrImageUploadForm, "ecos_image_form"},
+	} {
+		response := httptest.NewRecorder()
+		app.respondECoSImageError(response, fmt.Errorf("%w: %w", test.err, ecospkg.ErrImageWeb))
+		assertProblem(t, response, http.StatusBadGateway, test.code)
+	}
+}
 
 func TestECoSImageRoutesRequireAdminCSRFAndConfirmation(t *testing.T) {
 	auth := application.NewAuthService(testRouterDB(t))

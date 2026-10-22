@@ -13,7 +13,7 @@ func completeECoSImageTransfer(writeCtx context.Context, device ecosImageDevice,
 	descriptor := preview.Current
 	var locomotive ECoSLocomotive
 	var err error
-	if preview.ExistingImage && descriptor.ImageType == "IMAGE_TYPE_USER" && descriptor.Index == preview.Slot {
+	if preview.ExistingImage && !preview.CurrentImageMissing && descriptor.ImageType == "IMAGE_TYPE_USER" && descriptor.Index == preview.Slot {
 		result.AssignmentVerified = true
 		result.Status = "verified"
 		return nil
@@ -33,6 +33,9 @@ func completeECoSImageTransfer(writeCtx context.Context, device ecosImageDevice,
 	}
 	descriptor, err = device.ReadImageDescriptor(writeCtx, connection, preview.Target.ObjectID)
 	if err != nil || imageTarget(locomotive) != preview.Target || descriptor != preview.Current {
+		return nil
+	}
+	if err := checkCurrentECoSImage(writeCtx, web, preview); err != nil {
 		return nil
 	}
 	if !preview.ExistingImage {

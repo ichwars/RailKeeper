@@ -1347,7 +1347,7 @@ components:
     ECoSImagePreview:
       type: object
       description: Read-only preview; one-use actor/vehicle/image/target-bound grant, valid for five minutes. A new preview replaces the same actor's previous preview. Restarting RailKeeper invalidates grants.
-      required: [token, expiresAt, host, target, current, slot, description, sha256, currentImage, newImage, existingImage]
+      required: [token, expiresAt, host, target, current, slot, description, sha256, currentImage, currentImageMissing, newImage, existingImage]
       properties:
         token: {type: string}
         expiresAt: {type: string, format: date-time}
@@ -1364,7 +1364,8 @@ components:
         slot: {type: integer, minimum: 0, maximum: 499}
         description: {type: string, maxLength: 80}
         sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
-        currentImage: {type: string, pattern: '^data:image/png;base64,'}
+        currentImage: {type: string, pattern: '^(data:image/png;base64,|$)', description: Empty only when a complete inventory proves the referenced user image slot is free.}
+        currentImageMissing: {type: boolean, description: The locomotive still references a user image slot which is confirmed empty. Preview and confirmed replacement remain possible.}
         newImage: {type: string, pattern: '^data:image/png;base64,'}
         existingImage: {type: boolean, description: True for assignment-only reuse of a pixel-verified stored image. Identical images are detected automatically during preview.}
     ECoSImageConfirmInput:
@@ -8916,7 +8917,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
         "502":
-          description: ECoS TCP or HTTP interface unavailable or unsupported
+          description: ECoS interface unavailable, image read failed, inventory incomplete or upload form unsupported. Error codes distinguish ecos_image_web, ecos_image_read, ecos_image_inventory and ecos_image_form.
           content:
             application/json:
               schema:
@@ -8997,7 +8998,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
         "502":
-          description: ECoS TCP or HTTP interface unavailable or unsupported
+          description: ECoS interface unavailable, image read failed, inventory incomplete or upload form unsupported. Error codes distinguish ecos_image_web, ecos_image_read, ecos_image_inventory and ecos_image_form.
           content:
             application/json:
               schema:
@@ -9064,7 +9065,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
         "502":
-          description: ECoS TCP or HTTP interface unavailable or unsupported
+          description: ECoS interface unavailable, image read failed, inventory incomplete or upload form unsupported. Error codes distinguish ecos_image_web, ecos_image_read, ecos_image_inventory and ecos_image_form.
           content:
             application/json:
               schema:
