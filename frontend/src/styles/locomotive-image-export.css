@@ -68,6 +68,24 @@
 .ecos-image-success > strong,
 .ecos-image-warning > strong { display: flex; align-items: start; gap: var(--space-sm); }
 .ecos-image-transfer svg { flex-shrink: 0; }
+.ecos-image-pause-layer { z-index: 90; }
+.ecos-image-pause-dialog { width: min(560px, 100%); }
+.ecos-image-pause-dialog h2 svg { flex: none; color: var(--warm); }
+.ecos-image-pause-target { display: grid; gap: var(--space-xs); overflow-wrap: anywhere; }
+.ecos-image-pause-target span { color: var(--muted); font-size: var(--font-size-sm); }
+.ecos-image-pause-preview {
+  display: grid;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0;
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-subtle);
+}
+.ecos-image-pause-preview figcaption { overflow-wrap: anywhere; font-size: var(--font-size-sm); }
+.ecos-image-pause-preview img { display: block; max-width: 100%; height: auto; }
+.ecos-image-pause-dialog > footer { justify-content: flex-end; }
+.ecos-image-pause-dialog > footer button { min-height: 44px; }
 .locomotive-image-target { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-lg); }
 .locomotive-image-dialog label { display: grid; gap: var(--field-gap); font-size: var(--font-size-sm); }
 .locomotive-image-target > div { display: grid; gap: var(--space-xs); font-size: var(--font-size-sm); }

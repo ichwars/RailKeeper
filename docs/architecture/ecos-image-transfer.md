@@ -95,6 +95,18 @@ can be assigned. RailKeeper never restarts the station automatically.
   request (`control_busy` for error 25, otherwise `upload_blocked`) sends no image POST
   and no assignment. Target identity/descriptor are rechecked after acquisition.
   An already verified, correctly assigned image needs no control request or upload.
+- A `control_busy` result opens a **Transfer paused** modal instead of the inline failure
+  result. The selected locomotive, description and image stay in the open dialog. The operator
+  deselects the locomotive on the station/controllers, then explicitly chooses Continue or
+  Cancel transfer. There is no background polling, control probing or automatic continuation.
+  Continue obtains a fresh preview, since the previous grant was consumed. It submits that
+  new single-use grant only if target identity, host, description, source hash, both image
+  previews, descriptor, missing-image state, chosen slot and reuse mode match the reviewed
+  state and the new preview is valid. Any change requires a new explicit review and checkbox.
+  A repeated denial pauses again; a failed preparation keeps the pause open, while an
+  ambiguous write reply uses the existing uncertain-result flow without another attempt.
+  The parent image editor stays locked during the pause, focus remains within the modal,
+  and Escape cancels only the pause. Backend controls, audits and grant checks are unchanged.
 - Uploaded slots must appear occupied in the refreshed inventory, and images are read back and
   compared pixel by pixel. Exact RGB pixels or an exact
   supported RGB332 palette conversion are accepted; there is no general similarity threshold.

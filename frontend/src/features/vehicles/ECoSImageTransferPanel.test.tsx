@@ -6,7 +6,7 @@ import { ECoSImageTransferPanel } from "./ECoSImageTransferPanel";
 
 const image = new Blob(["BMP"]);
 const preview: ECoSImagePreview = {
-  token: "once", expiresAt: "2099-01-01T00:00:00Z", host: "ecos.local",
+  token: "once", expiresAt: new Date(Date.now() + 300000).toISOString(), host: "ecos.local",
   target: { objectId: 1001, name: "BR 218", address: 3, protocol: "DCC128" },
   current: { locomotiveType: "LOCO_TYPE_DIESEL", imageType: "IMAGE_TYPE_INT", index: 118 },
   slot: 7, description: "BR 218", sha256: "a".repeat(64), existingImage: false,
@@ -23,7 +23,7 @@ beforeEach(() => {
   vi.spyOn(api, "confirmECoSImage").mockResolvedValue(result);
   busyChange.mockClear();
 });
-afterEach(() => { vi.restoreAllMocks(); });
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 function panel(mappedObjectId = "1001") {
   return <ECoSImageTransferPanel vehicleId="vehicle-1" mappedObjectId={mappedObjectId}
@@ -161,7 +161,7 @@ it("requires a fresh checked preview for a verified partial assignment without a
   fireEvent.click(screen.getByRole("button", { name: "Nur Zuordnung erneut prüfen …" }));
   await screen.findByRole("alert");
   expect(screen.queryByRole("button", { name: "Übertragung prüfen und Vorschau laden" })).not.toBeInTheDocument();
-  vi.mocked(api.previewECoSImage).mockResolvedValueOnce({ ...preview, existingImage: true });
+  vi.mocked(api.previewECoSImage).mockResolvedValueOnce({ ...preview, token: "retry-assignment", existingImage: true });
   fireEvent.click(screen.getByRole("button", { name: "Nur Zuordnung erneut prüfen …" }));
   await screen.findByAltText("Bereits geprüftes Bild · Bildplatz 7");
   expect(api.previewECoSImage).toHaveBeenLastCalledWith("vehicle-1", 1001, "BR 218", image, 7);
@@ -174,7 +174,7 @@ it("requires a fresh checked preview for a verified partial assignment without a
   expect(api.confirmECoSImage).toHaveBeenCalledTimes(2);
 });
 
-it.each(["control_busy", "upload_blocked"] as const)("explains %s before upload and requires another preview and confirmation", async status => {
+it.each(["upload_blocked"] as const)("explains %s before upload and requires another preview and confirmation", async status => {
   vi.mocked(api.confirmECoSImage).mockResolvedValueOnce({ ...result, status, imageVerified: false, assignmentVerified: false });
   render(panel()); await openPreview();
   fireEvent.click(screen.getByRole("checkbox")); fireEvent.click(screen.getByRole("button", { name: "Jetzt hochladen und zuordnen" }));
@@ -185,6 +185,146 @@ it.each(["control_busy", "upload_blocked"] as const)("explains %s before upload 
   await screen.findByAltText("Neues Lokbild · freier Bildplatz 7");
   expect(api.previewECoSImage).toHaveBeenLastCalledWith("vehicle-1", 1001, "BR 218", image);
   expect(screen.getByRole("button", { name: "Jetzt hochladen und zuordnen" })).toBeDisabled();
+});
+
+async function pauseTransfer() {
+  vi.mocked(api.confirmECoSImage).mockResolvedValueOnce({
+    ...result, status: "control_busy", imageVerified: false, assignmentVerified: false
+  });
+  await openPreview(); fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(screen.getByRole("button", { name: "Jetzt hochladen und zuordnen" }));
+  return screen.findByRole("dialog", { name: "Übertragung pausiert" });
+}
+const refreshed = (token = "resumed"): ECoSImagePreview => ({
+  ...preview, token, expiresAt: new Date(Date.now() + 300000).toISOString()
+});
+
+it("pauses without polling and continues only after a click and a fresh unchanged review", async () => {
+  render(panel());
+  const dialog = await pauseTransfer();
+  expect(dialog).toHaveTextContent("an beiden Fahrreglern");
+  expect(dialog).toHaveTextContent("Bild und Ziel-Lok bleiben erhalten");
+  expect(dialog).toHaveTextContent("BR 218");
+  expect(screen.getByAltText("Vorgesehenes Lokbild")).toBeVisible();
+  expect(busyChange.mock.calls).toEqual([[true]]);
+  vi.useFakeTimers(); await act(async () => { vi.advanceTimersByTime(600000); }); vi.useRealTimers();
+  expect(api.confirmECoSImage).toHaveBeenCalledTimes(1);
+  expect(api.previewECoSImage).toHaveBeenCalledTimes(1);
+  vi.mocked(api.previewECoSImage).mockResolvedValueOnce(refreshed());
+  fireEvent.click(screen.getByRole("button", { name: "Fortsetzen" }));
+  expect(await screen.findByText(/Die Zuordnung wurde zurückgelesen und geprüft/)).toBeVisible();
+  expect(api.previewECoSImage).toHaveBeenLastCalledWith("vehicle-1", 1001, "BR 218", image);
+  expect(vi.mocked(api.confirmECoSImage).mock.calls).toEqual([["vehicle-1", "once"], ["vehicle-1", "resumed"]]);
+  expect(busyChange).toHaveBeenLastCalledWith(false);
+});
+
+it("cancels with Escape, restores parent focus and keeps image and target without another write", async () => {
+  const parentKey = vi.fn();
+  render(<div role="dialog" aria-label="Bildbearbeitung" onKeyDown={parentKey}>{panel()}</div>);
+  const dialog = await pauseTransfer();
+  const parent = screen.getByLabelText("Bildbearbeitung");
+  await waitFor(() => expect(parent).toHaveAttribute("inert"));
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  await waitFor(() => {
+    expect(screen.queryByRole("dialog", { name: "Übertragung pausiert" })).not.toBeInTheDocument();
+    expect(parent).not.toHaveAttribute("inert");
+    expect(screen.getByRole("button", { name: "Übertragung prüfen und Vorschau laden" })).toHaveFocus();
+  });
+  expect(parentKey).not.toHaveBeenCalled();
+  expect(screen.getByLabelText("Bildbezeichnung auf der ECoS")).toHaveValue("BR 218");
+  expect(api.confirmECoSImage).toHaveBeenCalledTimes(1);
+  expect(busyChange).toHaveBeenLastCalledWith(false);
+});
+
+it.each([
+  { target: { ...preview.target, objectId: 1002 } },
+  { target: { ...preview.target, name: "Andere Lok" } },
+  { target: { ...preview.target, address: 4 } },
+  { target: { ...preview.target, protocol: "DCC28" } },
+  { current: { ...preview.current, index: 119 } },
+  { current: { ...preview.current, locomotiveType: "LOCO_TYPE_STEAM" } },
+  { current: { ...preview.current, imageType: "IMAGE_TYPE_USER" as const } },
+  { currentImage: "data:image/png;base64,changed" },
+  { currentImageMissing: true, currentImage: "" },
+  { newImage: "data:image/png;base64,changed" },
+  { sha256: "b".repeat(64) },
+  { host: "other.local" },
+  { description: "Anderes Bild" },
+  { slot: 8 },
+  { existingImage: true },
+  { expiresAt: "2000-01-01T00:00:00Z" }
+])("requires a new explicit review when pause state changes: %j", async changes => {
+  render(panel()); await pauseTransfer();
+  vi.mocked(api.previewECoSImage).mockResolvedValueOnce({ ...refreshed(), ...changes });
+  fireEvent.click(screen.getByRole("button", { name: "Fortsetzen" }));
+  expect(await screen.findByText(/Die Vorschau hat sich während der Pause geändert/)).toBeVisible();
+  expect(screen.queryByRole("dialog", { name: "Übertragung pausiert" })).not.toBeInTheDocument();
+  expect(screen.getByRole("checkbox")).not.toBeChecked();
+  expect(api.confirmECoSImage).toHaveBeenCalledTimes(1);
+});
+
+it("retains the pause after a failed read and never resubmits a consumed token", async () => {
+  render(panel()); await pauseTransfer();
+  vi.mocked(api.previewECoSImage).mockRejectedValueOnce(new ApiError("read", "ecos_image_inventory", 502));
+  fireEvent.click(screen.getByRole("button", { name: "Fortsetzen" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Der Bildbestand");
+  expect(screen.getByRole("dialog", { name: "Übertragung pausiert" })).toBeVisible();
+  vi.mocked(api.previewECoSImage).mockResolvedValueOnce(refreshed("once"));
+  fireEvent.click(screen.getByRole("button", { name: "Fortsetzen" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("bereits verwendet");
+  expect(api.confirmECoSImage).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: "Übertragung abbrechen" }));
+  expect(screen.queryByRole("dialog", { name: "Übertragung pausiert" })).not.toBeInTheDocument();
+});
+
+it("blocks double clicks and cancellation during the fresh check and returns to pause when control stays busy", async () => {
+  render(panel()); await pauseTransfer();
+  let finish: ((value: ECoSImagePreview) => void) | undefined;
+  vi.mocked(api.previewECoSImage).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  vi.mocked(api.confirmECoSImage).mockResolvedValueOnce({ ...result, status: "control_busy", imageVerified: false, assignmentVerified: false });
+  const button = screen.getByRole("button", { name: "Fortsetzen" });
+  fireEvent.click(button); fireEvent.click(button);
+  expect(button).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Übertragung abbrechen" })).toBeDisabled();
+  fireEvent.keyDown(screen.getByRole("dialog", { name: "Übertragung pausiert" }), { key: "Escape" });
+  expect(api.previewECoSImage).toHaveBeenCalledTimes(2);
+  await act(async () => { finish?.(refreshed()); });
+  expect(screen.getByRole("dialog", { name: "Übertragung pausiert" })).toBeVisible();
+  expect(api.confirmECoSImage).toHaveBeenLastCalledWith("vehicle-1", "resumed");
+  expect(busyChange).not.toHaveBeenCalledWith(false);
+  vi.mocked(api.previewECoSImage).mockResolvedValueOnce(refreshed("once"));
+  fireEvent.click(screen.getByRole("button", { name: "Fortsetzen" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("bereits verwendet");
+  expect(api.confirmECoSImage).toHaveBeenCalledTimes(2);
+});
+
+it("does not continue writing when the editor unmounts during the fresh preview", async () => {
+  const { unmount } = render(panel()); await pauseTransfer();
+  let finish: ((value: ECoSImagePreview) => void) | undefined;
+  vi.mocked(api.previewECoSImage).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  fireEvent.click(screen.getByRole("button", { name: "Fortsetzen" }));
+  unmount();
+  await act(async () => { finish?.(refreshed()); });
+  expect(api.confirmECoSImage).toHaveBeenCalledTimes(1);
+});
+
+it("keeps assignment-only retries from uploading and never retries a lost continuation reply", async () => {
+  vi.mocked(api.previewECoSImage).mockResolvedValueOnce({ ...refreshed("once"), existingImage: true });
+  vi.mocked(api.confirmECoSImage).mockResolvedValueOnce({ ...result, status: "control_busy", assignmentVerified: false });
+  render(panel());
+  fireEvent.click(screen.getByRole("button", { name: "Direkt an ECoS übertragen …" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Übertragung prüfen und Vorschau laden" }));
+  await screen.findByAltText("Bereits geprüftes Bild · Bildplatz 7");
+  fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(screen.getByRole("button", { name: "Vorhandenes Bild jetzt zuordnen" }));
+  await screen.findByRole("dialog", { name: "Übertragung pausiert" });
+  vi.mocked(api.previewECoSImage).mockResolvedValueOnce({ ...refreshed(), existingImage: true });
+  vi.mocked(api.confirmECoSImage).mockRejectedValueOnce(new Error("reply lost"));
+  fireEvent.click(screen.getByRole("button", { name: "Fortsetzen" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Die Antwort fehlt");
+  expect(api.previewECoSImage).toHaveBeenLastCalledWith("vehicle-1", 1001, "BR 218", image, 7);
+  expect(screen.queryByRole("dialog", { name: "Übertragung pausiert" })).not.toBeInTheDocument();
+  expect(api.confirmECoSImage).toHaveBeenCalledTimes(2);
 });
 
 it("uses an automatically detected identical image in a new dialog without offering another upload", async () => {
