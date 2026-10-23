@@ -2,12 +2,18 @@
 title: Vehicle images and attachments
 description: Upload, organize, preview, download, and safely remove vehicle images and attachments.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-10-21
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Vehicle images and attachments
+
+1. Open a saved vehicle under **Edit > Uploads**.
+2. Upload a photograph as an **image** or a manual as an **attachment**.
+3. Wait for success and check the saved file. Save picture-metadata changes with the vehicle. [Create a station image](locomotive-images).
+
+<GuideFigure name="media" alt="Uploads is where you add vehicle pictures and documents." caption="Uploads is where you add vehicle pictures and documents. Synthetic demo data, not factory settings. Click for full size." />
 
 The **Uploads** tab keeps local vehicle images and general attachments with the vehicle record.
 Admin, Editor, Viewer users can inspect stored media. Only Admin and Editor can upload,
@@ -133,7 +139,7 @@ name. If deletion fails, reload the record and do not assume the file or metadat
 ## Roles, storage, and backup boundaries
 
 Media is local and private RailKeeper data, not public website content. Application backups include
-stored vehicle media. In v0.1.20.3, however, RailKeeper accepts backup files up to 250 MiB for
+stored vehicle media. Currently, however, RailKeeper accepts backup files up to 250 MiB for
 validation and restore. Before extensive cleanup, export a backup and ask an Admin to select that
 file in the restore panel. Rely on it only after RailKeeper accepts it as compatible. This page
 makes no promise about copies downloaded or created outside RailKeeper.
@@ -168,7 +174,3 @@ editing maintenance records remain specialist boundaries that are not explained 
 - [Vehicle maintenance and condition](/guide/vehicles/maintenance)
 - [Decoder, functions, and CV data](/guide/vehicles/decoder-cv)
 - [Article search, web documents, and spare parts](/guide/vehicles/search-and-spares)
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.

@@ -1,80 +1,39 @@
 ---
-title: Documentation Coverage
-description: See how RailKeeper source surfaces map to the bilingual handbook.
+title: What is documented and reviewed?
+description: What is documented and reviewed?
 audience: reference
 status: development
 reviewedVersion: main
-lastReviewed: 2026-08-15
+lastReviewed: 2026-10-23
 ---
 
-# Documentation coverage
+# What is documented and reviewed?
 
-RailKeeper treats documentation coverage as a reviewed contract. A read-only inventory scans
-visible frontend routes, English and German translation keys, registered Go API routes, OpenAPI
-operations, tracked configuration variables, and existing project documents. The coverage
-validator then requires every frontend route, translation key, API route, and environment variable
-to have one owning topic.
+All 20 topics now have an English and a German entry page. This is content coverage, not a claim that every device, firmware or edge case has been fully tested.
 
-The reviewed assignments live in
-[`docs/coverage.json`](https://github.com/ichwars/RailKeeper/blob/main/docs/coverage.json). The
-inventory is generated during validation and is not committed as a second source of truth.
+## Read the evidence
 
-## Coverage states
+| Evidence | Meaning | Limit |
+| --- | --- | --- |
+| Source review | Instructions checked against current code or operating rules | Not every variant has been run separately |
+| Demo interface | Also illustrated by real screenshots from an isolated test installation | Synthetic data, no connected command station |
+| Hardware verification | Only where a chapter explicitly identifies a concrete device test | Applies to that device and firmware |
 
-- `planned`: The destination and owner are agreed, but the complete page pair belongs to a later
-  documentation stage.
-- `documented`: Both English and German destination pages exist and pass the page standard.
-- `internal`: The topic is intentionally limited to maintainer-facing material.
-- `not-published`: The source exists, but it must not be presented as a stable public feature.
+Pictures were captured on **23 October 2026** with synthetic vehicles. Their CV values are not factory settings. Pages show their version scope and editorial review date. Their Git modification date appears separately at the bottom.
 
-A topic can move to `documented` only after both destination pages use identical relative paths,
-carry matching review metadata, and pass the documentation check. Removed layout planning is outside the current product scope.
+## Topics and evidence
 
-## Reviewed topics
+<CoverageTable />
 
-The initial matrix contains 20 topics.
+## What remains open?
 
-### User workflows
+- CS3 compatibility uses documented response forms and fixtures; a complete project hardware acceptance is not established.
+- Z21 and Intellibox 3 do not yet provide an ECoS-equivalent locomotive/CV import. The guide does not invent that capability.
+- The decoder library retains explicit model, firmware and source gaps. A catalogue entry does not imply interpretation of every CV on that model.
+- Demo pictures show entry points. They do not prove every dialog state, printer driver, restore or network failure.
 
-- `setup-auth`
-- `overview`
-- `vehicles-core`
-- `vehicle-media`
-- `vehicle-maintenance`
-- `vehicle-decoder-cv`
-- `vehicle-search-spares`
-- `accessories`
-- `exhibition`
-- `import-export`
-- `settings-general`
+## Keeping it current
 
-### Administration
+The topic list and evidence come from [docs/coverage.json](https://github.com/ichwars/RailKeeper/blob/main/docs/coverage.json). Automated checks inventory routes, API areas, translation keys and configuration variables. They verify language pairs, metadata, picture files and ownership by handbook topics. Content accuracy and hardware behaviour require separate review.
 
-- `master-data`
-- `users-sessions-security`
-- `backup-restore`
-- `digital-centers`
-- `system-operations`
-- `deployment-configuration`
-
-### Development
-
-- `development-architecture`
-
-### Shared reference
-
-- `releases-support`
-- `shared-navigation`
-
-## Contributor workflow
-
-When a route, API area, translation namespace, environment variable, or handbook topic changes,
-update `docs/coverage.json` in the same pull request. Run the complete check from the repository:
-
-```powershell
-cd docs
-npm.cmd run check
-```
-
-The command verifies both languages, review metadata, coverage ownership, and the production site
-build.
+A workflow change updates its guide and both languages in the same pull request. In `docs`, `npm run check` runs tests, ownership checks and the site build. [Report a gap](https://github.com/ichwars/RailKeeper/discussions/categories/q-a).

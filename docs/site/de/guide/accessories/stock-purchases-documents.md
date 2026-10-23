@@ -2,17 +2,21 @@
 title: Bestand, Käufe und Dokumente
 description: Zubehörmengen, Einzelstücke, Käufe, Bilder und Dokumente verwalten.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Bestand, Käufe und Dokumente
 
+Öffne den Zubehörartikel. Erfasse einen Einkauf mit Menge, Datum und Preis; füge bei Bedarf den Beleg hinzu. Prüfe danach den Bestand. Eine Bestandskorrektur und ein Einkauf erfüllen unterschiedliche Aufgaben und sollten nicht doppelt gebucht werden.
+
+<GuideFigure name="accessories" alt="Bestand und Einkäufe werden am jeweiligen Zubehörartikel geführt." caption="Bestand und Einkäufe werden am jeweiligen Zubehörartikel geführt. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
+
 RailKeeper kann austauschbare Zubehöreinheiten als Menge zählen, physische Stücke einzeln verwalten
 oder Einheiten bei Bedarf aus dem Mengenbestand in die Einzelverwaltung überführen. Käufe und
 Dokumente gehören zum selben Artikel, besitzen aber eigene Sofortaktionen zum Speichern. Dieses
-Kapitel beschreibt das stabile Verhalten von RailKeeper v0.1.20.3.
+Kapitel beschreibt das stabile Verhalten von RailKeeper.
 
 Administratoren und Bearbeiter können diese Ressourcen verwalten. Betrachter und Planer können sie
 ansehen. Das Reservierungsrecht eines Planers umfasst jedoch keine Änderungen an Bestand, Käufen,
@@ -137,7 +141,7 @@ Lebenszyklus, Lagerort und Verlauf konsistent bleiben.
 
 ## Käufe erfassen
 
-Die Kaufliste ist eine stabile, absteigend chronologische Historie. RailKeeper v0.1.20.3 bietet das
+Die Kaufliste ist eine stabile, absteigend chronologische Historie. RailKeeper bietet das
 Hinzufügen, aber keine Aktion zum Bearbeiten oder Löschen eines Kaufs.
 
 | Kauffeld | Stabile Regel |
@@ -246,7 +250,3 @@ bereits aus der Liste entfernten Eintrag folgen. Laden Sie neu, bevor Sie erneut
 - [Zubehörübersicht](./)
 - [Artikelstammdaten und Fachangaben](./article-records)
 - [Reservierungen, Einbauten und Verwendung](./allocations-history)
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.

@@ -2,17 +2,21 @@
 title: Article records and technical data
 description: Create accessory records, maintain their identity, and verify technical data.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Article records and technical data
 
+Open the accessory using **Edit**. Choose its type and subtype first, then complete the relevant technical details. Leave unknown interfaces or article numbers blank and consult manufacturer documentation.
+
+<GuideFigure name="accessories" alt="The article list leads to each record and its technical information." caption="The article list leads to each record and its technical information. Synthetic demo data, not factory settings. Click for full size." />
+
 An accessory article is the shared product record behind stock, purchases, documents,
 reservations, and installations. Create it once for a manufacturer and catalogue article, then
 record quantities or individual items against it. This chapter covers the article identity and the
-type-specific data in stable RailKeeper v0.1.20.3.
+type-specific data in stable RailKeeper.
 
 ## Access rights and persistence
 
@@ -134,7 +138,7 @@ Settings, the command stops without changing the article.
 The result dialog can apply manufacturer, article number, name, EAN, scale, description, product
 URL, and gauge. A manufacturer or gauge is selectable only when it matches an active known master-
 data value. A selected gauge is added to the existing gauges. Invalid common values and non-HTTP(S)
-product URLs are ignored. In stable v0.1.20.3, selectable technical result fields are exposed only
+product URLs are ignored. In stable the current version, selectable technical result fields are exposed only
 for **Track** articles; other article types can apply the common result groups but not their
 technical attributes.
 
@@ -212,7 +216,3 @@ unreferenced stored blobs. Deletion has no undo, so validate a current backup fi
 - [Stock, purchases, and documents](./stock-purchases-documents)
 - [Allocations and usage history](./allocations-history)
 - [Article search, web documents, and spare parts](../vehicles/search-and-spares)
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.

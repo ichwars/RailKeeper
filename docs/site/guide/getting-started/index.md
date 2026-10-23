@@ -2,15 +2,19 @@
 title: First setup and sign-in
 description: Create the first administrator, sign in securely, and recover access to RailKeeper.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # First setup and sign-in
 
+Open your installation address. On first setup, create your administrator; otherwise sign in with your account. Then [add your first vehicle](../quick-start).
+
+<GuideFigure name="login" alt="Sign-in to an installation that has already been set up." caption="Sign-in to an installation that has already been set up. Synthetic demo data, not factory settings. Click for full size." />
+
 This chapter covers the first administrator account, normal and two-factor sign-in, sign-out, and
-password recovery. It describes stable RailKeeper v0.1.20.3.
+password recovery. It describes stable RailKeeper.
 
 ## Before you start
 
@@ -113,8 +117,3 @@ confirmations to ten within ten minutes.
 
 - [User Guide overview](/guide/)
 - [Installation and Administration](/administration/)
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last checked against the application on
-2026-08-16.

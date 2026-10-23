@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: "Bedienfrage / Usage question"
+    url: https://github.com/ichwars/RailKeeper/discussions/categories/q-a
+    about: "Fragen zum Ablauf und zur Einrichtung gehören in Q&A. / Ask about workflows and setup in Q&A."
+  - name: "Idee besprechen / Discuss an idea"
+    url: https://github.com/ichwars/RailKeeper/discussions/categories/ideas
+    about: "Gewünschte Arbeitsabläufe gemeinsam klären. / Discuss desired workflows."
+  - name: "Handbuch mit Bildern / Illustrated handbook"
+    url: https://ichwars.github.io/RailKeeper/de/guide/
+    about: "Schrittweise Anleitungen in Deutsch und Englisch. / Step-by-step guides in German and English."
+  - name: "Sicherheitslücke / Security vulnerability"
+    url: https://github.com/ichwars/RailKeeper/security/policy
+    about: "Sicherheitsprobleme privat nach der Richtlinie melden. / Follow the private reporting policy."

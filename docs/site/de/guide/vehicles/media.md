@@ -2,12 +2,18 @@
 title: Fahrzeugbilder und Beilagen
 description: Fahrzeugbilder und Beilagen hochladen, ordnen, anzeigen, herunterladen und sicher entfernen.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-10-21
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Fahrzeugbilder und Beilagen
+
+1. Öffne ein gespeichertes Fahrzeug unter **Bearbeiten > Uploads**.
+2. Lade ein Foto als **Bild** oder eine Anleitung als **Beilage** hoch.
+3. Warte auf die Erfolgsmeldung und prüfe die gespeicherte Datei. Änderungen an Bildmetadaten mit dem Fahrzeug speichern. [Bild für eine Zentrale erstellen](locomotive-images).
+
+<GuideFigure name="media" alt="Unter Uploads hinterlegst du Fahrzeugbilder und Dokumente." caption="Unter Uploads hinterlegst du Fahrzeugbilder und Dokumente. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 Der Tab **Uploads** verwaltet lokale Fahrzeugbilder und allgemeine Beilagen am Fahrzeugdatensatz.
 Admin, Editor, Viewer können gespeicherte Medien ansehen. Nur Admin und Editor dürfen
@@ -148,7 +154,7 @@ Metadaten entfernt wurden.
 ## Rollen-, Speicher- und Sicherungsgrenzen
 
 Medien sind lokale und private RailKeeper-Daten, keine öffentlichen Website-Inhalte.
-Anwendungssicherungen enthalten gespeicherte Fahrzeugmedien. RailKeeper akzeptiert in v0.1.20.3
+Anwendungssicherungen enthalten gespeicherte Fahrzeugmedien. RailKeeper akzeptiert derzeit
 jedoch nur Sicherungsdateien bis 250 MiB für Prüfung und Wiederherstellung. Exportiere vor
 umfangreichen Aufräumarbeiten eine Sicherung und bitte einen Admin, diese Datei im
 Wiederherstellungsbereich auszuwählen. Verlasse dich erst darauf, wenn RailKeeper sie als kompatibel
@@ -185,7 +191,3 @@ das Bearbeiten von Wartungen bleiben Fachgrenzen, die auf dieser Seite nicht erk
 - [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)
 - [Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv)
 - [Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares)
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.

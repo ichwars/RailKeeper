@@ -2,17 +2,21 @@
 title: Stock, purchases, and documents
 description: Manage accessory quantities, individual items, purchases, images, and documents.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Stock, purchases, and documents
 
+Open the accessory record. Record a purchase with quantity, date and price; add its receipt if needed. Check the stock afterward. A stock adjustment and a purchase serve different purposes and should not be booked twice.
+
+<GuideFigure name="accessories" alt="Stock and purchases are maintained on the relevant accessory record." caption="Stock and purchases are maintained on the relevant accessory record. Synthetic demo data, not factory settings. Click for full size." />
+
 RailKeeper can count interchangeable accessory units, track physical items individually, or move
 units from counted stock into individual tracking when needed. Purchases and documents belong to
 the same article but have their own immediate save actions. This chapter describes the stable
-behavior of RailKeeper v0.1.20.3.
+behavior of RailKeeper.
 
 Admin and Editor users can manage these resources. Viewer users can inspect them. Save
 the article record once before creating any related resource.
@@ -129,7 +133,7 @@ that lifecycle, location, and history remain consistent.
 
 ## Record purchases
 
-The purchase list is a stable, newest-first history. Stable v0.1.20.3 provides an add action but no
+The purchase list is a stable, newest-first history. Stable the current version provides an add action but no
 purchase edit or delete action.
 
 | Purchase field | Stable rule |
@@ -233,7 +237,3 @@ Reload before attempting to delete again.
 - [Accessories overview](./)
 - [Article records and technical data](./article-records)
 - [Reservations, installations, and usage](./allocations-history)
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.

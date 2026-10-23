@@ -1,141 +1,56 @@
 ---
 title: Import vehicle files
-description: Map, validate, review, and save vehicle rows from CSV, TSV, XML, or JSON.
+description: Import vehicle files.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Import vehicle files
 
-File import is a review workflow, not a direct database load. RailKeeper reads the selected file,
-maps its columns, validates each row against the vehicles already loaded, and lets an authorized
-user choose which rows to create or update.
+**Goal:** Review an inventory file before deliberately importing it. Vehicle imports require Admin or Editor. Create a [backup](../../administration/backup-restore) before a large or unfamiliar import.
 
-Use an Editor or Admin account to save. Viewer users can inspect the preview but the server
-rejects their vehicle writes.
 
-## Supported input formats
+<GuideFigure name="import-dialog" alt="Start a new import and choose a matching profile." caption="Start a new import and choose a matching profile. Synthetic demo data, not factory settings. Click for full size." />
 
-| Extension | Stable interpretation |
+## 1. Create a matching profile
+
+Open **Import/Export > Create profile**. Give it a useful name such as “Vehicles from spreadsheet”. Select **Import**, the **Vehicles** area and **CSV** or **JSON**.
+
+| Source | Matching format |
 | --- | --- |
-| `.csv` | Uses the most frequent delimiter in the first non-empty line: tab, semicolon, or comma. A tie between semicolon and comma prefers semicolon. |
-| `.tsv` | Always uses a tab delimiter. |
-| `.xml` | Reads elements named `vehicle`, `fahrzeug`, `locomotive`, or `lok`. If none exist, RailKeeper uses the most frequently repeated nested element as the record shape. Attributes and direct text children become columns. |
-| `.json` | Accepts a vehicle array or an object with a `vehicles` array. The stable importer copies only the JSON subset listed below. |
+| Vehicle table with column headers | CSV, exactly one area |
+| Package from the current RailKeeper export | RailKeeper JSON, including multiple areas and vehicle sets |
+| LokProgrammer CV list or decoder project | In the vehicle under **CV > Files & import**, not here |
+| ECoS or CS3 locomotive list | In **Command stations**, not as a file transfer |
 
-Delimited values may be quoted with double quotes. Doubled quotes inside a quoted field are
-unescaped. Leading and trailing whitespace is removed from every parsed cell, and completely empty
-rows are ignored.
+The current dialog accepts CSV or versioned RailKeeper JSON packages. An arbitrary XML, TSV or JSON file is not such a package. Convert external spreadsheets to CSV first. The previous instructions for direct XML/TSV import and a limited 14-field JSON import no longer describe this workflow.
 
-An invalid JSON or XML document is not a supported import. XML without usable records reports an
-empty table. Choose the corrected file again after fixing it.
+## 2. Choose the file and map columns
 
-## JSON import subset
+1. Select **New import** and your import profile.
+2. Use **Browse** to select the file. This creates the preview; it does not import vehicles yet.
+3. For a vehicle CSV, inspect **Detected CSV mapping**.
+4. Assign every source column to a target field or explicitly choose **Ignore column**.
+5. Select **Validate mapping** or **Continue to review**.
 
-The JSON export wraps the vehicle list as `{ "format": "railkeeper-vehicles", "version": 1,
-"vehicles": [...] }`. The stable JSON importer does not validate `format` or `version` and does not
-round-trip every property. It builds its review table from these 14 fields only:
+A target field can be mapped only once. You may save a recurring mapping to the profile. Changing the mapping recalculates the preview, so review its conflicts again.
 
-| Identity | Classification | Operation and value |
-| --- | --- | --- |
-| Inventory number, manufacturer, article number, designation | Gauge, epoch, railway company, category, subtype | Maximum speed, home depot / operating location, digital, digital / decoder number, list price |
+## 3. Review the preview and conflicts
 
-Use CSV when you need the complete supported 62-field scalar exchange. Use an application backup
-when you need restorable application data and uploads.
+Check counts, names and inventory numbers. Read every warning. Existing records or conflicting references offer appropriate decisions, such as use existing data, replace, create a copy or skip. Not every decision is available for every conflict.
 
-## Column mapping
+Detected vehicle sets appear as groups. Review their inventory numbers, members and order together. A set decision applies to the entire group; vehicles are not silently removed from other sets.
 
-The first row supplies the column names. RailKeeper normalizes case, whitespace, German umlauts,
-common punctuation, and known German or English aliases before looking for a target field.
+Correct invalid source data in the file and upload it again. Resolve every blocking conflict before confirming.
 
-After loading a file:
+## 4. Confirm the import
 
-1. Under **Detected CSV mapping**, review every source header.
-2. Assign every useful open column to a RailKeeper field.
-3. Explicitly set an irrelevant source column to **Ignore column**.
-4. For recurring files, optionally select **Save mapping to profile**.
-5. Choose **Validate mapping**, then check the recalculated import review.
+Confirm only the fully reviewed preview. The server applies the reviewed revision in one transaction. A failed confirmation leaves no partial import. Check the completed job and a few vehicles in the inventory afterward.
 
-One target field can belong to only one source column. Targets already in use are unavailable for
-other columns. Mapping validation rereads the same file on the server and replaces the persistent
-preview, so review conflicts and corrections again afterwards.
+If the job changed meanwhile, RailKeeper may require another review or upload. Confirm only the new preview. **Close** leaves the dialog; **Cancel job** ends the job and retains its history.
 
-## All 62 CSV and table targets
+## What is transferred?
 
-The complete stable CSV export uses the same targets and can therefore be imported without manual
-remapping. Other files may use any subset.
-
-| Group | Supported fields |
-| --- | --- |
-| Identity and catalogue | Inventory number; Manufacturer; Article no.; Source / URL; Designation; Gauge; Epoch; Railway company; Category; Subtype; Description; Series; Vehicle no.; EAN; Production period; List price |
-| Operation, digital, and exhibition | Maximum speed; Home depot / operating location; Digital; Digital / decoder no.; Decoder type; DT / decoder; DT / decoder no.; Exhibition ready; Exhibition; ABC brakes; Create QR code |
-| Acquisition, storage, and condition | Acquisition type; Acquired from; Purchase price; Purchase date; Storage location; Storage details; Condition; Condition details; Packaging |
-| Physical and mechanical data | Length (mm); Weight (g); Color; Lettering; Load; Interior; Axles; Axle count; Traction tire count; Wheelset; Coupling (F=R); Front coupling; Rear coupling; Power pickup; Adapter / interface |
-| Equipment and notes | Drive; Drive description; Headlights; Headlight description; Lighting; Lighting description; Sound generator; Sound generator description; Smoke generator; Smoke generator description; Additional information |
-
-Images and other nested or file-backed records are not targets.
-
-## Boolean values
-
-For Digital, DT / decoder, Exhibition ready, Exhibition, ABC brakes, Coupling (F=R), Drive,
-Headlights, Lighting, Sound generator, Smoke generator, and Create QR code, these non-empty values
-mean **yes** regardless of case:
-
-`1`, `ja`, `yes`, `true`, `wahr`, `digital`, `d`, `x`, `vorhanden`
-
-Every other non-empty value becomes **no**. An empty cell is ignored. Prefer the explicit `yes` and
-`no` values created by RailKeeper's CSV export to avoid ambiguous source data.
-
-## Validation and initial selection
-
-A new row needs Manufacturer, Designation, Gauge, Category, and Subtype before the preview allows
-selection. The server may apply additional vehicle rules when saving.
-
-Two field-specific checks run in the browser:
-
-- Maximum speed must be an integer from 1 through 1000 km/h.
-- Home depot / operating location must contain at most 200 Unicode characters.
-
-An invalid row is marked as an error, is deselected, and cannot be selected until the visible
-problem is corrected or its source mapping is changed. The review table directly edits only
-Inventory number, Manufacturer, Article no., Designation, Gauge, Category, and Subtype. Correct
-other values in the source file or through the column mapping, then reload when necessary.
-
-## New vehicles and detected duplicates
-
-RailKeeper compares a non-empty inventory number case-insensitively with the current vehicle list.
-
-| Result | Default behavior |
-| --- | --- |
-| No inventory-number match and no validation issue | Action **New**, row selected |
-| Existing inventory number | Action **Update**, warning, row not selected |
-| Existing inventory number plus another validation issue | Action **Update**, error, row blocked |
-
-For an update, expand the field preview and inspect **same**, **fills empty field**, and
-**overwrites**. Only mapped, non-empty imported strings, valid numbers, and parsed booleans are
-applied. Empty source cells do not erase existing strings. A non-empty boolean token that is not in
-the yes list explicitly applies **no**.
-
-Changing a duplicate row to **New** does not create a second vehicle with the same inventory
-number. RailKeeper marks the row as an error instead.
-
-## Save the reviewed selection
-
-1. Correct the visible core fields and review every update comparison.
-2. Select only rows that should be written.
-3. Choose **Save selection**.
-4. Wait until each successful row shows **saved**.
-5. Read any row-specific error and verify already saved vehicles before retrying.
-
-Rows are processed sequentially. Each selected row calls either vehicle creation or vehicle update.
-If one row fails, it becomes an error and RailKeeper continues with later selected rows. The
-operation is therefore not atomic and there is no bulk undo.
-
-File imports do not create function mappings, CV entries, ECoS mappings, images, attachments,
-maintenance, spare parts, or decoder files. Add those through their dedicated vehicle workflows.
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
+Vehicle files transfer basic fields and documented set relationships. They do not include vehicle pictures, CV rows, functions, maintenance or decoder files. Use the relevant vehicle workflows or an application backup for those. The [transfer overview](./) explains permissions and limits.

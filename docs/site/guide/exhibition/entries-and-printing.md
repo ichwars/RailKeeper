@@ -2,12 +2,16 @@
 title: Entries and printing
 description: Record exhibition locomotives, resolve address conflicts, and print the operating list.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-31
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Entries and printing
+
+Open the required list and review entries, counts and vehicle numbers. Start printing, then choose a printer or **Save as PDF** in the browser. Review the print preview first.
+
+<GuideFigure name="exhibition" alt="Check the event and its vehicles before printing." caption="Check the event and its vehicles before printing. Synthetic demo data, not factory settings. Click for full size." />
 
 An exhibition entry describes one locomotive as it is needed during the selected event. The entry
 combines owner and model identity with operating days, digital or analog control data, one image,
@@ -145,7 +149,7 @@ Selecting a symbol applies the symbol label as the function name when the picker
 Review the name after choosing a symbol. On **Save**, RailKeeper stores only configured functions as
 structured data. The table, detail view, and report show only those functions.
 
-Stable v0.1.20.3 can also read earlier plain-text values separated by commas, semicolons, or lines
+Stable the current version can also read earlier plain-text values separated by commas, semicolons, or lines
 when each item starts with a key such as `F1 Sound`. Opening and saving such an entry writes the
 currently configured structured representation.
 
@@ -215,7 +219,3 @@ general command for printing the web page.
 - [Lists and locking](./lists-and-locking)
 - [User Guide overview](/guide/)
 - [Vehicle inventory and core records](/guide/vehicles/)
-
-## Documented RailKeeper version
-
-This page describes RailKeeper v0.1.20.4.

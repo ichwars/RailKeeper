@@ -2,12 +2,16 @@
 title: CS3-Lokdaten read-only lesen
 description: Märklin-CS3-Lokomotiven sicher lesen und im Digitalzentralen-Arbeitsbereich vergleichen.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-28
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # CS3-Lokdaten read-only lesen
+
+Richte als Admin die CS3 unter **Einstellungen > Digitalzentralen** ein und teste die Verbindung. Öffne danach **Digitalzentralen > Daten lesen**. Prüfe UID, Name, Adresse und Protokoll. Dieser CS3-Ablauf schreibt nichts zur Zentrale und übernimmt keine CVs oder Bilder.
+
+<GuideFigure name="digital-settings" alt="Die CS3 wird unter Digitalzentralen eingerichtet; die Demo bleibt ohne Hardware." caption="Die CS3 wird unter Digitalzentralen eingerichtet; die Demo bleibt ohne Hardware. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 RailKeeper liest die Lokliste einer aktiven Märklin CS3 oder CS3 Plus per HTTP in den bestehenden
 Arbeitsbereich **Digitalzentralen**. Der Ablauf erstellt eine dauerhafte Vergleichsvorschau. Er
@@ -76,7 +80,3 @@ Protokolle gelangen in die Vorschau.
 | Keine unterstützte Loklisten-API | Firmware und Web-App-Verfügbarkeit prüfen. Beide bekannten Endpunkte lieferten 404. |
 | Ungültige Lokdaten | UID, Name, Decoderadresse oder Protokoll einer Lok liegt außerhalb der sicheren Grenzen. Die gesamte Antwort wird verworfen. |
 | Lok erscheint als Konflikt | Mehrere RailKeeper-Fahrzeuge passen zu Adresse und Protokoll. Zuordnung manuell prüfen. |
-
-## Dokumentierte RailKeeper-Version
-
-Dieses Kapitel dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 28.08.2026 geprüft.

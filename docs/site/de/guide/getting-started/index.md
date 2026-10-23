@@ -2,16 +2,20 @@
 title: Ersteinrichtung und Anmeldung
 description: Ersten Administrator anlegen, sicher anmelden und den Zugang zu RailKeeper wiederherstellen.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Ersteinrichtung und Anmeldung
 
+Öffne die Adresse deiner Installation. Lege bei der Ersteinrichtung deinen Admin an; sonst melde dich mit deinem Konto an. Danach kannst du [dein erstes Fahrzeug](../quick-start) erfassen.
+
+<GuideFigure name="login" alt="Anmeldung an einer bereits eingerichteten Installation." caption="Anmeldung an einer bereits eingerichteten Installation. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
+
 Dieses Kapitel erklärt das erste Administratorkonto, die normale Anmeldung und Anmeldung mit
 Zwei-Faktor-Code, die Abmeldung sowie die Passwort-Wiederherstellung. Es beschreibt den stabilen
-RailKeeper-Stand v0.1.20.3.
+RailKeeper-Stand auf `main`.
 
 ## Voraussetzungen
 
@@ -117,8 +121,3 @@ Reset-Bestätigungen auf zehn innerhalb von zehn Minuten.
 
 - [Überblick des Benutzerhandbuchs](/de/guide/)
 - [Installation und Administration](/de/administration/)
-
-## Dokumentierter RailKeeper-Stand
-
-Diese Seite dokumentiert den stabilen RailKeeper-Stand **v0.1.20.3** und wurde zuletzt am
-2026-08-16 mit der Anwendung abgeglichen.

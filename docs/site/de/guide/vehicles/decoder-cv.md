@@ -2,12 +2,20 @@
 title: Decoder, Funktionen und CV-Daten
 description: Digitalfunktionen zuordnen, Fahrkurven prüfen, CV-Werte pflegen und Decoder-Dateien speichern.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-10-20
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Decoder, Funktionen und CV-Daten
+
+1. Öffne **Bearbeiten > CV > Dateien & Import**. Importiere deine exportierte CV-TXT; eine Decoderprojektdatei wird getrennt abgelegt.
+2. Prüfe unter **Verständlich erklärt** Adresse, Fahrverhalten und Bremsen. **Alle CV-Werte** zeigt die vollständigen Rohwerte mit Indexseiten.
+3. Öffne **Steuerung**, prüfe die angebotenen Ergänzungen und Symbole und speichere gemeinsam mit **Änderungen speichern**. Manuelle Angaben bleiben geschützt.
+
+Du brauchst nicht jeden Rohwert zu verstehen. Eine Erklärung erscheint nur, wenn Modell, Firmware und Adressierung dazu passen. [Decoder nachschlagen](decoder-library).
+
+<GuideFigure name="cv-analysis" alt="Gespeicherte CVs werden verständlich erklärt; technische Details öffnen sich separat." caption="Gespeicherte CVs werden verständlich erklärt; technische Details öffnen sich separat. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 RailKeeper speichert Funktionszuordnungen, Fahrkurvendaten, CV-Werte und Decoder-Projektdateien am
 Fahrzeug. Der zusammengehörige Ablauf befindet sich in **Steuerung**, **Fahrkurve** und **CV**.
@@ -16,7 +24,7 @@ Fahrzeug. Der zusammengehörige Ablauf befindet sich in **Steuerung**, **Fahrkur
 
 Unter **Einstellungen > Daten > Allgemein > Decoderbibliothek** führt die Navigation über Hersteller,
 Familie und Modell. Erfasst sind ESU, ZIMO, Doehler & Haass, Lenz, Kühn, Uhlenbrock, Roco und PIKO.
-Eigene CV-Regeln liegen für **LokPilot 5 micro DCC**, **MN180N18**, **DH18A**, **STANDARD+ V2**,
+Eigene CV-Regeln liegen unter anderem für **LokPilot 5 micro DCC**, **MN180N18**, **DH18A**, **STANDARD+ V2**,
 **N45**, **76420**, **10882** und **56500** vor; deren Modell-, OEM- und Firmwaregrenzen bleiben
 maßgeblich. Weitere Modelle sind mit Stammdaten und Quellen dokumentiert. Die DCC-Grundlagen stehen separat bereit.
 Unter **CV-Definitionen** findest du CV-Nummern, Indexseiten, Wertebereiche und Bitbedeutungen;
@@ -114,6 +122,8 @@ Speichere oder verwirf bewusst ausstehende Grunddaten, Funktionsänderungen, Bil
 :::
 
 ## Digitalfunktionen F0-F31 zuordnen
+
+<GuideFigure name="functions" alt="Steuerung: Funktionstasten gemeinsam prüfen und speichern." caption="Steuerung: Funktionstasten gemeinsam prüfen und speichern. Künstliche Demodaten. Anklicken für die volle Größe." />
 
 Öffne **Steuerung**. **Funktionstasten** ist die gemeinsame Bearbeitungsliste. **Nur belegte** ist
 standardmäßig eingeschaltet und zeigt gespeicherte, manuell angelegte und zuverlässig aus dem
@@ -221,6 +231,8 @@ eine vollständige 28-Punkt-Tabelle, mindestens zwei 3-Punkt-Werte, beliebige Ta
 danach einen beliebigen 3-Punkt-Wert. Diese Auswahl ändert nur die Anzeige.
 
 ## CV-Werte manuell verwalten
+
+<GuideFigure name="cv-details" alt="Die Seitenansicht zeigt Rohwert, Indexseite und gespeicherte Herkunft." caption="Die Seitenansicht zeigt Rohwert, Indexseite und gespeicherte Herkunft. Künstliche Demodaten. Anklicken für die volle Größe." />
 
 Öffne **CV**. Die Übersicht zeigt die Anzahl der **CV-Werte**, **Profile** und **Dateien**.
 
@@ -432,8 +444,7 @@ veraltete Referenzen verbleiben.
 ## ECoS-Vorschau als Eingangspfad verwenden
 
 Ein ungespeicherter ECoS-Lokomotiventwurf kann CV-Werte und Funktionszuordnungen liefern, bevor das
-Fahrzeug existiert. Der Tab **CV** zeigt die ersten 18 Werte, die Anzahl weiterer Werte und die
-Quelllokomotive. **Fahrkurve** kann daraus seine schreibgeschützte Anzeige ableiten. **Steuerung**
+Fahrzeug existiert. Der Tab **CV** zeigt die vollständige Werteliste mit Seitenwahl und die Quelllokomotive. **Fahrkurve** kann daraus seine schreibgeschützte Anzeige ableiten. **Steuerung**
 lädt die Funktionszuordnungen des Entwurfs in die bearbeitbaren Funktionszeilen.
 
 Mit aktivem ECoS-Entwurf ist das Speichern des Grunddatensatzes ein besonderer mehrstufiger Ablauf.
@@ -446,8 +457,9 @@ fehlende Arbeiten.
 
 Nach erfolgreichem Abschluss verwenden normale Funktions-, CV- und Dateiaktionen das gespeicherte
 Fahrzeug. Dieses Kapitel erklärt keine ECoS-Verbindung, Rohprüfung, Synchronisierung,
-Konfliktbehandlung oder Schreibvorgänge zur Digitalzentrale. Diese Abläufe gehören zum geplanten
-Kapitel Digitalzentralen.
+Konfliktbehandlung oder Schreibvorgänge zur Digitalzentrale. Diese Abläufe stehen im [ECoS-Abgleich](../import-export/ecos-sync) und in der [Zentraleneinrichtung](../../administration/digital-centers).
+
+ECoS-Werte behalten ihre eigene Herkunft. Bei eindeutigem CV8-Hersteller und passendem gespeicherten Decoder-Typ können Modellregeln greifen. Fehlende Indexseiten bleiben unbekannt; eine Bibliothekszuordnung erfindet sie nicht.
 
 ## Daten bei Schreibvorgängen schützen
 
@@ -504,12 +516,6 @@ nacheinander ausgeführten Aktion rückgängig.
 - [Fahrzeugbilder und Beilagen](/de/guide/vehicles/media)
 - [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)
 - [Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares)
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.20.3** und wurde zuletzt am
-16.08.2026 geprüft.
-
 
 ## Digitaldaten im Fahrzeugdialog
 

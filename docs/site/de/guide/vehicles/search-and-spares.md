@@ -2,12 +2,18 @@
 title: Artikelsuche, Web-Dokumente und Ersatzteile
 description: Externe Artikeldaten prüfen, Web-Dokumente importieren und Fahrzeugersatzteile pflegen.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Artikelsuche, Web-Dokumente und Ersatzteile
+
+1. Öffne dein Fahrzeug oder den Anlegedialog. Suche möglichst mit Hersteller und Artikelnummer.
+2. Vergleiche Bezeichnung, Variante und Quelle des Treffers. Übernimm nur passende Angaben.
+3. Dokumente gehören unter **Uploads**, zugeordnete Teile unter **Ersatzteile**. Eine Internetsuche ersetzt nicht die Prüfung am Modell.
+
+<GuideFigure name="vehicle-editor" alt="Artikelsuche beginnt am Fahrzeug; Ergebnisse werden vor der Übernahme geprüft." caption="Artikelsuche beginnt am Fahrzeug; Ergebnisse werden vor der Übernahme geprüft. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 RailKeeper kann externe Vorschläge verwenden, um ein Fahrzeug zu vervollständigen,
 Referenzdokumente zu importieren und Ersatzteile zu pflegen. Diese Ergebnisse sind Ausgangspunkte,
@@ -313,8 +319,3 @@ was bereits geschrieben worden sein kann.
 - [Fahrzeugbilder und Beilagen](/de/guide/vehicles/media)
 - [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)
 - [Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv)
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.20.3** und wurde zuletzt am
-16.08.2026 geprüft.

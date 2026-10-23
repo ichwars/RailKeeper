@@ -1,42 +1,33 @@
 ---
-name: Bug report
-about: Create a report to help us improve
+name: "Fehler melden / Bug report"
+about: "Einen reproduzierbaren Fehler beschreiben. / Describe a reproducible bug."
 title: ''
 labels: ''
 assignees: ''
-
 ---
 
-> **Security issue?** Do not disclose vulnerabilities, secrets, tokens, private data, or complete
-> security scan output here. Use [GitHub private vulnerability reporting](https://github.com/ichwars/RailKeeper/security/advisories/new)
-> as described in [SECURITY.md](https://github.com/ichwars/RailKeeper/security/policy). Remove secrets and personal data from logs and screenshots.
+> **Sicherheitsproblem / Security issue?** Sicherheitslücken, Zugangsdaten und private Daten bitte
+> nicht hier veröffentlichen. / Do not disclose vulnerabilities, credentials or private data here.
+> Verwende die private Meldung gemäß / Follow the private reporting instructions in
+> [SECURITY.md](https://github.com/ichwars/RailKeeper/security/policy).
+> Entferne private Angaben aus Bildern und Logs. / Remove private details from screenshots and logs.
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**Version und Umgebung / Version and environment**
+RailKeeper-Version, Windows oder Docker, Browser. Bei Zentralen Modell und Firmware.
+RailKeeper version, Windows or Docker, browser. For command stations, model and firmware.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**Fehler / Bug**
+Was funktioniert nicht? / What does not work?
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+**Schritte / Steps to reproduce**
+1.
+2.
+3.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**Erwartetes Ergebnis / Expected result**
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+**Tatsächliches Ergebnis / Actual result**
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
-
-**Additional context**
-Add any other context about the problem here.
+**Bild oder Fehlermeldung / Screenshot or error message**
+Nur den betroffenen Bereich, ohne private Daten. Keine vollständigen Sicherungen hochladen.
+Only the affected area, without private data. Do not upload complete backups.

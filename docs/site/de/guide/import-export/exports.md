@@ -1,88 +1,43 @@
 ---
 title: Bestand exportieren
-description: CSV, RailKeeper-JSON und eine druckbare Fahrzeug-Bestandsausgabe erstellen.
+description: Bestand exportieren.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Bestand exportieren
 
-Die Exportaktionen verwenden die vollständige Fahrzeugliste, die **Import/Export** lädt. Sie
-übernehmen keine Suche oder Filter der Fahrzeugbestandsseite. Alle drei Bedienelemente bleiben
-deaktiviert, während die Liste geladen wird oder wenn keine Fahrzeuge vorhanden sind.
+**Ziel:** Eine überprüfbare Bestandsdatei für Tabellen oder eine andere RailKeeper-Installation erzeugen. Admin, Editor und Viewer dürfen exportieren. Reine Messe-Konten sind auf Ausstellungslisten beschränkt.
 
-Admin, Editor, Viewer dürfen exportieren. Der Export verändert keine RailKeeper-Daten.
 
-## CSV-Export
+<GuideFigure name="import-export" alt="Exportprofile bestimmen Datenbereich und Dateiformat." caption="Exportprofile bestimmen Datenbereich und Dateiformat. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
-**CSV exportieren** lädt `railkeeper-bestand.csv` mit folgenden Eigenschaften herunter:
+## Einen Export erstellen
 
-- UTF-8-Text mit Byte-Reihenfolge-Markierung für Tabellenprogramm-Kompatibilität;
-- durch Semikolon getrennte Spalten;
-- die 62 skalaren Ziele aus [Fahrzeugdateien importieren](/de/guide/import-export/file-import);
-- Spaltenbezeichnungen in der aktuell gewählten RailKeeper-Oberflächensprache;
-- übersetzte Ja-/Nein-Texte für boolesche Felder;
-- doppelte Anführungszeichen zur Maskierung von Semikolons, Anführungszeichen und Zeilenumbrüchen.
+1. Öffne **Import/Export > Profil anlegen** und wähle die Richtung **Export**.
+2. Wähle den benötigten Bereich und das Format. Ein CSV-Profil enthält genau **Fahrzeuge** oder **Zubehör**. Ausstellungslisten und mehrere Bereiche benötigen **JSON**.
+3. Wähle **Neuer Export** und das Profil; alternativ starte über das aktive Profil.
+4. Prüfe Bereiche und Format und wähle **Export ausführen**.
+5. Lade das Ergebnis über **Datei herunterladen** herunter.
 
-Dies ist der breiteste stabile Rundlauf für Fahrzeugfelder. Eine CSV aus einer Oberflächensprache
-wird durch die eingebauten deutschen und englischen Spaltenaliasse erkannt. Trotzdem müssen
-Zuordnung und Zeilen vor dem Schreiben in eine andere Installation geprüft werden.
+Der Auftrag und die erzeugte Datei bleiben im Transferverlauf nachvollziehbar. Ein Admin kann Dateien später löschen. Der Speicherort im Arbeitsbereich ist ein Ort auf dem RailKeeper-Server, nicht automatisch ein Ordner auf deinem Browser-PC.
 
-Die CSV enthält keine Bilder, Beilagendateien, Wartungen, Ersatzteile, Funktionsdatensätze,
-CV-Datensätze, Decoder-Dateien oder externe Zuordnungen.
+## Welches Format passt?
 
-## RailKeeper-JSON-Export
-
-**JSON exportieren** lädt `railkeeper-bestand.json` herunter. Die oberste Struktur lautet:
-
-```json
-{
-  "format": "railkeeper-vehicles",
-  "version": 1,
-  "vehicles": []
-}
-```
-
-Das `vehicles`-Array enthält die Fahrzeugobjekte, welche an diese Seite geliefert wurden. Dadurch
-eignet sich JSON zur Prüfung und für einen verlustärmeren Datenaustausch, ist aber keine
-Anwendungssicherung und kein vollständiges Wiederherstellungsformat.
-
-Der stabile JSON-Import von v0.1.20.3 liest pro Objekt nur 14 Felder. Er stellt nicht alle im
-exportierten Objekt vorhandenen Eigenschaften, verschachtelten Datensätze oder gespeicherten
-Dateibytes wieder her. Vor einem Rundlauf die genaue
-[JSON-Teilmenge](/de/guide/import-export/file-import#teilmenge-beim-json-import) prüfen.
-
-## PDF- und Druckansicht
-
-**PDF/Druckansicht** öffnet ein neues Browserfenster und startet sofort den Browser-Druckdialog.
-Das Dokument verwendet A4 im Querformat und enthält:
-
-- Gesamtzahl sowie Anzahl digitaler und analoger Fahrzeuge;
-- Erstellungsdatum und -uhrzeit;
-- Inventarnummer, Hersteller, Artikel-Nr., Bezeichnung, Spurweite, Epoche, Kategorie,
-  Digital/Analog und Listenpreis für jedes Fahrzeug.
-
-RailKeeper erzeugt keine PDF-Datei auf dem Server. Im Browser-Druckdialog **Als PDF speichern**
-wählen, wenn Browser oder Betriebssystem dieses Ziel anbieten.
-
-Öffnet sich nichts, müssen Popups für die RailKeeper-Adresse erlaubt werden. Das Druckfenster
-maskiert Fahrzeugtexte, bevor sie in den Bericht eingesetzt werden.
-
-## Den Export wählen
-
-| Bedarf | Empfohlene Ausgabe |
+| Zweck | Format |
 | --- | --- |
-| Unterstützte skalare Felder in einem Tabellenprogramm prüfen oder bearbeiten | CSV |
-| Die an die Seite gelieferten Fahrzeugobjekte im Rohformat prüfen | JSON |
-| Eine kompakte, lesbare Bestandsliste ausgeben oder archivieren | PDF/Druckansicht |
-| Anwendungsdaten, Uploads und zugehörige Datensätze wiederherstellen | Admin-Anwendungssicherung, nicht diese Exporte |
+| Fahrzeug- oder Zubehörfelder im Tabellenprogramm prüfen | CSV |
+| Mehrere Bereiche mit Beziehungen in eine andere Installation übertragen | RailKeeper-JSON |
+| Fahrzeugsets mit individuellen Mitgliedern übertragen | CSV mit Set-Spalten oder RailKeeper-JSON |
+| Lesbare Liste drucken oder als PDF speichern | Report im Fahrzeugbestand beziehungsweise in der Ausstellung |
+| Bestand samt Medien wiederherstellen | [Anwendungssicherung](../../administration/backup-restore) |
 
-Exportdateien müssen entsprechend der Vertraulichkeit des Bestands behandelt werden. Artikelquellen,
-Kaufdaten, Lagerorte, Werte, Notizen und andere private Sammlungsdetails können in CSV oder JSON
-enthalten sein.
+Eine Suche oder Auswahl im Fahrzeugbestand wird nicht automatisch zur Auswahl eines Transferauftrags. Prüfe den Umfang im Exportdialog.
 
-## Dokumentierte RailKeeper-Version
+## Grenzen beachten
 
-Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.
+Ein Exportpaket ist keine vollständige Sicherung. Fahrzeugmedien, CV-Datensätze, Funktionen, Wartungen und lokale Anmeldedaten gehören nicht in den Fahrzeugtransfer. Die aktuelle JSON-Paketstruktur wird serverseitig versioniert und beim [Import](file-import) geprüft; ändere Kennungen, Paketversionen oder Prüfsummen nicht von Hand.
+
+Behandle Exportdateien als private Bestandsdaten. Preise, Lagerorte und Notizen können darin enthalten sein.

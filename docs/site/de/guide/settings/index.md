@@ -2,12 +2,16 @@
 title: Einstellungen
 description: Persönliche Einstellungen, Darstellung und die Abgrenzung zur Administration verstehen.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Einstellungen
+
+Öffne **Einstellungen**. Unter **Allgemein** findest du persönliche Vorgaben, unter **Darstellung** Farben und Designmodus. **Backup**, **Digitalzentralen** und **Authentifizierung** haben eigene Anleitungen und benötigen je nach Aktion Admin-Rechte.
+
+<GuideFigure name="preferences" alt="Persönliche Vorgaben und administrative Werkzeuge sind getrennte Einstellungsbereiche." caption="Persönliche Vorgaben und administrative Werkzeuge sind getrennte Einstellungsbereiche. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 Der Arbeitsbereich **Einstellungen** verbindet persönliche Einstellungen mit mehreren
 Administrationswerkzeugen. Dieses Kapitel behandelt die Einstellungen für Navigation und
@@ -15,7 +19,7 @@ Darstellung eines einzelnen Benutzers. Stammdaten, Digitalzentralen, Anwendungss
 Updates, Benutzer, Sitzungen und Authentifizierung sind eigene Themen, obwohl RailKeeper sie im
 selben Arbeitsbereich anzeigt.
 
-Dieses Kapitel dokumentiert RailKeeper v0.1.20.3.
+Dieses Kapitel dokumentiert RailKeeper.
 
 ## Zugriffsrechte
 
@@ -45,13 +49,12 @@ entfernt niemals Berechtigungen.
 | **Allgemein > Updates** | Versionsprüfung und Download des Windows-Pakets | Releases und Support |
 | **Allgemein > Speicher** | Speichernutzung und Optimierung | Systembetrieb |
 | **Daten** | Allgemeine und Zubehör-Stammdaten, Lebenszyklus und Transfer | [Stammdaten-Administration](/de/administration/master-data) |
-| **Digitalzentralen** | ECoS-, Z21-, Intellibox-3- und CS3-Konfiguration | Digitalzentralen-Administration |
-| **Import/Export** | Sicherung, Wiederherstellung und Stammdaten-Transfer innerhalb der Einstellungen | Sicherungs- und [Stammdaten-Administration](/de/administration/master-data) |
-| **Authentifizierung** | Eigenes Passwort und Zwei-Faktor-Einrichtung; Admin-Werkzeuge für Benutzer, Sitzungen, Audit und SMTP | Benutzer, Sitzungen und Sicherheit |
+| **Digitalzentralen** | ECoS-, Z21-, Intellibox-3- und CS3-Konfiguration | [Digitalzentralen-Administration](/de/administration/digital-centers) |
+| **Backup** | Sicherung, Wiederherstellung und Stammdaten-Transfer innerhalb der Einstellungen | Sicherungs- und [Stammdaten-Administration](/de/administration/master-data) |
+| **Authentifizierung** | Eigenes Passwort und Zwei-Faktor-Einrichtung; Admin-Werkzeuge für Benutzer, Sitzungen, Audit und SMTP | [Benutzer, Sitzungen und Sicherheit](/de/administration/users-sessions-security) |
 
 Der allgemeine [Arbeitsbereich Import und Export](/de/guide/import-export/) ist eine andere Seite. Er
-tauscht Fahrzeugdatensätze aus und enthält den ECoS-Lokablauf. Das Register **Import/Export** in den
-**Einstellungen** enthält dagegen administrative Sicherung und Stammdaten-Transfer.
+tauscht Bestandsdaten aus. Der ECoS-Lokablauf liegt unter **Digitalzentralen**. Das Register **Backup** in den **Einstellungen** enthält administrative Sicherung und Stammdaten-Transfer. [Sicherungsanleitung](/de/administration/backup-restore).
 
 ## Speicherung persönlicher Einstellungen
 
@@ -62,7 +65,7 @@ Vorgaben.
 
 Dabei gelten wichtige Ausnahmen und Grenzen:
 
-- Die Oberflächensprache ist in v0.1.20.3 nur im Browser gespeichert und wird nicht in das
+- Die Oberflächensprache ist derzeit nur im Browser gespeichert und wird nicht in das
   Serverprofil geschrieben.
 - Der ein- oder ausgeklappte Zustand der Hauptseitenleiste ist browserlokal. Reihenfolge und
   ausgeblendete Einträge sind Profileinstellungen.
@@ -80,8 +83,4 @@ Dabei gelten wichtige Ausnahmen und Grenzen:
 4. Helle und dunkle Variante bei Bedarf getrennt anpassen.
 5. RailKeeper einmal neu laden, um die Wiederherstellung einer Vorgabe zu prüfen.
 6. Bei einem anderen Browser mit demselben Benutzer anmelden. Die Oberflächensprache erneut setzen,
-   weil sie in v0.1.20.3 nicht über das Profil synchronisiert wird.
-
-## Dokumentierte RailKeeper-Version
-
-Dieses Kapitel dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.
+   weil sie derzeit nicht über das Profil synchronisiert wird.

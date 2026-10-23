@@ -1,71 +1,60 @@
 ---
 title: Benutzerhandbuch
-description: Alle stabilen Arbeitsabläufe in RailKeeper kennenlernen.
+description: Finde die passende bebilderte Anleitung für deine nächste Aufgabe.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
-# Benutzerhandbuch
+# Was möchtest du erledigen?
 
-Dieses Handbuch erklärt den vollständigen veröffentlichten RailKeeper-Arbeitsablauf für Sammler,
-Vereine und kleine Werkstätten. Es umfasst Ersteinrichtung, Navigation, Fahrzeuge, Zubehör,
-Decoderdaten, Wartung, Dokumente, Berichte, Ausstellungen sowie kontrollierten Import und Export.
+Du musst RailKeeper nicht vollständig kennenlernen, bevor du beginnst.
+[Lege zuerst dein erstes Fahrzeug an](quick-start). Danach ergänzt du nur die Angaben, die du
+wirklich brauchst. Eine Digitalzentrale ist für die Bestandsverwaltung nicht erforderlich.
 
-Der frühere Anlagenbereich wurde entfernt. Zubehörverwaltung und Einbauten in Fahrzeugen bleiben erhalten.
 
-## Hier beginnen
+<GuideFigure name="overview" alt="Die Übersicht als Ausgangspunkt für deinen Bestand." caption="Die Übersicht als Ausgangspunkt für deinen Bestand. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
-[Ersteinrichtung und Anmeldung](/de/guide/getting-started/) erklärt, wie der erste Administrator
-angelegt wird, die An- und Abmeldung funktioniert, eine Anmeldung mit Zwei-Faktor-Code abgeschlossen
-und ein vergessenes Passwort wiederhergestellt wird.
+## Fahrzeuge und Decoderdaten
 
-Fahre mit [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/) fort, um das Dashboard zu
-verstehen, Bestandslücken als gefilterte Fahrzeuglisten zu öffnen und die Kacheln anzuordnen.
+| Deine Aufgabe | Anleitung |
+| --- | --- |
+| anmelden oder den Zugang wiederherstellen | [Anmeldung](getting-started/) |
+| die Übersicht verstehen und fällige Arbeiten finden | [Übersicht](overview/) |
+| eine Lok oder einen Wagen erfassen, suchen und bearbeiten | [Fahrzeugbestand](vehicles/) |
+| mehrere Fahrzeuge als Set zusammenhalten | [Fahrzeugsets](vehicles/sets) |
+| Fotos und Anleitungen hinzufügen | [Bilder und Beilagen](vehicles/media) |
+| ein passendes Lokbild für die Zentrale vorbereiten | [Zentralenbilder](vehicles/locomotive-images) |
+| eine Wartung vormerken oder abschließen | [Wartung und Zustand](vehicles/maintenance) |
+| eine CV-Liste importieren und Werte verstehen | [Decoder und CV-Daten](vehicles/decoder-cv) |
+| einen Decoder in der Bibliothek nachschlagen | [Decoderbibliothek](vehicles/decoder-library) |
+| Artikeldaten oder Ersatzteile ergänzen | [Artikelsuche und Ersatzteile](vehicles/search-and-spares) |
 
-[Fahrzeugbestand und Grunddaten](/de/guide/vehicles/) erklärt Suche und Filter, das Anlegen und
-Bearbeiten von Grunddaten, Reports und QR-Etiketten sowie das sichere Löschen.
+## Zubehör, Ausstellungen und Datenaustausch
 
-[Fahrzeugbilder und Beilagen](/de/guide/vehicles/media) behandelt lokale Bilder, Haupt- und
-Alternativbilder, allgemeine Beilagen, Anzeigen und Herunterladen sowie das sichere Entfernen.
+| Deine Aufgabe | Anleitung |
+| --- | --- |
+| einen Zubehörartikel mit Bestand und Einbau pflegen | [Zubehör](accessories/) |
+| eine Ausstellungsliste vorbereiten | [Ausstellungen](exhibition/) |
+| vorhandene Fahrzeugdateien übernehmen | [Dateiimport](import-export/file-import) |
+| einen Bericht oder eine Bestandsdatei ausgeben | [Export](import-export/exports) |
+| Lokdaten mit einer ECoS vergleichen | [ECoS-Abgleich](import-export/ecos-sync) |
+| Lokdaten aus einer CS3 übernehmen | [CS3-Import](import-export/cs3-import) |
+| Sprache, Startseite oder Darstellung ändern | [Persönliche Einstellungen](settings/) |
 
-[Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance) erklärt Wartungseinträge,
-Fälligkeiten, Abschluss, Kosten, verknüpfte Medien und sicheres Löschen.
+## Wenn du RailKeeper betreibst
 
-[Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv) behandelt Zuordnungen F0-F31,
-die schreibgeschützte Fahrkurve, CV-Werte und Austausch, Decoder-Dateivorschauen und sicheres
-Speichern.
+[Installation und Administration](../administration/) erklärt Einrichtung, Konten und Rechte,
+[Sicherung und Wiederherstellung](../administration/backup-restore) sowie Updates.
+Die Entwicklerunterlagen sind getrennt unter [Entwicklung](../development/) erreichbar.
 
-[Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares) erklärt, wie du
-externe Vorschläge prüfst, ausgewählte Artikeldaten und Bilder speicherst, Dokumente importierst und
-Ersatzteile pflegst, ohne teilweise Schreibvorgänge zu übersehen.
+## Was ist geprüft?
 
-[Zubehör](/de/guide/accessories/) beschreibt den getrennten Zubehör-Artikelbestand, technische
-Produktdaten, Mengen- und Einzelbestand, Käufe, Dokumente, Reservierungen, Einbauten und
-Verwendungshistorie.
+Die Bilder zeigen die aktuelle Oberfläche mit künstlichen Beispieldaten. Wenn keine echte
+Zentrale beteiligt war, wird aus einem Demobild kein Hardwaretest abgeleitet.
+Der [Dokumentationsstand](../reference/coverage) unterscheidet vorhandene Anleitungen,
+Demo-Prüfungen, technische Zuordnung und bekannte Grenzen.
 
-[Messearbeitsbereich](/de/guide/exhibition/) erklärt, wie du Listen vorbereitest, Betriebseinträge
-pflegst, Sperren verwendest, DCC- und SX-Adresskonflikte löst und den Veranstaltungsreport druckst.
-
-[Import und Export](/de/guide/import-export/) behandelt geprüfte Fahrzeugimporte aus CSV, TSV, XML
-und JSON, die drei Bestandsausgaben, deren Rundlaufgrenzen sowie den getrennten Admin-ECoS-
-Lokabgleich.
-
-[Einstellungen](/de/guide/settings/) erklärt persönliche Vorgaben, deren Speicherung im Browser und
-Profil, die Anordnung der Seitenleiste, aktuelle Grenzen der Datums- und Druckerauswahl sowie die
-getrennten hellen und dunklen Darstellungsvarianten.
-
-## Windows Standalone aktualisieren
-
-Unter **Einstellungen > Allgemein > Updates** nach einer neuen Version suchen. Erkennt RailKeeper
-das passende vertrauenswürdige Windows-ZIP, enthält die Download-Schaltfläche dessen Version. Die
-Schaltfläche startet ausschließlich den Browser-Download. RailKeeper installiert oder ersetzt keine
-Dateien.
-
-Eine Anwendungssicherung erstellen, RailKeeper beenden und das heruntergeladene ZIP in einen neuen
-Programmordner entpacken. Diese Kopie starten und den aktiven Datenpfad sowie den Bestand prüfen,
-bevor der vorherige Programmordner entfernt wird. Der sichere Standardpfad
-`%LOCALAPPDATA%\RailKeeper\data` bleibt getrennt und unverändert. Fehlt die passende
-Download-Schaltfläche, die verlinkte GitHub-Release-Seite verwenden. Docker-Installationen werden
-weiterhin mit `docker compose pull` und anschließend `docker compose up -d` aktualisiert.
+Fehlt dir eine Erklärung? [Stelle eine Frage in GitHub Discussions](https://github.com/ichwars/RailKeeper/discussions/categories/q-a).
+Bei unbekannten Begriffen hilft das [kurze Glossar](../reference/navigation-and-glossary).

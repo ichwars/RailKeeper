@@ -1,0 +1,35 @@
+title: "[Frage / Question] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bitte zuerst im [Handbuch](https://ichwars.github.io/RailKeeper/de/guide/) und in vorhandenen Fragen suchen. Beschreibe dein Ziel; wir helfen beim passenden Ablauf. Keine Passwörter, vollständigen Sicherungen oder privaten Bestandsdaten veröffentlichen.
+
+        Please check the [handbook](https://ichwars.github.io/RailKeeper/guide/) and existing questions first. Describe your goal. Do not publish passwords, complete backups or private collection data.
+  - type: input
+    id: version
+    attributes:
+      label: Version und Umgebung / Version and environment
+      description: "RailKeeper-Version, Windows oder Docker, Browser; bei Zentralen Modell und Firmware. / RailKeeper version, Windows or Docker, browser; station model and firmware if relevant."
+      placeholder: "z. B. / e.g. v0.1.21, Windows 11, Firefox"
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Was möchtest du erreichen? / What are you trying to do?
+      description: "Beschreibe die Aufgabe und an welcher Stelle du Hilfe brauchst. / Describe the task and where you need help."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte und Ergebnis / Steps and result
+      description: "Was hast du angeklickt, was erwartet und was ist passiert? Screenshots bitte auf den betroffenen Bereich zuschneiden und private Angaben entfernen. / Include steps, expected and actual results. Crop screenshots and remove private information."
+    validations:
+      required: true
+  - type: textarea
+    id: attempted
+    attributes:
+      label: Bereits versucht / Already tried
+      description: "Hilfreiche Handbuchseiten, Fehlermeldungen oder bisherige Versuche. / Relevant guide pages, error messages or attempts."

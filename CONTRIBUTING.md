@@ -40,6 +40,10 @@ together.
 - Update the English and German page in the same pull request when behavior changes.
 - Keep identical relative paths below `docs/site/` and `docs/site/de/`.
 - Run `cd docs` followed by `npm run check` before opening the pull request.
+- Keep task instructions before technical detail. User-guide pages need matching DE/EN interface
+  screenshots with useful alternative text and captions. Use synthetic demo data, never private
+  collections, credentials or backups. Capture the actual application; retain version scope and
+  review evidence in `docs/coverage.json`. A picture is not hardware acceptance.
 - Update `docs/coverage.json` when a route, API area, translation namespace, configuration value,
   or documentation topic is introduced.
 - A one-language-only change is allowed only for a wording correction that does not change meaning.

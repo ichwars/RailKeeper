@@ -2,12 +2,16 @@
 title: Reservierungen, Einbauten und Verwendung
 description: Zubehör reservieren, Einbauten erfassen und die Verwendungshistorie verstehen.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Reservierungen, Einbauten und Verwendung
+
+Öffne den Artikel und wähle für geplante Verwendung eine Reservierung, für tatsächliche Verwendung einen Einbau. Prüfe Ziel-Fahrzeug und Menge. Kontrolliere anschließend verfügbare Menge und Verlauf, bevor du einen weiteren Vorgang buchst.
+
+<GuideFigure name="accessories" alt="Die Zubehörliste ist der Einstieg in Reservierungen, Einbauten und Verlauf." caption="Die Zubehörliste ist der Einstieg in Reservierungen, Einbauten und Verlauf. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 Reservierungen ordnen verfügbaren Zubehörbestand einer künftigen Verwendung zu. Einbauten halten
 fest, dass der Bestand das Lager physisch verlassen hat und verwendet wird. RailKeeper hält beide
@@ -196,7 +200,3 @@ verwendet kein zweiter Befehl einen alten Verfügbarkeits- oder Lebenszyklusstan
 - [Artikelstammdaten und Fachangaben](./article-records)
 - [Bestand, Käufe und Dokumente](./stock-purchases-documents)
 - [Fahrzeugbestand und Stammdaten](../vehicles/)
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.

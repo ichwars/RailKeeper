@@ -4,7 +4,7 @@ description: RailKeeper verstehen und weiterentwickeln.
 audience: developer
 status: development
 reviewedVersion: main
-lastReviewed: 2026-08-15
+lastReviewed: 2026-10-23
 ---
 
 # Entwicklung und Architektur
@@ -15,3 +15,5 @@ Dateispeicher, Authentifizierung, Backupformate, Tests, Builds, Releases und Bei
 
 Stabiles Benutzerverhalten bleibt getrennt dokumentiert, damit unveröffentlichte Entwicklung nie
 als allgemein verfügbare Funktion erscheint.
+
+- [Architektur und Beiträge](architecture)

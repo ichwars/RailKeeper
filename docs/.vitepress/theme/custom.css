@@ -1,5 +1,13 @@
+@font-face {
+  font-family: "RailKeeper Sans";
+  src: url("/fonts/selawk.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
-  --vp-c-brand-1: #419310;
+  --vp-c-brand-1: #226315;
   --vp-c-brand-2: #1c621b;
   --vp-c-brand-3: #154d15;
   --vp-c-brand-soft: #e9f8df;
@@ -8,7 +16,7 @@
   --vp-c-divider: #d5dfdc;
   --vp-c-text-1: #0b1e26;
   --vp-c-text-2: #4f6869;
-  --vp-font-family-base: "Segoe UI", Arial, sans-serif;
+  --vp-font-family-base: "Segoe UI", "RailKeeper Sans", Arial, sans-serif;
 }
 
 .dark {
@@ -50,4 +58,42 @@
   .VPNavScreen {
     display: block !important;
   }
+}
+
+.doc-review {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0 0 24px;
+  padding: 12px 16px;
+  border-left: 3px solid var(--vp-c-brand-1);
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.doc-review a {
+  color: var(--vp-c-brand-1);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.vp-doc .guide-figure {
+  margin: 24px 0;
+}
+
+.vp-doc .guide-figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+}
+
+.vp-doc .guide-figure figcaption {
+  margin-top: 8px;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.6;
 }

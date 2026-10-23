@@ -2,12 +2,18 @@
 title: Fahrzeugwartung und Zustand
 description: Fahrzeugwartungen erfassen, planen, abschließen, prüfen und sicher entfernen.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Fahrzeugwartung und Zustand
+
+1. Öffne **Bearbeiten > Wartung** am Fahrzeug.
+2. Ergänze Art, Termin und eine verständliche Notiz. Speichere den Wartungseintrag.
+3. Markiere die Arbeit nach Abschluss als erledigt. Die Übersicht hilft dir, offene Termine wiederzufinden.
+
+<GuideFigure name="maintenance" alt="Wartungen lassen sich planen, nachtragen und abschließen." caption="Wartungen lassen sich planen, nachtragen und abschließen. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 Der Tab **Wartung** erfasst Arbeiten, Reparaturen, Umbauten, Zustand, Termine und Kosten an einem
 Fahrzeug. Admin, Editor, Viewer können gespeicherte Einträge ansehen. Nur Admin und
@@ -105,7 +111,7 @@ getrennte Zähler für Bilder und Beilagen. Bildverknüpfungen werden im Tab **U
 Auswahl **Keine Wartung** an einem Bild bleibt eine ausstehende Metadatenänderung, bis du
 **Änderungen speichern** am Fahrzeug verwendest.
 
-RailKeeper v0.1.20.3 kann Beilagen anzeigen, die bereits eine Wartungsreferenz enthalten. Die
+RailKeeper kann Beilagen anzeigen, die bereits eine Wartungsreferenz enthalten. Die
 normale Beilagenzeile bietet jedoch keine Funktion zum Zuweisen oder Ändern dieser Referenz. Nutze
 keinen erfundenen Zuordnungsablauf, den die Oberfläche nicht bereitstellt.
 
@@ -122,7 +128,7 @@ Vor dem Löschen eines Eintrags:
 3. Wähle im Tab **Uploads** für jedes verknüpfte Bild **Keine Wartung** und nutze
    **Änderungen speichern**.
 4. Muss eine verknüpfte Beilage ihre Zuordnung behalten, behalte auch den Wartungseintrag.
-   RailKeeper v0.1.20.3 besitzt keinen Editor für Beilagenverknüpfungen. Entferne eine Beilage erst
+   RailKeeper besitzt keinen Editor für Beilagenverknüpfungen. Entferne eine Beilage erst
    nach Sicherungs- und Inhaltsprüfung, wenn die Datei tatsächlich nicht mehr benötigt wird.
 5. Kehre zu **Wartung** zurück, prüfe, dass **Verknüpfte Medien** nicht mehr erscheint, und lösche
    erst danach den Eintrag.
@@ -173,8 +179,3 @@ Medienaktion nicht rückgängig.
 - [Fahrzeugbilder und Beilagen](/de/guide/vehicles/media)
 - [Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv)
 - [Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares)
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.20.3** und wurde zuletzt am
-16.08.2026 geprüft.

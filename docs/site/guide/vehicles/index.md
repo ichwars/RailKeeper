@@ -2,19 +2,25 @@
 title: Vehicle inventory and core records
 description: Search, filter, create, maintain, report, and safely delete RailKeeper vehicle records.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-17
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Vehicle inventory and core records
 
+1. Find the vehicle in **Vehicle inventory**.
+2. Open **Edit** and complete the relevant section.
+3. Save deliberately with **Save changes**. For a new record, use the [quick start](../quick-start); for related coaches, see [vehicle sets](sets).
+
+<GuideFigure name="vehicle-editor" alt="The vehicle dialog brings together model details, control, CVs and other vehicle data." caption="The vehicle dialog brings together model details, control, CVs and other vehicle data. Synthetic demo data, not factory settings. Click for full size." />
+
 **Vehicle inventory** is the central workspace for model railway vehicles. It combines inventory
 status, search, filters, table and card views, core vehicle data, QR labels, and printable reports.
-This chapter describes the vehicle workflow shipped with RailKeeper v0.1.20.3.
+This chapter describes the vehicle workflow shipped with RailKeeper.
 
 Admin, Editor, Viewer users can inspect the inventory. Creating, changing, and deleting
-vehicle records requires Admin or Editor. In v0.1.20.3, write controls can still be visible to Viewer users. The server rejects their write requests, and RailKeeper displays the error.
+vehicle records requires Admin or Editor. Currently, write controls can still be visible to Viewer users. The server rejects their write requests, and RailKeeper displays the error.
 
 Media, maintenance, decoder/CV data, article-data lookup, and spare parts have their own workflows.
 This chapter explains their entry points but focuses on the core vehicle record.
@@ -51,7 +57,7 @@ and trailing spaces are ignored, and the search matches substrings in these fiel
 - Maximum speed
 
 It does not search descriptions, railway companies, epochs, categories, decoder numbers, EANs, or
-other detail fields in v0.1.20.3. The filters below are applied in the browser to the vehicles
+other detail fields currently. The filters below are applied in the browser to the vehicles
 returned by the server search. Search and filters therefore combine.
 
 If loading fails, the error appears above the list. Previously loaded rows can remain visible, so
@@ -61,7 +67,7 @@ resolve the error or refresh before treating them as current.
 
 Filter groups combine with AND logic. A vehicle must satisfy every active group.
 
-| Group | Stable v0.1.20.3 choices |
+| Group | Available choices |
 | --- | --- |
 | Inventory state | **All**, **Digital**, **Analog**, **With image**, **Without image** |
 | Maintenance | **All**, **Maintenance due**, **Without maintenance** |
@@ -70,7 +76,7 @@ Filter groups combine with AND logic. A vehicle must satisfy every active group.
 | Operational flag | **Exhibition ready** |
 | Overview data gap | **Without article no.**, **Without EAN**, or **Digital without decoder no.** when opened from **Overview** |
 
-The **Without maintenance** label is imprecise in v0.1.20.3. It selects vehicles without a due
+The **Without maintenance** label is imprecise currently. It selects vehicles without a due
 maintenance entry, including vehicles that have completed or non-due maintenance history.
 
 Selecting a category limits the subtype choices to distinct subtypes among the currently loaded
@@ -103,7 +109,7 @@ before `...10`. Select the active header again to reverse its direction. Card an
 follow the current table sort but do not expose separate sort controls. Mobile cards use the
 configured column selection and reveal additional fields in the configured order when expanded.
 
-In the English locale, the table/card and refresh tooltips remain German in v0.1.20.3. This is a
+In the English locale, the table/card and refresh tooltips remain German currently. This is a
 localization limitation, not a different operation.
 
 ## Select vehicles
@@ -124,7 +130,7 @@ record and opens **Vehicle view**. Empty fields and empty sections are omitted. 
 - configured functions;
 - images and attachments;
 - maintenance entries;
-- up to the first 12 displayed CV values plus CV files.
+- the complete paginated CV list and decoder files.
 
 The header actions open **Edit**, an individual detail report, or a QR code. The row quick menu also
 opens Uploads, Maintenance, and Spare parts directly. Those specialized editors are covered by their
@@ -212,7 +218,7 @@ authoritative without user selection.
 
 ## Stable select choices
 
-The following choices are static in v0.1.20.3. Their stored values remain German in both UI
+The following choices are static currently. Their stored values remain German in both UI
 locales.
 
 | Field | Choices |
@@ -257,7 +263,7 @@ Decoder-Nr.: <decoder number, only when available>
 RailKeeper uses the primary digital decoder number first, then the DT decoder number. The QR dialog
 can download PNG or SVG and open a printable label. The quick menu and read-only view can generate a
 QR code whenever identity data exists. The **Create QR code** switch controls only the QR button in
-the edit-form Details section in v0.1.20.3.
+the edit-form Details section currently.
 
 When either inventory number or designation is empty, the payload writes `-` for that field. At
 least one of the two fields must contain a value before RailKeeper creates the QR code.
@@ -283,7 +289,7 @@ maintenance, CV data, images, attachments, and external mappings. Printing one v
 quick menu or read-only view always creates a detail report with QR code and images enabled.
 
 Reports and some report labels are generated in German even under the English locale in
-v0.1.20.3. If no matching vehicle exists, RailKeeper does not create a report. Allow the print window
+the current version. If no matching vehicle exists, RailKeeper does not create a report. Allow the print window
 if the browser blocks popups.
 
 ## Exhibition switch boundary
@@ -299,7 +305,7 @@ vehicle flag, but it does not delete an existing exhibition-list entry.
 ## Delete a vehicle
 
 Admin and Editor users can select **Delete** and confirm the vehicle identified by inventory number
-and designation. There is no undo or typed confirmation in v0.1.20.3.
+and designation. There is no undo or typed confirmation currently.
 
 Deletion removes the vehicle and cascades through its vehicle-owned database records, including
 inventory-number history, images, attachment metadata, maintenance, functions, CV data, external
@@ -336,7 +342,3 @@ important records; the application does not promise physical cleanup of every re
 - [First setup and sign-in](/guide/getting-started/)
 - [Overview, metrics, and data quality](/guide/overview/)
 - [Administration overview](/administration/)
-
-## Documented RailKeeper version
-
-This page documents the vehicle workflow shipped with RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-17.

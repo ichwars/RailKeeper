@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { validateGuideAssets } from "./validate-guide-assets.mjs";
 import { buildSourceInventory } from "./source-inventory.mjs";
 
 const requiredFields = ["audience", "status", "reviewedVersion", "lastReviewed"];
@@ -255,6 +256,7 @@ async function runCli() {
   const errors = [
     ...(await validateDocumentTree(contentRoot, versions)),
     ...validateCoverage(inventory, manifest, contentRoot),
+    ...(await validateGuideAssets(contentRoot, await markdownFiles(contentRoot), manifest.topics)),
   ].sort((left, right) => left.localeCompare(right, "en"));
 
   for (const error of errors) {

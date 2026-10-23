@@ -2,17 +2,23 @@
 title: Accessories overview
 description: Find, filter, inspect, and safely manage accessory articles.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Accessories overview
 
+1. Open **Accessories**, find a product or select **New article**.
+2. Enter manufacturer, name and accessory type.
+3. Choose quantity stock or individually tracked items as appropriate. Then record purchases, reservations and installations in the product.
+
+<GuideFigure name="accessories" alt="Accessories connects products, stock and usage." caption="Accessories connects products, stock and usage. Synthetic demo data, not factory settings. Click for full size." />
+
 **Accessories** is RailKeeper's catalogue and inventory workspace for track, signals, decoders,
 electrical components, scenery, lighting, and other model railway articles. It combines product
 identity, stored and allocated quantities, images, storage locations, and article lifecycle actions.
-This chapter describes stable RailKeeper v0.1.20.3.
+This chapter describes stable RailKeeper.
 
 An article is the common product record. Its stock can consist of interchangeable quantities,
 individually tracked items, or both. Reservations and installations bind some of that stock to a
@@ -50,7 +56,7 @@ Four metric cards appear above the article list:
 | **Care hints** | Total number of incomplete-data hints across active articles. It is informative and has no filter action. |
 
 **Care hints** is a count of missing fields, not a count of affected articles. One article can
-contribute several hints. Stable v0.1.20.3 checks for missing manufacturer, article number, article
+contribute several hints. Stable the current version checks for missing manufacturer, article number, article
 type, and stock unit. Track, signal, decoder, electrical/control, building/equipment, and lighting
 articles also contribute a hint when they have no gauge. Landscape consumables and **Other** do not
 require a gauge for this metric.
@@ -139,7 +145,7 @@ sort controls.
 ## Select, open, and manage an article
 
 Table checkboxes select one row or all currently visible rows. Selection is removed when a new
-search or filter result no longer contains the article. Stable v0.1.20.3 provides no bulk action for
+search or filter result no longer contains the article. Stable the current version provides no bulk action for
 this selection. It is visual state only and must not be treated as a pending archive, report, or
 stock command.
 
@@ -198,7 +204,3 @@ write.
 - [Overview, metrics, and data quality](/guide/overview/)
 - [Vehicle inventory and core records](/guide/vehicles/)
 - [Article search, web documents, and spare parts](/guide/vehicles/search-and-spares)
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.

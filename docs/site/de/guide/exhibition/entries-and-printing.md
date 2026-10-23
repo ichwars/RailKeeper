@@ -2,12 +2,16 @@
 title: Einträge und Drucken
 description: Messeloks erfassen, Adresskonflikte lösen und die Betriebsliste drucken.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-31
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Einträge und Drucken
+
+Öffne die gewünschte Liste und kontrolliere Einträge, Anzahl und Fahrzeugnummern. Starte dann die Druckausgabe. Wähle im Browser den Drucker oder **Als PDF speichern** und prüfe die Vorschau vor dem Druck.
+
+<GuideFigure name="exhibition" alt="Prüfe die Veranstaltung und Fahrzeuge vor der Ausgabe." caption="Prüfe die Veranstaltung und Fahrzeuge vor der Ausgabe. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 Ein Messelisteneintrag beschreibt eine Lokomotive so, wie sie während der ausgewählten
 Veranstaltung benötigt wird. Der Eintrag verbindet Besitzer und Modellidentität mit Betriebstagen,
@@ -155,7 +159,7 @@ Bezeichnung liefert. Prüfe den Namen nach der Symbolauswahl. Beim **Speichern**
 belegte Funktionen als strukturierte Daten ab. Tabelle, Detailansicht und Report zeigen nur diese
 Funktionen.
 
-v0.1.20.3 kann außerdem frühere Klartextwerte lesen, die durch Kommas, Semikolons oder Zeilen
+diesem Stand kann außerdem frühere Klartextwerte lesen, die durch Kommas, Semikolons oder Zeilen
 getrennt sind und jeweils mit einer Taste wie `F1 Sound` beginnen. Das Öffnen und Speichern eines
 solchen Eintrags schreibt die aktuell konfigurierte strukturierte Darstellung.
 
@@ -227,7 +231,3 @@ Ausstellung, nicht den allgemeinen Browserbefehl zum Drucken der Webseite.
 - [Listen und Sperren](./lists-and-locking)
 - [Übersicht des Benutzerhandbuchs](/de/guide/)
 - [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/)
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite beschreibt RailKeeper v0.1.20.4.

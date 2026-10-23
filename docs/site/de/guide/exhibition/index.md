@@ -2,19 +2,25 @@
 title: Messearbeitsbereich
 description: Messelisten sicher vorbereiten, pflegen, prüfen und drucken.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Messearbeitsbereich
+
+1. Öffne **Ausstellung** und wähle eine Liste oder lege eine an.
+2. Ergänze die vorgesehenen Fahrzeuge und prüfe ihre Verfügbarkeit.
+3. Verwende den Status und die Sperre der Liste für euren Ablauf. Der Fahrzeugschalter **Ausstellung** allein fügt kein Fahrzeug zu einer Liste hinzu.
+
+<GuideFigure name="exhibition" alt="Die Ausstellung bündelt Listen und die zugehörigen Fahrzeuge." caption="Die Ausstellung bündelt Listen und die zugehörigen Fahrzeuge. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 Der Arbeitsbereich **Messeliste** bündelt die für eine Messe oder einen Fahrtag benötigten Angaben
 in einer Betriebsansicht. Jede Liste besitzt ein Datum, den Zustand offen oder gesperrt und eigene
 Lokomotiveinträge. Das Betriebspersonal kann eine offene Liste pflegen, ohne den allgemeinen
 Fahrzeugbestand zu öffnen.
 
-Dieses Kapitel dokumentiert RailKeeper v0.1.20.3. Benutzer- und Stammdatenverwaltung,
+Dieses Kapitel dokumentiert RailKeeper. Benutzer- und Stammdatenverwaltung,
 Backup-Bedienung gehören nicht zu diesem Kapitel.
 
 ## Zugriffsrechte und Trennung
@@ -128,8 +134,3 @@ versehentlich doppelt ausgeführt.
 - [Listen und Sperren](./lists-and-locking)
 - [Einträge und Drucken](./entries-and-printing)
 - [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/)
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite beschreibt RailKeeper v0.1.20.3. Der Entwicklungsstand auf `main` kann abweichen und
-gehört nicht zu diesem Benutzerablauf.

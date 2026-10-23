@@ -2,9 +2,9 @@
 title: Master-data administration
 description: Govern RailKeeper master data, inventory-number schemes, locations, and transfers safely.
 audience: admin
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-28
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Master-data administration
@@ -14,7 +14,7 @@ or numbering rules. Most of it is managed under **Settings > Data**. Inventory-n
 under **Settings > General**, and the master-data JSON transfer is under
 **Settings > Import/Export**.
 
-This section documents stable RailKeeper v0.1.20.3. It separates four administrative workflows:
+This section documents stable RailKeeper. It separates four administrative workflows:
 
 - [General master data](./master-data-general) for vehicles, manufacturers, CV8 identities, and
   function symbols.
@@ -23,6 +23,9 @@ This section documents stable RailKeeper v0.1.20.3. It separates four administra
 - [Inventory-number schemes](./master-data-inventory-numbers) for automatic vehicle and article
   identities.
 - [Master-data transfer](./master-data-transfer) for complete JSON export and reconciliation.
+
+
+<GuideFigure name="decoder-library" alt="The decoder library is one part of master data; other areas are available on the left." caption="The decoder library is one part of master data; other areas are available on the left. Synthetic demo data, not factory settings. Click for full size." />
 
 ## Access rights
 
@@ -37,7 +40,7 @@ This section documents stable RailKeeper v0.1.20.3. It separates four administra
 
 Viewer users inherit read access. Article management explicitly displays a read-only state.
 Some controls in the general master-data and inventory-number panels can still remain visible to
-those roles in v0.1.20.3, but the server rejects every write. Visible controls are never an access
+those roles currently, but the server rejects every write. Visible controls are never an access
 grant.
 
 A pure Messe account cannot open Settings. It can read the active function-symbol subset only
@@ -84,7 +87,3 @@ application backup when those settings must be recoverable together with the inv
 - [Accessories overview](/guide/accessories/)
 - [Vehicle inventory](/guide/vehicles/)
 - [Installation and Administration](./)
-
-## Documented RailKeeper version
-
-This section documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-28.

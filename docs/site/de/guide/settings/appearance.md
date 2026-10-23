@@ -2,12 +2,16 @@
 title: Darstellung
 description: Designmodus wählen und helle sowie dunkle Varianten getrennt konfigurieren.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Darstellung
+
+Öffne **Einstellungen > Darstellung**. Wähle **System**, **Hell** oder **Dunkel** und prüfe die Lesbarkeit in der gewünschten Variante. Du kannst die Varianten für hell und dunkel getrennt einstellen.
+
+<GuideFigure name="appearance" alt="Heller und dunkler Modus lassen sich getrennt anpassen." caption="Heller und dunkler Modus lassen sich getrennt anpassen. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 Unter **Einstellungen > Darstellung** werden Farbmodus sowie helle und dunkle Variante von
 RailKeeper gesteuert. Jede Änderung wirkt sofort. Eine getrennte Speichern-Schaltfläche gibt es
@@ -44,7 +48,7 @@ das System helle Farben anfordert, und die konfigurierte dunkle Variante bei dun
 Varianten bleiben deshalb sinnvoll, auch wenn weder Hell noch Dunkel erzwungen wird.
 
 **OLED Schwarz** steht nur für den dunklen Hintergrund bereit und verwendet eine schwarze
-Grundfläche sowie sehr dunkle Panels. **Kompakt** verkleinert in v0.1.20.3 hauptsächlich die Abstände
+Grundfläche sowie sehr dunkle Panels. **Kompakt** verkleinert derzeit hauptsächlich die Abstände
 zwischen Einstellungskarten; es ist keine globale Tabellendichte. **Kontrast** verstärkt Trennlinien
 und zurückgenommene Texte, ersetzt aber nicht Browser-Zoom oder Bedienungshilfen des Betriebssystems.
 
@@ -70,9 +74,5 @@ Darstellungsvorgaben gehören daher nicht zur Anwendungssicherung.
 | Systemmodus wechselt unerwartet | Farbmodus des Betriebssystems oder Browsers prüfen. Der Systemmodus folgt diesem Signal. |
 | Hintergrund oder Akzent scheinen wirkungslos | Prüfen, ob die Anwendung gerade die bearbeitete helle oder dunkle Variante verwendet. |
 | Ein anderer Browser zeigt ein früheres Design | Einstellungen mit demselben Benutzer öffnen und neu laden. Nach einem Verbindungsfehler den Modus oder die Variante bei Bedarf erneut wählen. |
-| Kompakt verdichtet die Bestandstabellen nicht | In v0.1.20.3 verkleinert der Stil hauptsächlich Abstände zwischen Einstellungskarten. |
+| Kompakt verdichtet die Bestandstabellen nicht | Derzeit verkleinert der Stil hauptsächlich Abstände zwischen Einstellungskarten. |
 | Kontrast reicht weiterhin nicht aus | Kontrast-Stil mit Browser-Zoom und Bedienungshilfen des Betriebssystems kombinieren. |
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.

@@ -1,83 +1,39 @@
 ---
-title: Dokumentationsabdeckung
-description: Zuordnung der RailKeeper-Quellflächen zum zweisprachigen Handbuch.
+title: Was ist dokumentiert und geprüft?
+description: Was ist dokumentiert und geprüft?
 audience: reference
 status: development
 reviewedVersion: main
-lastReviewed: 2026-08-15
+lastReviewed: 2026-10-23
 ---
 
-# Dokumentationsabdeckung
+# Was ist dokumentiert und geprüft?
 
-RailKeeper behandelt die Dokumentationsabdeckung als geprüften Vertrag. Eine schreibgeschützte
-Inventur erfasst sichtbare Frontend-Routen, englische und deutsche Übersetzungsschlüssel,
-registrierte Go-API-Routen, OpenAPI-Operationen, versionierte Konfigurationsvariablen und bestehende
-Projektdokumente. Der Coverage-Validator verlangt anschließend für jede Frontend-Route, jeden
-Übersetzungsschlüssel, jede API-Route und jede Umgebungsvariable genau ein verantwortliches Thema.
+Alle 20 Themen haben jetzt eine deutsche und eine englische Einstiegsseite. Das ist eine Inhaltsabdeckung, keine Behauptung, dass jedes Gerät, jede Firmware oder jeder Sonderfall vollständig getestet wurde.
 
-Die geprüften Zuordnungen stehen in
-[`docs/coverage.json`](https://github.com/ichwars/RailKeeper/blob/main/docs/coverage.json). Die
-Inventur entsteht nur während der Prüfung und wird nicht als zweite Wahrheitsquelle eingecheckt.
+## So liest du den Prüfstand
 
-## Abdeckungsstatus
+| Nachweis | Aussage | Grenze |
+| --- | --- | --- |
+| Quellabgleich | Anleitung mit aktuellem Code beziehungsweise Betriebsregeln abgeglichen | Kein eigener Lauf jeder Variante |
+| Demo-Oberfläche | Zusätzlich echte Screenshots aus einer isolierten Testinstallation | Künstliche Daten; keine angeschlossene Zentrale |
+| Hardwareprüfung | Nur dort, wo ein Kapitel einen konkreten Gerätetest ausdrücklich nennt | Gilt für dieses Gerät und diesen Firmwarestand |
 
-- `planned`: Ziel und Verantwortung stehen fest, das vollständige Seitenpaar folgt in einer
-  späteren Dokumentationsetappe.
-- `documented`: Die englische und die deutsche Zielseite existieren und erfüllen den Seitenstandard.
-- `internal`: Das Thema bleibt absichtlich auf Informationen für Maintainer beschränkt.
-- `not-published`: Die Quellfläche existiert, darf aber nicht als stabile öffentliche Funktion
-  dargestellt werden.
+Die Bilder wurden am **23.10.2026** mit künstlichen Fahrzeugen aufgenommen. CV-Werte darin sind keine Werkseinstellungen. Die Seiten nennen ihren Versionsbezug und die redaktionelle Prüfung. Am Seitenende steht zusätzlich das Git-Änderungsdatum.
 
-Ein Thema erhält erst dann den Status `documented`, wenn beide Zielseiten unter identischen relativen
-Pfaden liegen, übereinstimmende Prüfmetadaten tragen und die Dokumentationsprüfung bestehen. Die
-Die entfernte Anlagenplanung gehört nicht zum aktuellen Produktumfang.
+## Themen und Nachweise
 
-## Geprüfte Themen
+<CoverageTable />
 
-Die erste Matrix umfasst 20 Themen.
+## Was bleibt offen?
 
-### Benutzerabläufe
+- CS3-Kompatibilitätsdaten sind über dokumentierte Antwortformen und Fixtures geprüft; eine eigene vollständige Hardwareabnahme ist nicht belegt.
+- Z21 und Intellibox 3 bieten noch keinen gleichwertigen Lok-/CV-Import wie ECoS. Eine Anleitung erfindet diesen Funktionsumfang nicht.
+- Die Decoderbibliothek enthält weiter gekennzeichnete Modell-, Firmware- und Quellenlücken. Ein Katalogeintrag bedeutet nicht, dass jede CV dieses Modells interpretiert werden kann.
+- Die Demo-Aufnahmen zeigen die Einstiegspunkte. Nicht jeder Dialogzustand, Druckertreiber, Restore oder Netzwerkausfall ist durch ein Bild nachgewiesen.
 
-- `setup-auth`
-- `overview`
-- `vehicles-core`
-- `vehicle-media`
-- `vehicle-maintenance`
-- `vehicle-decoder-cv`
-- `vehicle-search-spares`
-- `accessories`
-- `exhibition`
-- `import-export`
-- `settings-general`
+## Wie halten wir das aktuell?
 
-### Administration
+Die Themenliste und Prüfhinweise kommen aus [docs/coverage.json](https://github.com/ichwars/RailKeeper/blob/main/docs/coverage.json). Die automatische Prüfung erfasst Routen, API-Bereiche, Übersetzungsschlüssel und Konfigurationsvariablen. Sie prüft Sprachpaare, Metadaten, Bilddateien und die Zuordnung zu Handbuchthemen. Inhaltliche Richtigkeit und Hardwareverhalten bleiben eigene Prüfaufgaben.
 
-- `master-data`
-- `users-sessions-security`
-- `backup-restore`
-- `digital-centers`
-- `system-operations`
-- `deployment-configuration`
-
-### Entwicklung
-
-- `development-architecture`
-
-### Gemeinsame Referenz
-
-- `releases-support`
-- `shared-navigation`
-
-## Ablauf für Beiträge
-
-Wenn sich eine Route, ein API-Bereich, ein Übersetzungsnamensraum, eine Umgebungsvariable oder ein
-Handbuchthema ändert, muss `docs/coverage.json` im selben Pull Request angepasst werden. Die
-vollständige Prüfung startet im Repository mit:
-
-```powershell
-cd docs
-npm.cmd run check
-```
-
-Der Befehl prüft beide Sprachen, die Prüfmetadaten, die Coverage-Zuordnung und den produktiven
-Website-Build.
+Änderungen an einem Arbeitsablauf aktualisieren seine Anleitung und beide Sprachen im selben Pull Request. Unter `docs` prüft `npm run check` Tests, Zuordnungen und den Website-Build. [Eine Lücke melden](https://github.com/ichwars/RailKeeper/discussions/categories/q-a).

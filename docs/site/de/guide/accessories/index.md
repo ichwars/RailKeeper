@@ -2,17 +2,23 @@
 title: Zubehörübersicht
 description: Zubehörartikel finden, filtern, prüfen und sicher verwalten.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Zubehörübersicht
 
+1. Öffne **Zubehör** und suche einen Artikel oder wähle **Neuer Artikel**.
+2. Erfasse Hersteller, Bezeichnung und Zubehörtyp.
+3. Wähle passend zwischen Mengenbestand und einzeln verfolgten Exemplaren. Buche Käufe, Reservierungen und Einbauten anschließend im Artikel.
+
+<GuideFigure name="accessories" alt="Zubehör verbindet Artikel, Bestand und Verwendung." caption="Zubehör verbindet Artikel, Bestand und Verwendung. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
+
 **Zubehör** ist RailKeepers Katalog- und Bestandsbereich für Gleise, Signale, Decoder, elektrische
 Bauteile, Landschaftsbau, Beleuchtung und weitere Modellbahnartikel. Er verbindet Produktidentität,
 gelagerte und gebundene Mengen, Bilder, Lagerorte und Aktionen im Artikellebenszyklus. Dieses
-Kapitel beschreibt den stabilen RailKeeper-Stand v0.1.20.3.
+Kapitel beschreibt den stabilen RailKeeper-Stand auf `main`.
 
 Ein Artikel ist der gemeinsame Produktdatensatz. Sein Bestand kann aus austauschbaren Mengen,
 einzeln geführten Stücken oder beidem bestehen. Reservierungen und Einbauten binden einen Teil
@@ -144,7 +150,7 @@ Serversortierung, bieten aber keine eigenen Sortieraktionen.
 
 Kontrollkästchen in der Tabelle wählen eine Zeile oder alle aktuell sichtbaren Zeilen aus. Eine
 Auswahl verschwindet, wenn ein neues Such- oder Filterergebnis den Artikel nicht mehr enthält. Der
-stabile Stand v0.1.20.3 bietet keine Sammelaktion für diese Auswahl. Sie ist nur visueller Zustand
+stabile Stand RailKeeper bietet keine Sammelaktion für diese Auswahl. Sie ist nur visueller Zustand
 und keine vorgemerkte Archivierung, Auswertung oder Bestandsbuchung.
 
 Öffne über Artikelname, Bild oder **Artikel ansehen** den schreibgeschützten Artikeldialog. Abhängig
@@ -203,8 +209,3 @@ sofortige Bestands- oder Lebenszyklusaktion startest.
 - [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/)
 - [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/)
 - [Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares)
-
-## Dokumentierter RailKeeper-Stand
-
-Diese Seite dokumentiert den stabilen RailKeeper-Stand **v0.1.20.3** und wurde zuletzt am
-2026-08-16 geprüft.

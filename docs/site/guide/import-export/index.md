@@ -2,9 +2,9 @@
 title: Import and export
 description: Exchange vehicle, accessory, and exhibition data through reviewed transfer jobs.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-27
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Import and export
@@ -18,6 +18,9 @@ Imports use either one-area CSV or versioned RailKeeper JSON. They remain in rev
 blocking issues are resolved and an authorized user explicitly confirms the transactional apply.
 Command-station synchronization, master-data transfer, and application backup and restore remain
 separate workflows.
+
+
+<GuideFigure name="import-export" alt="Transfer profiles and jobs show which data is exchanged." caption="Transfer profiles and jobs show which data is exchanged. Synthetic demo data, not factory settings. Click for full size." />
 
 ## Access rights
 
@@ -110,7 +113,3 @@ vehicles, not additional set metadata.
 | A pure Messe account cannot see a profile | Only exhibition-list profiles are visible in the isolated Messe scope. |
 | An artifact cannot be downloaded | Reload its job and check whether an Admin deleted the artifact after creation. |
 | A failed job offers retry | Review the recorded error and source first. Retry creates a controlled continuation, not an untracked duplicate. |
-
-## Documented RailKeeper version
-
-This chapter documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-27.

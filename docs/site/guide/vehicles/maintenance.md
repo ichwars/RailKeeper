@@ -2,12 +2,18 @@
 title: Vehicle maintenance and condition
 description: Record, schedule, complete, review, and safely remove vehicle maintenance entries.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Vehicle maintenance and condition
+
+1. Open **Edit > Maintenance** on the vehicle.
+2. Add the type, date and a useful note. Save the maintenance entry.
+3. Mark the work as completed afterward. The dashboard helps you find outstanding dates.
+
+<GuideFigure name="maintenance" alt="Maintenance can be planned, recorded and completed." caption="Maintenance can be planned, recorded and completed. Synthetic demo data, not factory settings. Click for full size." />
 
 The **Maintenance** tab records work, repairs, conversions, condition, dates, and costs for one
 vehicle. Admin, Editor, Viewer users can inspect stored entries. Only Admin and Editor can
@@ -100,7 +106,7 @@ When at least one link exists, the maintenance card shows image and attachment c
 **Linked media**. Manage image links in **Uploads**. Selecting **No maintenance** for an image is
 pending metadata until you use the vehicle's **Save changes** action.
 
-Stable v0.1.20.3 can display attachments that already contain a maintenance reference, but the
+Stable the current version can display attachments that already contain a maintenance reference, but the
 normal attachment row cannot assign or change that reference. Do not invent a reassignment flow
 that the interface does not provide.
 
@@ -116,7 +122,7 @@ Before deleting an entry:
 2. Check its linked image and attachment counts.
 3. In **Uploads**, select **No maintenance** for every linked image and use **Save changes**.
 4. If a linked attachment must retain the association, keep the maintenance entry. Stable
-   v0.1.20.3 has no attachment-link editor. Remove an attachment only after backup and content
+   the current version has no attachment-link editor. Remove an attachment only after backup and content
    review when the file is genuinely no longer needed.
 5. Return to **Maintenance**, confirm that **Linked media** no longer appears, then delete the entry.
 
@@ -160,7 +166,3 @@ A failed action does not undo an earlier successful independent maintenance or m
 - [Vehicle images and attachments](/guide/vehicles/media)
 - [Decoder, functions, and CV data](/guide/vehicles/decoder-cv)
 - [Article search, web documents, and spare parts](/guide/vehicles/search-and-spares)
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
