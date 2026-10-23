@@ -1,135 +1,72 @@
 ---
-title: Listen und Sperren
-description: Messelisten anlegen, sperren, entsperren und sicher löschen.
+title: Veranstaltungen, Status und Sperren
+description: Veranstaltungen, Status und Sperren.
 audience: user
 status: development
 reviewedVersion: main
 lastReviewed: 2026-10-23
 ---
 
-# Listen und Sperren
+# Veranstaltungen, Status und Sperren
 
-Wähle zuerst die richtige Veranstaltung. Prüfe den Listenstatus und den angezeigten Sperrhinweis vor Änderungen. Lege Zuständigkeit und Abschluss mit den anderen Benutzern fest; eine Sperre ersetzt keine Prüfung der tatsächlich mitgenommenen Fahrzeuge.
+**Ziel:** Eine Veranstaltung vorbereiten und ihren Bearbeitungsstand bewusst festlegen.
 
-<GuideFigure name="exhibition" alt="Listenstatus und Sperren helfen bei gemeinsam vorbereiteten Veranstaltungen." caption="Listenstatus und Sperren helfen bei gemeinsam vorbereiteten Veranstaltungen. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
-
-Eine Messeliste bündelt die Lokomotiveinträge für eine benannte Messe oder einen Fahrtag. Admin
-bereitet Listen vor und steuert sie; Messe konzentriert sich auf die Betriebseinträge einer offenen
-Liste.
+<GuideFigure name="exhibition-locked" alt="Veranstaltungsarbeitsbereich mit gesperrter Demo-Liste." caption="Die tatsächliche Statusänderung ist gespeichert. Drucken und die zum Status passenden weiteren Aktionen bleiben sichtbar." />
 
 ## Rollen für Betrieb und Verwaltung
 
-| Aktion | Messe | Admin |
-| --- | --- | --- |
-| Listen auflisten, auswählen, ansehen und drucken | Ja | Ja |
-| Liste anlegen oder bearbeiten | Nein | Ja |
-| Liste sperren oder entsperren | Nein | Ja |
-| Liste löschen | Nein | Ja |
-| Einträge einer offenen Liste pflegen | Ja | Ja |
-| Eintrag einer offenen Liste löschen | Nein | Ja |
-
-Admin erhält direkten Zugriff auf den Messearbeitsbereich und benötigt keine zusätzliche Rolle
-Messe. Editor, Viewer öffnen den Arbeitsbereich allein nicht und erteilen keine
-Listenverwaltung.
+Admin und Konten mit **Editor plus Messe** verwalten Planung und Status. Messe pflegt bestehende
+Einträge bei offener Planung. Das Löschen einer Veranstaltung oder eines Eintrags bleibt Admin vorbehalten.
+[Zugriff im Überblick](./#zugriffsrechte-und-trennung).
 
 ## Liste anlegen
 
-Wähle **Neue Liste** und fülle den Dialog **Messeliste anlegen** aus:
-
-| Feld | Regel |
-| --- | --- |
-| Bezeichnung | Pflichtfeld. RailKeeper entfernt beim Speichern führende und nachgestellte Leerzeichen. |
-| Datum | Pflichtfeld. Ein neuer Dialog beginnt mit dem vom Browser erzeugten UTC-Kalendertag. Prüfe ihn nahe der lokalen Mitternacht. |
-
-Wähle **Speichern**. Eine erfolgreiche Anfrage legt eine offene Liste an, wählt sie aus, schließt
-den Dialog und lädt die Listentabelle neu. Das Anlegen ist ein sofortiger Server-Schreibvorgang;
-bis zum Erfolg sind die Dialogwerte nur lokaler Formularzustand.
-
-Ist eines der Pflichtfelder leer, verhindert der Browser die normale Übermittlung. Der Server weist
-auch Werte zurück, die nach dem Entfernen äußerer Leerzeichen leer sind. Derzeit prüft der
-Server beim Datum, dass der Wert nicht leer ist; das Datumsfeld liefert den normalen Kalenderwert.
+Wähle **Neue Veranstaltung**. Fülle Bezeichnung, Beginn und Ende aus; ergänze Ort, Beschreibung
+und interne Organisation. **Speichern** legt die Veranstaltung an und wählt sie aus.
+Prüfe den Zeitraum, bevor du Fahrtage bei Einträgen zuweist. **Abbrechen** verwirft den Entwurf.
 
 ## Listen auswählen, sortieren und prüfen
 
-Wähle eine Zeile, um sie zur aktiven Liste zu machen. Die Eintragstabelle lädt anschließend die
-Einträge dieser Liste. Die ausgewählte Zeile bleibt hervorgehoben.
-
-Die Listentabelle beginnt mit **Datum** absteigend. Diese Überschriften sortieren im Browser:
-
-- **Bezeichnung**;
-- **Datum**;
-- **Einträge**;
-- **Status**.
-
-Die Auswahl einer anderen Überschrift beginnt aufsteigend. Die aktive aufsteigende Sortierung wird
-beim nächsten Klick absteigend und beim darauffolgenden wieder aufsteigend.
-
-**Ansehen** lädt die aktuellen Einträge und öffnet eine schreibgeschützte Tabelle. Die Aktion steht
-Messe und Admin für offene und gesperrte Listen zur Verfügung. **Drucken** verwendet denselben
-Leseweg und öffnet die unter [Einträge und Drucken](./entries-and-printing) beschriebenen
-Reportoptionen.
+Wähle die Veranstaltung in der linken Liste. **Alle Veranstaltungen anzeigen** blendet archivierte
+Veranstaltungen ein. Die aktuelle Oberfläche verwendet Veranstaltungsschaltflächen statt der früheren
+sortierbaren Listentabelle. Datum und Status stehen im Veranstaltungskopf.
 
 ## Bezeichnung oder Datum bearbeiten
 
-Admin wählt **Bearbeiten** in der gewünschten Zeile. **Messeliste bearbeiten** öffnet sich mit der
-gespeicherten Bezeichnung und dem Datum. Ändere eines oder beide Felder und wähle **Speichern**.
-
-Das Bearbeiten einer Liste ändert weder ihre Einträge noch ihren Sperrzustand. Es ist bei offenen
-und gesperrten Listen erlaubt. Nach einem erfolgreichen Schreibvorgang bleibt die gespeicherte
-Liste ausgewählt und RailKeeper lädt alle Listen neu. Schlägt das Speichern fehl, bleibt der Dialog
-offen und die Meldung oberhalb des Arbeitsbereichs zeigt den Fehler. Korrigiere die Werte oder lade
-neu, bevor du es erneut versuchst.
+Wähle **Weitere Aktionen > Veranstaltung bearbeiten**, solange die Planung bearbeitbar ist.
+Änderungen werden beim Speichern zusammen mit der erwarteten Revision geprüft. Ein fremder
+zwischenzeitlicher Stand kann die Änderung abweisen; lade dann neu und vergleiche.
+Ein geänderter Zeitraum kann die Bedeutung vorhandener Fahrtage verändern, daher danach alle Einträge prüfen.
 
 ## Liste sperren oder entsperren
 
-Wähle **Sperren**, sobald keine Einträge mehr geändert werden sollen. RailKeeper schreibt den neuen
-Zustand sofort und ersetzt **offen** in der Tabelle durch **gesperrt**. Es erscheint kein
-Bestätigungsdialog.
+Wähle **Liste sperren** im Veranstaltungskopf. Ohne Konflikte wird die Statusänderung direkt gespeichert.
+Sind Konflikte vorhanden, öffnet sich eine Rückfrage.
 
-Die Sperre hat diese genaue Grenze:
+<GuideFigure name="exhibition-lock-conflicts" alt="Sperrdialog bei noch vorhandenen Konflikten mit verpflichtender Begründung." caption="Der Negativtest zeigt, dass die Liste bei Konflikten nicht still gesperrt wird. In der Übung wird zunächst abgebrochen und die fehlende Schnittstelle ergänzt." />
 
-- Auswahl, Lesen, **Ansehen** und **Drucken** funktionieren weiter;
-- Bezeichnung und Datum können weiterhin von Admin bearbeitet werden;
-- die Liste kann weiterhin von Admin gelöscht werden;
-- Anlegen, Bearbeiten und Löschen von Einträgen werden abgewiesen;
-- deaktivierte Bedienelemente und Servervalidierung erzwingen gemeinsam die Eintragssperre.
-
-Wähle **Entsperren**, um die Eintragspflege wieder zuzulassen. Auch das Entsperren erfolgt sofort
-und ohne Bestätigung. Schlägt eine Sperranfrage fehl oder ist der angezeigte Zustand unklar, lade
-den Arbeitsbereich neu und lies die Spalte **Status**, bevor du einen Eintrag änderst.
+Wähle vorzugsweise **Abbrechen**, korrigiere den Eintrag und prüfe erneut.
+Eine bewusste Ausnahme verlangt eine Begründung und **Trotzdem sperren**. Die Probleme bleiben sichtbar;
+die Ausnahme macht den Eintrag nicht vollständig bereit.
+**Liste entsperren** öffnet die Planung wieder. **Weitere Aktionen** bietet unter anderem Start,
+Abschluss, Wiederöffnung und Archivieren, soweit der jeweilige Ausgangsstatus dies erlaubt.
 
 ## Liste löschen
 
-Admin wählt **Löschen** und bestätigt:
-
-> Messeliste "Dortmund 2026" wirklich löschen?
-
-Das Löschen ist dauerhaft. Mit der Liste werden über die Datenbankbeziehung auch alle zugehörigen
-Messelisteneinträge entfernt. Allgemeine Fahrzeugdatensätze werden nicht gelöscht. Exportiere vor
-dem Löschen einer gefüllten Liste ein aktuelles validiertes App-Backup, falls eine Wiederherstellung
-nötig werden könnte.
-
-Nach erfolgreichem Löschen entfernt RailKeeper die Auswahl, wenn sie auf diese Liste zeigte, und
-lädt die verbleibenden Listen neu. Brich die Bestätigung ab, um die Liste unverändert zu lassen.
+Wähle als Admin **Weitere Aktionen > Löschen** und lies die Bestätigung für die konkrete Veranstaltung.
+Ihre Betriebseinträge gehören zu ihr. Sichere benötigte Daten vorher. Archivieren ist für eine spätere
+Nachschau geeignet und wird von Löschen getrennt angeboten.
 
 ## Listenfehler beheben
 
-| Situation | Stabiles Ergebnis und Wiederherstellung |
+| Meldung oder Zustand | Nächster Schritt |
 | --- | --- |
-| Leere Bezeichnung oder leeres Datum | Speichern wird abgewiesen. Fülle beide Pflichtfelder aus. |
-| Liste existiert nicht mehr | Der Server meldet nicht gefunden. Lade den Arbeitsbereich neu und wähle eine vorhandene Liste. |
-| Fehlende Admin-Berechtigung | Anlegen, Bearbeiten, Sperren, Entsperren und Löschen sind verboten. Verwende ein berechtigtes Adminkonto. |
-| Speichern schlägt fehl | Der Dialog bleibt offen und eine Meldung erscheint. Prüfe Werte und Speicherzustand vor dem Wiederholen. |
-| Sperren oder Entsperren wirkt unverändert | Lade vor der Eintragspflege neu; der Serverzustand ist maßgeblich. |
-| Löschergebnis ist unklar | Lade neu und prüfe, ob die Liste noch vorhanden ist, bevor du erneut **Löschen** wählst. |
-| Eintragsvorgang meldet eine gesperrte Liste | Lade den Status neu. Nur Admin kann die Liste gezielt entsperren. |
-
-Erfolgreiches Anlegen, Bearbeiten, Sperren, Entsperren und Löschen wird im RailKeeper-Audit-Log
-erfasst. Die Bedienung des Audit-Logs gehört zur Administration und wird auf dieser Benutzerseite
-nicht erklärt.
+| Fehlende Pflichtangaben | Bezeichnung und gültigen Zeitraum prüfen |
+| Veralteter Stand | Neu laden und eigene Änderungen mit der aktuellen Revision vergleichen |
+| Konflikte beim Sperren | Konflikte prüfen; korrigieren oder ausdrücklich begründete Ausnahme dokumentieren |
+| Aktion fehlt | Rollen und den aktuellen Status prüfen |
+| Veranstaltung scheinbar verschwunden | Archiv einblenden und Auswahl prüfen |
 
 ## Verwandte Seiten
 
-- [Messearbeitsbereich](./)
-- [Einträge und Drucken](./entries-and-printing)
-- [Übersicht des Benutzerhandbuchs](/de/guide/)
+[Einträge und Drucken](entries-and-printing) · [Bebilderte Übung](practice).

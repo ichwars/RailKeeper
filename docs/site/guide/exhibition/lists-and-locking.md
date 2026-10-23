@@ -1,129 +1,70 @@
 ---
-title: Lists and locking
-description: Create exhibition lists, control their lock state, and remove them safely.
+title: Events, status and locking
+description: Events, status and locking.
 audience: user
 status: development
 reviewedVersion: main
 lastReviewed: 2026-10-23
 ---
 
-# Lists and locking
+# Events, status and locking
 
-Select the correct event first. Check list status and the displayed lock notice before editing. Agree responsibility and completion with other users; a lock does not replace checking which vehicles are actually taken.
+**Goal:** Prepare an event and deliberately control whether its planning can be edited.
 
-<GuideFigure name="exhibition" alt="List status and locks help when preparing events together." caption="List status and locks help when preparing events together. Synthetic demo data, not factory settings. Click for full size." />
-
-An exhibition list groups the locomotive entries for one named exhibition or running date. Admin
-prepares and controls lists; Messe concentrates on operating entries inside an open list.
+<GuideFigure name="exhibition-locked" alt="Event workspace showing a locked demo list." caption="The actual status change is saved. Printing and status-appropriate actions remain visible." />
 
 ## Roles for operation and administration
 
-| Action | Messe | Admin |
-| --- | --- | --- |
-| List, select, view, and print lists | Yes | Yes |
-| Create or edit a list | No | Yes |
-| Lock or unlock a list | No | Yes |
-| Delete a list | No | Yes |
-| Maintain entries in an open list | Yes | Yes |
-| Delete an entry from an open list | No | Yes |
-
-Admin receives direct access to the exhibition workspace. It does not need an additional Messe
-role. Editor, Viewer users neither expose the workspace nor grant list management by
-themselves.
+Admin and accounts combining **Editor plus Messe** manage planning and status.
+Messe maintains existing entries during open planning. Event and entry deletion remain Admin-only.
+[Access overview](./#access-rights-and-isolation).
 
 ## Create a list
 
-Select **New list** and complete the **Create exhibition list** dialog:
-
-| Field | Rule |
-| --- | --- |
-| Designation | Required. RailKeeper removes leading and trailing whitespace when saving. |
-| Date | Required. A new dialog starts with the browser-generated UTC calendar date. Verify it near local midnight. |
-
-Select **Save**. A successful request creates an open list, selects it, closes the dialog, and
-reloads the list table. The create operation is an immediate server write; the dialog values are
-only local form state until it succeeds.
-
-If either required field is empty, the browser prevents normal submission. The server also rejects
-blank values after trimming them. In stable the current version the server checks that the date value is not
-empty; the date control supplies the normal calendar value.
+Select **New event**, fill name, start and end, then optional location, description and internal
+organisation. **Save** creates and selects it. Check dates before assigning entry days.
+**Cancel** discards the draft.
 
 ## Select, sort, and inspect lists
 
-Select any row to make it the active list. The entry table then loads that list's entries. The
-selected row remains highlighted.
-
-The list table starts with **Date** descending. Select these headings to sort in the browser:
-
-- **Designation**;
-- **Date**;
-- **Entries**;
-- **Status**.
-
-Selecting a different heading starts ascending. Selecting the active ascending heading changes it
-to descending; selecting it once more returns to ascending.
-
-The **View** action loads the list's current entries and opens a read-only table. It is available to
-Messe and Admin for open and locked lists. **Print** follows the same read path and opens the report
-options described in [Entries and printing](./entries-and-printing).
+Choose an event on the left. **Show all events** includes archived events.
+The current UI uses event buttons rather than the former sortable list table.
+Dates and status appear in the event header.
 
 ## Edit designation or date
 
-Admin selects **Edit** on the required row. **Edit exhibition list** opens with the stored
-designation and date. Change either field and select **Save**.
-
-Editing a list does not change its entries or lock state. It is allowed while the list is open or
-locked. After a successful write, RailKeeper keeps the saved list selected and reloads all lists.
-If saving fails, the dialog remains open and the message above the workspace reports the error.
-Correct the values or reload before trying again.
+Choose **More actions > Edit event** while planning is editable.
+Saving checks the expected revision. An intervening change may reject your update; reload and compare.
+Date changes can affect existing operating-day assignments, so review entries afterwards.
 
 ## Lock or unlock a list
 
-Select **Lock** when no further entry changes should be accepted. RailKeeper immediately writes the
-new state and replaces **open** with **locked** in the table. There is no confirmation dialog.
+Select **Lock list** in the event header. Without conflicts, the status change saves directly.
+Existing conflicts open a confirmation dialog.
 
-A lock has this exact boundary:
+<GuideFigure name="exhibition-lock-conflicts" alt="Conflict-aware locking dialog requiring an explicit reason." caption="Negative test: conflicts do not lead to silent locking. The exercise first cancels and fills the missing station/interface." />
 
-- selection, reading, **View**, and **Print** continue to work;
-- list designation and date can still be edited by Admin;
-- a list can still be deleted by Admin;
-- entry creation, entry editing, and entry deletion are rejected;
-- both disabled controls and server validation enforce the entry restriction.
-
-Select **Unlock** to restore entry maintenance. Unlocking is also immediate and has no confirmation.
-If a lock request fails or the displayed state is uncertain, reload the workspace and read the
-**Status** column before changing an entry.
+Prefer **Cancel**, correct the entry and check again. A deliberate exception requires a reason and
+**Lock anyway**. Problems remain visible; an exception does not make the entry fully ready.
+**Unlock list** reopens planning. **More actions** offers start, completion, reopening and archiving
+where permitted by the current status.
 
 ## Delete a list
 
-Admin selects **Delete** and confirms:
-
-> Really delete exhibition list "Dortmund 2026"?
-
-Deletion is permanent. Removing a list also removes all of its exhibition entries through the
-database relationship. It does not delete general vehicle records. Export a current validated app
-backup before deleting a populated list when recovery may be required.
-
-After a successful delete, RailKeeper clears the selection when it referred to that list and
-reloads the remaining lists. Cancel the confirmation to leave the list unchanged.
+As Admin, choose **More actions > Delete** and read the confirmation for that event.
+Its operating entries belong to it. Preserve required data beforehand.
+Archiving is offered separately and suits later reference.
 
 ## Resolve list errors
 
-| Situation | Stable result and recovery |
+| Message or state | Next step |
 | --- | --- |
-| Empty designation or date | Save is rejected. Complete both required fields. |
-| List no longer exists | The server returns not found. Reload the workspace and select an existing list. |
-| Missing Admin authority | Create, edit, lock, unlock, and delete requests are forbidden. Use an authorized Admin account. |
-| Save request fails | The dialog stays open and a message appears. Verify the values and stored state before retrying. |
-| Lock or unlock appears unchanged | Reload before entry maintenance; the server state is authoritative. |
-| Delete result is uncertain | Reload and verify whether the list still exists before selecting **Delete** again. |
-| Entry operation reports a locked list | Reload the status. Only Admin can deliberately unlock it. |
-
-Successful create, edit, lock, unlock, and delete operations are recorded in RailKeeper's audit
-log. Audit-log operation belongs to administration and is not documented on this user page.
+| Missing required details | Check name and valid dates |
+| Stale revision | Reload and compare your changes with current data |
+| Conflicts during locking | Review and correct, or deliberately record a justified exception |
+| Missing action | Check roles and current status |
+| Apparently missing event | Show archived events and check selection |
 
 ## Related pages
 
-- [Exhibition workspace](./)
-- [Entries and printing](./entries-and-printing)
-- [User Guide overview](/guide/)
+[Entries and printing](entries-and-printing) · [Illustrated exercise](practice).

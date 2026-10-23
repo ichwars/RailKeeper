@@ -1,127 +1,78 @@
 ---
-title: Exhibition workspace
-description: Prepare, maintain, review, and print exhibition lists safely.
+title: Organize exhibitions and operating days
+description: Organize exhibitions and operating days.
 audience: user
 status: development
 reviewedVersion: main
 lastReviewed: 2026-10-23
 ---
 
-# Exhibition workspace
+# Organize exhibitions and operating days
 
-1. Open **Exhibition** and choose or create a list.
-2. Add the planned vehicles and check their availability.
-3. Use the list status and lock for your workflow. The vehicle exhibition switch alone does not add it to a list.
+Open **Exhibition** and choose an event on the left. Dates and status appear at the top;
+manage participants and vehicles on the right. [The illustrated exercise](practice) covers a complete workflow.
 
-<GuideFigure name="exhibition" alt="Exhibition brings together lists and their vehicles." caption="Exhibition brings together lists and their vehicles. Synthetic demo data, not factory settings. Click for full size." />
-
-The **Exhibition list** workspace keeps the information needed for an exhibition or running day in
-one operational view. Each list has a date, an open or locked state, and its own locomotive
-entries. Operators can maintain an open list without entering the general vehicle inventory.
-
-This chapter documents stable RailKeeper. It does not explain user administration,
-master-data administration, backup operation.
+<GuideFigure name="exhibition-open" alt="Current event workspace with metrics, day filters and vehicles." caption="Actual UI with synthetic data. A remaining check is shown honestly rather than presented as ready." />
 
 ## Access rights and isolation
 
-RailKeeper exposes the workspace to two roles with different purposes:
-
-| Role | Stable access |
+| Account | Current scope |
 | --- | --- |
-| Messe | Opens the isolated exhibition workspace. It can read and print lists and maintain entries while a list is open. |
-| Admin | Opens the workspace and additionally creates, edits, locks, unlocks, and deletes lists. Admin can also delete entries from an open list. |
+| Admin | Workspace, event planning, status changes and deletion |
+| Messe | Use existing events; maintain entries during open planning; review and print |
+| Editor together with Messe | Additionally manage events and status |
+| Viewer together with Messe | The Messe workflows above; Viewer alone cannot open this workspace |
 
-Editor, Viewer users do not open the exhibition workspace on their own. When one of these
-roles is combined with Messe, the entry form can also load general inventory master-data choices.
-A pure Messe account remains isolated from those choices, but it can still use the exhibition
-fields provided by the dialog. Function symbols remain available to Messe.
-
-The server checks the same distinction. Admin is accepted for every protected exhibition request;
-Messe is accepted for reading lists and for creating or editing entries. An unavailable control is
-therefore not the only protection against an unauthorized write.
+**Editor** alone has no Exhibition navigation access. Add **Messe** when the same person also
+needs this task. Deletion remains Admin-only.
+Operating entries do not change vehicle master data. A vehicle's **Exhibition** switch does not create an entry.
 
 ## Understand lists and entries
 
-The page contains two related tables:
+An event has a name, start, end, location and organisational details.
+Its entries describe owner, locomotive, station, address, operating days and availability.
+Optionally assign an inventory vehicle or enter a guest vehicle manually.
 
-| Area | Purpose |
-| --- | --- |
-| Lists | Shows **Designation**, **Date**, number of **Entries**, **Status**, and available actions. |
-| Entries | Shows the image, owner and operating days, locomotive data, control data, configured function keys, and actions for the selected list. |
-
-Selecting a list row loads its entries in the adjacent table. After the initial list request,
-RailKeeper selects the first returned list when no selection exists. Stable storage order is newest
-date first and then designation; the browser also starts with **Date** descending.
-
-Select a sortable list heading to sort by designation, date, entry count, or status. Select the
-active heading again to reverse it. Entry sorting starts with **Owner** ascending. Its detailed
-columns and rules are covered in [Entries and printing](./entries-and-printing).
+Metrics count entries, owners, conflicts and ready vehicles. **Readiness** separates address checks,
+function keys and images. Ready does not mean RailKeeper has physically driven or controlled a locomotive.
 
 ## Follow the exhibition workflow
 
-Use this sequence for predictable operation:
+1. Create a **New event** and check its dates.
+2. Add entries under **Participants and vehicles**.
+3. Select **All days** or a specific day; filter using **All**, **Ready**, **Check** and search.
+4. **Check conflicts** and resolve missing details or overlapping addresses.
+5. Lock the list, print its report and later advance event status.
 
-1. An Admin creates a list with a designation and date.
-2. Messe or Admin selects the open list.
-3. Operators add entries and complete owner, locomotive, operating, image, and function data.
-4. Address conflicts are resolved before an entry is saved.
-5. Operators use **View** or **Print list** to review the current entries.
-6. An Admin locks the list when entry maintenance should stop.
-7. The locked list remains available for viewing and printing. An Admin can unlock it for a
-   deliberate correction.
-
-List actions and entry actions are separate server writes. Closing a dialog without submitting it
-does not save its form. After creating, editing, or deleting a list, RailKeeper reloads the list
-table; locking or unlocking updates the affected row directly. After a successful entry write, it
-reloads the selected list's entries and updates the displayed count.
+[Events and locking](lists-and-locking) · [Entries and reports](entries-and-printing).
 
 ## Work with an open or locked list
 
-The **Status** column shows **open** or **locked**.
+| Status | Workflow meaning |
+| --- | --- |
+| Draft | Open planning before proceeding with event operation |
+| Open | Maintain and review entries |
+| Locked | Planning frozen; entries cannot be edited, printing remains available |
+| Running | Event started; entries remain protected |
+| Completed | Operation finished; planning can be reopened |
+| Archived | Hidden by default; find through **Show all events** or the action menu |
 
-| Operation | Open list | Locked list |
-| --- | --- | --- |
-| Select and read | Yes | Yes |
-| View complete list | Yes | Yes |
-| Print | Yes | Yes |
-| Create or edit an entry | Yes | No |
-| Delete an entry as Admin | Yes | No |
-| Edit list fields as Admin | Yes | Yes |
-| Lock or unlock as Admin | Lock | Unlock |
-| Delete list as Admin | Yes | Yes |
-
-The entry add and edit controls are disabled for a locked list. The server also rejects entry
-changes if the list became locked after the page loaded. Unlock the list before correcting an
-entry; do not interpret a disabled control as missing data.
-
-Every list provides **View** and **Print** actions. Admin additionally sees **Edit**, **Lock** or
-**Unlock**, and **Delete**. The entry panel also provides **Print list** and, for an open selection,
-the add-entry control.
+Entry editing is available only in **Draft** or **Open** without a lock.
+**More actions** offers transitions appropriate to the current status. A list lock does not protect hardware.
 
 ## Read loading, empty, and error states
 
-| State | Meaning and next action |
-| --- | --- |
-| **Loading...** | The list request is still running. Wait before choosing a list. |
-| **No exhibition list created yet.** | No list exists. An Admin must create the first list. |
-| **Please select a list.** / **No list selected.** | Select a row in the list table before working with entries. |
-| **No entries in this list yet.** | The selected list is empty. Add an entry while it is open. |
-| Message above the tables | A list, entry, symbol, or master-data request failed. Read the message before continuing. |
-
-Some follow-up requests do not clear previously displayed data before reporting an error. If a
-list or entry refresh fails, reload the workspace and verify the selected list, its status, entry
-count, and stored entries before retrying a write. This avoids repeating an operation that may
-already have succeeded before the refresh failed.
+Wait for the chosen event to load. Add an entry to an empty event.
+For a stale revision, reload and compare before saving.
+For **Missing data**, open the entry and conflict display; for **Unavailable**, check participation.
+A missing image or function keys can still produce **Check** status.
 
 ## Continue with a focused workflow
 
-- [Lists and locking](./lists-and-locking) explains Admin preparation, lock effects, and deletion.
-- [Entries and printing](./entries-and-printing) explains every entry field, address conflicts,
-  images, function keys, viewing, and report printing.
+- [Illustrated operating-day exercise](practice)
+- [Planning, status and conflict-aware locking](lists-and-locking)
+- [Entries, images, functions and printing](entries-and-printing)
 
 ## Related pages
 
-- [User Guide overview](/guide/)
-- [Lists and locking](./lists-and-locking)
-- [Entries and printing](./entries-and-printing)
-- [Vehicle inventory and core records](/guide/vehicles/)
+[Vehicle inventory](../vehicles/) · [Accounts and roles](../../administration/users-sessions-security).
