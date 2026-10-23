@@ -179,3 +179,5 @@ Medienaktion nicht rückgängig.
 - [Fahrzeugbilder und Beilagen](/de/guide/vehicles/media)
 - [Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv)
 - [Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares)
+
+[Bebilderte Werkstattübung](../accessories/workshop-exercise).

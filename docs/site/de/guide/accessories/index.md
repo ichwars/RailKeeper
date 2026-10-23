@@ -209,3 +209,5 @@ sofortige Bestands- oder Lebenszyklusaktion startest.
 - [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/)
 - [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/)
 - [Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares)
+
+[Bebilderte Werkstattübung](workshop-exercise).
