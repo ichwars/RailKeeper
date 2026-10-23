@@ -72,6 +72,7 @@ export default defineConfig({
                 { text: "Lokbilder für Zentralen", link: "/de/guide/vehicles/locomotive-images" },
                 { text: "CS3-Lokdaten read-only lesen", link: "/de/guide/import-export/cs3-import" },
                 { text: "ECoS-Lokabgleich", link: "/de/guide/import-export/ecos-sync" },
+                { text: "Z21-Adressen vergleichen", link: "/de/guide/import-export/z21-compare" },
               ],
             },
             {
@@ -140,6 +141,7 @@ export default defineConfig({
               items: [
                 { text: "Überblick", link: "/de/reference/" },
                 { text: "Dokumentationsabdeckung", link: "/de/reference/coverage" },
+                { text: "Zentralen: Umfang und Prüfstand", link: "/de/reference/command-station-compatibility" },
                 { text: "Begriffe und Navigation", link: "/de/reference/navigation-and-glossary" },
                 { text: "Versionen und Hilfe", link: "/de/reference/releases-and-support" },
               ],
@@ -217,6 +219,7 @@ export default defineConfig({
             { text: "Command-station images", link: "/guide/vehicles/locomotive-images" },
             { text: "Read CS3 locomotives without writing", link: "/guide/import-export/cs3-import" },
             { text: "ECoS locomotive sync", link: "/guide/import-export/ecos-sync" },
+                { text: "Compare Z21 addresses", link: "/guide/import-export/z21-compare" },
           ],
         },
         {

@@ -37,3 +37,5 @@ Die Bilder wurden am **23.10.2026** mit künstlichen Fahrzeugen aufgenommen. CV-
 Die Themenliste und Prüfhinweise kommen aus [docs/coverage.json](https://github.com/ichwars/RailKeeper/blob/main/docs/coverage.json). Die automatische Prüfung erfasst Routen, API-Bereiche, Übersetzungsschlüssel und Konfigurationsvariablen. Sie prüft Sprachpaare, Metadaten, Bilddateien und die Zuordnung zu Handbuchthemen. Inhaltliche Richtigkeit und Hardwareverhalten bleiben eigene Prüfaufgaben.
 
 Änderungen an einem Arbeitsablauf aktualisieren seine Anleitung und beide Sprachen im selben Pull Request. Unter `docs` prüft `npm run check` Tests, Zuordnungen und den Website-Build. [Eine Lücke melden](https://github.com/ichwars/RailKeeper/discussions/categories/q-a).
+
+[Die Kompatibilitätstabelle](command-station-compatibility) nennt je Anschluss Funktionen, Belege und offene Geräteprüfungen. Z21 besitzt einen begrenzten Abgleich bekannter Adressen, Intellibox 3 weiterhin nur Test und Diagnose.

@@ -37,3 +37,5 @@ Pictures were captured on **23 October 2026** with synthetic vehicles. Their CV 
 The topic list and evidence come from [docs/coverage.json](https://github.com/ichwars/RailKeeper/blob/main/docs/coverage.json). Automated checks inventory routes, API areas, translation keys and configuration variables. They verify language pairs, metadata, picture files and ownership by handbook topics. Content accuracy and hardware behaviour require separate review.
 
 A workflow change updates its guide and both languages in the same pull request. In `docs`, `npm run check` runs tests, ownership checks and the site build. [Report a gap](https://github.com/ichwars/RailKeeper/discussions/categories/q-a).
+
+[The compatibility table](command-station-compatibility) lists functions, evidence and pending physical tests per connection. Z21 has bounded known-address comparison; Intellibox 3 remains limited to testing and diagnostics.

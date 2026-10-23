@@ -30,7 +30,7 @@ A successful ping does not establish that RailKeeper can reach the required serv
 | --- | --- |
 | ESU ECoS | compare and adopt locomotive data, read stored CVs, and use confirmed write workflows; separate image transfer |
 | Märklin CS3 | read and compare locomotive data, without a general write-back workflow |
-| Z21 | connection testing and diagnostics, not a complete locomotive-list import |
+| Z21 | Connection test, diagnostics and bounded comparison of known addresses; no full roster or CVs |
 | Intellibox 3 | Z21-compatible connection testing and diagnostics, not a complete locomotive-list import |
 
 ## ECoS: do not confuse the two connections
@@ -45,3 +45,5 @@ Separate networks need suitable routing, netmask, gateway, and any required fire
 - [Adopt ECoS locomotives and stored CVs](../guide/import-export/ecos-sync)
 - [Prepare and confirm locomotive images](../guide/vehicles/locomotive-images)
 - [Import CS3 locomotives](../guide/import-export/cs3-import)
+
+[Compatibility and recorded device evidence](../reference/command-station-compatibility) · [Z21 address comparison](../guide/import-export/z21-compare).
