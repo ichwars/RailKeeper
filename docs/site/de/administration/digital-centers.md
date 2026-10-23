@@ -40,6 +40,11 @@ Ein erfolgreicher Ping bestätigt noch nicht, dass RailKeeper die benötigten Di
 
 Bei getrennten Netzen müssen Route, Netzmaske, Gateway und gegebenenfalls Firewallfreigaben passen. Ändere nicht auf Verdacht die Zentraleinstellungen, wenn nur eine Anwendung die Verbindung nicht erreicht.
 
+ECoS-Mehrfachtraktionen (`MULTI`) haben keine eigene Decoderadresse. RailKeeper lässt diese
+Verbünde beim Lokdatenabruf aus und nennt ihre Anzahl in der Abschlussmeldung unter **Meldungen**.
+Die einzeln adressierten Fahrzeuge werden weiterhin geladen; aus den Verbünden entstehen
+keine zusätzlichen Fahrzeuge oder CV-Zuordnungen.
+
 ## Nächste Schritte
 
 - [Lokdaten und gespeicherte CVs mit ECoS übernehmen](../guide/import-export/ecos-sync)

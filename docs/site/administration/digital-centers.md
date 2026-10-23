@@ -40,6 +40,11 @@ A successful ping does not establish that RailKeeper can reach the required serv
 
 Separate networks need suitable routing, netmask, gateway, and any required firewall rules. Do not change station settings speculatively when only one application cannot connect.
 
+ECoS consists (`MULTI`) have no decoder address of their own. RailKeeper excludes these groups
+from the locomotive import and reports their count in the completion notice under **Messages**.
+Individually addressed vehicles are still loaded; groups do not create additional vehicles or
+CV assignments.
+
 ## Next steps
 
 - [Adopt ECoS locomotives and stored CVs](../guide/import-export/ecos-sync)

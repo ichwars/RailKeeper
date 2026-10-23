@@ -836,6 +836,10 @@ func (s *ECoSService) ProbeLocomotiveRaw(ctx context.Context, input ECoSConnecti
 			Protocol:   locomotive.Protocol,
 			Attributes: map[string][]string{},
 		}
+		if strings.EqualFold(strings.TrimSpace(locomotive.Protocol), "MULTI") {
+			rawLocomotives = append(rawLocomotives, raw)
+			continue
+		}
 		probes, err := s.fetchLocomotiveRawProbes(ctx, target.Host, target.Port, locomotive.ObjectID)
 		if err != nil {
 			raw.DetailError = err.Error()
