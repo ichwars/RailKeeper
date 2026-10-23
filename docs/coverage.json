@@ -6,140 +6,235 @@
       "audience": "user",
       "status": "documented",
       "englishPath": "guide/getting-started/index.md",
-      "germanPath": "de/guide/getting-started/index.md"
+      "germanPath": "de/guide/getting-started/index.md",
+      "labelDE": "Einrichtung und Anmeldung",
+      "labelEN": "Setup and sign-in",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "login"
     },
     {
       "id": "overview",
       "audience": "user",
       "status": "documented",
       "englishPath": "guide/overview/index.md",
-      "germanPath": "de/guide/overview/index.md"
+      "germanPath": "de/guide/overview/index.md",
+      "labelDE": "Übersicht und Datenqualität",
+      "labelEN": "Dashboard and data quality",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "overview"
     },
     {
       "id": "vehicles-core",
       "audience": "user",
       "status": "documented",
       "englishPath": "guide/vehicles/index.md",
-      "germanPath": "de/guide/vehicles/index.md"
+      "germanPath": "de/guide/vehicles/index.md",
+      "labelDE": "Fahrzeuge und Sets",
+      "labelEN": "Vehicles and sets",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "vehicle-editor"
     },
     {
       "id": "vehicle-media",
       "audience": "user",
       "status": "documented",
       "englishPath": "guide/vehicles/media.md",
-      "germanPath": "de/guide/vehicles/media.md"
+      "germanPath": "de/guide/vehicles/media.md",
+      "labelDE": "Bilder und Dokumente",
+      "labelEN": "Pictures and documents",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "media"
     },
     {
       "id": "vehicle-maintenance",
       "audience": "user",
       "status": "documented",
       "englishPath": "guide/vehicles/maintenance.md",
-      "germanPath": "de/guide/vehicles/maintenance.md"
+      "germanPath": "de/guide/vehicles/maintenance.md",
+      "labelDE": "Wartung und Zustand",
+      "labelEN": "Maintenance and condition",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "maintenance"
     },
     {
       "id": "vehicle-decoder-cv",
       "audience": "user",
       "status": "documented",
       "englishPath": "guide/vehicles/decoder-cv.md",
-      "germanPath": "de/guide/vehicles/decoder-cv.md"
+      "germanPath": "de/guide/vehicles/decoder-cv.md",
+      "labelDE": "Decoder, Funktionen und CVs",
+      "labelEN": "Decoders, functions and CVs",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "cv-analysis"
     },
     {
       "id": "vehicle-search-spares",
       "audience": "user",
       "status": "documented",
       "englishPath": "guide/vehicles/search-and-spares.md",
-      "germanPath": "de/guide/vehicles/search-and-spares.md"
+      "germanPath": "de/guide/vehicles/search-and-spares.md",
+      "labelDE": "Artikelsuche und Ersatzteile",
+      "labelEN": "Article search and spare parts",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "vehicle-editor"
     },
     {
       "id": "accessories",
       "audience": "user",
       "status": "documented",
       "englishPath": "guide/accessories/index.md",
-      "germanPath": "de/guide/accessories/index.md"
+      "germanPath": "de/guide/accessories/index.md",
+      "labelDE": "Zubehör und Verwendung",
+      "labelEN": "Accessories and usage",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "accessories"
     },
     {
       "id": "exhibition",
       "audience": "user",
       "status": "documented",
       "englishPath": "guide/exhibition/index.md",
-      "germanPath": "de/guide/exhibition/index.md"
+      "germanPath": "de/guide/exhibition/index.md",
+      "labelDE": "Ausstellung und Listen",
+      "labelEN": "Exhibition and lists",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "exhibition"
     },
     {
       "id": "import-export",
       "audience": "user",
       "status": "documented",
       "englishPath": "guide/import-export/index.md",
-      "germanPath": "de/guide/import-export/index.md"
+      "germanPath": "de/guide/import-export/index.md",
+      "labelDE": "Dateiimport und Export",
+      "labelEN": "File import and export",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "import-export"
     },
     {
       "id": "settings-general",
       "audience": "user",
       "status": "documented",
       "englishPath": "guide/settings/index.md",
-      "germanPath": "de/guide/settings/index.md"
+      "germanPath": "de/guide/settings/index.md",
+      "labelDE": "Persönliche Einstellungen",
+      "labelEN": "Personal preferences",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "preferences"
     },
     {
       "id": "master-data",
       "audience": "admin",
       "status": "documented",
       "englishPath": "administration/master-data.md",
-      "germanPath": "de/administration/master-data.md"
+      "germanPath": "de/administration/master-data.md",
+      "labelDE": "Stammdaten und Nummernschemata",
+      "labelEN": "Master data and numbering",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "decoder-library"
     },
     {
       "id": "users-sessions-security",
       "audience": "admin",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "administration/users-sessions-security.md",
-      "germanPath": "de/administration/users-sessions-security.md"
+      "germanPath": "de/administration/users-sessions-security.md",
+      "labelDE": "Benutzer und Sicherheit",
+      "labelEN": "Users and security",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "users"
     },
     {
       "id": "backup-restore",
       "audience": "admin",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "administration/backup-restore.md",
-      "germanPath": "de/administration/backup-restore.md"
+      "germanPath": "de/administration/backup-restore.md",
+      "labelDE": "Sicherung und Wiederherstellung",
+      "labelEN": "Backup and restore",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "backup"
     },
     {
       "id": "digital-centers",
       "audience": "admin",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "administration/digital-centers.md",
-      "germanPath": "de/administration/digital-centers.md"
+      "germanPath": "de/administration/digital-centers.md",
+      "labelDE": "Digitalzentralen",
+      "labelEN": "Command stations",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-10-23",
+      "screenshot": "digital-settings"
     },
     {
       "id": "system-operations",
       "audience": "admin",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "administration/system-operations.md",
-      "germanPath": "de/administration/system-operations.md"
+      "germanPath": "de/administration/system-operations.md",
+      "labelDE": "Updates und Betrieb",
+      "labelEN": "Updates and operation",
+      "reviewEvidence": "source",
+      "reviewedAt": "2026-10-23"
     },
     {
       "id": "deployment-configuration",
       "audience": "admin",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "administration/deployment-configuration.md",
-      "germanPath": "de/administration/deployment-configuration.md"
+      "germanPath": "de/administration/deployment-configuration.md",
+      "labelDE": "Installation und Konfiguration",
+      "labelEN": "Installation and configuration",
+      "reviewEvidence": "source",
+      "reviewedAt": "2026-10-23"
     },
     {
       "id": "development-architecture",
       "audience": "developer",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "development/architecture.md",
-      "germanPath": "de/development/architecture.md"
+      "germanPath": "de/development/architecture.md",
+      "labelDE": "Architektur und Beiträge",
+      "labelEN": "Architecture and contributions",
+      "reviewEvidence": "source",
+      "reviewedAt": "2026-10-23"
     },
     {
       "id": "releases-support",
       "audience": "reference",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "reference/releases-and-support.md",
-      "germanPath": "de/reference/releases-and-support.md"
+      "germanPath": "de/reference/releases-and-support.md",
+      "labelDE": "Versionen und Hilfe",
+      "labelEN": "Versions and help",
+      "reviewEvidence": "source",
+      "reviewedAt": "2026-10-23"
     },
     {
       "id": "shared-navigation",
       "audience": "reference",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "reference/navigation-and-glossary.md",
-      "germanPath": "de/reference/navigation-and-glossary.md"
+      "germanPath": "de/reference/navigation-and-glossary.md",
+      "labelDE": "Wegweiser und Begriffe",
+      "labelEN": "Navigation and glossary",
+      "reviewEvidence": "source",
+      "reviewedAt": "2026-10-23"
     }
   ],
   "owners": {

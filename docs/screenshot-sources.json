@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "applicationCommit": "1251bf085fd62cf0d82113020217f9148aa7a851",
+  "capturedAt": "2026-10-23",
+  "environment": "isolated local demo; synthetic vehicles and CV values; no connected command station",
+  "languages": [
+    "de",
+    "en"
+  ],
+  "capture": "Playwright screenshots of the actual application; dialog element captures where applicable",
+  "privacy": "No production database, credentials, uploaded collection pictures or device writes",
+  "images": [
+    "accessories.png",
+    "appearance.png",
+    "backup.png",
+    "central-workspace.png",
+    "cv-analysis.png",
+    "cv-details.png",
+    "decoder-library.png",
+    "digital-settings.png",
+    "exhibition.png",
+    "functions.png",
+    "import-dialog.png",
+    "import-export.png",
+    "login.png",
+    "maintenance.png",
+    "media.png",
+    "overview.png",
+    "preferences.png",
+    "users.png",
+    "vehicle-editor.png",
+    "vehicle-set.png",
+    "vehicles.png"
+  ]
+}
