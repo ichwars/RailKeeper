@@ -319,3 +319,5 @@ was bereits geschrieben worden sein kann.
 - [Fahrzeugbilder und Beilagen](/de/guide/vehicles/media)
 - [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)
 - [Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv)
+
+[Bebilderte Suche und lokale Ersatzteilübung](search-walkthrough).

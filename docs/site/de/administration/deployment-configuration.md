@@ -17,7 +17,7 @@ Wähle zuerst, wo dein Bestand liegen soll: auf einem Windows-PC oder auf einem 
 2. Entpacke das gesamte ZIP in einen eigenen Programmordner.
 3. Starte `start-railkeeper.bat`.
 4. Lege beim ersten Aufruf deinen Admin an. Es gibt kein Standardpasswort.
-5. Prüfe unter **Einstellungen > Datenspeicher** den aktiven Datenordner.
+5. Prüfe unter **Einstellungen > Allgemein > Speichernutzung** den aktiven Datenordner.
 
 Der Standard ist `%LOCALAPPDATA%\RailKeeper\data`. Er liegt außerhalb des austauschbaren Programmordners. Bei einem alten `data`-Ordner neben der EXE übernimmt RailKeeper die Daten nur nach den [Sicherheitsregeln für Updates](system-operations). Vermische keine Datenbanken.
 
@@ -46,3 +46,11 @@ Für das Heimnetz oder einen Reverse Proxy muss der Betreiber die Erreichbarkeit
 | `RAILKEEPER_TRUSTED_PROXY_CIDRS` | Nur die eigenen vertrauenswürdigen Proxy-Netze |
 
 Die vollständige Konfiguration mit TLS, Uploadgrenzen, SMTP, OCR und Druckern steht im [Betriebshandbuch](https://github.com/ichwars/RailKeeper/blob/main/docs/production-runbook.md). Danach: [erstes Fahrzeug](../guide/quick-start) und [Sicherung](backup-restore).
+
+## Erststart im Browser prüfen
+
+<GuideFigure name="installation-first-admin" alt="Ersteinrichtung einer tatsächlich leeren lokalen Installation." caption="Die echte leere Demo verlangt ein eigenes erstes Administratorkonto. Sie zeigt den Browserablauf, keine Windows-Installation oder Docker-Inbetriebnahme." />
+
+Trage einen eigenen Benutzernamen, eine gültige E-Mail-Adresse und ein Passwort mit mindestens zwölf Zeichen samt Wiederholung ein. Prüfe nach der Einrichtung die Anmeldung und unter **Einstellungen > Allgemein > Speichernutzung** den Datenpfad.
+
+[Konten und Zwei-Faktor-Anmeldung einrichten](account-security-example) · [SMTP und Rücksetzlinks](smtp-password-reset) · [Update-Schrittfolge](system-operations).

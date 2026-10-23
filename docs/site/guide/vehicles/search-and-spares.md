@@ -298,3 +298,5 @@ have been stored.
 - [Vehicle images and attachments](/guide/vehicles/media)
 - [Vehicle maintenance and condition](/guide/vehicles/maintenance)
 - [Decoder, functions, and CV data](/guide/vehicles/decoder-cv)
+
+[Illustrated search and local spare-parts exercise](search-walkthrough).

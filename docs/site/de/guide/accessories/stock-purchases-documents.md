@@ -18,10 +18,8 @@ oder Einheiten bei Bedarf aus dem Mengenbestand in die Einzelverwaltung überfü
 Dokumente gehören zum selben Artikel, besitzen aber eigene Sofortaktionen zum Speichern. Dieses
 Kapitel beschreibt das stabile Verhalten von RailKeeper.
 
-Administratoren und Bearbeiter können diese Ressourcen verwalten. Betrachter und Planer können sie
-ansehen. Das Reservierungsrecht eines Planers umfasst jedoch keine Änderungen an Bestand, Käufen,
-Einzelstücken oder Dokumenten. Speichern Sie den Artikelstamm einmal, bevor Sie zugehörige
-Ressourcen anlegen.
+Administratoren und Bearbeiter können diese Ressourcen verwalten. Betrachter können sie ansehen.
+Speichere einen neuen Artikel einmal, bevor du zugehörige Ressourcen anlegst.
 
 ## Bestandsstrategie wählen
 

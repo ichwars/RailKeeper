@@ -46,7 +46,7 @@ So wird RailKeeper aktualisiert:
 2. Eine aktuelle Anwendungssicherung erstellen und RailKeeper beenden.
 3. Das ZIP in einen neuen Programmordner entpacken. Keine Datenbank in diesen Ordner kopieren.
 4. Die neue `RailKeeper.exe` starten.
-5. Anmelden, unter **Einstellungen > Datenspeicher** den aktiven Speicherort prüfen und den Bestand
+5. Anmelden, unter **Einstellungen > Allgemein > Speichernutzung** den aktiven Speicherort prüfen und den Bestand
    kontrollieren, bevor der bisherige Programmordner gelöscht wird.
 
 Ältere Standalone-Versionen speicherten Daten in einem Ordner `data` neben `RailKeeper.exe`. Beim
@@ -61,7 +61,7 @@ Quellkopien aufbewahren, bis Bestand und Anhänge geprüft wurden.
 Ein ausdrücklich konfiguriertes `RAILKEEPER_DATA_DIR` hat immer Vorrang und deaktiviert die
 automatische Altdatenübernahme. Der Pfad darf nicht auf einen austauschbaren Programmordner oder
 einen unzuverlässigen Wechseldatenträger zeigen. Administratoren sehen den exakten aktiven Pfad
-unter **Einstellungen > Datenspeicher**. Das Öffnen im Explorer steht nur bei einer lokalen Windows
+unter **Einstellungen > Allgemein > Speichernutzung**. Das Öffnen im Explorer steht nur bei einer lokalen Windows
 Standalone-Instanz zur Verfügung.
 
 Vor ausstehenden Datenbankmigrationen erstellt RailKeeper unter `safety-backups` eine geprüfte,

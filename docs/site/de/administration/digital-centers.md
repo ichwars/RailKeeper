@@ -30,7 +30,7 @@ Ein erfolgreicher Ping bestätigt noch nicht, dass RailKeeper die benötigten Di
 | --- | --- |
 | ESU ECoS | Lokdaten vergleichen, kontrolliert übernehmen, gespeicherte CVs lesen und bestätigte Schreibabläufe; gesonderter Bildtransfer |
 | Märklin CS3 | Lokdaten lesen und vergleichen; kein allgemeiner Schreibabgleich |
-| Z21 | Verbindungstest und Diagnose; kein vollständiger Loklistenimport |
+| Z21 | Verbindungstest, Diagnose und begrenzter Abgleich bereits bekannter Adressen; keine vollständige Lokliste oder CVs |
 | Intellibox 3 | Z21-kompatibler Verbindungstest und Diagnose; kein vollständiger Loklistenimport |
 
 ## ECoS: die zwei Anschlüsse nicht verwechseln
@@ -45,3 +45,5 @@ Bei getrennten Netzen müssen Route, Netzmaske, Gateway und gegebenenfalls Firew
 - [Lokdaten und gespeicherte CVs mit ECoS übernehmen](../guide/import-export/ecos-sync)
 - [Lokbilder vorbereiten und bestätigt übertragen](../guide/vehicles/locomotive-images)
 - [CS3-Lokdaten importieren](../guide/import-export/cs3-import)
+
+[Kompatibilität und tatsächliche Gerätebelege](../reference/command-station-compatibility) · [Z21-Adressabgleich](../guide/import-export/z21-compare).

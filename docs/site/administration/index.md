@@ -44,7 +44,7 @@ For an update:
 2. Create a current application backup and close RailKeeper.
 3. Extract the ZIP into a new program folder. Do not copy a database into that folder.
 4. Start the new `RailKeeper.exe`.
-5. Sign in, check the active storage location under **Settings > Data storage**, and verify the
+5. Sign in, check the active storage location under **Settings > General > Storage usage**, and verify the
    inventory before deleting the previous program folder.
 
 Older Standalone versions stored data in a `data` folder beside `RailKeeper.exe`. On first startup,
@@ -57,7 +57,7 @@ until the inventory and attachments have been verified.
 
 An explicitly configured `RAILKEEPER_DATA_DIR` always takes precedence and disables automatic
 legacy migration. Do not point it at a replaceable program folder or an unreliable removable
-drive. Administrators can see the exact active path in **Settings > Data storage**. Opening that
+drive. Administrators can see the exact active path in **Settings > General > Storage usage**. Opening that
 folder in Explorer is available only for a local Windows Standalone instance.
 
 Before pending database migrations, RailKeeper creates a validated private copy under

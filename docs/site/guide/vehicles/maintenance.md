@@ -166,3 +166,5 @@ A failed action does not undo an earlier successful independent maintenance or m
 - [Vehicle images and attachments](/guide/vehicles/media)
 - [Decoder, functions, and CV data](/guide/vehicles/decoder-cv)
 - [Article search, web documents, and spare parts](/guide/vehicles/search-and-spares)
+
+[Illustrated workshop exercise](../accessories/workshop-exercise).

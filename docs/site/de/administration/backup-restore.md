@@ -49,3 +49,5 @@ Die Wiederherstellung ersetzt die lokalen App-Daten und gespeicherten Medien dur
 | vollständige Datei-/Volumensicherung | Serverausfall und Rückkehr zum bisherigen Installationszustand, einschließlich privater lokaler Daten |
 
 Eine Kopie im selben Container schützt nicht vor dessen Verlust. Betreiber sichern Datenbank und Dateispeicher konsistent und bewahren eine Kopie außerhalb des Systems auf. [Updates und Betrieb](system-operations).
+
+[Bebilderte Wiederherstellungsübung auf einer getrennten Testinstallation](restore-exercise).

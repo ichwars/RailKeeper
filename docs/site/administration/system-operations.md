@@ -9,41 +9,79 @@ lastReviewed: 2026-10-23
 
 # Updates and operation
 
-**Goal:** Update the application while retaining your inventory and files. Check the running version first. A GitHub release and the current `main` development branch may differ.
+**Goal:** Change versions and verify that inventory and files remain complete.
+Use a separate test installation for your first exercise.
 
-## Before every update
+## 1. Record version and data location
 
-1. Create an [application backup](backup-restore) and keep it outside the installation.
-2. As operator, also take a consistent copy of the entire data folder or volume. This private copy includes local authentication data.
-3. Record version, configuration and active data path. Read the target version's notes.
-4. Plan a short interruption and prevent concurrent changes.
+Open **Settings > General > Updates** and record the current version.
+A published release may differ from the `main` development branch.
+An offered download does not install the update automatically.
 
-## Update Windows
+<GuideFigure name="update-version" alt="Update settings with the current RailKeeper version and manual check." caption="Actual browser UI from the local demo. This picture does not show a Windows or Docker update being performed." />
 
-Download the matching new ZIP from Releases. RailKeeper may offer a matching download under **Settings > General > Updates**. It does not install it automatically.
+On the same settings page, open **Storage usage**. As Admin, record the active data path and
+storage mode. Also check the actual startup or Compose configuration.
 
-Close RailKeeper, extract the ZIP into a new application folder and start the new application. Check the data path, sign-in, inventory and pictures. Retain the old application folder and backups until these checks succeed.
+<GuideFigure name="update-storage" alt="Storage usage with the separate demo's active data path and storage mode." caption="This path belongs to the synthetic test installation. Use the actual paths and volumes shown in your Windows or Docker environment." />
 
-Legacy data migration retains its source. If both the old and new locations contain databases, startup stops. Back up both folders separately and establish which collection is current. Do not merge folders.
+## 2. Back up before replacement
 
-## Update Docker
+1. Export an application backup and keep it outside the installation.
+2. Validate the file without restoring it. A [restore exercise](restore-exercise) on a second
+   installation helps establish the recovery procedure.
+3. Also take a consistent copy of the complete data directory or volume, including local
+   authentication and configuration. Stop the application or use a suitable consistent snapshot.
+4. Record startup options, public URL, port, image tag or ZIP version.
+5. Read target release notes and plan downtime without simultaneous edits.
 
-Select a verified image tag or digest. In your Compose configuration directory, run:
+## 3. Update Windows
+
+| Step | Action | Check |
+| --- | --- | --- |
+| Choose a package | Download the matching Windows-x64 ZIP from GitHub Releases | Intended version and architecture |
+| Stop the application | Shut down RailKeeper, not just its browser tab | Old process is no longer running |
+| Extract separately | Extract the entire ZIP into a new application directory | Startup file and bundled subdirectories are complete |
+| Start | Run `start-railkeeper.bat` in the new directory | Browser shows the new version |
+| Check data | Verify the same data path and storage mode | No accidental empty inventory |
+
+The default data directory is `%LOCALAPPDATA%\RailKeeper\data`; explicit configuration or portable
+mode can differ. Keep the old application directory and backups.
+If old and new databases both exist, assess them separately. Do not merge their directories.
+
+## 4. Update Docker
+
+Work in the existing Compose configuration directory. Retain the data volume and environment.
+Check the image tag or digest before replacement:
 
 ```sh
+docker compose config --images
 docker compose pull
 docker compose up -d
 docker compose ps
+docker compose logs --tail=100
 ```
 
-Retain the existing data volume. The automatic safety copy before database migrations resides inside the data folder; it does not replace an external backup.
+Check configuration and log output for private information before sharing it.
+The automatic pre-migration safety copy resides inside the data directory and is not an external backup.
 
-## Check after updating
+## 5. Recheck the same checkpoints
 
-- Does `/health` respond successfully?
-- Do sign-in, the vehicle list and editing a test record work?
-- Are pictures, CV provenance and important master data present?
-- Can you create and validate a backup?
-- Can the server reach the required command stations?
+| Check | Expected result |
+| --- | --- |
+| Version and `/health` | Intended version and successful health response |
+| Authentication | Your existing local account works |
+| Inventory and set | Known vehicles and members remain present |
+| Picture and attachment | Actually open each, rather than counting thumbnails |
+| CVs and functions | Readings, index pages, provenance and manual choices retained |
+| Maintenance and master data | Known records remain present |
+| New backup | Successful export and validation |
+| Station, if used | Reachable from the RailKeeper server; start with a connection test |
 
-For failures, check logs, the data path and version first. Older application code is not automatically compatible with a migrated database. Restore the complete saved state when rolling back. [Detailed runbook](https://github.com/ichwars/RailKeeper/blob/main/docs/production-runbook.md).
+For failures, record version, error and affected step. Check data path and logs.
+An older application is not automatically compatible with a migrated database.
+For rollback, restore the matching application, data and configuration snapshot together.
+
+**Evidence boundary:** The UI and restore exercise were tested in the local demo. Instructions
+were checked against startup/migration code and the runbook; these pictures are not Windows or Docker update acceptance.
+[Detailed runbook](https://github.com/ichwars/RailKeeper/blob/main/docs/production-runbook.md).

@@ -204,3 +204,5 @@ write.
 - [Overview, metrics, and data quality](/guide/overview/)
 - [Vehicle inventory and core records](/guide/vehicles/)
 - [Article search, web documents, and spare parts](/guide/vehicles/search-and-spares)
+
+[Illustrated workshop exercise](workshop-exercise).

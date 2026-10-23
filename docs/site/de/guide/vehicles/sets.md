@@ -1,39 +1,58 @@
 ---
-title: Fahrzeugsets
-description: Fahrzeugsets.
+title: Ein Wagenset anlegen und ändern
+description: Ein Wagenset anlegen und ändern.
 audience: user
 status: development
 reviewedVersion: main
 lastReviewed: 2026-10-23
 ---
 
-# Fahrzeugsets
+# Ein Wagenset anlegen und ändern
 
-Mehrere Wagen aus einer Verpackung gehören zusammen, sollen aber eigene Fahrzeugnummern und Details behalten. Dafür verwendest du ein **Set**.
+**Ziel:** Gemeinsame Produktdaten einmal pflegen und jeden Wagen einzeln wiederfinden.
+Verwende für die Übung Admin oder Editor und künstliche Daten.
 
+## 1. Ein Zweier-Set anlegen
 
-<GuideFigure name="vehicle-set" alt="Ein Set besitzt gemeinsame Produktdaten und individuell geführte Mitglieder." caption="Ein Set besitzt gemeinsame Produktdaten und individuell geführte Mitglieder. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
+1. Öffne **Fahrzeugbestand > Neues Fahrzeug** und wähle die Erfassung als **Set**.
+2. Nenne das Set **Demo-Wagenset**, Hersteller **Roco**, Artikelnummer **DEMO-SET**, Spurweite **H0**.
+3. Wähle eine passende Kategorie und Gattung, beispielsweise Personenwagen und Schnellzugwagen.
+4. Lege zwei Mitglieder an: **Demo-Wagen A** und **Demo-Wagen B**, mit unterschiedlichen Fahrzeugnummern.
+5. Prüfe die gemeinsamen Angaben und speichere.
 
-## Ein Set anlegen
+<GuideFigure name="vehicle-set" alt="Seterfassung mit gemeinsamen Angaben und einzelnen Mitgliedern." caption="Der Setentwurf bündelt Produktdaten; die Mitglieder behalten eigene Fahrzeugangaben. Künstliche Demo." />
 
-1. Öffne **Fahrzeugbestand** und **Neues Fahrzeug**.
-2. Wähle die Erfassung als **Set**.
-3. Trage die gemeinsamen Angaben ein: Bezeichnung, Hersteller, Artikelnummer und Spurweite.
-4. Lege mindestens zwei Mitglieder an. Gib jedem Wagen eine eigene Bezeichnung und Fahrzeugnummer.
-5. Prüfe die gemeinsamen Kauf- und Verpackungsangaben und speichere das Set.
+**Erwartung:** Eine eigene Set-Inventarnummer und zwei getrennte Fahrzeug-Inventarnummern.
+Die Setnummer kommt aus dem aktiven Set-Schema; die Mitglieder verwenden das passende Fahrzeugschema.
 
-**Ergebnis:** Das Set und seine Mitglieder gehören zusammen. Die einzelnen Fahrzeuge bleiben einzeln auffindbar und bearbeitbar. RailKeeper vergibt für Set und Fahrzeuge getrennte Inventarnummern.
+## 2. Mitglieder wiederfinden
 
-## Gemeinsame oder einzelne Angaben ändern?
+Suche im Bestand nach **Demo-Wagenset** und klappe die Setzeile am Pfeil auf.
+
+<GuideFigure name="set-members" alt="Aufgeklapptes Demo-Wagenset mit beiden einzeln geführten Wagen." caption="Das tatsächliche Zweier-Set in der Bestandsliste. Die Suche nach dem Setnamen hält die zugehörigen Mitglieder zusammen." />
+
+Öffne einen Wagen, wenn du seine Fahrzeugnummer oder individuelle Technik prüfen möchtest.
+Auf schmaleren Ansichten kann die Aktionstabelle seitlich gescrollt werden.
+
+## 3. Gemeinsame Angaben ändern
+
+Wähle **Bearbeiten** an der Setzeile, nicht an einer Mitgliedszeile.
+Ändere die gemeinsame Artikelnummer von **DEMO-SET** zu **DEMO-SET-2**.
+
+<GuideFigure name="set-shared-edit" alt="Setdialog mit geänderter gemeinsamer Artikelnummer vor dem Speichern." caption="Der gemeinsame Datensatz wird bearbeitet. Die individuellen Fahrzeugnummern der beiden Wagen werden dadurch nicht ersetzt." />
+
+Wähle **Speichern**. Öffne das Set erneut und prüfe **DEMO-SET-2**, zwei Mitglieder und die
+unterschiedlichen Fahrzeugnummern. Diese gemeinsame Änderung wurde in der Demo tatsächlich gespeichert.
 
 | Angabe | Wo bearbeiten? |
 | --- | --- |
-| gemeinsame Artikelnummer, EAN, Kauf- oder Verpackungsangaben | Set bearbeiten |
-| Fahrzeugnummer und technische Besonderheiten eines Wagens | das betreffende Fahrzeug bearbeiten |
-| gemeinsames Bild oder Darstellung des Sets | Upload-Bereich des Sets |
+| Gemeinsame Artikelnummer, EAN, Kauf- und Verpackungsangaben | Set |
+| Fahrzeugnummer oder individuelle technische Besonderheit | Betreffendes Fahrzeug |
+| Darstellung des Sets | Upload im Setdialog |
+| Bilder eines Wagens | Uploads des betreffenden Fahrzeugs |
 
-Die Setansicht zeigt die Mitglieder. Prüfe vor dem Speichern, ob du gerade den gemeinsamen Datensatz oder einen einzelnen Wagen änderst. Ein Fahrzeugbild und ein gemeinsames Setbild können verschiedene Aufgaben erfüllen.
+## 4. Zusammengehörige Daten übertragen
 
-## Daten übertragen
-
-Für einen vollständigen Umzug verwende eine [Anwendungssicherung](../../administration/backup-restore). Ein CSV-/JSON-Transfer kann die Setzugehörigkeit mitnehmen, enthält aber keine Medien und nicht alle Fahrzeug-Unterdaten. [Exportgrenzen](../import-export/exports).
+Ein CSV-/JSON-Transfer kann die Setstruktur übertragen, enthält aber keine Medien und nicht alle
+Fahrzeug-Unterdaten. Für einen vollständigen kompatiblen Umzug verwende eine Anwendungssicherung.
+[Exportgrenzen](../import-export/exports) · [Wiederherstellung üben](../../administration/restore-exercise).

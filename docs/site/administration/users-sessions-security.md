@@ -39,3 +39,5 @@ Use the personal password and two-factor settings under **Authentication**. Set 
 An Admin can inspect sessions and revoke those no longer needed. Password changes or administrative resets can invalidate existing sessions. After changing permissions, check access with a fresh sign-in to the affected account.
 
 Application backups do not transfer users or sign-in credentials. Operators also need a private server backup for full installation recovery.
+
+[Illustrated account and two-factor exercise](account-security-example) · [SMTP and password reset](smtp-password-reset).

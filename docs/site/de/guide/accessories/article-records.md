@@ -20,10 +20,8 @@ Artikelidentität und die artabhängigen Fachangaben in RailKeeper.
 
 ## Zugriffsrechte und Speichern
 
-Administratoren und Bearbeiter können Artikel anlegen und bearbeiten. Betrachter und Planer können
-sie ansehen, die Artikelfelder bleiben jedoch schreibgeschützt. Ein Planer kann im ansonsten
-schreibgeschützten Dialog Reservierungen anlegen oder stornieren. Daraus folgt kein Recht, den
-Artikel selbst zu ändern. Die Rolle Messe hat keinen allgemeinen Zugriff auf Zubehör.
+Administratoren und Bearbeiter können Artikel anlegen und bearbeiten. Betrachter können sie ansehen,
+die Artikelfelder bleiben schreibgeschützt. Messe besitzt keinen allgemeinen Zubehörzugriff.
 
 Der Dialog trennt **Artikel**, **Bestand**, **Kauf & Dokumente**, den artikelspezifischen Reiter
 und bei vorhandenen Daten **Verwendung & Historie**. Die zentrale Aktion **Änderungen speichern** schreibt das
