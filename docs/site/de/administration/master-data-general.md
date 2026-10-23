@@ -2,9 +2,9 @@
 title: Allgemeine Stammdaten
 description: Fahrzeugklassifizierungen, Hersteller, CV8-Kennungen und Funktionssymbole verwalten.
 audience: admin
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-10-21
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Allgemeine Stammdaten
@@ -128,9 +128,6 @@ eigener Eintrag kann ebenfalls nicht gelöscht werden. Wird ein Schreibvorgang f
 - [Inventarnummernschemata](./master-data-inventory-numbers)
 - [Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares)
 
-## Dokumentierte RailKeeper-Version
-
-Diese Seite dokumentiert RailKeeper **v0.1.21** und wurde zuletzt am 20.10.2026 geprüft.
 
 ## Decoderbibliothek
 

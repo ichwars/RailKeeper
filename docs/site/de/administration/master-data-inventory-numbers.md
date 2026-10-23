@@ -2,9 +2,9 @@
 title: Inventarnummernschemata
 description: Automatische Inventarnummern für Fahrzeuge und Zubehörartikel kollisionsfrei konfigurieren.
 audience: admin
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Inventarnummernschemata
@@ -13,13 +13,14 @@ Unter **Einstellungen > Allgemein > Inventarnummern** werden die automatischen K
 Fahrzeuge und Zubehörartikel gesteuert. Ein Schema enthält eindeutige Kategorie, Präfix, nächste
 Nummer, Stellenzahl, Aktivstatus und Vorschau.
 
-RailKeeper v0.1.20.3 stellt normalerweise diese aktiven Schemata bereit:
+RailKeeper stellt nach der Einrichtung normalerweise diese aktiven Schemata bereit:
 
 | Kategorie | Standardpräfix | Standardbeispiel | Verwendung |
 | --- | --- | --- | --- |
 | Fahrzeug | `RK-FAH` | `RK-FAH-000001` | Fahrzeug-Rückfall |
 | Lokomotive | `RK-LOK` | `RK-LOK-000001` | Kategorien mit `lok` |
 | Wagen | `RK-WAG` | `RK-WAG-000001` | Kategorien mit `wagen` oder `waggon` |
+| Set | `RK-SET` | `RK-SET-000001` | gemeinsamer Kopf eines Fahrzeugsets |
 | Artikel | `RK-ART` | `RK-ART-000001` | Zubehörartikel |
 
 ## Vergaberegeln
@@ -31,7 +32,8 @@ wird die Nummer nicht verbraucht.
 Bei einem Fahrzeug sucht RailKeeper zuerst ein aktives Schema, dessen Kategorie exakt der gewählten
 Fahrzeugkategorie entspricht. Danach folgen der erkannte Rückfall Lokomotive oder Wagen und zuletzt
 das Fahrzeugschema. Ein Zubehörartikel benötigt das aktive Artikelschema und besitzt keinen
-Rückfall.
+Rückfall. Fahrzeugsets verwenden das eigene aktive Schema **Set**; ihre Mitglieder erhalten
+Nummern aus dem jeweils passenden Fahrzeugschema.
 
 Das erzeugte Format lautet immer `PRÄFIX-NUMMER`. RailKeeper wandelt das gespeicherte Präfix in
 Großbuchstaben um, entfernt äußere Leerzeichen und ersetzt Leerzeichen durch Bindestriche. Die
@@ -40,7 +42,7 @@ Stellenzahl ist eine Mindestbreite, größere Zahlen werden niemals abgeschnitte
 
 Vor der Vergabe prüft RailKeeper die passende Datensatztabelle. Ist ein Kandidat bereits belegt,
 wird der nächste Wert versucht und der Zähler über die Kollision hinaus weitergestellt. Nach 500
-Versuchen endet die Suche. Fahrzeug- und Artikelnummern werden in ihren jeweiligen Tabellen und
+Versuchen endet die Suche. Fahrzeug-, Set- und Artikelnummern werden in ihren jeweiligen Tabellen und
 nicht in einem gemeinsamen globalen Namensraum geprüft.
 
 ## Schema anlegen oder bearbeiten
@@ -50,7 +52,7 @@ nicht in einem gemeinsamen globalen Namensraum geprüft.
 3. Vorschau prüfen und **Anlegen** wählen.
 4. Bei einem vorhandenen Schema die Werte direkt ändern und **Speichern** wählen.
 
-In v0.1.20.3 gibt es keinen Löschendpunkt. Ein ungenutztes Schema stattdessen deaktivieren. Das
+Es gibt keinen Löschendpunkt. Ein ungenutztes Schema stattdessen deaktivieren. Das
 Bearbeiten oder Deaktivieren nummeriert vorhandene Datensätze niemals um.
 
 Nur Admin und Editor dürfen Schemata anlegen oder speichern. Viewer können die Tabelle
@@ -93,7 +95,3 @@ Kollisionen sicher.
 - [Stammdatentransfer](./master-data-transfer)
 - [Fahrzeugbestand](/de/guide/vehicles/)
 - [Artikelstammdaten und Fachangaben](/de/guide/accessories/article-records)
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.

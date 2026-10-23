@@ -2,9 +2,9 @@
 title: General master data
 description: Maintain vehicle classifications, manufacturers, CV8 identities, and function symbols.
 audience: admin
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-10-21
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # General master data
@@ -122,9 +122,6 @@ authority instead of retrying the visible control.
 - [Inventory-number schemes](./master-data-inventory-numbers)
 - [Article search, web documents, and spare parts](/guide/vehicles/search-and-spares)
 
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.21** and was last reviewed on 2026-10-20.
 
 ## Decoder library
 

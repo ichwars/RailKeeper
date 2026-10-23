@@ -2,22 +2,21 @@
 title: Stammdatentransfer
 description: RailKeeper-Stammdaten mit dem versionierten JSON-Dokument exportieren und abgleichen.
 audience: admin
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Stammdatentransfer
 
-Der Bereich **Stammdatentransfer** unter **Einstellungen > Import/Export** überträgt kontrollierte
+Der Bereich **Stammdatentransfer** unter **Einstellungen > Backup** überträgt kontrollierte
 Einträge und ihre Beziehungen zwischen RailKeeper-Instanzen. Download und Upload sind ausschließlich
 für Admins erlaubt. Dies ist ein spezieller Konfigurationstransfer, weder eine Anwendungssicherung
 noch der Arbeitsbereich für den Fahrzeugdatei-Import und -Export.
 
 ## Inhalt des Dokuments
 
-Die heruntergeladene Datei heißt `railkeeper-stammdaten-YYYYMMDD-HHMMSS.json`. RailKeeper v0.1.20.3
-exportiert das Format `railkeeper-master-data` in Version 2 mit:
+Die heruntergeladene Datei heißt `railkeeper-stammdaten-YYYYMMDD-HHMMSS.json`. RailKeeper exportiert das Format `railkeeper-master-data` in Version 2 mit:
 
 - Erstellungszeitpunkt;
 - allen aktiven und inaktiven allgemeinen und Artikelstammdaten;
@@ -32,7 +31,7 @@ Anmeldedaten bleiben auch dort getrennt.
 
 ## Stammdaten exportieren
 
-1. **Einstellungen > Import/Export** als Admin öffnen.
+1. **Einstellungen > Backup** als Admin öffnen.
 2. Unter **Stammdatentransfer** die Downloadaktion wählen.
 3. JSON zusammen mit der zugehörigen RailKeeper-Version und einer kurzen Änderungsnotiz ablegen.
 4. Eine aktuelle Anwendungssicherung getrennt aufbewahren.
@@ -100,7 +99,3 @@ verwenden.
 - [Allgemeine Stammdaten](./master-data-general)
 - [Artikelstammdaten und Lagerorte](./master-data-articles)
 - [Arbeitsbereich Import und Export](/de/guide/import-export/)
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.

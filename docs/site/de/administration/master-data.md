@@ -13,7 +13,7 @@ RailKeeper verwendet kontrollierte Stammdaten überall dort, wo Datensätze geme
 Klassifizierungen, Symbole oder Nummerierungsregeln benötigen. Der größte Teil wird unter
 **Einstellungen > Daten** verwaltet. Inventarnummernschemata stehen unter
 **Einstellungen > Allgemein**, der JSON-Stammdatentransfer unter
-**Einstellungen > Import/Export**.
+**Einstellungen > Backup**.
 
 Dieser Bereich dokumentiert RailKeeper und trennt vier administrative Abläufe:
 
