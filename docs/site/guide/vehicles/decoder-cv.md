@@ -2,12 +2,20 @@
 title: Decoder, functions, and CV data
 description: Map digital functions, inspect speed curves, manage CV values, and store decoder files.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-10-20
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Decoder, functions, and CV data
+
+1. Open **Edit > CV > Files & import**. Import your exported CV TXT; a decoder project file is stored separately.
+2. Under **Explained clearly**, review address, driving behaviour and brakes. **All CV values** contains the complete raw data and index pages.
+3. Open **Control**, review suggested additions and symbols, then save together with **Save changes**. Manual entries remain protected.
+
+You do not need to understand every raw value. Explanations require matching model, firmware and addressing. [Look up a decoder](decoder-library).
+
+<GuideFigure name="cv-analysis" alt="Stored CVs receive plain explanations; technical details open separately." caption="Stored CVs receive plain explanations; technical details open separately. Synthetic demo data, not factory settings. Click for full size." />
 
 RailKeeper keeps function mappings, speed-curve data, CV values, and decoder project files with a
 vehicle. The connected workflow is available in **Control**, **Speed curve**, and **CV**.
@@ -16,7 +24,7 @@ vehicle. The connected workflow is available in **Control**, **Speed curve**, an
 
 **Settings > Data > General > Decoder library** navigates manufacturer, family and model. The initial
 directory covers ESU, ZIMO, Doehler & Haass, Lenz, Kühn, Uhlenbrock, Roco and PIKO. Reviewed model
-CV rules cover **LokPilot 5 micro DCC**, **MN180N18**, **DH18A**, **STANDARD+ V2**, **N45**, **76420**,
+CV rules include **LokPilot 5 micro DCC**, **MN180N18**, **DH18A**, **STANDARD+ V2**, **N45**, **76420**,
 **10882** and **56500**, subject to their model, OEM and firmware boundaries. Other models have product data and sources.
 DCC foundations have their own entry. **CV definitions** shows CV numbers, index pages, value ranges
 and bit meanings; search for `CV 29`, `291` or `ABC`. **Identification** explains the evidence required;
@@ -112,6 +120,8 @@ write action.
 :::
 
 ## Map digital functions F0-F31
+
+<GuideFigure name="functions" alt="Control: review and save function keys together." caption="Control: review and save function keys together. Synthetic demo data. Click for full size." />
 
 Open **Control**. **Function keys** is the shared editing list. **Only assigned** is on by default
 and includes saved, manually added and reliably CV-mapped keys. Counts distinguish recognized and
@@ -211,6 +221,8 @@ points, or CV 29 is unknown, RailKeeper falls back to the most useful available 
 changes only the display.
 
 ## Manage CV values manually
+
+<GuideFigure name="cv-details" alt="The side panel shows the raw value, index page and stored provenance." caption="The side panel shows the raw value, index page and stored provenance. Synthetic demo data. Click for full size." />
 
 Open **CV**. The summary shows the number of **CV values**, **Profiles**, and **Files**.
 
@@ -404,8 +416,7 @@ clear their stored source identifier, so skipping this sequence can leave stale 
 ## Use an ECoS preview as an input path
 
 An unsaved ECoS locomotive draft can supply CV values and function mappings before the vehicle
-exists. The **CV** tab shows the first 18 values, the count of additional values, and the source
-locomotive. **Speed curve** can derive its read-only display from the same draft. **Control** loads
+exists. The **CV** tab shows the complete value list with pagination and the source locomotive. **Speed curve** can derive its read-only display from the same draft. **Control** loads
 the draft's function mappings into the editable function rows.
 
 With an ECoS draft active, saving the core vehicle is a special multi-step workflow. RailKeeper
@@ -417,7 +428,9 @@ repeat only the missing work.
 
 After successful completion, normal function, CV, and file actions use the stored vehicle. This
 chapter does not cover ECoS connection setup, raw probes, synchronization, conflict handling, or
-writes to a command station. Those operations belong to the planned Digital centers chapter.
+writes to a command station. See [ECoS sync](../import-export/ecos-sync) and [command-station setup](../../administration/digital-centers) for those workflows.
+
+ECoS values retain their own provenance. A clear CV8 manufacturer and matching saved decoder type can enable model rules. Missing index pages remain unknown; a library match does not invent them.
 
 ## Protect data during writes
 
@@ -472,11 +485,6 @@ No failed later request rolls back an earlier successful request in the same seq
 - [Vehicle images and attachments](/guide/vehicles/media)
 - [Vehicle maintenance and condition](/guide/vehicles/maintenance)
 - [Article search, web documents, and spare parts](/guide/vehicles/search-and-spares)
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
-
 
 ## Digital settings in the vehicle dialog
 

@@ -2,12 +2,16 @@
 title: Personal preferences
 description: Configure language, start page, date and time choices, printing, and sidebar order.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Personal preferences
+
+Open **Settings > General**, choose your language and preferred start view. Check it after reloading. Language applies to this browser; other preferences are saved with your user profile.
+
+<GuideFigure name="preferences" alt="Adjust language and default view here." caption="Adjust language and default view here. Synthetic demo data, not factory settings. Click for full size." />
 
 Open **Settings > General** for the personal preference controls. Changes take effect immediately;
 there is no separate Save button.
@@ -17,7 +21,7 @@ there is no separate Save button.
 Choose **Deutsch** or **English**. RailKeeper immediately changes the interface text and the
 document language marker used by the browser.
 
-The language choice is stored only in the current browser in stable v0.1.20.3. It does not follow the
+The language choice is stored only in the current browser in stable the current version. It does not follow the
 user profile to another browser or device. A browser without a stored choice starts in German.
 
 ## Default view
@@ -39,7 +43,7 @@ Keep these boundaries in mind:
 The date preference offers **System default**, a German day-month-year format, and ISO
 year-month-day. The time preference offers **System default**, 24-hour, and 12-hour time.
 
-RailKeeper stores and synchronizes both choices. Stable v0.1.20.3 does not yet connect these settings
+RailKeeper stores and synchronizes both choices. Stable the current version does not yet connect these settings
 to all date and time output across the application. Many current views continue to format values
 from the selected interface language or their own fixed formatter. Treat the controls as prepared
 preferences, not as a guaranteed global override.
@@ -57,7 +61,7 @@ When RailKeeper can discover a system default while **System dialog / default pr
 it stores the detected named printer as the preference. Printer discovery itself is Admin-only.
 Other roles can still retain and change the general print preference.
 
-Stable v0.1.20.3 stores this value but does not route all print actions to the chosen destination.
+Stable the current version stores this value but does not route all print actions to the chosen destination.
 Vehicle inventory printing, exhibition reports, and Import/Export printing still open the browser
 print dialog. The browser and operating system remain responsible for choosing the real printer or
 **Save as PDF** destination.
@@ -86,12 +90,8 @@ sidebar in the current browser; that collapsed state is not part of these profil
 | Symptom | Check |
 | --- | --- |
 | A preference changed locally but not on another browser | Reload Settings while signed in as the same user. The background profile write may have failed even though the local value remained active. |
-| The interface language differs on another device | Set it again there. Language is browser-local in v0.1.20.3. |
+| The interface language differs on another device | Set it again there. Language is browser-local currently. |
 | The selected start page is not opened after sign-in | Role-based login routing and direct URLs take precedence. Open the root address to test the stored default. |
 | A hidden page can still be opened | Hiding changes navigation only, not authorization or routing. |
 | Named printers do not appear | System-printer discovery requires Admin and depends on the server operating system or printer configuration. |
-| The selected printer or date format has no effect | These preferences are stored but are not yet used globally by every v0.1.20.3 workflow. |
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
+| The selected printer or date format has no effect | These preferences are stored but are not yet used globally by every the current version workflow. |

@@ -2,9 +2,9 @@
 title: Stammdaten-Administration
 description: Stammdaten, Inventarnummern, Lagerorte und Transfer in RailKeeper sicher verwalten.
 audience: admin
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-28
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Stammdaten-Administration
@@ -15,7 +15,7 @@ Klassifizierungen, Symbole oder Nummerierungsregeln benötigen. Der größte Tei
 **Einstellungen > Allgemein**, der JSON-Stammdatentransfer unter
 **Einstellungen > Import/Export**.
 
-Dieser Bereich dokumentiert RailKeeper v0.1.20.3 und trennt vier administrative Abläufe:
+Dieser Bereich dokumentiert RailKeeper und trennt vier administrative Abläufe:
 
 - [Allgemeine Stammdaten](./master-data-general) für Fahrzeuge, Hersteller, CV8-Kennungen und
   Funktionssymbole.
@@ -23,6 +23,9 @@ Dieser Bereich dokumentiert RailKeeper v0.1.20.3 und trennt vier administrative 
 - [Inventarnummernschemata](./master-data-inventory-numbers) für automatische Fahrzeug- und
   Artikelkennungen.
 - [Stammdatentransfer](./master-data-transfer) für vollständigen JSON-Export und Abgleich.
+
+
+<GuideFigure name="decoder-library" alt="Die Decoderbibliothek ist ein Teil der Stammdaten; weitere Bereiche erreichst du links." caption="Die Decoderbibliothek ist ein Teil der Stammdaten; weitere Bereiche erreichst du links. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 ## Zugriffsrechte
 
@@ -37,7 +40,7 @@ Dieser Bereich dokumentiert RailKeeper v0.1.20.3 und trennt vier administrative 
 
 Viewer erben den Lesezugriff. Die Artikelverwaltung zeigt ausdrücklich einen
 Nur-Lese-Zustand. Einige Bedienelemente für allgemeine Stammdaten und Inventarnummern können für
-diese Rollen in v0.1.20.3 trotzdem sichtbar bleiben, der Server weist aber jeden Schreibvorgang ab.
+diese Rollen derzeit trotzdem sichtbar bleiben, der Server weist aber jeden Schreibvorgang ab.
 Ein sichtbares Bedienelement erteilt niemals eine Berechtigung.
 
 Ein reines Messe-Konto kann die Einstellungen nicht öffnen. Es kann nur die aktiven
@@ -88,7 +91,3 @@ zusammen mit dem Bestand wiederherstellbar sein müssen, ist eine Anwendungssich
 - [Zubehörübersicht](/de/guide/accessories/)
 - [Fahrzeugbestand](/de/guide/vehicles/)
 - [Installation und Administration](./)
-
-## Dokumentierte RailKeeper-Version
-
-Dieser Bereich dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 28.08.2026 geprüft.

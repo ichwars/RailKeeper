@@ -2,12 +2,16 @@
 title: Read CS3 locomotives without writing
 description: Safely read Märklin CS3 locomotives and compare them in the Digital centers workspace.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-28
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Read CS3 locomotives without writing
+
+As Admin, configure CS3 under **Settings > Command stations** and test its connection. Then open **Command stations > Read data**. Review UID, name, address and protocol. This CS3 workflow writes nothing to the station and does not import CVs or pictures.
+
+<GuideFigure name="digital-settings" alt="Configure CS3 under Command stations; this demo uses no hardware." caption="Configure CS3 under Command stations; this demo uses no hardware. Synthetic demo data, not factory settings. Click for full size." />
 
 RailKeeper reads the locomotive roster of an active Märklin CS3 or CS3 Plus over HTTP into the
 existing **Digital centers** workspace. The workflow creates a persistent comparison preview. It
@@ -76,7 +80,3 @@ the preview.
 | No supported roster API | Check firmware and web-app availability. Both known endpoints returned 404. |
 | Invalid locomotive data | A locomotive UID, name, decoder address, or protocol is outside the safe limits. The complete response is rejected. |
 | Locomotive appears as a conflict | Several RailKeeper vehicles match address and protocol. Review the assignment manually. |
-
-## Documented RailKeeper version
-
-This chapter documents RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-28.

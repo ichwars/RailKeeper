@@ -35,25 +35,38 @@ export default defineConfig({
         nav: [
           { text: "Benutzerhandbuch", link: "/de/guide/" },
           { text: "Administration", link: "/de/administration/" },
-          { text: "Entwicklung", link: "/de/development/" },
-          { text: "Referenz", link: "/de/reference/" },
+          { text: "Hilfe und Begriffe", link: "/de/reference/navigation-and-glossary" },
+          { text: "Technik", items: [{ text: "Entwicklung", link: "/de/development/" }, { text: "Referenz", link: "/de/reference/" }] },
         ],
         sidebar: {
           "/de/guide/": [
             {
-              text: "Benutzerhandbuch",
+              text: "Start",
               items: [
-                { text: "Überblick", link: "/de/guide/" },
+                { text: "Was möchtest du erledigen?", link: "/de/guide/" },
+                { text: "Dein erstes Fahrzeug", link: "/de/guide/quick-start" },
                 { text: "Erste Schritte", link: "/de/guide/getting-started/" },
                 { text: "Dashboard und Datenqualität", link: "/de/guide/overview/" },
+              ],
+            },
+            {
+              text: "Fahrzeuge",
+              items: [
                 { text: "Fahrzeugbestand", link: "/de/guide/vehicles/" },
+                { text: "Fahrzeugsets", link: "/de/guide/vehicles/sets" },
                 { text: "Fahrzeugbilder und Beilagen", link: "/de/guide/vehicles/media" },
                 { text: "Fahrzeugwartung und Zustand", link: "/de/guide/vehicles/maintenance" },
+                { text: "Artikelsuche, Web-Dokumente und Ersatzteile", link: "/de/guide/vehicles/search-and-spares" },
+              ],
+            },
+            {
+              text: "Decoder und Zentralen",
+              items: [
                 { text: "Decoder, Funktionen und CV-Daten", link: "/de/guide/vehicles/decoder-cv" },
-                {
-                  text: "Artikelsuche, Web-Dokumente und Ersatzteile",
-                  link: "/de/guide/vehicles/search-and-spares",
-                },
+                { text: "Decoder nachschlagen", link: "/de/guide/vehicles/decoder-library" },
+                { text: "Lokbilder für Zentralen", link: "/de/guide/vehicles/locomotive-images" },
+                { text: "CS3-Lokdaten read-only lesen", link: "/de/guide/import-export/cs3-import" },
+                { text: "ECoS-Lokabgleich", link: "/de/guide/import-export/ecos-sync" },
               ],
             },
             {
@@ -79,8 +92,6 @@ export default defineConfig({
                 { text: "Überblick und Berechtigungen", link: "/de/guide/import-export/" },
                 { text: "Fahrzeugdateien importieren", link: "/de/guide/import-export/file-import" },
                 { text: "Bestand exportieren", link: "/de/guide/import-export/exports" },
-                { text: "ECoS-Lokabgleich", link: "/de/guide/import-export/ecos-sync" },
-                { text: "CS3-Lokdaten read-only lesen", link: "/de/guide/import-export/cs3-import" },
               ],
             },
             {
@@ -97,6 +108,11 @@ export default defineConfig({
               text: "Administration",
               items: [
                 { text: "Überblick", link: "/de/administration/" },
+                { text: "Installieren", link: "/de/administration/deployment-configuration" },
+                { text: "Konten und Rechte", link: "/de/administration/users-sessions-security" },
+                { text: "Sichern und wiederherstellen", link: "/de/administration/backup-restore" },
+                { text: "Zentrale einrichten", link: "/de/administration/digital-centers" },
+                { text: "Updates und Betrieb", link: "/de/administration/system-operations" },
                 { text: "Stammdaten-Administration", link: "/de/administration/master-data" },
                 { text: "Allgemeine Stammdaten", link: "/de/administration/master-data-general" },
                 { text: "Artikelstammdaten und Lagerorte", link: "/de/administration/master-data-articles" },
@@ -108,7 +124,7 @@ export default defineConfig({
           "/de/development/": [
             {
               text: "Entwicklung",
-              items: [{ text: "Überblick", link: "/de/development/" }],
+              items: [{ text: "Überblick", link: "/de/development/" }, { text: "Architektur und Beiträge", link: "/de/development/architecture" }],
             },
           ],
           "/de/reference/": [
@@ -117,6 +133,8 @@ export default defineConfig({
               items: [
                 { text: "Überblick", link: "/de/reference/" },
                 { text: "Dokumentationsabdeckung", link: "/de/reference/coverage" },
+                { text: "Begriffe und Navigation", link: "/de/reference/navigation-and-glossary" },
+                { text: "Versionen und Hilfe", link: "/de/reference/releases-and-support" },
               ],
             },
           ],
@@ -136,8 +154,11 @@ export default defineConfig({
           prev: "Vorherige Seite",
           next: "Nächste Seite",
         },
-        outlineTitle: "Auf dieser Seite",
-        lastUpdated: { text: "Zuletzt geprüft" },
+        outline: { label: "Auf dieser Seite" },
+        lastUpdated: {
+          text: "Letzte Änderung",
+          formatOptions: { dateStyle: "medium", timeStyle: "short", forceLocale: true },
+        },
       },
     },
   },
@@ -152,25 +173,38 @@ export default defineConfig({
     nav: [
       { text: "User Guide", link: "/guide/" },
       { text: "Administration", link: "/administration/" },
-      { text: "Development", link: "/development/" },
-      { text: "Reference", link: "/reference/" },
+      { text: "Help and terms", link: "/reference/navigation-and-glossary" },
+      { text: "Technical details", items: [{ text: "Development", link: "/development/" }, { text: "Reference", link: "/reference/" }] },
     ],
     sidebar: {
       "/guide/": [
         {
-          text: "User Guide",
+          text: "Start here",
           items: [
-            { text: "Overview", link: "/guide/" },
+            { text: "Choose a task", link: "/guide/" },
+            { text: "Your first vehicle", link: "/guide/quick-start" },
             { text: "Getting started", link: "/guide/getting-started/" },
             { text: "Dashboard and data quality", link: "/guide/overview/" },
+          ],
+        },
+        {
+          text: "Vehicles",
+          items: [
             { text: "Vehicle inventory", link: "/guide/vehicles/" },
+            { text: "Vehicle sets", link: "/guide/vehicles/sets" },
             { text: "Vehicle images and attachments", link: "/guide/vehicles/media" },
             { text: "Vehicle maintenance and condition", link: "/guide/vehicles/maintenance" },
+            { text: "Article search, web documents, and spare parts", link: "/guide/vehicles/search-and-spares" },
+          ],
+        },
+        {
+          text: "Decoders and command stations",
+          items: [
             { text: "Decoder, functions, and CV data", link: "/guide/vehicles/decoder-cv" },
-            {
-              text: "Article search, web documents, and spare parts",
-              link: "/guide/vehicles/search-and-spares",
-            },
+            { text: "Look up a decoder", link: "/guide/vehicles/decoder-library" },
+            { text: "Command-station images", link: "/guide/vehicles/locomotive-images" },
+            { text: "Read CS3 locomotives without writing", link: "/guide/import-export/cs3-import" },
+            { text: "ECoS locomotive sync", link: "/guide/import-export/ecos-sync" },
           ],
         },
         {
@@ -196,8 +230,6 @@ export default defineConfig({
             { text: "Overview and permissions", link: "/guide/import-export/" },
             { text: "Import vehicle files", link: "/guide/import-export/file-import" },
             { text: "Export inventory", link: "/guide/import-export/exports" },
-            { text: "ECoS locomotive sync", link: "/guide/import-export/ecos-sync" },
-            { text: "Read CS3 locomotives without writing", link: "/guide/import-export/cs3-import" },
           ],
         },
         {
@@ -214,7 +246,12 @@ export default defineConfig({
           text: "Administration",
           items: [
             { text: "Overview", link: "/administration/" },
-            { text: "Master-data administration", link: "/administration/master-data" },
+            { text: "Install", link: "/administration/deployment-configuration" },
+                { text: "Accounts and permissions", link: "/administration/users-sessions-security" },
+                { text: "Backup and restore", link: "/administration/backup-restore" },
+                { text: "Connect a command station", link: "/administration/digital-centers" },
+                { text: "Updates and operation", link: "/administration/system-operations" },
+                { text: "Master-data administration", link: "/administration/master-data" },
             { text: "General master data", link: "/administration/master-data-general" },
             { text: "Article master data and locations", link: "/administration/master-data-articles" },
             { text: "Inventory-number schemes", link: "/administration/master-data-inventory-numbers" },
@@ -225,7 +262,7 @@ export default defineConfig({
       "/development/": [
         {
           text: "Development",
-          items: [{ text: "Overview", link: "/development/" }],
+          items: [{ text: "Overview", link: "/development/" }, { text: "Architecture and contributions", link: "/development/architecture" }],
         },
       ],
       "/reference/": [
@@ -234,12 +271,17 @@ export default defineConfig({
           items: [
             { text: "Overview", link: "/reference/" },
             { text: "Documentation Coverage", link: "/reference/coverage" },
+            { text: "Terms and navigation", link: "/reference/navigation-and-glossary" },
+            { text: "Versions and support", link: "/reference/releases-and-support" },
           ],
         },
       ],
     },
-    outlineTitle: "On this page",
-    lastUpdated: { text: "Last reviewed" },
+    outline: { label: "On this page" },
+    lastUpdated: {
+      text: "Last updated",
+      formatOptions: { dateStyle: "medium", timeStyle: "short", forceLocale: true },
+    },
     search: {
       provider: "local",
       options: {

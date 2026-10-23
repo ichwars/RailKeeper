@@ -2,12 +2,16 @@
 title: Lists and locking
 description: Create exhibition lists, control their lock state, and remove them safely.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Lists and locking
+
+Select the correct event first. Check list status and the displayed lock notice before editing. Agree responsibility and completion with other users; a lock does not replace checking which vehicles are actually taken.
+
+<GuideFigure name="exhibition" alt="List status and locks help when preparing events together." caption="List status and locks help when preparing events together. Synthetic demo data, not factory settings. Click for full size." />
 
 An exhibition list groups the locomotive entries for one named exhibition or running date. Admin
 prepares and controls lists; Messe concentrates on operating entries inside an open list.
@@ -41,7 +45,7 @@ reloads the list table. The create operation is an immediate server write; the d
 only local form state until it succeeds.
 
 If either required field is empty, the browser prevents normal submission. The server also rejects
-blank values after trimming them. In stable v0.1.20.3 the server checks that the date value is not
+blank values after trimming them. In stable the current version the server checks that the date value is not
 empty; the date control supplies the normal calendar value.
 
 ## Select, sort, and inspect lists
@@ -123,8 +127,3 @@ log. Audit-log operation belongs to administration and is not documented on this
 - [Exhibition workspace](./)
 - [Entries and printing](./entries-and-printing)
 - [User Guide overview](/guide/)
-
-## Documented RailKeeper version
-
-This page describes stable RailKeeper v0.1.20.3. Development behavior on `main` may differ and is
-not part of this user workflow.

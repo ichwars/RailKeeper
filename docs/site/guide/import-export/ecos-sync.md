@@ -1,132 +1,58 @@
 ---
-title: ECoS locomotive sync
-description: Read, review, import, and explicitly write selected ESU ECoS locomotive data.
+title: Import ECoS locomotives and cached CVs
+description: Import ECoS locomotives and cached CVs.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
-# ECoS locomotive sync
+# Import ECoS locomotives and cached CVs
 
-The ECoS workspace reads locomotive master data, static function descriptions, and exposed CV
-values from an active ESU ECoS. Every locomotive remains in a work list until an Admin opens it in
-the vehicle editor, saves it, or deliberately skips it.
+**Goal:** Compare ECoS locomotive data with your inventory and import cached CV values. This requires Admin and a [configured ECoS connection](../../administration/digital-centers).
 
-All ECoS API routes are Admin-only. Configure and test the command station under **Settings >
-Digital command stations** before using this page. Host and port are read-only in the import
-workspace.
 
-## Supported and unsupported command stations
+<GuideFigure name="central-workspace" alt="Command stations is a separate workspace; this demo has no station connected." caption="Command stations is a separate workspace; this demo has no station connected. Synthetic demo data, not factory settings. Click for full size." />
 
-| Active provider | Import/Export behavior in v0.1.20.3 |
+## 1. Read the list and select the correct locomotive
+
+1. Open **Command stations** in the sidebar.
+2. Check the active ECoS and select **Read data**.
+3. Select the locomotive in the worklist.
+4. Compare name, address, protocol and ECoS object ID with the actual vehicle.
+
+A saved external assignment is useful evidence. Address and name alone do not prove identity. Review suggested RailKeeper matches before importing. The comparison worklist is stored on the server and can be reopened later.
+
+## 2. Read all cached CVs
+
+Open **Stored ECoS CV values** and start **Read all stored CVs**. RailKeeper queries CV1 through CV1024 in small batches and displays progress. You can stop and resume. This does not read the decoder again on a programming track: it retrieves only the ECoS's stored CV cache.
+
+Missing values remain unknown rather than becoming zero. Creating or assigning a vehicle includes the complete retrieval. Once retrieval is complete, **Add CV values** is available for an already assigned vehicle.
+
+## 3. Review the import
+
+Check counts, values and the target inventory. Existing values are not silently replaced; differences remain traceable. Indexed CVs and CVs without an index are separate records. ECoS remains identifiable as the source.
+
+CV8 may establish the manufacturer. Model-specific rules also require a matching model identity, such as the vehicle's saved decoder type. The library cannot reconstruct missing index pages: ambiguous values retain their unresolved identity. [Understand CVs](../vehicles/decoder-cv) and [decoder library](../vehicles/decoder-library).
+
+## 4. Create or assign a vehicle
+
+Choose the appropriate worklist action. For a new vehicle, complete required fields the station cannot supply, such as manufacturer, gauge and type. Review an existing-vehicle assignment particularly carefully. Save only after checking it.
+
+Vehicle creation with external assignment has several steps. If a later action fails, inspect the saved vehicle and job before creating another one to avoid duplicates.
+
+## What can be written back?
+
+Reading and importing into RailKeeper does not change decoder CVs. The separate write workflow previews locomotive-data changes and requires confirmation. Image transfer and assignment have their [own preview](../vehicles/locomotive-images). CV import does not program a decoder or replace a LokProgrammer project.
+
+## When something is missing
+
+| Observation | Next step |
 | --- | --- |
-| ESU ECoS | Read workflow, vehicle handoff, CV and static-function suggestions, and reviewed write sync are available. |
-| Märklin CS3 | Read-only import of UID, name, address, and protocol into the same comparison workspace. See [Read CS3 locomotives without writing](./cs3-import). |
-| Z21 or Intellibox 3 | RailKeeper shows that the import path is prepared but not implemented. |
-| No active provider | The page shows a link to the Digital command-station settings. |
+| Website works, protocol connection fails | Check TCP port 15471 from the RailKeeper server; the website uses a different port |
+| Fewer CVs than in LokProgrammer | ECoS supplies only its cache; import the complete TXT export in the vehicle if needed |
+| A value has no explanation | Check model, firmware and index context; missing evidence stays unresolved |
+| Wrong vehicle match | Stop the import and correct the assignment |
+| Incomplete retrieval | Check progress and errors, then resume deliberately |
 
-RailKeeper does not monitor speed, direction, active function states, locomotive images, or layout
-objects in this workflow. Runtime attributes such as speed, direction, and function state are
-excluded from the review. Only static function descriptions and CV values exposed by the ECoS
-locomotive object are candidates.
-
-## Read the locomotive work list
-
-With an enabled ECoS and stored host:
-
-1. Open **Import/Export**.
-2. Check the live-monitor state and stored host and port.
-3. Choose **Fetch data**.
-4. Wait for the locomotive count and work list.
-5. Review the ECoS name, object ID, address, detected RailKeeper match, decoder hint, CV count, and
-   current work-list status.
-
-RailKeeper polls the ECoS live status every 15 seconds. When the live monitor is already connected,
-the page automatically fetches once if no probe or import session is active.
-
-A successful fetch creates a work session in the browser tab's session storage. Returning from the
-vehicle editor restores the list and its **open**, **editing**, **saved**, or **skipped** states.
-Closing the browser tab ends that browser-side persistence.
-
-## How an existing vehicle is suggested
-
-RailKeeper checks candidates in this order:
-
-1. an existing external ECoS mapping with the same ECoS object ID;
-2. the same decoder address in **Digital / decoder no.**;
-3. a normalized match against vehicle designation or vehicle number.
-
-Name comparison ignores case, umlaut spelling, punctuation, and a leading `BR` or `V` before a
-number. For longer names it also accepts containment. These matches are suggestions, not identity
-proof. Verify the inventory number and vehicle before updating or writing to the ECoS.
-
-## Review CV and function suggestions
-
-The work list and CV preview show only values returned by the ECoS. Standard CV definitions add a
-meaning, category, and interpretation where possible. CV8 can identify the decoder manufacturer
-from RailKeeper master data; an absent or unknown CV8 remains visibly unresolved. Missing CVs do
-not block the import.
-
-Static ECoS function descriptions become F-key suggestions and are matched to RailKeeper symbols
-where possible. Active on/off state is never imported. Review the function and CV previews in the
-vehicle editor before saving.
-
-## Create or update one vehicle
-
-Choose **Create vehicle** for an unmatched locomotive or **Update match** for a suggestion. The
-generic CSV/XML/JSON review is not used. RailKeeper opens the vehicle editor directly and carries:
-
-- ECoS object ID, name, address, protocol, and profile as source context;
-- name, category, digital state, decoder address, decoder type, and description as vehicle-field
-  suggestions;
-- an external ECoS mapping;
-- static function suggestions;
-- CV-value suggestions.
-
-For a new vehicle, Category defaults to the stored German value `Lokomotive`, even in the English
-interface. Manufacturer, Designation, Gauge, Category, and Subtype remain required. Fields that the
-ECoS could not supply are highlighted and must be resolved before saving.
-
-Saving runs several writes in sequence: vehicle core data first, then the ECoS mapping, CV values,
-and configured functions. Only after the full sequence succeeds does the work-list row become
-**saved** and RailKeeper return to the ECoS session. If a later step fails, the core vehicle may
-already exist or be updated. Inspect it before retrying to avoid duplicates or repeated values.
-
-Use **Skip** when a locomotive should remain unchanged. **Next open loco** selects the next open
-entry, then an entry still marked editing when no open one remains.
-
-## Write reviewed RailKeeper data to the ECoS
-
-Write sync is available only for a locomotive with a detected RailKeeper match:
-
-1. Verify that the suggested vehicle is correct.
-2. Choose **Check sync**. This is a dry run and does not write to the command station.
-3. Review up to three displayed differences between the current ECoS value and the desired
-   RailKeeper value.
-4. If changes exist, choose **Write to ECoS**.
-5. Confirm the browser prompt for that locomotive.
-
-The stable write scope is deliberately narrow: Name, Address, and Protocol only. Empty desired
-values are not written. RailKeeper sends the combined ECoS change only after explicit confirmation,
-then refreshes the RailKeeper vehicle and marks its external mapping as synchronized when possible.
-
-Writing does not send CVs, function definitions, speed, direction, active functions, images, or
-layout objects to the command station.
-
-## Troubleshooting
-
-| Symptom | Check |
-| --- | --- |
-| The ECoS workspace is absent or disabled | Confirm an Admin enabled ECoS and stored a non-empty host under Digital command stations. |
-| A CS3 is active | Use the read-only CS3 workflow. ECoS-specific CV, function, and write features are unavailable there. |
-| Z21 or Intellibox 3 is active | These adapters support connection tests and diagnostics, but not locomotive import yet. |
-| Fetching fails | Check network reachability, stored host and port, ECoS availability, and Admin role. |
-| A wrong vehicle is suggested | Do not update or sync it. Correct the external mapping or decoder/name data through the vehicle workflow first. |
-| A CV or function is missing | The ECoS locomotive object did not expose it, or RailKeeper did not recognize it as a static supported value. Missing CVs do not block saving. |
-| The work list returned after saving but the row is not saved | The complete vehicle, mapping, CV, and function sequence did not finish. Inspect the vehicle and error before retrying. |
-| **Write to ECoS** is not visible | Run **Check sync** first. The write button appears only for a match with a non-empty, unapplied change plan. |
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
+The [CS3 read workflow](cs3-import) supplies different data. Z21 and Intellibox 3 do not yet offer an equivalent locomotive/CV import.

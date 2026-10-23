@@ -1,28 +1,28 @@
 ---
 layout: home
 title: RailKeeper-Dokumentation
-description: Vollständige Benutzer-, Administrations- und Entwicklungsdokumentation für RailKeeper.
+description: Bebilderte Anleitungen für den Alltag mit RailKeeper, Installation und technische Hintergründe.
 audience: reference
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-15
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 hero:
   name: RailKeeper-Dokumentation
-  text: Werkstattwissen direkt beim Projekt
-  tagline: Das Handbuch folgt v0.1.20.3, die Entwicklungsdokumentation dem Stand von main.
+  text: RailKeeper Schritt für Schritt bedienen
+  tagline: Fahrzeuge erfassen, CVs verstehen, Bilder vorbereiten und Daten sichern. Deutsch und Englisch, mit Beispielen aus einer getrennten Demo-Installation.
   image:
     src: /brand/railkeeper-logo.png
     alt: RailKeeper
   actions:
     - theme: brand
-      text: Benutzerhandbuch öffnen
-      link: /de/guide/
+      text: Erstes Fahrzeug anlegen
+      link: /de/guide/quick-start
     - theme: alt
       text: Installieren und betreiben
       link: /de/administration/
 features:
   - title: Benutzerhandbuch
-    details: Alle veröffentlichten Abläufe für Fahrzeuge, Zubehör, Wartung und Ausstellungen.
+    details: Beginne mit deinem ersten Fahrzeug. Danach folgen Bilder, Decoderdaten, Zubehör und Ausstellungen.
     link: /de/guide/
   - title: Installation und Administration
     details: RailKeeper installieren, absichern, aktualisieren, sichern und wiederherstellen.

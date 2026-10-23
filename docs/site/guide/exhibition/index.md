@@ -2,18 +2,24 @@
 title: Exhibition workspace
 description: Prepare, maintain, review, and print exhibition lists safely.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Exhibition workspace
+
+1. Open **Exhibition** and choose or create a list.
+2. Add the planned vehicles and check their availability.
+3. Use the list status and lock for your workflow. The vehicle exhibition switch alone does not add it to a list.
+
+<GuideFigure name="exhibition" alt="Exhibition brings together lists and their vehicles." caption="Exhibition brings together lists and their vehicles. Synthetic demo data, not factory settings. Click for full size." />
 
 The **Exhibition list** workspace keeps the information needed for an exhibition or running day in
 one operational view. Each list has a date, an open or locked state, and its own locomotive
 entries. Operators can maintain an open list without entering the general vehicle inventory.
 
-This chapter documents stable RailKeeper v0.1.20.3. It does not explain user administration,
+This chapter documents stable RailKeeper. It does not explain user administration,
 master-data administration, backup operation.
 
 ## Access rights and isolation
@@ -119,8 +125,3 @@ already have succeeded before the refresh failed.
 - [Lists and locking](./lists-and-locking)
 - [Entries and printing](./entries-and-printing)
 - [Vehicle inventory and core records](/guide/vehicles/)
-
-## Documented RailKeeper version
-
-This page describes stable RailKeeper v0.1.20.3. Development behavior on `main` may differ and is
-not part of this user workflow.

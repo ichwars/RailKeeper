@@ -2,12 +2,16 @@
 title: Appearance
 description: Choose the theme mode and configure light and dark variants independently.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Appearance
+
+Open **Settings > Appearance**. Choose **System**, **Light** or **Dark**, then check readability with your preferred variant. Light and dark variants can be configured separately.
+
+<GuideFigure name="appearance" alt="Light and dark modes can be configured separately." caption="Light and dark modes can be configured separately. Synthetic demo data, not factory settings. Click for full size." />
 
 Open **Settings > Appearance** to control RailKeeper's color mode and its light and dark variants.
 Every change applies immediately. There is no separate Save button.
@@ -42,7 +46,7 @@ system requests light colors and the configured dark variant while it requests d
 variant cards therefore remain useful even when neither Light nor Dark is forced.
 
 **OLED Black** is available only for the dark background. It uses a black base and very dark panel
-surfaces. **Compact** in v0.1.20.3 primarily tightens spacing between Settings cards; it is not a
+surfaces. **Compact** currently primarily tightens spacing between Settings cards; it is not a
 global table-density control. **Contrast** strengthens separators and muted text but does not
 replace browser zoom or operating-system accessibility settings.
 
@@ -67,9 +71,5 @@ therefore not part of an application backup.
 | System mode changes unexpectedly | Check the operating-system or browser color preference. System mode follows that signal. |
 | A background or accent appears to have no effect | Confirm whether the application currently uses the light or dark variant you edited. |
 | Another browser shows a previous theme | Open Settings with the same user and reload. If needed, choose the mode or variant again after server connectivity returns. |
-| Compact does not make inventory tables denser | In v0.1.20.3 it mainly reduces gaps between Settings cards. |
+| Compact does not make inventory tables denser | Currently it mainly reduces gaps between Settings cards. |
 | Contrast is still insufficient | Combine the Contrast style with browser zoom and operating-system accessibility controls. |
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.

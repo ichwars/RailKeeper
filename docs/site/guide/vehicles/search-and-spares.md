@@ -2,12 +2,18 @@
 title: Article search, web documents, and spare parts
 description: Verify external article data, import web documents, and maintain vehicle spare parts.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Article search, web documents, and spare parts
+
+1. Open your vehicle or the creation dialog. Search by manufacturer and article number where possible.
+2. Compare the result name, variant and source. Accept only matching information.
+3. Store documents under **Uploads** and related parts under **Spare parts**. Internet search does not replace checking the model.
+
+<GuideFigure name="vehicle-editor" alt="Article search starts at the vehicle; results are reviewed before use." caption="Article search starts at the vehicle; results are reviewed before use. Synthetic demo data, not factory settings. Click for full size." />
 
 RailKeeper can use external suggestions to complete a vehicle, import reference documents, and
 maintain spare parts. Those results are starting points, not authoritative model data. Open the
@@ -292,7 +298,3 @@ have been stored.
 - [Vehicle images and attachments](/guide/vehicles/media)
 - [Vehicle maintenance and condition](/guide/vehicles/maintenance)
 - [Decoder, functions, and CV data](/guide/vehicles/decoder-cv)
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.

@@ -4,7 +4,7 @@ description: Understand and contribute to RailKeeper.
 audience: developer
 status: development
 reviewedVersion: main
-lastReviewed: 2026-08-15
+lastReviewed: 2026-10-23
 ---
 
 # Development and Architecture
@@ -15,3 +15,5 @@ backup formats, tests, builds, releases, and contribution rules.
 
 Stable user behavior remains documented separately so that unreleased development work is never
 presented as generally available.
+
+- [Architecture and contributions](architecture)

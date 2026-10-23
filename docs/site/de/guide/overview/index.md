@@ -2,17 +2,23 @@
 title: Übersicht, Kennzahlen und Datenqualität
 description: RailKeeper-Dashboard auswerten, Datenlücken bearbeiten und Kacheln anordnen.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Übersicht, Kennzahlen und Datenqualität
 
+1. Öffne **Übersicht**.
+2. Wähle einen Hinweis, etwa fehlende Bilder oder eine fällige Wartung.
+3. Prüfe die gefilterten Fahrzeuge und ergänze die fehlenden Angaben. Die Prozentwerte messen einzelne Datenfelder, nicht die Vollständigkeit jedes Fahrzeugs.
+
+<GuideFigure name="overview" alt="Kennzahlen und Hinweise führen zu den betreffenden Fahrzeugen." caption="Kennzahlen und Hinweise führen zu den betreffenden Fahrzeugen. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
+
 Die **Übersicht** ist das Arbeits-Dashboard von RailKeeper für Bestandsgröße, erfassten Wert,
 Digitalisierung, Wartung und Datenqualität. Dieses Kapitel erklärt die Bedeutung jeder Kennzahl und
 den Weg von einem Hinweis zu den betroffenen Fahrzeugen. Es beschreibt den stabilen
-RailKeeper-Stand v0.1.20.3.
+RailKeeper-Stand auf `main`.
 
 Benutzer mit den Rollen Admin, Editor, Viewer können die Übersicht öffnen. Ein Konto,
 das ausschließlich die Rolle Messe besitzt, startet unter **Ausstellung** und kann dieses Dashboard
@@ -101,7 +107,7 @@ zu öffnen.
 | **Ohne EAN** | Fahrzeuge ohne EAN |
 | **Digital ohne Decoder-Nr.** | Digitale Fahrzeuge ohne Wert in beiden Decoder-Nummernfeldern |
 
-In v0.1.20.3 prüft **Ohne Hauptbild** technisch, ob irgendein Bild vorhanden ist. Die Prüfung
+Derzeit prüft **Ohne Hauptbild** technisch, ob irgendein Bild vorhanden ist. Die Prüfung
 unterscheidet kein ausdrücklich ausgewähltes Hauptbild. Sind alle vier Werte null, meldet die Kachel,
 dass keine größeren Datenlücken erkannt wurden.
 
@@ -210,8 +216,3 @@ gespeichert.
 - [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)
 - [Ersteinrichtung und Anmeldung](/de/guide/getting-started/)
 - [Überblick zur Administration](/de/administration/)
-
-## Dokumentierter RailKeeper-Stand
-
-Diese Seite dokumentiert den stabilen RailKeeper-Stand **v0.1.20.3** und wurde zuletzt am
-2026-08-16 geprüft.

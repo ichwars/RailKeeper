@@ -2,17 +2,21 @@
 title: Artikelstammdaten und Fachangaben
 description: Zubehörartikel anlegen, ihre Identität pflegen und technische Angaben prüfen.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Artikelstammdaten und Fachangaben
 
+Öffne den Zubehörartikel über **Bearbeiten**. Wähle Typ und Untertyp zuerst; ergänze danach die dazu passenden technischen Angaben. Unbekannte Anschlüsse oder Artikelnummern offenlassen und anhand der Herstellerunterlagen nachtragen.
+
+<GuideFigure name="accessories" alt="Die Artikelliste führt zum Datensatz und seinen technischen Angaben." caption="Die Artikelliste führt zum Datensatz und seinen technischen Angaben. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
+
 Ein Zubehörartikel ist der gemeinsame Produktdatensatz für Bestand, Einkäufe, Dokumente,
 Reservierungen und Einbauten. Legen Sie ihn einmal für einen Hersteller- und Katalogartikel an und
 erfassen Sie anschließend Mengen oder Einzelstücke dazu. Dieses Kapitel beschreibt die
-Artikelidentität und die artabhängigen Fachangaben in RailKeeper v0.1.20.3.
+Artikelidentität und die artabhängigen Fachangaben in RailKeeper.
 
 ## Zugriffsrechte und Speichern
 
@@ -141,7 +145,7 @@ Der Trefferdialog kann Hersteller, Artikelnummer, Name, EAN, Maßstab, Beschreib
 Spurweite übernehmen. Hersteller oder Spurweite sind nur auswählbar, wenn sie einem aktiven
 bekannten Stammdatenwert entsprechen. Eine gewählte Spurweite wird den vorhandenen hinzugefügt.
 Ungültige allgemeine Werte und Produkt-URLs außerhalb von HTTP oder HTTPS werden ignoriert. In
-v0.1.20.3 bietet die Trefferauswahl technische Ergebnisfelder nur für **Gleis** an. Andere
+RailKeeper bietet die Trefferauswahl technische Ergebnisfelder nur für **Gleis** an. Andere
 Artikelarten können die allgemeinen Treffergruppen, aber keine Fachangaben übernehmen.
 
 Nur Felder mit aktuell leerem Formularwert sind in der Prüfung vorausgewählt. Vorhandene Werte sind
@@ -228,7 +232,3 @@ rückgängig machen. Prüfen Sie vorher eine aktuelle Sicherung.
 - [Bestand, Einkäufe und Dokumente](./stock-purchases-documents)
 - [Zuordnungen und Nutzungsverlauf](./allocations-history)
 - [Artikelsuche, Web-Dokumente und Ersatzteile](../vehicles/search-and-spares)
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.

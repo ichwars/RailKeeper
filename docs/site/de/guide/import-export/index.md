@@ -2,9 +2,9 @@
 title: Import und Export
 description: Fahrzeug-, Zubehör- und Messedaten über geprüfte Transferaufträge austauschen.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-27
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Import und Export
@@ -18,6 +18,9 @@ Importe verwenden CSV für genau einen Datenbereich oder versioniertes RailKeepe
 in Prüfung, bis alle blockierenden Probleme geklärt sind und ein berechtigter Benutzer die
 transaktionale Übernahme ausdrücklich bestätigt. Digitalzentralen-Abgleich, Stammdatentransfer sowie
 Anwendungssicherung und Wiederherstellung bleiben getrennte Abläufe.
+
+
+<GuideFigure name="import-export" alt="Transferprofile und Aufträge zeigen, welche Daten ausgetauscht werden." caption="Transferprofile und Aufträge zeigen, welche Daten ausgetauscht werden. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 ## Zugriffsrechte
 
@@ -116,7 +119,3 @@ weiterhin Fahrzeuge, nicht zusätzliche Set-Metadaten.
 | Ein reines Messe-Konto sieht ein Profil nicht | Im isolierten Messeumfang sind nur Messelistenprofile sichtbar. |
 | Ein Artefakt lässt sich nicht herunterladen | Auftrag neu laden und prüfen, ob ein Admin das Artefakt nach der Erzeugung gelöscht hat. |
 | Ein fehlgeschlagener Auftrag bietet Wiederholen | Zuerst protokollierten Fehler und Quelle prüfen. Wiederholen erzeugt eine kontrollierte Fortsetzung, kein unbeobachtetes Duplikat. |
-
-## Dokumentierte RailKeeper-Version
-
-Dieses Kapitel dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 27.08.2026 geprüft.

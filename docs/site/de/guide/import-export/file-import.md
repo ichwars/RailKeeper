@@ -1,147 +1,56 @@
 ---
 title: Fahrzeugdateien importieren
-description: Fahrzeugzeilen aus CSV, TSV, XML oder JSON zuordnen, prüfen und speichern.
+description: Fahrzeugdateien importieren.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Fahrzeugdateien importieren
 
-Der Dateiimport ist ein Prüfvorgang, kein direkter Datenbankimport. RailKeeper liest die gewählte
-Datei, ordnet ihre Spalten zu, prüft jede Zeile gegen die bereits geladenen Fahrzeuge und lässt
-einen berechtigten Benutzer auswählen, welche Zeilen angelegt oder aktualisiert werden.
+**Ziel:** Eine Bestandsdatei erst prüfen und anschließend bewusst übernehmen. Du brauchst Admin- oder Editor-Rechte für Fahrzeugimporte. Für eine große oder unbekannte Datei zuerst eine [Sicherung](../../administration/backup-restore) erstellen.
 
-Zum Speichern ist ein Editor- oder Admin-Konto erforderlich. Viewer können die
-Vorschau prüfen, ihre Fahrzeug-Schreibvorgänge werden aber vom Server abgelehnt.
 
-## Unterstützte Eingabeformate
+<GuideFigure name="import-dialog" alt="Starte einen neuen Import und wähle das passende Profil." caption="Starte einen neuen Import und wähle das passende Profil. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
-| Endung | Stabile Auswertung |
+## 1. Ein passendes Profil anlegen
+
+Öffne **Import/Export > Profil anlegen**. Vergib einen verständlichen Namen, etwa „Fahrzeuge aus Tabelle“. Wähle **Import**, den Bereich **Fahrzeuge** und das Format **CSV** oder **JSON**.
+
+| Quelle | Geeignetes Format |
 | --- | --- |
-| `.csv` | Verwendet den häufigsten Trenner in der ersten nicht leeren Zeile: Tabulator, Semikolon oder Komma. Bei Gleichstand zwischen Semikolon und Komma gewinnt das Semikolon. |
-| `.tsv` | Verwendet immer einen Tabulator als Trenner. |
-| `.xml` | Liest Elemente mit den Namen `vehicle`, `fahrzeug`, `locomotive` oder `lok`. Fehlen diese, verwendet RailKeeper das am häufigsten wiederholte verschachtelte Element als Datensatzform. Attribute und direkte Text-Kindelemente werden zu Spalten. |
-| `.json` | Akzeptiert ein Fahrzeug-Array oder ein Objekt mit einem `vehicles`-Array. Der stabile Import übernimmt nur die unten genannte JSON-Teilmenge. |
+| Fahrzeugtabelle mit Spaltenüberschriften | CSV, genau ein Bereich |
+| Paket aus dem aktuellen RailKeeper-Export | RailKeeper-JSON, auch mehrere Bereiche und Fahrzeugsets |
+| LokProgrammer-CV-Liste oder Decoderprojekt | Im Fahrzeug unter **CV > Dateien & Import**, nicht hier |
+| Lokliste aus ECoS oder CS3 | Im Arbeitsbereich **Digitalzentralen**, nicht als Dateitransfer |
 
-Getrennte Werte können in doppelte Anführungszeichen eingeschlossen werden. Doppelte
-Anführungszeichen innerhalb eines solchen Feldes werden korrekt aufgelöst. Führende und
-nachgestellte Leerzeichen werden aus jeder Zelle entfernt, vollständig leere Zeilen werden
-ignoriert.
+Der aktuelle Transferdialog nimmt CSV oder versionierte RailKeeper-JSON-Pakete an. Eine beliebige XML-, TSV- oder JSON-Datei ist kein solches Paket. Wandle eine fremde Tabelle zunächst in CSV um. Die frühere Anleitung zum direkten XML/TSV-Import und zum eingeschränkten 14-Felder-JSON-Import gilt für diesen Ablauf nicht mehr.
 
-Ungültige JSON- oder XML-Dokumente werden nicht unterstützt. XML ohne auswertbare Datensätze meldet
-eine leere Tabelle. Nach der Korrektur muss die Datei erneut ausgewählt werden.
+## 2. Datei auswählen und Spalten zuordnen
 
-## Teilmenge beim JSON-Import
+1. Wähle **Neuer Import** und dein Importprofil.
+2. Wähle die Datei unter **Durchsuchen**. Dadurch wird die Vorschau erstellt, noch kein Fahrzeug importiert.
+3. Prüfe bei einer Fahrzeug-CSV die **Erkannte CSV-Zuordnung**.
+4. Weise jede Quellspalte einem Zielfeld zu oder wähle ausdrücklich **Spalte ignorieren**.
+5. Wähle **Zuordnung prüfen** beziehungsweise **Weiter zur Prüfung**.
 
-Der JSON-Export verpackt die Fahrzeugliste als `{ "format": "railkeeper-vehicles", "version": 1,
-"vehicles": [...] }`. Der stabile JSON-Import prüft `format` und `version` nicht und übernimmt nicht
-jede Eigenschaft. Er erzeugt seine Prüftabelle nur aus diesen 14 Feldern:
+Ein Zielfeld darf nur einmal zugeordnet sein. Bei wiederkehrenden Dateien kannst du die Zuordnung im Profil speichern. Eine neue Zuordnung berechnet die Vorschau erneut; prüfe danach auch die Konflikte erneut.
 
-| Identität | Einordnung | Betrieb und Wert |
-| --- | --- | --- |
-| Inventarnummer, Hersteller, Artikel-Nr., Bezeichnung | Spurweite, Epoche, Bahngesellschaft, Kategorie, Gattung | Höchstgeschwindigkeit, Heimat-Bw / Einsatzstelle, Digital, Digital / Decoder-Nr., Listenpreis |
+## 3. Vorschau und Konflikte prüfen
 
-Verwende CSV für den vollständigen unterstützten Austausch der 62 skalaren Felder. Verwende eine
-Anwendungssicherung, wenn wiederherstellbare Anwendungsdaten und Uploads benötigt werden.
+Kontrolliere Anzahl, Namen und Inventarnummern. Lies jede Warnung. Bei vorhandenen Datensätzen oder widersprüchlichen Verweisen bietet RailKeeper passende Entscheidungen an, beispielsweise vorhandene Daten verwenden, ersetzen, eine Kopie anlegen oder überspringen. Es sind nicht in jedem Konflikt alle Entscheidungen möglich.
 
-## Spaltenzuordnung
+Erkannte Fahrzeugsets erscheinen als zusammengehörige Gruppen. Prüfe Set-Inventarnummer, Mitglieder und Reihenfolge gemeinsam. Eine Set-Aktion gilt für die ganze Gruppe; ein Fahrzeug wird nicht unbemerkt aus einem anderen Set entfernt.
 
-Die erste Zeile liefert die Spaltennamen. RailKeeper normalisiert Groß- und Kleinschreibung,
-Leerzeichen, deutsche Umlaute, übliche Satzzeichen sowie bekannte deutsche und englische Aliasse,
-bevor nach einem Zielfeld gesucht wird.
+Fehlerhafte Quelldaten in der Datei korrigieren und erneut hochladen. Ein blockierender Konflikt muss vor der Übernahme gelöst sein.
 
-Nach dem Laden einer Datei:
+## 4. Übernahme bestätigen
 
-1. Unter **Erkannte CSV-Zuordnung** jede Quellüberschrift prüfen.
-2. Jede benötigte offene Spalte einem RailKeeper-Feld zuweisen.
-3. Eine nicht benötigte Quellspalte ausdrücklich auf **Spalte ignorieren** setzen.
-4. Bei wiederkehrenden Dateien optional **Zuordnung im Profil speichern** wählen.
-5. **Zuordnung prüfen** und danach die neu berechnete Importprüfung kontrollieren.
+Bestätige erst die vollständig geprüfte Vorschau. Der Server übernimmt den geprüften Stand in einer Transaktion. Scheitert diese Übernahme, entsteht kein Teilimport. Kontrolliere danach den abgeschlossenen Auftrag und einige Fahrzeuge im Bestand.
 
-Ein Zielfeld kann nur einer Quellspalte gehören. Bereits verwendete Ziele stehen bei anderen
-Spalten nicht erneut zur Auswahl. Die Zuordnungsprüfung liest dieselbe Datei serverseitig neu und
-ersetzt die dauerhafte Vorschau, daher anschließend Konflikte und Korrekturen erneut prüfen.
+Wurde der Auftrag zwischenzeitlich geändert, kann RailKeeper eine neue Prüfung oder einen erneuten Upload verlangen. Bestätige dann nur die neue Vorschau. **Schließen** verlässt den Dialog; **Auftrag abbrechen** beendet den Auftrag und erhält seinen Verlauf.
 
-## Alle 62 CSV- und Tabellenziele
+## Was wird übertragen?
 
-Der vollständige stabile CSV-Export verwendet dieselben Ziele und kann deshalb ohne manuelle
-Neuzuordnung importiert werden. Andere Dateien dürfen jede beliebige Teilmenge verwenden.
-
-| Gruppe | Unterstützte Felder |
-| --- | --- |
-| Identität und Katalog | Inventarnummer; Hersteller; Artikel-Nr.; Quelle / URL; Bezeichnung; Spurweite; Epoche; Bahngesellschaft; Kategorie; Gattung; Beschreibung; Baureihe; Fahrzeug-Nr.; EAN; Produktionszeit; Listenpreis |
-| Betrieb, Digital und Messe | Höchstgeschwindigkeit; Heimat-Bw / Einsatzstelle; Digital; Digital / Decoder-Nr.; Decoder-Typ; DT / Decoder; DT / Decoder-Nr.; Messe tauglich; Ausstellung; ABC-Bremsen; QR-Code erstellen |
-| Erwerb, Lagerung und Zustand | Erwerbsart; Erworben von/bei; Kaufpreis; Kaufdatum; Lagerort; Lagerdetails; Zustand; Zustandsdetails; Verpackung |
-| Physische und mechanische Daten | Länge (mm); Gewicht (g); Farbe; Beschriftung; Beladung; Inneneinrichtung; Achsen; Anzahl Achsen; Anzahl Haftreifen; Radsatz; Kupplung (V=H); Kupplung vorne; Kupplung hinten; Stromabnahme; Adapter / Schnittstelle |
-| Ausstattung und Hinweise | Antrieb; Antrieb Beschreibung; Fahrlicht; Fahrlicht Beschreibung; Beleuchtung; Beleuchtung Beschreibung; Soundgenerator; Soundgenerator Beschreibung; Rauchgenerator; Rauchgenerator Beschreibung; Zusatzinformationen |
-
-Bilder sowie andere verschachtelte oder dateibasierte Datensätze sind keine Ziele.
-
-## Boolesche Werte
-
-Bei Digital, DT / Decoder, Messe tauglich, Ausstellung, ABC-Bremsen, Kupplung (V=H), Antrieb,
-Fahrlicht, Beleuchtung, Soundgenerator, Rauchgenerator und QR-Code erstellen bedeuten diese nicht
-leeren Werte unabhängig von Groß- und Kleinschreibung **ja**:
-
-`1`, `ja`, `yes`, `true`, `wahr`, `digital`, `d`, `x`, `vorhanden`
-
-Jeder andere nicht leere Wert wird zu **nein**. Eine leere Zelle wird ignoriert. Verwende möglichst
-die eindeutigen Ja-/Nein-Werte des RailKeeper-CSV-Exports, um mehrdeutige Quelldaten zu vermeiden.
-
-## Prüfung und Vorauswahl
-
-Eine neue Zeile benötigt Hersteller, Bezeichnung, Spurweite, Kategorie und Gattung, bevor sie in
-der Vorschau ausgewählt werden kann. Beim Speichern kann der Server weitere Fahrzeugregeln prüfen.
-
-Zwei feldbezogene Prüfungen laufen bereits im Browser:
-
-- Die Höchstgeschwindigkeit muss eine ganze Zahl von 1 bis 1000 km/h sein.
-- Heimat-Bw / Einsatzstelle darf höchstens 200 Unicode-Zeichen enthalten.
-
-Eine ungültige Zeile wird als Fehler markiert, abgewählt und kann bis zur Korrektur des sichtbaren
-Problems oder der Quellzuordnung nicht ausgewählt werden. In der Prüftabelle lassen sich nur
-Inventarnummer, Hersteller, Artikel-Nr., Bezeichnung, Spurweite, Kategorie und Gattung direkt
-bearbeiten. Andere Werte müssen in der Quelldatei oder über die Spaltenzuordnung korrigiert und bei
-Bedarf neu geladen werden.
-
-## Neue Fahrzeuge und erkannte Duplikate
-
-RailKeeper vergleicht eine nicht leere Inventarnummer ohne Beachtung der Groß- und Kleinschreibung
-mit der aktuellen Fahrzeugliste.
-
-| Ergebnis | Standardverhalten |
-| --- | --- |
-| Kein Inventarnummer-Treffer und kein Prüfproblem | Aktion **Neu**, Zeile ausgewählt |
-| Bestehende Inventarnummer | Aktion **Aktualisieren**, Warnung, Zeile nicht ausgewählt |
-| Bestehende Inventarnummer plus weiteres Prüfproblem | Aktion **Aktualisieren**, Fehler, Zeile gesperrt |
-
-Bei einem Update die Feldvorschau aufklappen und **gleich**, **ergänzt leeres Feld** sowie
-**überschreibt** prüfen. Übernommen werden nur zugeordnete, nicht leere Zeichenketten, gültige
-Zahlen und ausgewertete boolesche Werte. Leere Quellzellen löschen vorhandene Zeichenketten nicht.
-Ein nicht leerer boolescher Wert außerhalb der Ja-Liste übernimmt ausdrücklich **nein**.
-
-Wird eine Duplikatzeile auf **Neu** umgestellt, entsteht kein zweites Fahrzeug mit derselben
-Inventarnummer. RailKeeper markiert die Zeile stattdessen als Fehler.
-
-## Geprüfte Auswahl speichern
-
-1. Sichtbare Grundfelder korrigieren und jeden Update-Vergleich prüfen.
-2. Nur die zu schreibenden Zeilen auswählen.
-3. **Auswahl speichern** wählen.
-4. Warten, bis jede erfolgreiche Zeile **gespeichert** anzeigt.
-5. Zeilenbezogene Fehler lesen und bereits gespeicherte Fahrzeuge vor einem erneuten Versuch
-   prüfen.
-
-Zeilen werden nacheinander verarbeitet. Jede ausgewählte Zeile ruft entweder die Fahrzeuganlage
-oder die Fahrzeugaktualisierung auf. Scheitert eine Zeile, wird sie zum Fehler und RailKeeper fährt
-mit späteren ausgewählten Zeilen fort. Der Vorgang ist daher nicht atomar und besitzt kein
-gemeinsames Rückgängig.
-
-Dateiimporte erzeugen keine Funktionszuordnungen, CV-Einträge, ECoS-Zuordnungen, Bilder, Beilagen,
-Wartungen, Ersatzteile oder Decoder-Dateien. Ergänze diese über die jeweiligen Fahrzeugabläufe.
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.
+Fahrzeugdateien übertragen Grunddaten und dokumentierte Set-Beziehungen. Sie enthalten keine Fahrzeugbilder, CV-Zeilen, Funktionen, Wartungen oder Decoderdateien. Dafür die jeweiligen Fahrzeugbereiche oder eine Anwendungssicherung verwenden. Die [Transferübersicht](./) erläutert Berechtigungen und Grenzen.

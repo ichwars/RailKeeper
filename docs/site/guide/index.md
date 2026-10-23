@@ -1,67 +1,60 @@
 ---
-title: User Guide
-description: Learn every stable RailKeeper workflow.
+title: User guide
+description: Find the illustrated guide for your next task.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
-# User Guide
+# What would you like to do?
 
-This guide explains the complete published RailKeeper workflow for collectors, clubs, and small
-workshops. It covers first setup, navigation, vehicles, accessories, decoder data, maintenance,
-documents, reports, exhibitions, and controlled import and export.
+You do not have to learn all of RailKeeper before getting started.
+[Add your first vehicle](quick-start), then fill in the details you need.
+A command station is not required for inventory management.
 
-The former layout planner has been removed. Accessory inventory and vehicle installations remain available.
 
-## Start here
+<GuideFigure name="overview" alt="The dashboard as a starting point for your collection." caption="The dashboard as a starting point for your collection. Synthetic demo data, not factory settings. Click for full size." />
 
-[First setup and sign-in](/guide/getting-started/) explains how to create the first administrator,
-sign in and out, complete a two-factor sign-in, and recover a forgotten password.
+## Vehicles and decoder data
 
-Continue with [Overview, metrics, and data quality](/guide/overview/) to understand the dashboard,
-follow inventory gaps into filtered vehicle lists, and arrange its widgets.
+| Your task | Guide |
+| --- | --- |
+| sign in or recover access | [Sign-in help](getting-started/) |
+| understand the dashboard and find upcoming work | [Overview](overview/) |
+| add, find, and edit a locomotive or coach | [Vehicle inventory](vehicles/) |
+| keep several vehicles together as a set | [Vehicle sets](vehicles/sets) |
+| attach photos and manuals | [Images and attachments](vehicles/media) |
+| prepare a locomotive image for a command station | [Command-station images](vehicles/locomotive-images) |
+| schedule or complete maintenance | [Maintenance and condition](vehicles/maintenance) |
+| import a CV list and understand its values | [Decoder and CV data](vehicles/decoder-cv) |
+| look up a decoder in the library | [Decoder library](vehicles/decoder-library) |
+| add article information or spare parts | [Article search and spare parts](vehicles/search-and-spares) |
 
-Use [Vehicle inventory and core records](/guide/vehicles/) to search and filter vehicles, create or
-edit their core data, produce reports and QR labels, and understand safe deletion.
+## Accessories, exhibitions, and data exchange
 
-[Vehicle images and attachments](/guide/vehicles/media) covers local images, main and alternative
-image handling, general attachments, preview and download, and safe removal.
+| Your task | Guide |
+| --- | --- |
+| maintain an accessory article, stock, and installation | [Accessories](accessories/) |
+| prepare an exhibition list | [Exhibitions](exhibition/) |
+| bring in existing vehicle files | [File import](import-export/file-import) |
+| create a report or inventory file | [Export](import-export/exports) |
+| compare locomotives with an ECoS | [ECoS comparison](import-export/ecos-sync) |
+| bring in locomotive data from a CS3 | [CS3 import](import-export/cs3-import) |
+| change language, start page, or appearance | [Personal settings](settings/) |
 
-[Vehicle maintenance and condition](/guide/vehicles/maintenance) explains maintenance entries,
-due dates, completion, costs, linked media, and safe deletion.
+## If you operate RailKeeper
 
-[Decoder, functions, and CV data](/guide/vehicles/decoder-cv) covers F0-F31 mappings, the read-only
-speed curve, CV values and exchange, decoder-file previews, and safe persistence.
+[Installation and administration](../administration/) explains setup, accounts and permissions,
+[backup and restore](../administration/backup-restore), and updates.
+[Development](../development/) contains the separate technical documentation.
 
-[Article search, web documents, and spare parts](/guide/vehicles/search-and-spares) explains how to
-verify external suggestions, save selected article data and images, import documents, and maintain
-spare parts without overlooking partial writes.
+## What has been checked?
 
-[Accessories](/guide/accessories/) covers the separate accessory article inventory, technical
-product data, counted and individual stock, purchases, documents, reservations, installations, and
-usage history.
+Pictures show the current interface with synthetic demonstration data. A demo picture does not
+claim a hardware test when no real command station was involved.
+[Documentation status](../reference/coverage) distinguishes available guides, demo checks,
+technical ownership, and known limits.
 
-[Exhibition workspace](/guide/exhibition/) explains how to prepare lists, maintain operating
-entries, use locks, resolve DCC and SX address conflicts, and print the event report.
-
-[Import and export](/guide/import-export/) covers reviewed CSV, TSV, XML, and JSON vehicle imports,
-the three inventory outputs, their round-trip limits, and the separate Admin-only ECoS locomotive
-workflow.
-
-[Settings](/guide/settings/) explains personal preferences, their browser and profile persistence,
-sidebar arrangement, the current limits of date and printer choices, and the independent light and
-dark appearance variants.
-
-## Updating Windows Standalone
-
-Open **Settings > General > Updates** and check for a newer version. When RailKeeper recognizes the
-matching trusted Windows ZIP, the download button includes its version. The button only starts the
-browser download. RailKeeper does not install or replace files.
-
-Create an application backup, close RailKeeper, and extract the downloaded ZIP into a new program
-folder. Start that copy and verify the active data path and inventory before removing the previous
-program folder. The safe default `%LOCALAPPDATA%\RailKeeper\data` remains separate and unchanged.
-Use the linked GitHub release page if no matching download button is available. Docker installations
-continue to update with `docker compose pull` followed by `docker compose up -d`.
+Missing an explanation? [Ask a question in GitHub Discussions](https://github.com/ichwars/RailKeeper/discussions/categories/q-a).
+The [short glossary](../reference/navigation-and-glossary) explains unfamiliar terms.

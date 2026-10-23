@@ -2,16 +2,22 @@
 title: Overview, metrics, and data quality
 description: Read the RailKeeper dashboard, follow data gaps, and arrange its widgets.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Overview, metrics, and data quality
 
+1. Open **Overview**.
+2. Choose a notice such as missing pictures or due maintenance.
+3. Review the filtered vehicles and complete missing information. Percentages measure specific fields, not every detail of each vehicle.
+
+<GuideFigure name="overview" alt="Counts and notices lead to the affected vehicles." caption="Counts and notices lead to the affected vehicles. Synthetic demo data, not factory settings. Click for full size." />
+
 The **Overview** is RailKeeper's working dashboard for inventory size, recorded value,
 digitalization, maintenance, and data quality. This chapter explains what each number means and how
-to continue from an indicator to the affected vehicles. It describes stable RailKeeper v0.1.20.3.
+to continue from an indicator to the affected vehicles. It describes stable RailKeeper.
 
 Admin, Editor, Viewer users can open the overview. An account with only the Messe role
 starts in **Exhibition** and cannot open this dashboard.
@@ -94,7 +100,7 @@ heading is **Inventory**, with the matching filter active.
 | **Without EAN** | Vehicles without an EAN |
 | **Digital without decoder no.** | Digital vehicles without a value in either decoder-number field |
 
-In v0.1.20.3, **Without main image** technically checks whether any image exists. It does not
+Currently, **Without main image** technically checks whether any image exists. It does not
 distinguish a specifically selected main image. When all four counts are zero, the widget reports
 that no major data gaps were detected.
 
@@ -197,7 +203,3 @@ shared with other browsers or saved as account-wide dashboard settings.
 - [Vehicle maintenance and condition](/guide/vehicles/maintenance)
 - [First setup and sign-in](/guide/getting-started/)
 - [Administration overview](/administration/)
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.

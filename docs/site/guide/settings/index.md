@@ -2,19 +2,23 @@
 title: Settings
 description: Understand personal preferences, appearance, and the boundaries between user and administration settings.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Settings
+
+Open **Settings**. **General** contains personal preferences; **Appearance** contains colours and theme. **Backup**, **Command stations** and **Authentication** have their own guides and may require Admin for specific actions.
+
+<GuideFigure name="preferences" alt="Personal preferences and administrative tools occupy separate settings sections." caption="Personal preferences and administrative tools occupy separate settings sections. Synthetic demo data, not factory settings. Click for full size." />
 
 The **Settings** workspace combines personal preferences with several administrative tools. This
 chapter covers the settings that shape an individual user's navigation and appearance. Master data,
 command stations, application backup, storage, updates, users, sessions, and authentication are
 separate topics even though RailKeeper presents them in the same workspace.
 
-This chapter documents stable RailKeeper v0.1.20.3.
+This chapter documents stable RailKeeper.
 
 ## Access rights
 
@@ -44,12 +48,11 @@ operations on the server. Reordering or hiding a navigation entry never grants o
 | **General > Storage** | Storage usage and optimization | System operations |
 | **Data** | General and accessory master data, lifecycle, and transfer | [Master-data administration](/administration/master-data) |
 | **Command stations** | ECoS, Z21, Intellibox 3, and CS3 configuration | Digital-center administration |
-| **Import/Export** | Backup, restore, and master-data transfer inside Settings | Backup and [master-data administration](/administration/master-data) |
+| **Backup** | Backup, restore, and master-data transfer inside Settings | Backup and [master-data administration](/administration/master-data) |
 | **Authentication** | Own password and two-factor setup; Admin user, session, audit, and SMTP tools | Users, sessions, and security |
 
 The main [Import and export workspace](/guide/import-export/) is a different page. It exchanges
-vehicle records and performs the ECoS locomotive workflow. The **Import/Export** tab inside
-**Settings** contains administrative backup and master-data transfer instead.
+inventory records. The ECoS locomotive workflow is under **Command stations**. The **Backup** tab inside **Settings** contains administrative backup and master-data transfer. [Backup guide](/administration/backup-restore).
 
 ## How personal preferences are stored
 
@@ -59,7 +62,7 @@ preferences. Opening Settings restores the other synchronized preferences.
 
 There are important exceptions and limits:
 
-- Interface language is browser-local in v0.1.20.3 and is not written to the server profile.
+- Interface language is browser-local currently and is not written to the server profile.
 - The collapsed or expanded state of the main sidebar is browser-local. Sidebar order and hidden
   entries are profile settings.
 - Profile saving runs in the background. The page does not show a success or failure message for
@@ -76,8 +79,4 @@ There are important exceptions and limits:
 4. Adjust the light and dark variants independently when required.
 5. Reload RailKeeper once when verifying that a preference was restored.
 6. When moving to another browser, sign in with the same user. Set the interface language again
-   because language is not profile-synchronized in v0.1.20.3.
-
-## Documented RailKeeper version
-
-This chapter documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
+   because language is not profile-synchronized currently.

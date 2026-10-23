@@ -2,12 +2,16 @@
 title: Listen und Sperren
 description: Messelisten anlegen, sperren, entsperren und sicher löschen.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Listen und Sperren
+
+Wähle zuerst die richtige Veranstaltung. Prüfe den Listenstatus und den angezeigten Sperrhinweis vor Änderungen. Lege Zuständigkeit und Abschluss mit den anderen Benutzern fest; eine Sperre ersetzt keine Prüfung der tatsächlich mitgenommenen Fahrzeuge.
+
+<GuideFigure name="exhibition" alt="Listenstatus und Sperren helfen bei gemeinsam vorbereiteten Veranstaltungen." caption="Listenstatus und Sperren helfen bei gemeinsam vorbereiteten Veranstaltungen. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 Eine Messeliste bündelt die Lokomotiveinträge für eine benannte Messe oder einen Fahrtag. Admin
 bereitet Listen vor und steuert sie; Messe konzentriert sich auf die Betriebseinträge einer offenen
@@ -42,7 +46,7 @@ den Dialog und lädt die Listentabelle neu. Das Anlegen ist ein sofortiger Serve
 bis zum Erfolg sind die Dialogwerte nur lokaler Formularzustand.
 
 Ist eines der Pflichtfelder leer, verhindert der Browser die normale Übermittlung. Der Server weist
-auch Werte zurück, die nach dem Entfernen äußerer Leerzeichen leer sind. In v0.1.20.3 prüft der
+auch Werte zurück, die nach dem Entfernen äußerer Leerzeichen leer sind. Derzeit prüft der
 Server beim Datum, dass der Wert nicht leer ist; das Datumsfeld liefert den normalen Kalenderwert.
 
 ## Listen auswählen, sortieren und prüfen
@@ -129,8 +133,3 @@ nicht erklärt.
 - [Messearbeitsbereich](./)
 - [Einträge und Drucken](./entries-and-printing)
 - [Übersicht des Benutzerhandbuchs](/de/guide/)
-
-## Dokumentierte RailKeeper-Version
-
-Diese Seite beschreibt RailKeeper v0.1.20.3. Der Entwicklungsstand auf `main` kann abweichen und
-gehört nicht zu diesem Benutzerablauf.

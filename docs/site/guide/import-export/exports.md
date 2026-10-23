@@ -1,88 +1,43 @@
 ---
-title: Export inventory
-description: Create CSV, RailKeeper JSON, and printable vehicle inventory output.
+title: Export your inventory
+description: Export your inventory.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
-# Export inventory
+# Export your inventory
 
-The export actions use the complete vehicle list loaded by **Import/Export**. They do not inherit
-searches or filters from the vehicle-inventory page. All three controls remain disabled while the
-list is loading or when no vehicles exist.
+**Goal:** Create a reviewable inventory file for a spreadsheet or another RailKeeper installation. Admin, Editor and Viewer may export. Exhibition-only accounts are limited to exhibition lists.
 
-Admin, Editor, Viewer users can export. Export does not modify RailKeeper data.
 
-## CSV export
+<GuideFigure name="import-export" alt="Export profiles determine the data area and file format." caption="Export profiles determine the data area and file format. Synthetic demo data, not factory settings. Click for full size." />
 
-**CSV export** downloads `railkeeper-bestand.csv` with these properties:
+## Create an export
 
-- UTF-8 text with a byte-order mark for spreadsheet compatibility;
-- semicolon-separated columns;
-- the 62 scalar targets listed in [Import vehicle files](/guide/import-export/file-import);
-- column labels in the currently selected RailKeeper interface language;
-- localized yes/no text for boolean fields;
-- double-quote escaping for semicolons, quotes, and line breaks.
+1. Open **Import/Export > Create profile** and select **Export**.
+2. Choose the required area and format. CSV supports exactly **Vehicles** or **Accessories**. Exhibition lists and multiple areas require **JSON**.
+3. Select **New export** and the profile, or start from the enabled profile.
+4. Check areas and format, then select **Run export**.
+5. Use **Download file** to save the result.
 
-This is the broadest stable vehicle-field round trip. A CSV created in one interface language is
-recognized through the built-in German and English header aliases. Still review its mapping and
-rows before writing it into another installation.
+The job and generated file remain traceable in transfer history. An administrator may later delete files. The workspace storage location is on the RailKeeper server, not necessarily on your browser computer.
 
-The CSV excludes images, attachment bytes, maintenance, spare parts, function records, CV records,
-decoder files, and external mappings.
+## Which format fits?
 
-## RailKeeper JSON export
-
-**JSON export** downloads `railkeeper-bestand.json`. Its top-level shape is:
-
-```json
-{
-  "format": "railkeeper-vehicles",
-  "version": 1,
-  "vehicles": []
-}
-```
-
-The `vehicles` array contains the vehicle objects returned to this page. This makes JSON useful for
-inspection and lower-loss data exchange, but it is not an application backup or a complete restore
-format.
-
-The stable v0.1.20.3 JSON importer reads only 14 fields from each object. It does not restore all
-properties present in the exported object, nested records, or stored file bytes. See the exact
-[JSON import subset](/guide/import-export/file-import#json-import-subset) before relying on a
-round trip.
-
-## PDF and print view
-
-**PDF/Print view** opens a new browser window and immediately starts the browser print dialog. The
-document uses A4 landscape and contains:
-
-- a total, digital, and analog vehicle count;
-- generation date and time;
-- Inventory number, Manufacturer, Article no., Designation, Gauge, Epoch, Category,
-  Digital/analog, and List price for every vehicle.
-
-RailKeeper does not generate a PDF file on the server. Choose **Save as PDF** in the browser print
-dialog when the browser or operating system provides that destination.
-
-If nothing opens, allow popups for the RailKeeper address. The print window escapes vehicle text
-before inserting it into the report.
-
-## Choosing an export
-
-| Need | Recommended output |
+| Purpose | Format |
 | --- | --- |
-| Inspect or edit supported scalar fields in a spreadsheet | CSV |
-| Inspect the raw vehicle objects returned to the page | JSON |
-| Hand out or archive a compact human-readable inventory list | PDF/Print view |
-| Restore application data, uploads, and related records | Admin application backup, not these exports |
+| Review vehicle or accessory fields in a spreadsheet | CSV |
+| Transfer several areas and their relationships | RailKeeper JSON |
+| Transfer sets with individual members | CSV with set columns or RailKeeper JSON |
+| Print a readable list or save PDF | Report in vehicle inventory or exhibition |
+| Restore inventory and media | [Application backup](../../administration/backup-restore) |
 
-Keep exported files according to the sensitivity of the inventory. Article sources, purchase data,
-storage locations, values, notes, and other private collection details can be present in CSV or
-JSON.
+A search or selection in the vehicle inventory does not automatically become a transfer job selection. Check the scope in the export dialog.
 
-## Documented RailKeeper version
+## Limits
 
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
+An export package is not a complete backup. Vehicle media, CV records, functions, maintenance and local authentication are not part of vehicle transfer. The server versions the JSON package structure and validates it on [import](file-import); do not manually change identifiers, package versions or checksums.
+
+Treat exported files as private collection data. They can contain prices, storage locations and notes.

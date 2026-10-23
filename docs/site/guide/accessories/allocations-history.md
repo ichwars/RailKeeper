@@ -2,12 +2,16 @@
 title: Reservations, installations, and usage
 description: Reserve accessory stock, record installations, and understand usage history.
 audience: user
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Reservations, installations, and usage
+
+Open the product and choose a reservation for planned use or an installation for actual use. Check the target vehicle and quantity. Review availability and history before recording another transaction.
+
+<GuideFigure name="accessories" alt="The accessory list is the entry point for reservations, installations and history." caption="The accessory list is the entry point for reservations, installations and history. Synthetic demo data, not factory settings. Click for full size." />
 
 Reservations assign available accessory stock to a future use. Installations record that the stock
 has physically left storage and is in use. RailKeeper keeps both steps, the item lifecycle, stock
@@ -190,7 +194,3 @@ availability or lifecycle state.
 - [Article records and technical data](./article-records)
 - [Stock, purchases, and documents](./stock-purchases-documents)
 - [Vehicle inventory and core records](../vehicles/)
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
