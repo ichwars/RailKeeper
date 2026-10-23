@@ -30,8 +30,10 @@ RailKeeper is a complete self-hosted application for managing model railway vehi
 
 The project is designed for private collections, clubs and small workshops that want a serious inventory system without a cloud dependency. RailKeeper keeps data, uploads and backups under your control while still offering modern workflows such as article web search, structured import review, ECoS readout and release update checks.
 
-The handbook brings together complete user, operator, and developer guidance, with coverage tracked
-against the project sources in both English and German.
+The [illustrated handbook](https://ichwars.github.io/RailKeeper/guide/) connects tasks to instructions.
+Start with [your first vehicle](https://ichwars.github.io/RailKeeper/guide/quick-start).
+The [coverage overview](https://ichwars.github.io/RailKeeper/reference/coverage) shows topics, review
+evidence and known limits; `main` is distinguished from published releases.
 
 ## Highlights
 

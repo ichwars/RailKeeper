@@ -36,8 +36,10 @@ Bestandssystem ohne Cloud-Abhängigkeit benötigen. RailKeeper hält Daten, Uplo
 deiner Kontrolle und bietet gleichzeitig moderne Abläufe wie Artikelsuche im Web, strukturierte
 Importprüfung, ECoS-Auslesung und die Suche nach neuen Releases.
 
-Das Handbuch bündelt die vollständige Anleitung für Benutzer, Betrieb und Entwicklung. Die
-Abdeckung wird in englischer und deutscher Sprache direkt gegen die Projektquellen geprüft.
+Das [Handbuch mit Bildern](https://ichwars.github.io/RailKeeper/de/guide/) führt von einer Aufgabe
+zur passenden Anleitung. Beginne mit [deinem ersten Fahrzeug](https://ichwars.github.io/RailKeeper/de/guide/quick-start).
+Die [Abdeckungsübersicht](https://ichwars.github.io/RailKeeper/de/reference/coverage) zeigt Themen,
+Prüfnachweise und bekannte Grenzen; `main` und veröffentlichte Releases sind getrennt gekennzeichnet.
 
 ## Funktionsumfang
 
