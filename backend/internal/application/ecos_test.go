@@ -192,6 +192,7 @@ func TestECoSServiceProbeLocomotiveRaw(t *testing.T) {
 			return []string{
 				"<REPLY queryObjects(10, addr, name, protocol)>",
 				`1001 addr[3] name["BR 218"] protocol[DCC128]`,
+				`1002 name["Testverbund"] protocol[MULTI]`,
 				"<END 0 (OK)>",
 			}
 		case command == "request(1001, view)":
@@ -240,8 +241,12 @@ func TestECoSServiceProbeLocomotiveRaw(t *testing.T) {
 	if err != nil {
 		t.Fatalf("probe failed: %v", err)
 	}
-	if len(probe.Locomotives) != 1 {
+	if len(probe.Locomotives) != 2 {
 		t.Fatalf("unexpected locomotive count: %#v", probe)
+	}
+	consist := probe.Locomotives[1]
+	if consist.Protocol != "MULTI" || consist.Address != 0 || len(consist.Probes) != 0 {
+		t.Fatalf("consist should retain its roster summary without locomotive-only probes: %#v", consist)
 	}
 	locomotive := probe.Locomotives[0]
 	if len(locomotive.Functions) != 1 || locomotive.Functions[0].Description != 3 {

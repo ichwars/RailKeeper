@@ -81,7 +81,7 @@ func (service *DigitalCenterWorkspaceService) startReadSessionUnlocked(
 	if err != nil {
 		return service.finishFailedReadSession(ctx, session, fmt.Errorf("list RailKeeper vehicles: %w", err))
 	}
-	locomotives, err := service.readDigitalCenterLocomotives(ctx, center, vehicles)
+	locomotives, skippedConsists, err := service.readDigitalCenterLocomotives(ctx, center, vehicles)
 	if err != nil {
 		return service.finishFailedReadSession(ctx, session, err)
 	}
@@ -94,11 +94,17 @@ func (service *DigitalCenterWorkspaceService) startReadSessionUnlocked(
 	if err := service.repository.UpdateSession(ctx, session); err != nil {
 		return DigitalCenterReadSession{}, fmt.Errorf("complete digital center read session: %w", err)
 	}
+	message := fmt.Sprintf("%d Lokomotiven wurden in die Arbeitsliste gelesen.", len(locomotives))
+	if skippedConsists > 0 {
+		message += fmt.Sprintf(" %d ECoS-Mehrfachtraktionen mit Protokoll MULTI wurden ausgelassen; sie haben keine eigene Decoderadresse."+
+			" / %d ECoS consists with protocol MULTI were skipped; they have no decoder address of their own.",
+			skippedConsists, skippedConsists)
+	}
 	if err := service.repository.AddMessage(ctx, DigitalCenterSessionMessage{
 		SessionID:  session.ID,
 		Severity:   DigitalCenterMessageInfo,
 		Code:       DigitalCenterMessageReadCompleted,
-		Message:    fmt.Sprintf("%d Lokomotiven wurden in die Arbeitsliste gelesen.", len(locomotives)),
+		Message:    message,
 		NextAction: "Arbeitsliste prüfen und Konflikte klären.",
 	}); err != nil {
 		return DigitalCenterReadSession{}, fmt.Errorf("record completed digital center read: %w", err)
@@ -110,24 +116,24 @@ func (service *DigitalCenterWorkspaceService) readDigitalCenterLocomotives(
 	ctx context.Context,
 	center DigitalCenterSummary,
 	vehicles []Vehicle,
-) ([]ECoSRawLocomotive, error) {
+) ([]ECoSRawLocomotive, int, error) {
 	var locomotives []ECoSRawLocomotive
 	switch center.Provider {
 	case "ecos":
 		if service.ecos == nil {
-			return nil, ErrDigitalCenterWorkspaceUnavailable
+			return nil, 0, ErrDigitalCenterWorkspaceUnavailable
 		}
 		probe, err := service.ecos.ProbeLocomotiveRaw(
 			ctx,
 			ECoSConnectionInput{Host: center.Host, Port: center.Port},
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
-		return normalizeDigitalCenterLocomotives(probe)
+		return normalizeDigitalCenterRoster(center.Provider, probe)
 	case "cs3":
 		if service.digitalCenters == nil {
-			return nil, ErrDigitalCenterWorkspaceUnavailable
+			return nil, 0, ErrDigitalCenterWorkspaceUnavailable
 		}
 		var err error
 		locomotives, _, err = service.digitalCenters.ReadCS3Locomotives(
@@ -135,11 +141,11 @@ func (service *DigitalCenterWorkspaceService) readDigitalCenterLocomotives(
 			DigitalCenterConnectionInput{Host: center.Host, Port: center.Port},
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 	case "z21":
 		if service.digitalCenters == nil {
-			return nil, ErrDigitalCenterWorkspaceUnavailable
+			return nil, 0, ErrDigitalCenterWorkspaceUnavailable
 		}
 		var err error
 		locomotives, err = service.digitalCenters.ReadZ21Locomotives(
@@ -148,12 +154,12 @@ func (service *DigitalCenterWorkspaceService) readDigitalCenterLocomotives(
 			knownDigitalCenterAddresses(vehicles, center.Provider),
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 	default:
-		return nil, ErrDigitalCenterCapabilityUnavailable
+		return nil, 0, ErrDigitalCenterCapabilityUnavailable
 	}
-	return normalizeDigitalCenterLocomotives(&ECoSRawProbe{Locomotives: locomotives})
+	return normalizeDigitalCenterRoster(center.Provider, &ECoSRawProbe{Locomotives: locomotives})
 }
 
 func (service *DigitalCenterWorkspaceService) configuredCenter(
@@ -513,37 +519,42 @@ func digitalCenterCandidatePayloads(vehicles []Vehicle, provider string) []map[s
 	return candidates
 }
 
-func normalizeDigitalCenterLocomotives(probe *ECoSRawProbe) ([]ECoSRawLocomotive, error) {
+func normalizeDigitalCenterRoster(provider string, probe *ECoSRawProbe) ([]ECoSRawLocomotive, int, error) {
 	if probe == nil {
-		return nil, fmt.Errorf("%w: empty ECoS response", ErrDigitalCenterDeviceOutput)
+		return nil, 0, fmt.Errorf("%w: empty ECoS response", ErrDigitalCenterDeviceOutput)
 	}
 	if len(probe.Locomotives) > maxDigitalCenterLocomotives {
-		return nil, fmt.Errorf("%w: too many locomotives", ErrDigitalCenterDeviceOutput)
+		return nil, 0, fmt.Errorf("%w: too many locomotives", ErrDigitalCenterDeviceOutput)
 	}
+	skippedConsists := 0
 	normalized := make([]ECoSRawLocomotive, 0, len(probe.Locomotives))
 	seen := make(map[int]struct{}, len(probe.Locomotives))
 	for _, locomotive := range probe.Locomotives {
 		if locomotive.ObjectID < 1 || locomotive.ObjectID > maxDigitalCenterObjectID {
-			return nil, fmt.Errorf("%w: invalid object ID", ErrDigitalCenterDeviceOutput)
+			return nil, 0, fmt.Errorf("%w: invalid object ID", ErrDigitalCenterDeviceOutput)
 		}
 		if _, found := seen[locomotive.ObjectID]; found {
-			return nil, fmt.Errorf("%w: duplicate object ID", ErrDigitalCenterDeviceOutput)
+			return nil, 0, fmt.Errorf("%w: duplicate object ID", ErrDigitalCenterDeviceOutput)
 		}
 		seen[locomotive.ObjectID] = struct{}{}
-		if locomotive.Address < 1 || locomotive.Address > maxDigitalCenterAddress {
-			return nil, fmt.Errorf("%w: invalid decoder address", ErrDigitalCenterDeviceOutput)
-		}
 		name, err := normalizeDigitalCenterName(locomotive.Name)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		protocol, err := normalizeDigitalCenterProtocol(locomotive.Protocol)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
+		}
+		if provider == "ecos" && strings.EqualFold(strings.TrimSpace(locomotive.Protocol), "MULTI") {
+			skippedConsists++
+			continue
+		}
+		if locomotive.Address < 1 || locomotive.Address > maxDigitalCenterAddress {
+			return nil, 0, fmt.Errorf("%w: invalid decoder address", ErrDigitalCenterDeviceOutput)
 		}
 		cvs, err := validateStoredECoSCVs(locomotive.CVs)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		normalized = append(normalized, ECoSRawLocomotive{
 			ObjectID: locomotive.ObjectID, Name: name, Address: locomotive.Address,
@@ -551,7 +562,7 @@ func normalizeDigitalCenterLocomotives(probe *ECoSRawProbe) ([]ECoSRawLocomotive
 			CVs: cvs, Profile: locomotive.Profile,
 		})
 	}
-	return normalized, nil
+	return normalized, skippedConsists, nil
 }
 
 func normalizeDigitalCenterName(value string) (string, error) {

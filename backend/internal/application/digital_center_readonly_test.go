@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -50,12 +51,24 @@ func TestDigitalCenterReadSessionLeavesEveryVehicleRowUnchanged(t *testing.T) {
 	before := snapshotVehicleRows(t, db)
 	workspace := application.NewDigitalCenterWorkspaceService(
 		infrastructure.NewDigitalCenterWorkspaceRepository(db), settings,
-		&readOnlyECoSStub{probe: application.ECoSRawProbe{Locomotives: []application.ECoSRawLocomotive{{
-			ObjectID: 3, Name: "BR 218", Address: 3, Protocol: "DCC128",
-		}}}}, nil, vehicles, nil,
+		&readOnlyECoSStub{probe: application.ECoSRawProbe{Locomotives: []application.ECoSRawLocomotive{
+			{ObjectID: 3, Name: "BR 218", Address: 3, Protocol: "DCC128"},
+			{ObjectID: 4, Name: "Testverbund", Protocol: "MULTI"},
+		}}}, nil, vehicles, nil,
 	)
-	if _, err := workspace.StartReadSession(ctx, "ecos", "admin-1"); err != nil {
+	session, err := workspace.StartReadSession(ctx, "ecos", "admin-1")
+	if err != nil {
 		t.Fatal(err)
+	}
+	if session.State != application.DigitalCenterSessionReady {
+		t.Fatalf("session not ready: %#v", session)
+	}
+	messages, err := workspace.ListSessionMessages(ctx, session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != 1 || !strings.Contains(messages[0].Message, "1 ECoS-Mehrfachtraktionen mit Protokoll MULTI") {
+		t.Fatalf("mixed-roster completion notice was not persisted: %#v", messages)
 	}
 	after := snapshotVehicleRows(t, db)
 
