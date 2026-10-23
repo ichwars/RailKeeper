@@ -12,6 +12,9 @@ lastReviewed: 2026-10-23
 **Goal:** Review an inventory file before deliberately importing it. Vehicle imports require Admin or Editor. Create a [backup](../../administration/backup-restore) before a large or unfamiliar import.
 
 
+Try the [CSV and JSON examples with a guided walkthrough](examples).
+
+
 <GuideFigure name="import-dialog" alt="Start a new import and choose a matching profile." caption="Start a new import and choose a matching profile. Synthetic demo data, not factory settings. Click for full size." />
 
 ## 1. Create a matching profile

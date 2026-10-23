@@ -15,6 +15,9 @@ lastReviewed: 2026-10-23
 
 You do not need to understand every raw value. Explanations require matching model, firmware and addressing. [Look up a decoder](decoder-library).
 
+[Try twelve example CVs, index pages and provenance](cv-import-example).
+
+
 <GuideFigure name="cv-analysis" alt="Stored CVs receive plain explanations; technical details open separately." caption="Stored CVs receive plain explanations; technical details open separately. Synthetic demo data, not factory settings. Click for full size." />
 
 RailKeeper keeps function mappings, speed-curve data, CV values, and decoder project files with a

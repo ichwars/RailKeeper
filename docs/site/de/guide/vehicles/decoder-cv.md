@@ -15,6 +15,9 @@ lastReviewed: 2026-10-23
 
 Du brauchst nicht jeden Rohwert zu verstehen. Eine Erklärung erscheint nur, wenn Modell, Firmware und Adressierung dazu passen. [Decoder nachschlagen](decoder-library).
 
+[CV-Import mit zwölf Beispielwerten, Indexseiten und Herkunft ausprobieren](cv-import-example).
+
+
 <GuideFigure name="cv-analysis" alt="Gespeicherte CVs werden verständlich erklärt; technische Details öffnen sich separat." caption="Gespeicherte CVs werden verständlich erklärt; technische Details öffnen sich separat. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 RailKeeper speichert Funktionszuordnungen, Fahrkurvendaten, CV-Werte und Decoder-Projektdateien am

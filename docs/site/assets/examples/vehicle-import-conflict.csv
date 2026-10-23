@@ -1,0 +1,3 @@
+inventoryNumber;manufacturer;name;gauge;category;gattung;digital;digitalDecoderNumber;decoderType;myNote
+DEMO-LOK-001;Roco;Demo-Lok 01 Update;H0;Lokomotive;Diesellok;true;3;LokPilot 5 micro DCC;Nur Übungsdaten / Synthetic example
+DEMO-WAG-002;Märklin;Demo-Wagen 02;H0;Personenwagen;Schnellzugwagen;false;;;Nur Übungsdaten / Synthetic example

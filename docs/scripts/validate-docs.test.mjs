@@ -265,3 +265,12 @@ test("coverage validation rejects invalid topics and unknown owner references", 
   assert(errors.includes("duplicate coverage topic duplicate"));
   assert(errors.includes("frontend route owner /vehicles references unknown topic missing"));
 });
+
+test("rejects duplicate version footers that can drift from review metadata", async () => {
+  const root = await fixture({
+    "index.md": page("reference", "stable", "0.1.19") + "\n## Documented RailKeeper version\nOld version.\n",
+    "de/index.md": page("reference", "stable", "0.1.19") + "\n## Dokumentierte RailKeeper-Version\nAlter Stand.\n",
+  });
+  const errors = await validateDocumentTree(root, versions);
+  assert.equal(errors.filter((message) => message.includes("duplicate review footer")).length, 2);
+});
