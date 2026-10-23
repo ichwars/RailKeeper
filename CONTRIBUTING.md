@@ -44,6 +44,9 @@ together.
   screenshots with useful alternative text and captions. Use synthetic demo data, never private
   collections, credentials or backups. Capture the actual application; retain version scope and
   review evidence in `docs/coverage.json`. A picture is not hardware acceptance.
+- Maintain review version/date only in frontmatter. Use `GuideDownload` for shared synthetic
+  example files under `docs/site/assets/examples`, verify them through the actual import, and
+  label simulated command-station screenshots explicitly.
 - Update `docs/coverage.json` when a route, API area, translation namespace, configuration value,
   or documentation topic is introduced.
 - A one-language-only change is allowed only for a wording correction that does not change meaning.

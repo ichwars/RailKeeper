@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { validateGuideAssets } from "./validate-guide-assets.mjs";
@@ -60,5 +60,46 @@ test("validates localized GuideFigure sources and alternative text", async () =>
     const errors = await validateGuideAssets(root, files, []);
     assert(errors.some((message) => message.includes("alternative text")));
     assert(errors.some((message) => message.includes("missing or out-of-tree image")));
+  });
+});
+
+test("validates shared example downloads across localized guides", async () => {
+  await fixture(async (root, files) => {
+    await mkdir(join(root, "assets/examples"));
+    await writeFile(join(root, "assets/examples/demo.csv"), "name\nDemo\n");
+    for (const file of files) {
+      const original = await readFile(join(root, file), "utf8");
+      await writeFile(join(root, file), original + '\n<GuideDownload file="demo.csv">Download example</GuideDownload>');
+    }
+    assert.deepEqual(await validateGuideAssets(root, files, []), []);
+    await writeFile(join(root, files[0]), '![Example](../assets/screenshots/en/example.png)\n<GuideDownload file="missing.csv"></GuideDownload>');
+    const errors = await validateGuideAssets(root, files, []);
+    assert(errors.some((message) => message.includes("descriptive link text")));
+    assert(errors.some((message) => message.includes("missing or invalid example download")));
+    assert(errors.some((message) => message.includes("downloads differ from German")));
+  });
+});
+
+test("rejects example download paths outside the example folder", async () => {
+  await fixture(async (root, files) => {
+    const original = await readFile(join(root, files[0]), "utf8");
+    await writeFile(join(root, files[0]), original + '\n<GuideDownload file="../credentials.json">Wrong path</GuideDownload>');
+    const errors = await validateGuideAssets(root, files, []);
+    assert(errors.some((message) => message.includes("missing or invalid example download")));
+  });
+});
+
+test("requires plain download labels instead of attempting HTML sanitization", async () => {
+  await fixture(async (root, files) => {
+    await mkdir(join(root, "assets/examples"));
+    await writeFile(join(root, "assets/examples/demo.csv"), "name\nDemo\n");
+    const originals = await Promise.all(files.map((file) => readFile(join(root, file), "utf8")));
+    for (const label of ["<span>Example</span>", "<script", "<>"]) {
+      for (const [index, file] of files.entries()) {
+        await writeFile(join(root, file), originals[index] + `\n<GuideDownload file="demo.csv">${label}</GuideDownload>`);
+      }
+      const errors = await validateGuideAssets(root, files, []);
+      assert.equal(errors.filter((message) => message.includes("plain descriptive link text")).length, 2);
+    }
   });
 });

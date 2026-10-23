@@ -12,7 +12,7 @@ lastReviewed: 2026-10-23
 RailKeeper uses controlled master data wherever records must share names, classifications, symbols,
 or numbering rules. Most of it is managed under **Settings > Data**. Inventory-number schemes are
 under **Settings > General**, and the master-data JSON transfer is under
-**Settings > Import/Export**.
+**Settings > Backup**.
 
 This section documents stable RailKeeper. It separates four administrative workflows:
 

@@ -9,34 +9,122 @@ lastReviewed: 2026-10-23
 
 # Lokbilder für die Digitalzentrale
 
-Ein Foto im Fahrzeugbestand ist oft zu groß oder hat breite Ränder. RailKeeper erstellt daraus eine eigene Datei für die gewählte Zentrale. Dein Original bleibt erhalten.
+**Ziel:** Aus einem Fahrzeugbild eine passende Bilddatei erstellen und sie bei Bedarf einer Lok
+auf der ECoS zuordnen. Das Originalbild bleibt erhalten. Für den Direkttransfer brauchst du
+**Admin**; Bilder am Fahrzeug pflegen können **Admin** und **Editor**.
 
+Die Aufnahmen zeigen die echte RailKeeper-Oberfläche mit einer künstlich gezeichneten Demo-Lok.
+Bei den ECoS-Vorschau-, Pausen- und Ergebnisbildern sind die Zentralenantworten simuliert.
+Sie erklären die Bedienung und sind kein zusätzlicher Hardwaretest.
 
-<GuideFigure name="media" alt="Der Einstieg liegt bei den Bildern unter Uploads; zuerst ein geeignetes Foto hinterlegen." caption="Der Einstieg liegt bei den Bildern unter Uploads; zuerst ein geeignetes Foto hinterlegen. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
+## 1. Ein geeignetes Bild auswählen
 
-## Ein Bild vorbereiten
+Öffne ein gespeichertes Fahrzeug unter **Bearbeiten > Uploads**. Hinterlege ein Foto als
+Fahrzeugbild. Eine Seitenaufnahme mit ruhigem Hintergrund eignet sich besonders gut.
+Die Lok sollte vollständig sichtbar sein und möglichst wenig freien Rand besitzen.
+Eine schräge Perspektive oder ein unscharfes Foto lässt sich durch Vergrößern nicht reparieren.
 
-1. Öffne das gespeicherte Fahrzeug unter **Bearbeiten > Uploads**.
-2. Wähle bei einem vorhandenen Fahrzeugbild **Zentralenbild erstellen**.
-3. Wähle das Ziel, zum Beispiel **ECoS**.
-4. Prüfe den vorgeschlagenen Ausschnitt. Die Lok sollte möglichst die verfügbare Breite nutzen, ohne abgeschnitten oder verzerrt zu werden.
-5. Prüfe die Vorschau in tatsächlicher Größe und lade die Datei herunter.
+Zum Ausprobieren kannst du diese künstlichen Bilddateien verwenden:
 
-RailKeeper prüft Dateiformat, Auflösung, Ausschnitt und Flächennutzung. Es erkennt nicht zuverlässig, ob das Foto die richtige Lok zeigt, scharf ist oder aus einer geeigneten Perspektive aufgenommen wurde. Diese Prüfung bleibt bei dir.
+- <GuideDownload file="locomotive-demo.png">Demo-Lok mit ausreichender Auflösung</GuideDownload> (1200 × 400 Pixel).
+- <GuideDownload file="locomotive-low-resolution-demo.png">Demo-Lok mit zu geringer Auflösung</GuideDownload> (40 × 14 Pixel).
 
-## Wohin geht die Datei?
+Wähle am gewünschten Fahrzeugbild **Zentralenbild erstellen**.
 
-| Ziel | Verwendung |
+## 2. Ziel wählen, Ausschnitt und Originalgröße prüfen
+
+Wähle unter **Zielgerät / Anwendung** die gewünschte Ausgabe. Prüfe dann beide Seiten des Dialogs:
+links das Motiv und den Ausschnitt, rechts **Ergebnis in Originalgröße**.
+
+<GuideFigure name="image-export" alt="Lokbild-Dialog mit Ausschnitt links und fertiger ECoS-Vorschau rechts." caption="Die große Demo-Datei wird im echten Bilddialog verarbeitet. Die rechte Vorschau zeigt die tatsächliche Zielgröße. Künstliches Motiv; anklicken für die volle Größe." />
+
+1. Prüfe den automatisch vorgeschlagenen Ausschnitt.
+2. Verwende **Außenränder entfernen**, wenn gleichmäßige freie Ränder stören.
+3. Ziehe bei Bedarf mit Maus oder Finger einen anderen Ausschnitt. Unter **Ausschnitt in Pixeln
+   einstellen** kannst du ihn genauer festlegen. **Ganzes Bild** setzt die Auswahl zurück.
+4. Prüfe, dass Puffer, Räder und Aufbauten erhalten bleiben. Nutze möglichst die verfügbare Breite.
+5. Wähle einen passenden Hintergrund. Ein fotografierter Hintergrund wird dadurch nicht entfernt.
+
+RailKeeper skaliert innerhalb der Zielgröße unter Beibehaltung der Proportionen.
+Ein hohes Motiv kann nicht gleichzeitig die volle Breite ausfüllen und vollständig sichtbar bleiben.
+Verbessere dann die Aufnahme oder den Ausschnitt; ziehe die Lok nicht in die Breite.
+
+| Ziel | Ausgabe und weiterer Weg |
 | --- | --- |
-| ECoS 50200 / 50210 / 50220 | BMP-Datei für den manuellen Import oder den getrennt bestätigten Direkttransfer |
-| CS3 / CS3 plus | PNG für den Bildimport in der Weboberfläche |
-| Intellibox 3 | PNG zur weiteren Verarbeitung mit IB3 Configuration |
-| Z21-App | PNG für die Bildauswahl der App, kein Protokoll-Upload an die Z21 |
+| ECoS 50200 / 50210 / 50220 | 190 × 40 Pixel, BMP mit 24 Bit RGB; festes Geräteformat. Manuell importieren oder den bestätigten Direkttransfer verwenden. |
+| CS3 / CS3 plus | PNG, RailKeeper-Voreinstellung 384 × 132 Pixel; im CS3-Webinterface importieren. |
+| Intellibox 3 | PNG, Voreinstellung 340 × 72 Pixel; mit IB3 Konfiguration weiterverarbeiten und übertragen. |
+| Z21-App | PNG, Voreinstellung 960 × 400 Pixel; auf dem Mobilgerät in der App beim Fahrzeug auswählen. |
 
-## Direkt an die ECoS übertragen
+Die PNG-Voreinstellungen sind keine allgemeingültigen Herstellergrenzen. Die Z21-Zentrale selbst
+speichert diese App-Bilder nicht. Im Dialog führen **Herstellerangaben** zur jeweiligen Quelle.
 
-Nur Admins können **Direkt an ECoS übertragen** verwenden. Wähle die Ziel-Lok und prüfe Name, Decoderadresse, Objekt-ID und Bildvorschau. Bestätige erst danach die Übertragung. RailKeeper kann ein identisches vorhandenes Bild wiederverwenden.
+## 3. Die Eignungsanzeige richtig verstehen
 
-Ist die Loksteuerung belegt, pausiert der Vorgang. Wähle die Lok an der ECoS ab und verwende bewusst **Fortsetzen**. Geänderte Vorschauen müssen neu bestätigt werden. Wiederhole bei unklaren Antworten nicht einfach den Upload, sondern prüfe Bildplatz und Lokzuordnung.
+**Technisch verwendbar** bedeutet: Die Datei kann für das gewählte Ziel verarbeitet werden.
+Prüfe trotzdem, ob sie die richtige Lok zeigt und das Motiv gut erkennbar ist.
+RailKeeper erkennt Perspektive, Schärfe und Motiv nicht zuverlässig.
 
-Die ECoS-Verbindung verwendet Port 15471; der Bildtransfer benötigt zusätzlich die Weboberfläche auf Port 80. [Zentrale einrichten](../../administration/digital-centers).
+<GuideFigure name="image-low-resolution" alt="Warnung bei einem sehr kleinen Ausgangsbild der Demo-Lok." caption="Das 40 × 14 Pixel kleine Beispiel muss vergrößert werden. Eine Warnung erklärt die Einschränkung; mehr Pixel im Export erzeugen keine fehlenden Details." />
+
+Warnungen können Vergrößerung, geringe Breitennutzung oder störende Ränder betreffen.
+Sie verlangen eine Prüfung und sind nicht immer eine Sperre. Ein ungültiger Ausschnitt oder ein
+nicht verarbeitbares Bild verhindert dagegen die Ausgabe. Bei geringer Auflösung möglichst das
+größere Original verwenden.
+
+## 4. Datei herunterladen und manuell importieren
+
+Wähle **Bild herunterladen**. Verwende für die ECoS die erzeugte BMP-Datei, nicht die originale PNG.
+Öffne ihre Weboberfläche, gehe zu **Lokbilder** und lade die Datei auf einen freien Benutzerbildplatz.
+Ordne das Bild danach an der ECoS der richtigen Lok zu. Ein hochgeladenes Bild ist allein noch
+keine bestätigte Lokzuordnung.
+
+Bei CS3, Intellibox 3 und Z21-App verwendest du den in der Tabelle genannten Weg.
+Der folgende Direkttransfer ist ausschließlich für die ECoS vorgesehen.
+
+## 5. Direkt an die ECoS übertragen
+
+Die ECoS muss [eingerichtet und erreichbar](../../administration/digital-centers) sein.
+Die Protokollverbindung benötigt TCP-Port **15471**, der Bildtransfer zusätzlich die
+Weboberfläche auf Port **80**, jeweils vom RailKeeper-Server aus.
+
+1. Wähle **Direkt an ECoS übertragen …**.
+2. Wähle die **Ziel-Lok auf der ECoS**. Prüfe Name, Decoderadresse, Protokoll und Objekt-ID.
+3. Prüfe die Bildbezeichnung und wähle **Übertragung prüfen und Vorschau laden**.
+4. Vergleiche bisheriges und neues Bild sowie den angezeigten Bildplatz. Diese Vorschau lädt
+   noch kein neues Bild hoch.
+
+<GuideFigure name="image-ecos-preview" alt="ECoS-Zielauswahl mit Vorher-/Nachher-Bild und noch nicht bestätigtem Transfer." caption="Echte RailKeeper-Vorschau mit simulierten Zentralenantworten und reservierter Beispieladresse 192.0.2.10. Kein Zugriff auf eine echte ECoS." />
+
+5. Wähle die Ziel-Lok an beiden ECoS-Fahrreglern und in anderen Steuerprogrammen ab.
+6. Setze **Ziel-Lok und Bildvorschau geprüft** und wähle **Jetzt hochladen und zuordnen**.
+7. Warte auf das Ergebnis. RailKeeper fordert zuerst die Loksteuerung an und prüft nach dem
+   Transfer Bild und Zuordnung durch Zurücklesen.
+
+Ist bereits ein identisches Bild vorhanden, zeigt die Vorschau dessen Bildplatz und bietet
+**Vorhandenes Bild jetzt zuordnen** an. Dabei wird kein zweites Bild hochgeladen.
+Seine vorhandene Bezeichnung auf der ECoS bleibt erhalten.
+
+## 6. Bei belegter Loksteuerung fortsetzen
+
+<GuideFigure name="image-ecos-pause" alt="Pausierter Bildtransfer mit Hinweis auf die belegte Loksteuerung und Fortsetzen-Schaltfläche." caption="Simulierter Belegungsfall im echten Dialog. Bis hier wurde weder ein neues Bild hochgeladen noch eine Zuordnung geschrieben." />
+
+Wähle die Lok an beiden Fahrreglern und gegebenenfalls in anderen Steuerprogrammen ab.
+Klicke dann bewusst auf **Fortsetzen**. RailKeeper prüft eine neue Vorschau und setzt den bereits
+bestätigten Vorgang fort, wenn Ziel, Bild und Bildplatz unverändert sind. Bei Änderungen musst du
+die neue Vorschau erneut bestätigen. Es gibt keine erzwungene Übernahme der Loksteuerung.
+
+## 7. Ergebnis prüfen und bei unklarer Antwort reagieren
+
+<GuideFigure name="image-ecos-result" alt="Erfolgsmeldung nach geprüfter Bildübertragung und Lokzuordnung." caption="Simuliertes Erfolgsergebnis im echten RailKeeper-Dialog. Bild und Zuordnung werden getrennt bestätigt; die Aufnahme belegt keinen realen Gerätetest." />
+
+| Anzeige | Nächster Schritt |
+| --- | --- |
+| Bild und Zuordnung geprüft | Kontrolliere das Bild anschließend auch auf der ECoS. |
+| Weboberfläche nicht erreichbar | Adresse, Port 80 und Erreichbarkeit vom RailKeeper-Server prüfen. Ein erfolgreicher Protokolltest allein genügt nicht. |
+| Vorschau abgelaufen oder geändert | Neu prüfen und die aktuelle Vorschau bewusst bestätigen. |
+| Bild geprüft, Zuordnung nicht bestätigt | Bildplatz und Lok auf der ECoS prüfen. Falls angeboten, nur die Zuordnung erneut prüfen; ein bereits vorhandenes Bild wiederverwenden. |
+| Antwort fehlt oder Zustand unklar | Nicht ungeprüft erneut hochladen. Zuerst Bildplatz und Lokzuordnung kontrollieren. |
+
+Ein Fehler bei einer späten Zuordnung bedeutet nicht automatisch, dass ein vorheriger Upload
+rückgängig gemacht wurde. Bewahre die heruntergeladene Datei auf, bis das Ergebnis geklärt ist.

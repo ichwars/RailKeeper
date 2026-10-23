@@ -1,0 +1,31 @@
+{
+  "format": "railkeeper-transfer",
+  "version": 3,
+  "createdAt": "2026-10-23T10:00:00Z",
+  "areas": {
+    "vehicles": [
+      {
+        "inventoryNumber": "DEMO-JSON-001",
+        "manufacturer": "Roco",
+        "name": "Demo-JSON-Lok 01",
+        "gauge": "H0",
+        "category": "Lokomotive",
+        "gattung": "Diesellok",
+        "digital": false,
+        "dtDecoder": false,
+        "description": "Nur Übungsdaten / Synthetic example"
+      },
+      {
+        "inventoryNumber": "DEMO-JSON-002",
+        "manufacturer": "Märklin",
+        "name": "Demo-JSON-Wagen 01",
+        "gauge": "H0",
+        "category": "Personenwagen",
+        "gattung": "Schnellzugwagen",
+        "digital": false,
+        "dtDecoder": false,
+        "description": "Nur Übungsdaten / Synthetic example"
+      }
+    ]
+  }
+}

@@ -2,21 +2,21 @@
 title: Master-data transfer
 description: Export and reconcile RailKeeper master data with the versioned JSON document.
 audience: admin
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Master-data transfer
 
-The **Master-data transfer** box under **Settings > Import/Export** moves controlled entries and
+The **Master-data transfer** box under **Settings > Backup** moves controlled entries and
 their relations between RailKeeper instances. Both download and upload are Admin-only operations.
 This is a specialized configuration transfer, not an application backup and not the vehicle-file
 Import/Export workspace.
 
 ## What the document contains
 
-The downloaded file is named `railkeeper-stammdaten-YYYYMMDD-HHMMSS.json`. Stable v0.1.20.3 exports
+The downloaded file is named `railkeeper-stammdaten-YYYYMMDD-HHMMSS.json`. RailKeeper exports
 format `railkeeper-master-data`, version 2, with:
 
 - the creation timestamp;
@@ -32,7 +32,7 @@ as well.
 
 ## Export master data
 
-1. Open **Settings > Import/Export** as an Admin.
+1. Open **Settings > Backup** as an Admin.
 2. In **Master-data transfer**, select the download action.
 3. Store the JSON with the related RailKeeper version and a short change note.
 4. Keep a current application backup separately.
@@ -96,7 +96,3 @@ need recovery, use the validated application backup instead.
 - [General master data](./master-data-general)
 - [Article master data and storage locations](./master-data-articles)
 - [Import and export workspace](/guide/import-export/)
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.

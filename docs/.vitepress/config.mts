@@ -64,6 +64,7 @@ export default defineConfig({
               items: [
                 { text: "Decoder, Funktionen und CV-Daten", link: "/de/guide/vehicles/decoder-cv" },
                 { text: "Decoder nachschlagen", link: "/de/guide/vehicles/decoder-library" },
+                { text: "CV-Import ausprobieren", link: "/de/guide/vehicles/cv-import-example" },
                 { text: "Lokbilder für Zentralen", link: "/de/guide/vehicles/locomotive-images" },
                 { text: "CS3-Lokdaten read-only lesen", link: "/de/guide/import-export/cs3-import" },
                 { text: "ECoS-Lokabgleich", link: "/de/guide/import-export/ecos-sync" },
@@ -91,6 +92,7 @@ export default defineConfig({
               items: [
                 { text: "Überblick und Berechtigungen", link: "/de/guide/import-export/" },
                 { text: "Fahrzeugdateien importieren", link: "/de/guide/import-export/file-import" },
+                { text: "Importbeispiele", link: "/de/guide/import-export/examples" },
                 { text: "Bestand exportieren", link: "/de/guide/import-export/exports" },
               ],
             },
@@ -202,6 +204,7 @@ export default defineConfig({
           items: [
             { text: "Decoder, functions, and CV data", link: "/guide/vehicles/decoder-cv" },
             { text: "Look up a decoder", link: "/guide/vehicles/decoder-library" },
+            { text: "Try CV import", link: "/guide/vehicles/cv-import-example" },
             { text: "Command-station images", link: "/guide/vehicles/locomotive-images" },
             { text: "Read CS3 locomotives without writing", link: "/guide/import-export/cs3-import" },
             { text: "ECoS locomotive sync", link: "/guide/import-export/ecos-sync" },
@@ -229,6 +232,7 @@ export default defineConfig({
           items: [
             { text: "Overview and permissions", link: "/guide/import-export/" },
             { text: "Import vehicle files", link: "/guide/import-export/file-import" },
+            { text: "Import examples", link: "/guide/import-export/examples" },
             { text: "Export inventory", link: "/guide/import-export/exports" },
           ],
         },

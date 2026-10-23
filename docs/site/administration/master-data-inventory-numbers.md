@@ -2,9 +2,9 @@
 title: Inventory-number schemes
 description: Configure automatic vehicle and accessory article inventory numbers without collisions.
 audience: admin
-status: stable
-reviewedVersion: 0.1.21
-lastReviewed: 2026-08-16
+status: development
+reviewedVersion: main
+lastReviewed: 2026-10-23
 ---
 
 # Inventory-number schemes
@@ -13,13 +13,14 @@ Open **Settings > General > Inventory numbers** to control automatic identities 
 vehicle and accessory-article creation. A scheme contains a unique category, prefix, next number,
 padding width, active state, and preview.
 
-Stable v0.1.20.3 normally provides these active schemes:
+RailKeeper normally provides these active schemes:
 
 | Category | Default prefix | Default example | Used for |
 | --- | --- | --- | --- |
 | Vehicle | `RK-FAH` | `RK-FAH-000001` | Vehicle fallback |
 | Locomotive | `RK-LOK` | `RK-LOK-000001` | Categories containing `lok` |
 | Wagon | `RK-WAG` | `RK-WAG-000001` | Categories containing `wagen` or `waggon` |
+| Set | `RK-SET` | `RK-SET-000001` | shared vehicle-set header |
 | Article | `RK-ART` | `RK-ART-000001` | Accessory article records |
 
 The displayed labels are localized, but the stored categories above use their German values
@@ -43,6 +44,8 @@ Before assignment, RailKeeper checks the relevant record table. If a candidate i
 tries the next value and advances past the collision. It stops after 500 attempts. Vehicle and
 article numbers are checked in their respective tables, not as one shared global namespace.
 
+Vehicle sets use their own enabled **Set** scheme. Each member receives a number from the matching vehicle scheme. Set numbers are checked in their own table.
+
 ## Create or edit a scheme
 
 1. Review the existing categories before adding one. Each category can have only one scheme.
@@ -50,7 +53,7 @@ article numbers are checked in their respective tables, not as one shared global
 3. Check the preview and select **Create**.
 4. For an existing row, edit its values in place and select **Save**.
 
-There is no delete endpoint in v0.1.20.3. Deactivate an unused scheme instead. Editing or
+There is no delete endpoint. Deactivate an unused scheme instead. Editing or
 deactivating a scheme never renumbers existing records.
 
 Only Admin and Editor may create or save schemes. Viewer users can read the table. The stable
@@ -90,7 +93,3 @@ article creation safely skips those collisions.
 - [Master-data transfer](./master-data-transfer)
 - [Vehicle inventory](/guide/vehicles/)
 - [Article records and technical data](/guide/accessories/article-records)
-
-## Documented RailKeeper version
-
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.

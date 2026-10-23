@@ -120,6 +120,9 @@ export async function validateDocumentTree(root, versions) {
       validateMetadata(path, metadata, versions, errors);
 
       const { body } = frontmatterParts(source);
+      if (/^## (Dokumentierte RailKeeper-Version|Documented RailKeeper version)$/m.test(body)) {
+        errors.push(`${path}: duplicate review footer; maintain version and date in frontmatter only`);
+      }
       const marker = body.match(unfinishedMarkerPattern)?.[1];
       if (marker) {
         errors.push(`${path}: contains unfinished marker ${marker}`);

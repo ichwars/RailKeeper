@@ -12,6 +12,9 @@ lastReviewed: 2026-10-23
 **Ziel:** Eine Bestandsdatei erst prüfen und anschließend bewusst übernehmen. Du brauchst Admin- oder Editor-Rechte für Fahrzeugimporte. Für eine große oder unbekannte Datei zuerst eine [Sicherung](../../administration/backup-restore) erstellen.
 
 
+Zum Ausprobieren: [CSV- und JSON-Beispiele mit Schrittfolge](examples).
+
+
 <GuideFigure name="import-dialog" alt="Starte einen neuen Import und wähle das passende Profil." caption="Starte einen neuen Import und wähle das passende Profil. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 
 ## 1. Ein passendes Profil anlegen

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400">
+<title>Synthetic side-view locomotive for RailKeeper documentation</title>
+<rect width="1200" height="400" fill="white"/>
+<g stroke="#26343a" stroke-width="6" stroke-linejoin="round">
+<path d="M90 250V165L135 115H320L350 135H870L900 115H1050L1100 170V250Z" fill="#397358"/>
+<path d="M110 152L143 124H238V164H110ZM950 124H1043L1081 164H950Z" fill="#b7d9e6"/>
+<path d="M98 235H1093V265H98Z" fill="#a93e31"/>
+<path d="M70 259H110M1090 259H1130"/>
+<path d="M365 145H850M365 164H850M365 183H850" stroke-width="3"/>
+<rect x="260" y="160" width="68" height="72" fill="#53866e"/>
+<rect x="885" y="160" width="48" height="72" fill="#53866e"/>
+<rect x="490" y="265" width="210" height="20" fill="#45545a"/>
+<g fill="#35444b"><circle cx="220" cy="275" r="32"/><circle cx="305" cy="275" r="32"/><circle cx="880" cy="275" r="32"/><circle cx="965" cy="275" r="32"/></g>
+<g fill="#b7c2c7" stroke-width="4"><circle cx="220" cy="275" r="13"/><circle cx="305" cy="275" r="13"/><circle cx="880" cy="275" r="13"/><circle cx="965" cy="275" r="13"/></g>
+</g><text x="600" y="224" font-family="sans-serif" font-size="28" fill="white" text-anchor="middle">DEMO</text>
+</svg>
