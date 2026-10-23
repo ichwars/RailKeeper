@@ -1,0 +1,37 @@
+{
+  "functions": [
+    {
+      "functionKey": "F0",
+      "name": "Demo Licht",
+      "functionType": "licht",
+      "mode": "moment",
+      "directionDependent": null,
+      "inverted": true,
+      "flagsVersion": 2,
+      "notes": "Synthetic manual example / Manuelle Übungsangabe",
+      "sortOrder": 0
+    },
+    {
+      "functionKey": "F1",
+      "name": "Demo AUX1",
+      "functionType": "standard",
+      "mode": "moment",
+      "directionDependent": null,
+      "inverted": true,
+      "flagsVersion": 2,
+      "notes": "Synthetic manual example / Manuelle Übungsangabe",
+      "sortOrder": 1
+    },
+    {
+      "functionKey": "F3",
+      "name": "Demo Rangiergang",
+      "functionType": "standard",
+      "mode": "moment",
+      "directionDependent": null,
+      "inverted": true,
+      "flagsVersion": 2,
+      "notes": "Synthetic manual example / Manuelle Übungsangabe",
+      "sortOrder": 3
+    }
+  ]
+}

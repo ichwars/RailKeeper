@@ -64,6 +64,10 @@ export default defineConfig({
               items: [
                 { text: "Decoder, Funktionen und CV-Daten", link: "/de/guide/vehicles/decoder-cv" },
                 { text: "Decoder nachschlagen", link: "/de/guide/vehicles/decoder-library" },
+                { text: "Decoder sicher erkennen", link: "/de/guide/vehicles/decoder-identification" },
+                { text: "F0, F1 und F3 übernehmen", link: "/de/guide/vehicles/functions-walkthrough" },
+                { text: "CV-Referenz", link: "/de/guide/vehicles/decoder-cv-reference" },
+                { text: "Modell- und Firmwarehinweise", link: "/de/guide/vehicles/decoder-model-notes" },
                 { text: "CV-Import ausprobieren", link: "/de/guide/vehicles/cv-import-example" },
                 { text: "Lokbilder für Zentralen", link: "/de/guide/vehicles/locomotive-images" },
                 { text: "CS3-Lokdaten read-only lesen", link: "/de/guide/import-export/cs3-import" },
@@ -204,6 +208,10 @@ export default defineConfig({
           items: [
             { text: "Decoder, functions, and CV data", link: "/guide/vehicles/decoder-cv" },
             { text: "Look up a decoder", link: "/guide/vehicles/decoder-library" },
+                { text: "Identify a decoder", link: "/guide/vehicles/decoder-identification" },
+                { text: "Apply F0, F1 and F3", link: "/guide/vehicles/functions-walkthrough" },
+                { text: "CV reference", link: "/guide/vehicles/decoder-cv-reference" },
+                { text: "Model and firmware notes", link: "/guide/vehicles/decoder-model-notes" },
             { text: "Try CV import", link: "/guide/vehicles/cv-import-example" },
             { text: "Command-station images", link: "/guide/vehicles/locomotive-images" },
             { text: "Read CS3 locomotives without writing", link: "/guide/import-export/cs3-import" },
