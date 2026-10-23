@@ -39,3 +39,5 @@ Verwende die persönlichen Passwort- und Zwei-Faktor-Einstellungen im Bereich **
 Ein Admin prüft die Sitzungsübersicht und widerruft nicht mehr benötigte Sitzungen. Ein Passwortwechsel oder administrativer Reset kann bestehende Sitzungen ungültig machen. Prüfe nach einer Rechteänderung mit einer neuen Anmeldung, was das betroffene Konto tatsächlich öffnen darf.
 
 Benutzer und Anmeldedaten werden nicht in Anwendungssicherungen übernommen. Für den vollständigen Wiederanlauf einer Installation benötigt der Betreiber zusätzlich eine private Serversicherung.
+
+[Bebilderte Konto- und Zwei-Faktor-Übung](account-security-example) · [SMTP und Passwort-Reset](smtp-password-reset).

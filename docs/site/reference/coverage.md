@@ -25,12 +25,26 @@ Pictures were captured on **23 October 2026** with synthetic vehicles. Their CV 
 
 <CoverageTable />
 
+## Which practical workflows have additional evidence?
+
+| Exercise | Actual evidence |
+| --- | --- |
+| [F0/F1/F3](../guide/vehicles/functions-walkthrough) | Actual local adoption, combined save, provenance and manual protection |
+| [Restore](../administration/restore-exercise) | Real export, validation and restore with CVs/functions/image/maintenance; local authentication preserved; invalid version blocked |
+| [Search and spare parts](../guide/vehicles/search-walkthrough) | Search with explicitly simulated replies; actual local TXT extraction |
+| [Sets](../guide/vehicles/sets) and [workshop](../guide/accessories/workshop-exercise) | Shared set edit, real local stock transactions and maintenance completion |
+| [Operating day](../guide/exhibition/practice) | Conflict dialog, corrected entry, saved lock and generated report |
+| [Accounts and two-factor](../administration/account-security-example) | Separate Viewer account, role boundary, real TOTP activation and fresh sign-in |
+
+All exercises use synthetic data. QR code and authenticator secret are masked during capture.
+No actual backup or credentials are publicly downloadable.
+
 ## What remains open?
 
 - CS3 compatibility uses documented response forms and fixtures; a complete project hardware acceptance is not established.
 - Z21 and Intellibox 3 do not yet provide an ECoS-equivalent locomotive/CV import. The guide does not invent that capability.
 - The decoder library retains explicit model, firmware and source gaps. A catalogue entry does not imply interpretation of every CV on that model.
-- Demo pictures show entry points. They do not prove every dialog state, printer driver, restore or network failure.
+- Windows/Docker migrations, SMTP delivery, physical cameras/scanners and native printer/PDF dialogs are not accepted by this demo. Additional network-failure and restore scenarios need separate checks.
 
 ## Keeping it current
 

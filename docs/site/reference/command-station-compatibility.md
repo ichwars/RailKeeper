@@ -1,6 +1,6 @@
 ---
-title: Command stations: scope and evidence
-description: Command stations: scope and evidence.
+title: "Command stations: scope and evidence"
+description: "Command stations: scope and evidence."
 audience: reference
 status: development
 reviewedVersion: main

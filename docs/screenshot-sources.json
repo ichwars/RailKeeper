@@ -11,6 +11,10 @@
   "privacy": "No production database, credentials, uploaded collection pictures or device writes",
   "images": [
     "accessories.png",
+    "account-create-viewer.png",
+    "account-smtp-fields.png",
+    "account-two-factor-login.png",
+    "account-two-factor-setup.png",
     "appearance.png",
     "article-barcode.png",
     "article-no-results.png",
@@ -47,6 +51,7 @@
     "import-dialog.png",
     "import-export.png",
     "import-json-review.png",
+    "installation-first-admin.png",
     "login.png",
     "maintenance-done.png",
     "maintenance-open.png",
@@ -81,5 +86,20 @@
   "simulatedSearchImages": [
     "article-result-review.png",
     "article-no-results.png"
+  ],
+  "additionalCaptures": {
+    "applicationCommit": "db9b1a7ee853a1fb4977d1643d38ca1279587b68",
+    "capturedAt": "2026-10-23",
+    "evidence": "Real local function adoption, restore, set edit, stock transactions, maintenance and report generation. Search replies and station replies are simulated only where explicitly listed. No real station or production data."
+  },
+  "privacyMasks": [
+    "account-two-factor-setup: QR code and secret masked during screenshot capture"
+  ],
+  "notTested": [
+    "Physical command stations in this documentation task",
+    "Windows/Docker version migration",
+    "Native printer/PDF dialogs",
+    "SMTP delivery",
+    "Physical camera/barcode scanner"
   ]
 }

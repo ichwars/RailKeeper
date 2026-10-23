@@ -25,12 +25,26 @@ Die Bilder wurden am **23.10.2026** mit künstlichen Fahrzeugen aufgenommen. CV-
 
 <CoverageTable />
 
+## Welche praktischen Abläufe sind zusätzlich geprüft?
+
+| Übung | Tatsächlicher Nachweis |
+| --- | --- |
+| [F0/F1/F3](../guide/vehicles/functions-walkthrough) | Echte lokale Übernahme, gemeinsames Speichern, Herkunft und Schutz manueller Angaben |
+| [Wiederherstellung](../administration/restore-exercise) | Echter Export, Vorprüfung, Restore mit CVs/Funktionen/Bild/Wartung; lokale Anmeldung erhalten; ungültige Version gesperrt |
+| [Such- und Ersatzteilübung](../guide/vehicles/search-walkthrough) | Suche mit ausdrücklich simulierten Antworten; echte lokale TXT-Extraktion |
+| [Setpflege](../guide/vehicles/sets) und [Werkstatt](../guide/accessories/workshop-exercise) | Gemeinsame Setänderung, echte lokale Bestandsbuchungen und Wartungsabschluss |
+| [Fahrtag](../guide/exhibition/practice) | Konfliktdialog, korrigierter Eintrag, gespeicherte Sperre und erzeugter Bericht |
+| [Konten und Zwei-Faktor](../administration/account-security-example) | Getrenntes Viewer-Konto, Rollenprüfung, echte TOTP-Aktivierung und frische Anmeldung |
+
+Alle Übungen verwenden künstliche Daten. QR-Code und Authenticator-Secret werden bereits bei der
+Aufnahme verdeckt. Eine öffentlich herunterladbare echte Sicherung oder Anmeldedaten gibt es nicht.
+
 ## Was bleibt offen?
 
 - CS3-Kompatibilitätsdaten sind über dokumentierte Antwortformen und Fixtures geprüft; eine eigene vollständige Hardwareabnahme ist nicht belegt.
 - Z21 und Intellibox 3 bieten noch keinen gleichwertigen Lok-/CV-Import wie ECoS. Eine Anleitung erfindet diesen Funktionsumfang nicht.
 - Die Decoderbibliothek enthält weiter gekennzeichnete Modell-, Firmware- und Quellenlücken. Ein Katalogeintrag bedeutet nicht, dass jede CV dieses Modells interpretiert werden kann.
-- Die Demo-Aufnahmen zeigen die Einstiegspunkte. Nicht jeder Dialogzustand, Druckertreiber, Restore oder Netzwerkausfall ist durch ein Bild nachgewiesen.
+- Windows-/Docker-Migrationsabläufe, SMTP-Zustellung, physische Kamera/Scanner sowie native Druck-/PDF-Dialoge sind durch diese Demo nicht abgenommen. Weitere Netzwerkausfälle und Restore-Konstellationen benötigen eigene Prüfungen.
 
 ## Wie halten wir das aktuell?
 

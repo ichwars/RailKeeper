@@ -1,6 +1,6 @@
 ---
-title: Digitalzentralen: Umfang und Prüfstand
-description: Digitalzentralen: Umfang und Prüfstand.
+title: "Digitalzentralen: Umfang und Prüfstand"
+description: "Digitalzentralen: Umfang und Prüfstand."
 audience: reference
 status: development
 reviewedVersion: main

@@ -21,9 +21,7 @@ lokalen Transaktion konsistent.
 ## Rollen und Zuordnungsziele
 
 Administratoren und Bearbeiter können reservieren, stornieren, einbauen, Zustände ändern und
-Einbauten ausbauen. Ein Planer kann im ansonsten schreibgeschützten Artikeldialog Reservierungen
-anlegen und stornieren, aber weder einbauen, ausbauen, Zustände ändern noch allgemeinen Bestand
-verwalten. Betrachter besitzen Leserecht. Messe hat keinen allgemeinen Zubehörzugriff.
+Einbauten ausbauen. Betrachter besitzen Leserecht. Messe hat keinen allgemeinen Zubehörzugriff.
 
 Jede Reservierung und jeder Einbau benötigt genau ein Ziel:
 
@@ -187,7 +185,7 @@ Abhängigkeiten bewusst, statt eine Klassifikationsänderung zu erzwingen.
 | Verbleib Eingelagert ist gesperrt oder fehlerhaft | Wählen Sie einen aktiven Zielort mit ebenfalls aktiver übergeordneter Kette. Andere Verbleibe dürfen keinen Ort enthalten. |
 | Zustand oder Ausbau kollidiert | Laden Sie neu. Eine andere Aktion kann den Einbau bereits geändert oder geschlossen haben. |
 | Schreiben möglicherweise erfolgreich, Neuladen fehlgeschlagen | Wiederholen Sie nichts. Verwenden Sie **Erneut versuchen** und prüfen Sie Status, Einbau, Einzelstück, Journal und Historie. |
-| Berechtigung fehlt | Planer dürfen nur reservieren und stornieren. Einbau, Zustand und Ausbau erfordern Administrator oder Bearbeiter. |
+| Berechtigung fehlt | Reservierung, Einbau, Zustand und Ausbau erfordern Administrator oder Bearbeiter. |
 
 Ein fehlgeschlagenes Neuladen nach dem Schreiben markiert den Editor als veraltet und sperrt
 weitere Zuordnungs- und Bestandsaktionen, bis ein vollständiger Wiederholungsversuch gelingt. So

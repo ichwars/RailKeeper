@@ -46,3 +46,11 @@ The operator must configure network or reverse-proxy access explicitly. Use HTTP
 | `RAILKEEPER_TRUSTED_PROXY_CIDRS` | Only your own trusted proxy networks |
 
 The full configuration for TLS, upload limits, SMTP, OCR and printers is in the [production runbook](https://github.com/ichwars/RailKeeper/blob/main/docs/production-runbook.md). Next: [your first vehicle](../guide/quick-start) and [backups](backup-restore).
+
+## Verify first browser setup
+
+<GuideFigure name="installation-first-admin" alt="First-run setup on an actually empty local installation." caption="The real empty demo requires its own first administrator. This shows browser setup, not Windows installation or Docker commissioning." />
+
+Enter your own username, valid email and a password of at least twelve characters with confirmation. After setup, verify sign-in and the data path under **Settings > General > Storage usage**.
+
+[Set up accounts and two-factor sign-in](account-security-example) · [SMTP and reset links](smtp-password-reset) · [Update walkthrough](system-operations).
