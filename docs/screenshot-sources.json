@@ -7,7 +7,7 @@
     "de",
     "en"
   ],
-  "capture": "Playwright screenshots of the actual application; dialog element captures where applicable",
+  "capture": "Actual application dialogs captured with Playwright; station replies are simulated only for the explicitly listed image-transfer states.",
   "privacy": "No production database, credentials, uploaded collection pictures or device writes",
   "images": [
     "accessories.png",
@@ -20,8 +20,21 @@
     "digital-settings.png",
     "exhibition.png",
     "functions.png",
+    "image-ecos-pause.png",
+    "image-ecos-preview.png",
+    "image-ecos-result.png",
+    "image-export.png",
+    "image-low-resolution.png",
+    "import-csv-conflict.png",
+    "import-csv-mapping.png",
+    "import-csv-result.png",
+    "import-csv-review.png",
+    "import-cv-preview.png",
+    "import-cv-provenance.png",
+    "import-cv-values.png",
     "import-dialog.png",
     "import-export.png",
+    "import-json-review.png",
     "login.png",
     "maintenance.png",
     "media.png",
@@ -31,5 +44,11 @@
     "vehicle-editor.png",
     "vehicle-set.png",
     "vehicles.png"
-  ]
+  ],
+  "simulatedStationImages": [
+    "image-ecos-preview.png",
+    "image-ecos-pause.png",
+    "image-ecos-result.png"
+  ],
+  "exampleImageSource": "Synthetic locomotive drawing in site/assets/examples/locomotive-demo.svg; PNG inputs rendered from that drawing."
 }
