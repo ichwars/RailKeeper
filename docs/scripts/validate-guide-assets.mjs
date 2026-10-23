@@ -40,8 +40,10 @@ export async function validateGuideAssets(contentRoot, files, topics) {
     const downloads = new Set();
     for (const link of source.matchAll(/<GuideDownload\b([^>]*)>([\s\S]*?)<\/GuideDownload>/g)) {
       const name = link[1].match(/\bfile="([^"]*)"/)?.[1] || "";
-      const label = link[2].replace(/<[^>]*>/g, "").trim();
-      if (!label) errors.push(`${file}: download needs descriptive link text`);
+      const label = link[2].trim();
+      if (!label || label.includes("<") || label.includes(">")) {
+        errors.push(`${file}: download needs plain descriptive link text`);
+      }
       if (!/^[a-z0-9-]+\.(csv|json|txt|png)$/.test(name) ||
         !existsSync(resolve(root, "assets/examples", name))) {
         errors.push(`${file}: missing or invalid example download ${name}`);

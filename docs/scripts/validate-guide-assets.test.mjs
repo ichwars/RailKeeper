@@ -88,3 +88,18 @@ test("rejects example download paths outside the example folder", async () => {
     assert(errors.some((message) => message.includes("missing or invalid example download")));
   });
 });
+
+test("requires plain download labels instead of attempting HTML sanitization", async () => {
+  await fixture(async (root, files) => {
+    await mkdir(join(root, "assets/examples"));
+    await writeFile(join(root, "assets/examples/demo.csv"), "name\nDemo\n");
+    const originals = await Promise.all(files.map((file) => readFile(join(root, file), "utf8")));
+    for (const label of ["<span>Example</span>", "<script", "<>"]) {
+      for (const [index, file] of files.entries()) {
+        await writeFile(join(root, file), originals[index] + `\n<GuideDownload file="demo.csv">${label}</GuideDownload>`);
+      }
+      const errors = await validateGuideAssets(root, files, []);
+      assert.equal(errors.filter((message) => message.includes("plain descriptive link text")).length, 2);
+    }
+  });
+});
