@@ -49,3 +49,5 @@ Restore replaces local application data and saved media with the file's contents
 | full filesystem/volume backup | server failure recovery and returning to an earlier installation, including private local data |
 
 A copy inside the same container cannot protect against losing that container. Operators back up the database and file storage consistently and keep a copy off the system. [Updates and operation](system-operations).
+
+[Illustrated restore exercise on a separate test installation](restore-exercise).

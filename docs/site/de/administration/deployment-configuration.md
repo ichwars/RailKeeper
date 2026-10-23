@@ -17,7 +17,7 @@ Wähle zuerst, wo dein Bestand liegen soll: auf einem Windows-PC oder auf einem 
 2. Entpacke das gesamte ZIP in einen eigenen Programmordner.
 3. Starte `start-railkeeper.bat`.
 4. Lege beim ersten Aufruf deinen Admin an. Es gibt kein Standardpasswort.
-5. Prüfe unter **Einstellungen > Datenspeicher** den aktiven Datenordner.
+5. Prüfe unter **Einstellungen > Allgemein > Speichernutzung** den aktiven Datenordner.
 
 Der Standard ist `%LOCALAPPDATA%\RailKeeper\data`. Er liegt außerhalb des austauschbaren Programmordners. Bei einem alten `data`-Ordner neben der EXE übernimmt RailKeeper die Daten nur nach den [Sicherheitsregeln für Updates](system-operations). Vermische keine Datenbanken.
 
