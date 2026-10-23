@@ -1,0 +1,5 @@
+Synthetic training list / Künstliche Ersatzteilliste
+Model article / Modellartikel 99001
+Ersatzteile / Spare parts
+99001-01 Kupplung komplett / Coupler assembly
+99001-02 Radsatz komplett / Wheelset assembly

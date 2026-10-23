@@ -7,11 +7,14 @@
     "de",
     "en"
   ],
-  "capture": "Actual application dialogs captured with Playwright; station replies are simulated only for the explicitly listed image-transfer states.",
+  "capture": "Actual application dialogs in an isolated demo. Station replies and external search replies are simulated only for the explicitly listed states. Local TXT extraction and backup restore use real API and storage operations.",
   "privacy": "No production database, credentials, uploaded collection pictures or device writes",
   "images": [
     "accessories.png",
     "appearance.png",
+    "article-barcode.png",
+    "article-no-results.png",
+    "article-result-review.png",
     "backup.png",
     "central-workspace.png",
     "cv-analysis.png",
@@ -48,6 +51,8 @@
     "restore-incompatible.png",
     "restore-preflight.png",
     "restore-result.png",
+    "spare-document.png",
+    "spare-extraction-result.png",
     "update-storage.png",
     "update-version.png",
     "users.png",
@@ -60,5 +65,9 @@
     "image-ecos-pause.png",
     "image-ecos-result.png"
   ],
-  "exampleImageSource": "Synthetic locomotive drawing in site/assets/examples/locomotive-demo.svg; PNG inputs rendered from that drawing."
+  "exampleImageSource": "Synthetic locomotive drawing in site/assets/examples/locomotive-demo.svg; PNG inputs rendered from that drawing.",
+  "simulatedSearchImages": [
+    "article-result-review.png",
+    "article-no-results.png"
+  ]
 }

@@ -57,6 +57,7 @@ export default defineConfig({
                 { text: "Fahrzeugbilder und Beilagen", link: "/de/guide/vehicles/media" },
                 { text: "Fahrzeugwartung und Zustand", link: "/de/guide/vehicles/maintenance" },
                 { text: "Artikelsuche, Web-Dokumente und Ersatzteile", link: "/de/guide/vehicles/search-and-spares" },
+                { text: "Such- und Ersatzteilübung", link: "/de/guide/vehicles/search-walkthrough" },
               ],
             },
             {
@@ -204,6 +205,7 @@ export default defineConfig({
             { text: "Vehicle images and attachments", link: "/guide/vehicles/media" },
             { text: "Vehicle maintenance and condition", link: "/guide/vehicles/maintenance" },
             { text: "Article search, web documents, and spare parts", link: "/guide/vehicles/search-and-spares" },
+                { text: "Search and spare-parts exercise", link: "/guide/vehicles/search-walkthrough" },
           ],
         },
         {
