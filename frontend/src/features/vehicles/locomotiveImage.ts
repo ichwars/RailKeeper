@@ -41,14 +41,6 @@ export function fitLocomotiveImage(crop: ImageCrop, target: ImageSize) {
   return { x: (target.width - width) / 2, y: (target.height - height) / 2, width, height, scale };
 }
 
-export function imageSuitability(crop: ImageCrop, size: ImageSize, target: ImageSize, trim?: ImageCrop) {
-  if (!validImageSize(size) || !validImageCrop(crop, size)) return { invalid: true, upscale: false, narrow: false, border: false };
-  const fit = fitLocomotiveImage(crop, target);
-  return { invalid: false, upscale: fit.scale > 1,
-    narrow: fit.width < target.width * 0.55 || fit.height < target.height * 0.35,
-    border: Boolean(trim && trim.width * trim.height < crop.width * crop.height * 0.6) };
-}
-
 // Only transparency is used for trimming; an opaque background can contain parts of the locomotive.
 export function alphaBounds(data: Uint8ClampedArray, width: number, height: number): ImageCrop | null {
   let left = width, top = height, right = -1, bottom = -1;

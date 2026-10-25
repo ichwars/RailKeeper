@@ -92,6 +92,14 @@
     "capturedAt": "2026-10-23",
     "evidence": "Real local function adoption, restore, set edit, stock transactions, maintenance and report generation. Search replies and station replies are simulated only where explicitly listed. No real station or production data."
   },
+  "imagePreparationCaptures": {
+    "baseCommit": "bb6f27dedd1d1740101b874fe2e94564b3738786",
+    "workingTree": "codex/locomotive-image-dialog",
+    "capturedAt": "2026-10-25",
+    "images": ["image-export.png", "image-low-resolution.png"],
+    "languages": ["de", "en"],
+    "evidence": "Actual revised image preparation dialog with the published synthetic PNG examples. Enlarged output preview, automatic background and local image processing. No station connection or device write."
+  },
   "privacyMasks": [
     "account-two-factor-setup: QR code and secret masked during screenshot capture"
   ],

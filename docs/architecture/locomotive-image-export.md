@@ -21,7 +21,8 @@ software. SHA-256: `9ca92d91788ba636fa73824664d361ff3ecb9fb0a19d1ab096df97ff1256
 The original `Config/IB3_Release Notes.txt` inside that package supplies the release notes. A direct
 notes link returned another binary and was not treated as text. Vendor software and pictures remain
 ignored research artifacts and are not bundled. The user has confirmed manual ECoS upload of a
-RailKeeper export. Direct RailKeeper-to-ECoS transfer requires its own hardware acceptance.
+RailKeeper export. The revised background replacement was also accepted in a user-reported ECoS
+test on 25 October 2026. Direct RailKeeper-to-ECoS transfer requires its own hardware acceptance.
 
 ## Processing and limits
 
@@ -30,26 +31,47 @@ RailKeeper export. Direct RailKeeper-to-ECoS transfer requires its own hardware 
 - Source streams are bounded to 20 MiB and PNG/JPEG/WebP signatures are checked. Existing backend
   upload checks remain. Browser preparation caps each side at 12,000 pixels and the image at 40 million
   pixels. PNG dimensions are additionally checked before bitmap decode.
-- Crop analysis is bounded to 1200 × 1200 pixels. Alpha bounds or uniform outer-background
+- Crop and background analysis is bounded to 1200 × 1200 pixels. Alpha bounds or uniform outer-background
   bounds produce the initial visible crop, with a one-source-pixel safety margin. Opaque
   trimming requires agreeing corners and at least 85% matching edge pixels (per-channel
   tolerance 16), then floods only matching pixels connected to the edge. Ambiguous
   photographic backgrounds and blank opaque images retain the full image. “Whole image”
   restores the original crop; the crop suggestion is reviewable and manually adjustable.
   Fully transparent images cannot export. No subject, sharpness or perspective detection is claimed.
+  The same edge-connected background mask also replaces a uniform photo background by default.
+  Enclosed details are retained. Ambiguous backgrounds and existing alpha images are left intact.
+  Object contours are separated from soft shadows by competing paths from fixed background
+  and foreground anchors. Path costs sum fourth-power RGB contrast steps, so a sharp wheel
+  outline costs more to cross than a gradual floor shadow. Stable inner paint, coloured edges
+  and narrow parts provide foreground anchors; neutral shadow transitions do not become
+  anchors merely because they are dark. A bounded heap keeps the two path searches local.
+  Mixed contour pixels are then unmixed from the median original background colour. Opaque
+  details and coherent paint bands such as bright wheel rims retain their source pixels.
+  Outside the selected contour, opacity is limited to one antialiasing pixel; rejected shadows
+  cannot reappear as detached fragments. This is conservative colour/contour processing,
+  not semantic subject recognition for arbitrary scenes.
+  The mask is derived from the full original before manual cropping, then applied before final
+  downsampling. Working buffers are bounded to four times the target dimensions per side.
+  Replacement can be disabled; neither analysis nor replacement changes the stored original.
 - Pointer selection and keyboard pixel fields define a bounded crop. Aspect ratio is retained and
   the whole crop is fitted into the full available target width/height without an extra
-  export margin, distortion or clipping. Tall crops remain height-limited. Enlarging,
-  poor target-area use and large outer borders produce specific warnings. Technical
-  usability does not certify the subject.
-- Actual-size preview scrolls inside its bounded frame. Background fills transparency/spare margins;
-  BMP always has an opaque background. Grey is a RailKeeper display choice, not a mandatory vendor colour.
+  export margin, distortion or clipping. Tall crops remain height-limited. Technical validation
+  runs automatically; the dialog shows processing errors rather than a manual quality checklist.
+- Source and result occupy bounded frames. The result is enlarged by default; a 1:1 toggle
+  changes only its display and scrolls large output inside the frame. Device details and exact
+  crop fields are collapsed initially.
+- Automatic background follows the selected target: ECoS grey, CS3/IB3 transparent, Z21 white.
+  Admins opening preparation for a saved vehicle also get the configured provider as initial
+  target, using the existing Admin-only settings endpoint. A late reply cannot replace user
+  interaction; errors retain the selectable defaults. Other roles choose the target locally.
+  Colour overrides remain available. Background fills transparency, detected photo background
+  and spare margins; BMP is always opaque. ECoS grey is a display preset, not a universal vendor rule.
 - BMP uses a 40-byte Windows DIB header, bottom-up BGR pixels and four-byte row alignment, with
   24-bit colour and no compression/alpha. ECoS pixels are prepared with the observed
   firmware 4.3.3 palette and integer diffusion described in the transfer document; the
-  actual-size preview shows those exported pixels. Other PNG targets keep their normal
+  preview shows those exported pixels; enlarging adds no detail to the file. Other PNG targets keep their normal
   colour processing. Browser-encoded PNG is bounded below 5 MiB.
-- Target/crop/background changes invalidate the previous download. Stale async encodes are discarded;
+- Target/crop/background/replacement changes invalidate the previous download. Stale async encodes are discarded;
   object URLs and bitmaps are released on replacement/close. Filenames are sanitized and target-suffixed.
 
 The existing portal/modal focus helper makes the vehicle dialog temporarily inert, contains keyboard
