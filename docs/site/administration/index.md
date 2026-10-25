@@ -4,7 +4,7 @@ description: Install, configure, secure, and operate RailKeeper.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-10-25
 ---
 
 # Installation and Administration
@@ -21,6 +21,7 @@ local-first, self-hosted security model.
 - [Installation](deployment-configuration)
 - [Accounts and security](users-sessions-security)
 - [Backup and restore](backup-restore)
+- [Restore a full server backup](server-restore)
 - [Connect command stations](digital-centers)
 - [Updates and operation](system-operations)
 

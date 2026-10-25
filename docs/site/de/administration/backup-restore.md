@@ -4,7 +4,7 @@ description: Sicherung und Wiederherstellung.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-10-25
 ---
 
 # Sicherung und Wiederherstellung
@@ -50,4 +50,5 @@ Die Wiederherstellung ersetzt die lokalen App-Daten und gespeicherten Medien dur
 
 Eine Kopie im selben Container schützt nicht vor dessen Verlust. Betreiber sichern Datenbank und Dateispeicher konsistent und bewahren eine Kopie außerhalb des Systems auf. [Updates und Betrieb](system-operations).
 
-[Bebilderte Wiederherstellungsübung auf einer getrennten Testinstallation](restore-exercise).
+[Bebilderte Übung mit einer JSON-Anwendungssicherung](restore-exercise) ·
+[Vollständige private Serversicherung getrennt wiederherstellen](server-restore).

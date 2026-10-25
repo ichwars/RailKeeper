@@ -170,6 +170,17 @@
       "screenshot": "backup"
     },
     {
+      "id": "server-restore",
+      "audience": "admin",
+      "status": "documented",
+      "englishPath": "administration/server-restore.md",
+      "germanPath": "de/administration/server-restore.md",
+      "labelDE": "Vollständige Serversicherung wiederherstellen",
+      "labelEN": "Restore a full server backup",
+      "reviewEvidence": "source",
+      "reviewedAt": "2026-10-25"
+    },
+    {
       "id": "digital-centers",
       "audience": "admin",
       "status": "documented",

@@ -4,7 +4,7 @@ description: Practice a safe restore.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-10-25
 ---
 
 # Practice a safe restore
@@ -76,7 +76,8 @@ If a reply is missing, inspect actual data and logs before retrying.
 - Export a new backup and validate that file too.
 
 Actual export, validation and restore actions were exercised in the isolated demo in both
-languages. This does not establish a full server recovery or Windows/Docker migration acceptance.
+languages. The [verified full server-backup procedure](server-restore) is documented separately.
+The demo exercise does not establish Windows/Docker migration acceptance.
 
 ## Recognize an incompatible file
 
