@@ -4,7 +4,7 @@ description: Backup and restore.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-10-25
 ---
 
 # Backup and restore
@@ -50,4 +50,5 @@ Restore replaces local application data and saved media with the file's contents
 
 A copy inside the same container cannot protect against losing that container. Operators back up the database and file storage consistently and keep a copy off the system. [Updates and operation](system-operations).
 
-[Illustrated restore exercise on a separate test installation](restore-exercise).
+[Illustrated JSON application-backup exercise](restore-exercise) ·
+[Restore a full private server backup separately](server-restore).

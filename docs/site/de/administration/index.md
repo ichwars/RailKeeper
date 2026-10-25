@@ -4,7 +4,7 @@ description: RailKeeper installieren, konfigurieren, absichern und betreiben.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-10-25
 ---
 
 # Installation und Administration
@@ -21,6 +21,7 @@ selbst gehostete Sicherheitsmodell von RailKeeper.
 - [Installation](deployment-configuration)
 - [Benutzer und Sicherheit](users-sessions-security)
 - [Sicherung und Wiederherstellung](backup-restore)
+- [Vollständige Serversicherung wiederherstellen](server-restore)
 - [Zentralen einrichten](digital-centers)
 - [Updates und Betrieb](system-operations)
 

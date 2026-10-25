@@ -4,7 +4,7 @@ description: Eine Wiederherstellung sicher üben.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-10-25
 ---
 
 # Eine Wiederherstellung sicher üben
@@ -76,7 +76,8 @@ Wenn die Antwort ausbleibt, prüfe erst den tatsächlichen Bestand und die Proto
 - Erstelle anschließend eine neue Sicherung und prüfe auch diese Datei.
 
 Diese Schritte wurden mit echten Export-/Prüf-/Restore-Aktionen der isolierten Demo in beiden
-Sprachen durchgeführt. Sie belegen keinen vollständigen Server-Wiederanlauf und keinen Windows- oder Docker-Migrationstest.
+Sprachen durchgeführt. Der [geprüfte Ablauf für eine vollständige Serversicherung](server-restore) ist separat beschrieben.
+Die Demo-Übung belegt keinen Windows- oder Docker-Migrationstest.
 
 ## Eine inkompatible Datei erkennen
 
