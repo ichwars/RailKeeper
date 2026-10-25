@@ -11,7 +11,7 @@ export function LocomotiveImageCrop({ bitmap, crop, onChange }: {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const scale = Math.min(1, 800 / bitmap.width, 360 / bitmap.height);
+    const scale = Math.min(1, 800 / bitmap.width, 240 / bitmap.height);
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));
     canvas.height = Math.max(1, Math.round(bitmap.height * scale));
     const context = canvas.getContext("2d");
@@ -31,6 +31,7 @@ export function LocomotiveImageCrop({ bitmap, crop, onChange }: {
       y: Math.round(Math.max(0, Math.min(1, (event.clientY - box.top) / box.height)) * bitmap.height) };
   }
   return <canvas ref={canvasRef} className="locomotive-image-crop" role="img" tabIndex={0}
+    style={{ width: bitmap.width / bitmap.height * 240 }}
     aria-label={t("locomotiveImage.cropCanvas")} onPointerDown={event => {
       if (!event.isPrimary || event.button !== 0) return;
       event.preventDefault(); event.currentTarget.focus();

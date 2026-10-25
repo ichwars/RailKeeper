@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CircleCheck, Download, ExternalLink, Image, TriangleAlert, X } from "lucide-react";
+import { Download, ExternalLink, Image, TriangleAlert, X } from "lucide-react";
+import { api } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppNumberInput } from "../../shared/ui/AppNumberInput";
+import { AppCheckbox } from "../../shared/ui/AppCheckbox";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import type { PendingArticleImage } from "./vehicleTransforms";
 import { LocomotiveImageCrop } from "./LocomotiveImageCrop";
 import { ECoSImageTransferPanel } from "./ECoSImageTransferPanel";
 import {
-  imageSuitability, locomotiveImageFileName, locomotiveImageTargets, validImageCrop,
+  locomotiveImageFileName, locomotiveImageTargets, validImageCrop,
   type ImageBackground, type ImageCrop, type LocomotiveImageTarget
 } from "./locomotiveImage";
-import { loadLocomotiveImage, renderLocomotiveImage, suggestedImageBounds } from "./locomotiveImageCanvas";
+import { analyzeLocomotiveImage, loadLocomotiveImage, renderLocomotiveImage } from "./locomotiveImageCanvas";
 
 type ExportFile = { key: string; url: string; size: number; blob: Blob };
 const fullCrop = (image: ImageBitmap): ImageCrop => ({ x: 0, y: 0, width: image.width, height: image.height });
@@ -29,18 +31,31 @@ export function LocomotiveImageExportDialog({ image, onClose, transfer }: {
   const { anchorRef, layerRef, onKeyDown } = useModalDialogLayer(close, closeRef);
   const resultRef = useRef<HTMLCanvasElement>(null);
   const [target, setTarget] = useState<LocomotiveImageTarget>(locomotiveImageTargets[0]);
-  const [background, setBackground] = useState<ImageBackground>(target.background);
+  const [backgroundChoice, setBackgroundChoice] = useState<ImageBackground | "auto">("auto");
+  const background = backgroundChoice === "auto" ? target.background : backgroundChoice;
+  const [backgroundMask, setBackgroundMask] = useState<HTMLCanvasElement | null>(null);
+  const [replaceBackground, setReplaceBackground] = useState(true);
+  const [enlarged, setEnlarged] = useState(true);
+  const targetChosen = useRef(false);
+  const canReadSettings = Boolean(transfer);
   const [bitmap, setBitmap] = useState<ImageBitmap | null>(null);
   const [crop, setCrop] = useState<ImageCrop>({ x: 0, y: 0, width: 0, height: 0 });
   const [trim, setTrim] = useState<ImageCrop | null>(null);
   const [loadError, setLoadError] = useState("");
   const [outputError, setOutputError] = useState(false);
   const [file, setFile] = useState<ExportFile | null>(null);
-  const key = JSON.stringify([image.url, target.id, background, crop]);
+  const key = JSON.stringify([image.url, target.id, background, replaceBackground, crop]);
   const usable = bitmap !== null && trim !== null && validImageCrop(crop, bitmap);
-  const suitability = bitmap ? imageSuitability(crop, bitmap, target, trim || undefined) : null;
-  const warnings = suitability ? [suitability.upscale && "upscale", suitability.narrow && "narrow",
-    suitability.border && "border"].filter((value): value is string => Boolean(value)) : [];
+
+  useEffect(() => {
+    if (!canReadSettings) return;
+    let active = true;
+    void api.digitalSettings().then(settings => {
+      const configured = locomotiveImageTargets.find(item => item.id === settings.provider);
+      if (active && !targetChosen.current && configured) setTarget(configured);
+    }).catch(() => { /* Preparation remains available with the manually selectable defaults. */ });
+    return () => { active = false; };
+  }, [canReadSettings]);
 
   useEffect(() => {
     // Clicking noninteractive preview space can leave focus on the document body.
@@ -56,12 +71,13 @@ export function LocomotiveImageExportDialog({ image, onClose, transfer }: {
   useEffect(() => {
     const controller = new AbortController();
     let loaded: ImageBitmap | undefined;
-    setLoadError(""); setBitmap(null);
+    setLoadError(""); setBitmap(null); setBackgroundMask(null);
     void loadLocomotiveImage(image.url, controller.signal).then(value => {
       loaded = value;
       if (controller.signal.aborted) { value.close(); return; }
-      const suggestion = suggestedImageBounds(value);
-      setTrim(suggestion); setCrop(suggestion || fullCrop(value)); setBitmap(value);
+      const analysis = analyzeLocomotiveImage(value);
+      setTrim(analysis.bounds); setCrop(analysis.bounds || fullCrop(value));
+      setBackgroundMask(analysis.backgroundMask); setBitmap(value);
     }).catch(error => {
       if (!controller.signal.aborted) setLoadError(error instanceof Error && errorKeys.has(error.message) ? error.message : "loadFailed");
     });
@@ -74,13 +90,14 @@ export function LocomotiveImageExportDialog({ image, onClose, transfer }: {
     resultRef.current?.getContext("2d")?.clearRect(0, 0, target.width, target.height);
     if (usable && bitmap && resultRef.current) {
       const canvas = resultRef.current;
-      void Promise.resolve().then(() => renderLocomotiveImage(canvas, bitmap, crop, target, background)).then(blob => {
+      void Promise.resolve().then(() => renderLocomotiveImage(canvas, bitmap, crop, target, background,
+        replaceBackground ? backgroundMask : null)).then(blob => {
         if (!active) return;
         url = URL.createObjectURL(blob); setFile({ key, url, size: blob.size, blob });
       }).catch(() => { if (active) setOutputError(true); });
     }
     return () => { active = false; if (url) URL.revokeObjectURL(url); };
-  }, [bitmap, crop, target, background, usable, key]);
+  }, [bitmap, crop, target, background, backgroundMask, replaceBackground, usable, key]);
 
   const filename = locomotiveImageFileName(image.title || "Lokbild", target);
   const ready = usable && !outputError && file?.key === key;
@@ -89,8 +106,8 @@ export function LocomotiveImageExportDialog({ image, onClose, transfer }: {
   return <>
     <span ref={anchorRef} aria-hidden="true" />
     {createPortal(<div className="locomotive-image-layer" ref={layerRef} role="dialog" aria-modal="true"
-      aria-label={t("locomotiveImage.title")} onKeyDown={onKeyDown}>
-      <section className="locomotive-image-dialog">
+      aria-label={t("locomotiveImage.title")} onKeyDown={event => { targetChosen.current = true; onKeyDown(event); }}>
+      <section className="locomotive-image-dialog" onPointerDown={() => { targetChosen.current = true; }}>
         <header>
           <div><h2><Image size={20} aria-hidden="true" />{t("locomotiveImage.title")}</h2>
             <p>{image.title || t("locomotiveImage.original")}</p></div>
@@ -102,19 +119,35 @@ export function LocomotiveImageExportDialog({ image, onClose, transfer }: {
           <div className="locomotive-image-target">
             <label>{t("locomotiveImage.target")}<AppSelect aria-label={t("locomotiveImage.target")} value={target.id} onChange={event => {
               const next = locomotiveImageTargets.find(item => item.id === event.target.value);
-              if (next) { setTarget(next); setBackground(next.background); }
+              if (next) {
+                targetChosen.current = true; setTarget(next);
+                if (next.format === "bmp" && backgroundChoice === "transparent") setBackgroundChoice("auto");
+              }
             }}>{locomotiveImageTargets.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</AppSelect></label>
-            <div><strong>{target.width} × {target.height} px · {target.format === "bmp" ? "BMP · 24 Bit RGB" : "PNG"}</strong>
-              <span>{t(target.fixed ? "locomotiveImage.fixed" : "locomotiveImage.preset")}</span></div>
+            <label>{t("locomotiveImage.background")}<AppSelect aria-label={t("locomotiveImage.background")}
+              value={backgroundChoice} onChange={event => {
+                const next = event.target.value;
+                if (next === "auto" || next === "white" || next === "grey" || next === "black" ||
+                  next === "transparent" && target.format === "png") {
+                  targetChosen.current = true; setBackgroundChoice(next);
+                }
+              }}>
+              <option value="auto">{t("locomotiveImage.background.auto", { color: t(`locomotiveImage.background.${target.background}`) })}</option>
+              {(["transparent", "white", "grey", "black"] as const).filter(item => target.format === "png" || item !== "transparent")
+                .map(item => <option key={item} value={item}>{t(`locomotiveImage.background.${item}`)}</option>)}
+            </AppSelect></label>
           </div>
-          <p className="locomotive-image-target-help">{t(`locomotiveImage.target.${target.id}`)}{" "}
+          <details className="locomotive-image-target-help"><summary>
+            {target.width} × {target.height} px · {target.format === "bmp" ? "BMP · 24 Bit RGB" : "PNG"}
+            {" · "}{t(target.fixed ? "locomotiveImage.fixed" : "locomotiveImage.preset")}</summary>
+            <p>{t(`locomotiveImage.target.${target.id}`)}{" "}
             <a href={target.source} target="_blank" rel="noreferrer">{t("locomotiveImage.source")} <ExternalLink size={13} aria-hidden="true" /></a></p>
+          </details>
           {error ? <p className="locomotive-image-error" role="alert"><TriangleAlert size={18} aria-hidden="true" />
             {t(`locomotiveImage.error.${error}`)}</p> : !bitmap ? <p role="status">{t("locomotiveImage.loading")}</p> : null}
           {bitmap && <div className="locomotive-image-workspace">
             <section>
               <h3>{t("locomotiveImage.crop")}</h3>
-              <p>{t("locomotiveImage.cropHelp")}</p>
               <div className="locomotive-image-source"><LocomotiveImageCrop bitmap={bitmap} crop={crop} onChange={setCrop} /></div>
               <p className="locomotive-image-dimensions">{t("locomotiveImage.dimensions", { width: bitmap.width, height: bitmap.height })}</p>
               <div className="locomotive-image-tools">
@@ -124,31 +157,29 @@ export function LocomotiveImageExportDialog({ image, onClose, transfer }: {
                   onClick={() => { if (trim) setCrop(trim); }}>{t("locomotiveImage.trim")}</button>
               </div>
               <details className="locomotive-image-crop-fields"><summary>{t("locomotiveImage.cropFields")}</summary>
+                <p>{t("locomotiveImage.cropHelp")}</p>
                 <div>{(["x", "y", "width", "height"] as const).map(field => <AppNumberInput key={field}
                   label={t(`locomotiveImage.${field}`)} value={String(crop[field])} min={field === "x" || field === "y" ? 0 : 1}
                   step={1} onValueChange={value => setCrop(current => ({ ...current, [field]: Number(value) }))} />)}</div>
               </details>
             </section>
             <section>
-              <h3>{t("locomotiveImage.preview")}</h3><p>{t("locomotiveImage.previewHelp")}</p>
-              <div className="locomotive-image-result" tabIndex={0} role="region" aria-label={t("locomotiveImage.preview")}>
-                <canvas ref={resultRef} width={target.width} height={target.height} role="img" aria-label={t("locomotiveImage.resultCanvas")} />
+              <div className="locomotive-image-preview-heading">
+                <h3>{t("locomotiveImage.preview")}</h3>
+                <button type="button" className="secondary-button" aria-pressed={!enlarged}
+                  onClick={() => setEnlarged(value => !value)}>{t(enlarged ? "locomotiveImage.actualSize" : "locomotiveImage.enlarge")}</button>
               </div>
-              <label className="locomotive-image-background">{t("locomotiveImage.background")}<AppSelect aria-label={t("locomotiveImage.background")} value={background}
-                onChange={event => {
-                  const next = event.target.value;
-                  if (next === "white" || next === "grey" || next === "black" || next === "transparent" && target.format === "png") setBackground(next);
-                }}>
-                {(["transparent", "white", "grey", "black"] as const).filter(item => target.format === "png" || item !== "transparent")
-                  .map(item => <option key={item} value={item}>{t(`locomotiveImage.background.${item}`)}</option>)}
-              </AppSelect></label>
-              <p>{t("locomotiveImage.backgroundHelp")}</p>
-              <div className={`locomotive-image-assessment ${error || warnings.length ? "warning" : ""}`} role="status">
-                <strong>{error || warnings.length ? <TriangleAlert size={18} aria-hidden="true" /> : <CircleCheck size={18} aria-hidden="true" />}
-                  {t(error ? "locomotiveImage.notReady" : warnings.length ? "locomotiveImage.check" : "locomotiveImage.usable")}</strong>
-                {warnings.length > 0 && <ul>{warnings.map(warning => <li key={warning}>{t(`locomotiveImage.warning.${warning}`)}</li>)}</ul>}
-                <p>{t("locomotiveImage.motifHelp")}</p>
+              <div className="locomotive-image-result" data-actual-size={!enlarged} data-transparent={background === "transparent"}
+                tabIndex={0} role="region"
+                aria-label={t("locomotiveImage.preview")}>
+                <canvas ref={resultRef} width={target.width} height={target.height} role="img"
+                  aria-label={t("locomotiveImage.resultCanvas")} />
               </div>
+              <p className="locomotive-image-dimensions">{t(enlarged ? "locomotiveImage.previewHelp" : "locomotiveImage.actualSizeHelp")}</p>
+              <AppCheckbox className="locomotive-image-replace" checked={replaceBackground && Boolean(backgroundMask)} disabled={!backgroundMask}
+                onChange={event => setReplaceBackground(event.target.checked)} label={t("locomotiveImage.replaceBackground")} />
+              <p className="locomotive-image-background-help">{t(backgroundMask
+                ? "locomotiveImage.backgroundHelp" : "locomotiveImage.backgroundUnchanged")}</p>
             </section>
           </div>}
           </fieldset>

@@ -1,5 +1,20 @@
 import { expect, it } from "vitest";
-import { locomotiveImageBounds, quantizeECoSImage } from "./locomotiveImagePixels";
+import { locomotiveImageBackground, locomotiveImageBounds, quantizeECoSImage } from "./locomotiveImagePixels";
+
+it("removes only the connected background, preserving enclosed light details and the source", () => {
+  const pixels = new Uint8ClampedArray(20 * 20 * 4).fill(255);
+  for (let y = 4; y < 16; y++) for (let x = 4; x < 16; x++) {
+    pixels.set([30, 60, 80, 255], (y * 20 + x) * 4);
+  }
+  pixels.set([255, 255, 255, 255], (10 * 20 + 10) * 4);
+  const original = pixels.slice(), mask = locomotiveImageBackground(pixels, 20, 20);
+  expect(mask?.[0]).toBe(1);
+  expect(mask?.[10 * 20 + 10]).toBe(0);
+  expect(mask?.[5 * 20 + 5]).toBe(0);
+  expect(pixels).toEqual(original);
+  pixels[0] = 0;
+  expect(locomotiveImageBackground(pixels, 20, 20)).toBeNull();
+});
 
 it("suggests a tighter crop for a side-view on uniform margins without changing the source", () => {
   const pixels = new Uint8ClampedArray(100 * 100 * 4).fill(255);

@@ -1,19 +1,28 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useState } from "react";
+import { api, type DigitalCenterSettings } from "../../shared/api";
 import { LocomotiveImageExportDialog } from "./LocomotiveImageExportDialog";
-import { loadLocomotiveImage, renderLocomotiveImage, suggestedImageBounds } from "./locomotiveImageCanvas";
+import { loadLocomotiveImage, renderLocomotiveImage, analyzeLocomotiveImage } from "./locomotiveImageCanvas";
 
 vi.mock("./locomotiveImageCanvas", () => ({
-  loadLocomotiveImage: vi.fn(), renderLocomotiveImage: vi.fn(), suggestedImageBounds: vi.fn()
+  loadLocomotiveImage: vi.fn(), renderLocomotiveImage: vi.fn(), analyzeLocomotiveImage: vi.fn()
 }));
 const bitmap = { width: 1000, height: 200, close: vi.fn() };
 const image = { id: "original", url: "/api/v1/images/original", title: "BR 86", source: "local" };
+const configuredSettings: DigitalCenterSettings = {
+  provider: "cs3",
+  ecos: { enabled: false, host: "", port: "15471" },
+  cs3: { enabled: true, host: "192.168.1.20", port: "15731" },
+  z21: { enabled: false, host: "", port: "21105" },
+  intellibox3: { enabled: false, host: "", port: "5550" }
+};
 const revoke = vi.fn();
 let sequence = 0;
 beforeEach(() => {
+  vi.spyOn(api, "digitalSettings").mockRejectedValue(new Error("not configured"));
   vi.mocked(loadLocomotiveImage).mockResolvedValue(bitmap);
-  vi.mocked(suggestedImageBounds).mockReturnValue({ x: 0, y: 0, width: 1000, height: 200 });
+  vi.mocked(analyzeLocomotiveImage).mockReturnValue({ bounds: { x: 0, y: 0, width: 1000, height: 200 }, backgroundMask: null });
   vi.mocked(renderLocomotiveImage).mockImplementation(async () => new Blob(["output"]));
   vi.stubGlobal("URL", class extends URL {
     static createObjectURL() { return `blob:export-${++sequence}`; }
@@ -25,17 +34,65 @@ beforeEach(() => {
 });
 afterEach(() => { vi.unstubAllGlobals(); revoke.mockClear(); bitmap.close.mockClear(); });
 
+it("uses the configured station and its automatic background without a device request", async () => {
+  vi.mocked(api.digitalSettings).mockResolvedValue(configuredSettings);
+  render(<LocomotiveImageExportDialog image={image} onClose={vi.fn()} transfer={{ vehicleId: "vehicle-1" }} />);
+  await waitFor(() => expect(screen.getByRole("link", { name: "Bild herunterladen" }))
+    .toHaveAttribute("download", "BR-86_cs3.png"));
+  expect(screen.getByRole("button", { name: "Hintergrund" })).toHaveTextContent("Automatisch · Transparent");
+});
+
+it("keeps a manual choice when the configured station arrives late", async () => {
+  let finish: ((settings: DigitalCenterSettings) => void) | undefined;
+  vi.mocked(api.digitalSettings).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  render(<LocomotiveImageExportDialog image={image} onClose={vi.fn()} transfer={{ vehicleId: "vehicle-1" }} />);
+  await screen.findByRole("link", { name: "Bild herunterladen" });
+  fireEvent.click(screen.getByRole("button", { name: "Hintergrund" }));
+  fireEvent.click(screen.getByRole("option", { name: "Schwarz" }));
+  await act(async () => { finish!(configuredSettings); });
+  expect(screen.getByRole("button", { name: "Hintergrund" })).toHaveTextContent("Schwarz");
+  expect(screen.getByRole("button", { name: "Zielgerät / Anwendung" })).toHaveTextContent("ESU ECoS");
+});
+
+it("replaces detected photo backgrounds by default and allows retaining the original or changing the colour", async () => {
+  const mask = document.createElement("canvas");
+  vi.mocked(analyzeLocomotiveImage).mockReturnValueOnce({
+    bounds: { x: 0, y: 0, width: 1000, height: 200 }, backgroundMask: mask
+  });
+  render(<LocomotiveImageExportDialog image={image} onClose={vi.fn()} />);
+  await screen.findByRole("link", { name: "Bild herunterladen" });
+  expect(vi.mocked(renderLocomotiveImage).mock.calls.at(-1)?.slice(4)).toEqual(["grey", mask]);
+  fireEvent.click(screen.getByRole("checkbox", { name: "Gleichmäßigen Fotohintergrund ersetzen" }));
+  await waitFor(() => expect(vi.mocked(renderLocomotiveImage).mock.calls.at(-1)?.slice(4)).toEqual(["grey", null]));
+  fireEvent.click(screen.getByRole("button", { name: "Hintergrund" }));
+  fireEvent.click(screen.getByRole("option", { name: "Weiß" }));
+  await waitFor(() => expect(vi.mocked(renderLocomotiveImage).mock.calls.at(-1)?.[4]).toBe("white"));
+  expect(api.digitalSettings).not.toHaveBeenCalled();
+});
+
+it("enlarges the preview without changing exported pixels and offers a 1:1 view", async () => {
+  render(<LocomotiveImageExportDialog image={image} onClose={vi.fn()} />);
+  const link = await screen.findByRole("link", { name: "Bild herunterladen" });
+  const url = link.getAttribute("href"), calls = vi.mocked(renderLocomotiveImage).mock.calls.length;
+  expect(screen.getByRole("region", { name: "Ergebnis" })).toHaveAttribute("data-actual-size", "false");
+  fireEvent.click(screen.getByRole("button", { name: "1:1 anzeigen" }));
+  expect(screen.getByRole("region", { name: "Ergebnis" })).toHaveAttribute("data-actual-size", "true");
+  expect(link).toHaveAttribute("href", url);
+  expect(vi.mocked(renderLocomotiveImage).mock.calls.length).toBe(calls);
+});
+
 it("shows the output and all targets, protects the source, and updates filename/background together", async () => {
   const before = structuredClone(image);
   const { unmount } = render(<LocomotiveImageExportDialog image={image} onClose={vi.fn()} />);
   expect(await screen.findByRole("link", { name: "Bild herunterladen" })).toHaveAttribute("download", "BR-86_ecos.bmp");
-  expect(screen.getByText("Technisch verwendbar")).toBeVisible();
+  expect(screen.queryByText("Qualität prüfen")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Hintergrund" })).toHaveTextContent("Automatisch · Grau");
   expect(screen.getAllByRole("button", { name: "Schließen" })[0]).toHaveFocus();
   expect(screen.queryByRole("option", { name: "Transparent", hidden: true })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Zielgerät / Anwendung" }));
   fireEvent.click(screen.getByRole("option", { name: "Uhlenbrock Intellibox 3 · IB3 Konfiguration" }));
   await waitFor(() => expect(screen.getByRole("link", { name: "Bild herunterladen" })).toHaveAttribute("download", "BR-86_intellibox3.png"));
-  expect(screen.getByText(/wandelt die Datei ins Geräteformat/)).toBeVisible();
+  expect(screen.getByText(/wandelt die Datei ins Geräteformat/)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Hintergrund" })).toHaveTextContent("Transparent");
   expect(image).toEqual(before); expect(revoke).toHaveBeenCalled();
   unmount(); expect(bitmap.close).toHaveBeenCalled();
@@ -54,7 +111,7 @@ it("blocks invalid crops, retains the editable controls and recovers without cha
 
 it("starts with the visible crop suggestion and lets the user restore the whole source", async () => {
   const suggestion = { x: 0, y: 60, width: 1000, height: 80 };
-  vi.mocked(suggestedImageBounds).mockReturnValueOnce(suggestion);
+  vi.mocked(analyzeLocomotiveImage).mockReturnValueOnce({ bounds: suggestion, backgroundMask: null });
   render(<LocomotiveImageExportDialog image={image} onClose={vi.fn()} />);
   await screen.findByRole("link", { name: "Bild herunterladen" });
   expect(vi.mocked(renderLocomotiveImage).mock.calls.at(-1)?.[2]).toEqual(suggestion);
@@ -64,15 +121,14 @@ it("starts with the visible crop suggestion and lets the user restore the whole 
   await waitFor(() => expect(vi.mocked(renderLocomotiveImage).mock.calls.at(-1)?.[2]).toEqual(suggestion));
 });
 
-it("warns about enlargement and never presents an empty transparent image as usable", async () => {
+it("prepares small images automatically and blocks fully transparent sources", async () => {
   vi.mocked(loadLocomotiveImage).mockResolvedValueOnce({ ...bitmap, width: 20, height: 5 });
-  vi.mocked(suggestedImageBounds).mockReturnValueOnce({ x: 0, y: 0, width: 20, height: 5 });
+  vi.mocked(analyzeLocomotiveImage).mockReturnValueOnce({ bounds: { x: 0, y: 0, width: 20, height: 5 }, backgroundMask: null });
   const { unmount } = render(<LocomotiveImageExportDialog image={image} onClose={vi.fn()} />);
   await screen.findByRole("link", { name: "Bild herunterladen" });
-  expect(screen.getByText("Qualität prüfen")).toBeVisible();
-  expect(screen.getByText(/muss vergrößert werden/)).toBeVisible();
+  expect(screen.queryByText("Qualität prüfen")).not.toBeInTheDocument();
   unmount();
-  vi.mocked(suggestedImageBounds).mockReturnValueOnce(null);
+  vi.mocked(analyzeLocomotiveImage).mockReturnValueOnce({ bounds: null, backgroundMask: null });
   render(<LocomotiveImageExportDialog image={image} onClose={vi.fn()} />);
   expect(await screen.findByRole("alert")).toHaveTextContent("vollständig transparent");
   expect(screen.getByRole("button", { name: "Bild herunterladen" })).toBeDisabled();

@@ -4,7 +4,7 @@ description: Lokbilder für die Digitalzentrale.
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-10-25
 ---
 
 # Lokbilder für die Digitalzentrale
@@ -31,19 +31,25 @@ Zum Ausprobieren kannst du diese künstlichen Bilddateien verwenden:
 
 Wähle am gewünschten Fahrzeugbild **Zentralenbild erstellen**.
 
-## 2. Ziel wählen, Ausschnitt und Originalgröße prüfen
+## 2. Ziel, Ausschnitt und Hintergrund einstellen
 
-Wähle unter **Zielgerät / Anwendung** die gewünschte Ausgabe. Prüfe dann beide Seiten des Dialogs:
-links das Motiv und den Ausschnitt, rechts **Ergebnis in Originalgröße**.
+Wähle unter **Zielgerät / Anwendung** die gewünschte Ausgabe. Bei Admins wird für gespeicherte
+Fahrzeuge die konfigurierte Zentrale vorbelegt. Links siehst du den Ausschnitt, rechts das
+vergrößerte **Ergebnis**. **1:1 anzeigen** zeigt die tatsächliche Ausgabegröße.
+Formatdetails und Herstellerangaben lassen sich unter der Gerätewahl aufklappen.
 
-<GuideFigure name="image-export" alt="Lokbild-Dialog mit Ausschnitt links und fertiger ECoS-Vorschau rechts." caption="Die große Demo-Datei wird im echten Bilddialog verarbeitet. Die rechte Vorschau zeigt die tatsächliche Zielgröße. Künstliches Motiv; anklicken für die volle Größe." />
+<GuideFigure name="image-export" alt="Lokbild-Dialog mit Ausschnitt links und fertiger ECoS-Vorschau rechts." caption="Die große Demo-Datei wird im echten Bilddialog verarbeitet. Die rechte Vorschau ist vergrößert; die Ausgabedatei behält das Geräteformat. Künstliches Motiv; anklicken für die volle Größe." />
 
 1. Prüfe den automatisch vorgeschlagenen Ausschnitt.
 2. Verwende **Außenränder entfernen**, wenn gleichmäßige freie Ränder stören.
 3. Ziehe bei Bedarf mit Maus oder Finger einen anderen Ausschnitt. Unter **Ausschnitt in Pixeln
    einstellen** kannst du ihn genauer festlegen. **Ganzes Bild** setzt die Auswahl zurück.
 4. Prüfe, dass Puffer, Räder und Aufbauten erhalten bleiben. Nutze möglichst die verfügbare Breite.
-5. Wähle einen passenden Hintergrund. Ein fotografierter Hintergrund wird dadurch nicht entfernt.
+5. **Automatisch** wählt den Hintergrund passend zum Ziel: Grau für ECoS, transparent für
+   CS3/Intellibox 3 und Weiß für die Z21-App. Eine andere Farbe lässt sich weiterhin auswählen.
+6. **Gleichmäßigen Fotohintergrund ersetzen** passt erkannte, mit dem Bildrand verbundene
+   Hintergrundflächen an diese Farbe an. Abschalten behält den Fotohintergrund. Bei uneindeutigen
+   Hintergründen wird das Foto beibehalten. Das gespeicherte Original bleibt immer erhalten.
 
 RailKeeper skaliert innerhalb der Zielgröße unter Beibehaltung der Proportionen.
 Ein hohes Motiv kann nicht gleichzeitig die volle Breite ausfüllen und vollständig sichtbar bleiben.
@@ -59,18 +65,16 @@ Verbessere dann die Aufnahme oder den Ausschnitt; ziehe die Lok nicht in die Bre
 Die PNG-Voreinstellungen sind keine allgemeingültigen Herstellergrenzen. Die Z21-Zentrale selbst
 speichert diese App-Bilder nicht. Im Dialog führen **Herstellerangaben** zur jeweiligen Quelle.
 
-## 3. Die Eignungsanzeige richtig verstehen
+## 3. Automatische Aufbereitung
 
-**Technisch verwendbar** bedeutet: Die Datei kann für das gewählte Ziel verarbeitet werden.
-Prüfe trotzdem, ob sie die richtige Lok zeigt und das Motiv gut erkennbar ist.
-RailKeeper erkennt Perspektive, Schärfe und Motiv nicht zuverlässig.
+RailKeeper entfernt gleichmäßige Außenränder, passt die Proportionen in das Geräteformat ein
+und prüft Bildgröße, Ausschnitt und Dateiausgabe automatisch. Ein ungültiger Ausschnitt oder ein
+nicht verarbeitbares Bild verhindert die Ausgabe und zeigt eine Fehlermeldung.
 
-<GuideFigure name="image-low-resolution" alt="Warnung bei einem sehr kleinen Ausgangsbild der Demo-Lok." caption="Das 40 × 14 Pixel kleine Beispiel muss vergrößert werden. Eine Warnung erklärt die Einschränkung; mehr Pixel im Export erzeugen keine fehlenden Details." />
+<GuideFigure name="image-low-resolution" alt="Automatisch aufbereitete kleine Demo-Datei im Bilddialog." caption="Auch das kleine Beispiel wird verarbeitet. Die vergrößerte Vorschau fügt der Datei keine fehlenden Bilddetails hinzu." />
 
-Warnungen können Vergrößerung, geringe Breitennutzung oder störende Ränder betreffen.
-Sie verlangen eine Prüfung und sind nicht immer eine Sperre. Ein ungültiger Ausschnitt oder ein
-nicht verarbeitbares Bild verhindert dagegen die Ausgabe. Bei geringer Auflösung möglichst das
-größere Original verwenden.
+Für scharfe Details möglichst das größere Original verwenden. Perspektive und unscharfe
+Motivdetails werden durch Skalieren nicht repariert.
 
 ## 4. Datei herunterladen und manuell importieren
 

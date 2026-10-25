@@ -4,7 +4,7 @@ description: Locomotive images for a command station.
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-10-25
 ---
 
 # Locomotive images for a command station
@@ -30,19 +30,25 @@ Try these synthetic image files:
 
 On the chosen vehicle picture, select **Create command station image**.
 
-## 2. Choose the target and check crop and actual size
+## 2. Set target, crop and background
 
-Choose **Target device / application**. Review both sides of the dialog: the source and crop
-on the left, **Result at actual size** on the right.
+Choose **Target device / application**. For Admins preparing a saved vehicle image, the configured
+station is preselected. The crop is on the left and the enlarged **Result** on the right.
+**Show 1:1** switches to the actual output size. Expand the line below the target selection
+for format details and manufacturer sources.
 
-<GuideFigure name="image-export" alt="Image dialog with crop on the left and the prepared ECoS result on the right." caption="The actual image dialog processes the larger demo file. The right preview shows the target's real output size. Synthetic drawing; click for full size." />
+<GuideFigure name="image-export" alt="Image dialog with crop on the left and the prepared ECoS result on the right." caption="The actual image dialog processes the larger demo file. The right preview is enlarged; the output file retains the device format. Synthetic drawing; click for full size." />
 
 1. Check the suggested crop.
 2. Use **Remove outer margins** when uniform empty borders get in the way.
 3. Drag a new crop with mouse or touch if needed. Use **Set crop in pixels** for precise values.
    **Whole image** resets the selection.
 4. Keep buffers, wheels and roof details visible while using as much width as possible.
-5. Select a suitable background. This does not remove a photographed background.
+5. **Automatic** selects the target background: grey for ECoS, transparent for CS3/Intellibox 3
+   and white for the Z21 app. You can still choose another colour.
+6. **Replace uniform photo background** changes detected background areas connected to the
+   image edge to this colour. Turn it off to retain the photo background. Ambiguous backgrounds
+   are retained. The stored original always stays unchanged.
 
 RailKeeper scales within the target dimensions while preserving proportions.
 A tall subject cannot fill the full width and remain entirely visible at the same time.
@@ -58,17 +64,15 @@ Improve the photograph or crop rather than stretching the locomotive.
 PNG presets are not universal manufacturer limits. The Z21 station itself does not store these
 app pictures. **Manufacturer information** in the dialog links to the relevant source.
 
-## 3. Understand the suitability notice
+## 3. Automatic preparation
 
-**Technically usable** means the file can be processed for the selected target.
-Still check that it shows the correct locomotive clearly. RailKeeper cannot reliably assess
-perspective, sharpness or subject identity.
+RailKeeper removes uniform outer margins, fits the image proportions into the device format
+and automatically checks image dimensions, crop and output. Invalid crops and unreadable images
+prevent output and display a specific error.
 
-<GuideFigure name="image-low-resolution" alt="Warning for a very small source picture of the demo locomotive." caption="The 40 × 14 pixel example needs enlargement. The warning explains its limits; adding output pixels cannot recover missing detail." />
+<GuideFigure name="image-low-resolution" alt="Automatically prepared small demo picture in the image dialog." caption="The small example is processed too. Enlarging the preview does not add missing detail to the file." />
 
-Warnings may concern enlargement, poor width use or excessive borders. They require review
-and do not always block export. An invalid crop or unreadable image prevents output.
-Use the larger original where resolution is insufficient.
+Use the larger original for sharp details. Scaling cannot repair perspective or blurred subject details.
 
 ## 4. Download and import manually
 

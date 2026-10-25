@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  alphaBounds, encodeBMP24, fitLocomotiveImage, imageSuitability, locomotiveImageFileName,
+  alphaBounds, encodeBMP24, fitLocomotiveImage, locomotiveImageFileName,
   locomotiveImageTargets, validImageCrop, validImageSize
 } from "./locomotiveImage";
 
@@ -51,15 +51,6 @@ describe("command station image compatibility", () => {
     expect(tall.height).toBe(40);
     expect(tall.width).toBe(4);
     expect(crop).toEqual({ x: 20, y: 30, width: 800, height: 100 });
-  });
-
-  it("warns about small, portrait and border-heavy selections without inventing subject recognition", () => {
-    const target = locomotiveImageTargets[0];
-    expect(imageSuitability({ x: 0, y: 0, width: 20, height: 5 }, { width: 20, height: 5 }, target).upscale).toBe(true);
-    expect(imageSuitability({ x: 0, y: 0, width: 100, height: 800 }, { width: 100, height: 800 }, target).narrow).toBe(true);
-    expect(imageSuitability({ x: 0, y: 0, width: 900, height: 300 }, { width: 900, height: 300 }, target,
-      { x: 100, y: 100, width: 600, height: 80 }).border).toBe(true);
-    expect(imageSuitability({ x: 800, y: 0, width: 900, height: 300 }, { width: 900, height: 300 }, target).invalid).toBe(true);
   });
 
   it("only trims truly transparent pixels and handles empty images explicitly", () => {
