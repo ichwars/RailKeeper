@@ -255,6 +255,36 @@ func TestBackupConfigRejectsAmbiguousAddressesAndMalformedValues(t *testing.T) {
 	}
 }
 
+func TestBackupDecimalKeepsPortableIntegerAndFieldLimits(t *testing.T) {
+	for _, test := range []struct {
+		text    string
+		maximum uint64
+		want    int
+		invalid bool
+	}{
+		{text: "0", maximum: 255},
+		{text: "255", maximum: 255, want: 255},
+		{text: "256", maximum: 255, invalid: true},
+		{text: "2000000000", maximum: 2_000_000_000, want: 2_000_000_000},
+		{text: "2147483647", maximum: 1<<32 - 1, want: 1<<31 - 1},
+		{text: "2147483648", maximum: 1<<32 - 1, invalid: true},
+		{text: "4294967295", maximum: 1<<32 - 1, invalid: true},
+	} {
+		t.Run(test.text, func(t *testing.T) {
+			value, err := parseBackupDecimal(test.text, test.maximum)
+			if test.invalid {
+				if !errors.Is(err, ErrBackup) || value != 0 {
+					t.Fatalf("out-of-range value accepted: %d, %v", value, err)
+				}
+				return
+			}
+			if err != nil || value != test.want {
+				t.Fatalf("valid boundary rejected: %d, %v", value, err)
+			}
+		})
+	}
+}
+
 func TestBackupLimitsEncryptedPlaintextArchiveAndConfigSizes(t *testing.T) {
 	_, ring := backupTestKeys(t)
 	if _, err := DecodeBackup(bytes.NewReader(make([]byte, EncryptedBackupLimit+1)), ring, nil); !errors.Is(err, ErrBackup) {

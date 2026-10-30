@@ -321,7 +321,8 @@ func parseBackupDecimal(text string, maximum uint64) (int, error) {
 	if text == "" || strings.IndexFunc(text, func(r rune) bool { return r < '0' || r > '9' }) >= 0 {
 		return 0, ErrBackup
 	}
-	value, err := strconv.ParseUint(text, 10, 32)
+	// Values must fit int on 32-bit hosts as well as the configured field limit.
+	value, err := strconv.ParseUint(text, 10, 31)
 	if err != nil || value > maximum {
 		return 0, ErrBackup
 	}
