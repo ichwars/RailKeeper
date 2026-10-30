@@ -1,6 +1,6 @@
 {
-  "revision": "2026-10-21.2",
-  "reviewedAt": "2026-10-21",
+  "revision": "2026-10-27.1",
+  "reviewedAt": "2026-10-27",
   "manufacturers": [
     {
       "id": "esu",
@@ -4109,7 +4109,8 @@
           "version": "Abruf / checked 2026-10-20",
           "scope": "Bestellinformationen / ordering information"
         }
-      ]
+      ],
+      "profileId": "esu-lokpilot-5-nano-dcc"
     },
     {
       "id": "esu-loksound-5-loksound-5-micro-dcc-direct-atlas-legacy",
@@ -11144,7 +11145,8 @@
           "scope": "Produktabbildungen mit Artikelnummer und Anschluss / captioned order code and interface"
         }
       ],
-      "documentStatus": "historical"
+      "documentStatus": "historical",
+      "profileId": "esu-lokpilot-standard"
     },
     {
       "id": "esu-lokpilot-legacy-lokpilot-v4-0",
@@ -11470,7 +11472,8 @@
           }
         }
       ],
-      "documentStatus": "historical"
+      "documentStatus": "historical",
+      "profileId": "esu-lokpilot-v4-micro"
     },
     {
       "id": "esu-lokpilot-legacy-lokpilot-micro-v4-0-dcc",
@@ -11519,7 +11522,8 @@
           }
         }
       ],
-      "documentStatus": "historical"
+      "documentStatus": "historical",
+      "profileId": "esu-lokpilot-v4-micro-dcc"
     },
     {
       "id": "esu-lokpilot-legacy-lokpilot-xl-v4-0",

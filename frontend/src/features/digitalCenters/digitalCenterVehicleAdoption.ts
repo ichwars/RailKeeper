@@ -62,14 +62,22 @@ export function buildDigitalCenterVehicleDraft(
     cvValues: provider === "ecos" ? (item.center.cvs || []).map((value) => ({
       cvNumber: value.number,
       value: value.value,
+      indexCV31: value.indexCV31,
+      indexCV32: value.indexCV32,
       decoderProfile: "ECoS",
       protocol: item.protocol,
       category: "ECoS",
       description: `ECoS #${item.centerObjectId} · CV${value.number} · ` +
-        `${item.center.cvRead?.readAt || item.updatedAt} · Cache/Speicher · CV31/CV32: ?`,
+        `${item.center.cvRead?.readAt || item.updatedAt} · Cache/Speicher · CV31/CV32: ` +
+        (value.indexCV31 == null ? "?" : `${value.indexCV31}/${value.indexCV32}`),
       sourceFileId: ""
     })) : [],
     functionValues: [],
+    cvSourceConflicts: provider === "ecos" ? item.center.cvSources?.conflicts.map(value => ({
+      number: value.number, indexCV31: value.indexCV31, indexCV32: value.indexCV32
+    })) : undefined,
+    ecosFunctions: provider === "ecos" && item.center.functionSnapshot
+      ? structuredClone(item.center.functionSnapshot) : undefined,
     unclearFields: ["manufacturer", "gauge", "gattung"],
     returnToDigitalCenters: {
       sessionId: item.sessionId,

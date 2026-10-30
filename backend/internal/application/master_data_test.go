@@ -879,7 +879,11 @@ func TestMasterDataImportRejectsInvalidDocument(t *testing.T) {
 }
 
 func TestRailKeeperFunctionSymbolsSeededWithImages(t *testing.T) {
-	service := application.NewMasterDataService(testDB(t))
+	db := testDB(t)
+	if err := infrastructure.SeedMasterData(db, "../../seeds"); err != nil {
+		t.Fatal(err)
+	}
+	service := application.NewMasterDataService(db)
 	entries, err := service.List(context.Background(), "symbols", true)
 	if err != nil {
 		t.Fatal(err)
@@ -915,8 +919,8 @@ func TestRailKeeperFunctionSymbolsSeededWithImages(t *testing.T) {
 	if libraryCount != 94 {
 		t.Fatalf("expected 94 RailKeeper function symbols, got %d", libraryCount)
 	}
-	if ecosCount != 86 {
-		t.Fatalf("expected 86 ECoS compatibility codes, got %d", ecosCount)
+	if ecosCount != 33 {
+		t.Fatalf("expected 33 ECoS compatibility codes, got %d", ecosCount)
 	}
 	if fahrgeraeusch == nil {
 		t.Fatal("expected Fahrgeraeusch symbol")

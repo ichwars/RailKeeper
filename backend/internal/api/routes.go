@@ -79,6 +79,8 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodPost, "/api/v1/digital-centers/{provider}/live/start", routeAccessAdmin, (*App).startDigitalCenterLiveMonitor, nil},
 		{http.MethodPost, "/api/v1/digital-centers/{provider}/live/stop", routeAccessAdmin, (*App).stopDigitalCenterLiveMonitor, nil},
 		{http.MethodGet, "/api/v1/digital-centers/workspace", routeAccessAdmin, (*App).digitalCenterWorkspaceSummary, nil},
+		{http.MethodPost, "/api/v1/digital-centers/ecos/backup-import", routeAccessAdmin, (*App).importECoSBackup, nil},
+		{http.MethodGet, "/api/v1/vehicles/{id}/ecos-functions", routeAccessAdmin, (*App).readVehicleECoSFunctions, nil},
 		{http.MethodGet, "/api/v1/vehicles/{id}/ecos-image/options", routeAccessAdmin, (*App).ecosImageOptions, nil},
 		{http.MethodPost, "/api/v1/vehicles/{id}/ecos-image/preview", routeAccessAdmin, (*App).previewECoSImage, nil},
 		{http.MethodPost, "/api/v1/vehicles/{id}/ecos-image/confirm", routeAccessAdmin, (*App).confirmECoSImage, nil},

@@ -5,6 +5,7 @@ import { buildDigitalCenterVehicleDraft } from "../digitalCenters/digitalCenterV
 import type { DigitalCenterWorkItem } from "../digitalCenters/digitalCenterModel";
 import { useVehicleECoSDraftController } from "./useVehicleECoSDraftController";
 import { ecosVehicleDraftStorageKey } from "./vehicleViewModel";
+import { api } from "../../shared/api";
 
 const cs3Item: DigitalCenterWorkItem = {
   id: "item-77", sessionId: "session-1", centerObjectId: "77", vehicleId: "",
@@ -16,8 +17,31 @@ const cs3Item: DigitalCenterWorkItem = {
 
 describe("useVehicleECoSDraftController", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     window.sessionStorage.clear();
     window.history.replaceState(null, "", "/");
+  });
+
+  it("prepares saved ECoS function keys in the normal new-vehicle editor without querying the device", async () => {
+    const item: DigitalCenterWorkItem = { ...cs3Item, center: { ...cs3Item.center,
+      functionSnapshot: { objectId: 77, host: "ecos.test", readAt: "2026-10-29T08:00:00Z",
+        functions: [{ index: 1, description: 9, momentary: true }] } } };
+    const draft = buildDigitalCenterVehicleDraft(item, "ecos");
+    window.sessionStorage.setItem(ecosVehicleDraftStorageKey, JSON.stringify(draft));
+    vi.spyOn(api, "masterData").mockResolvedValue([{ id: "shunt", key: "shunt", type: "symbols",
+      label: "Rangieren", active: true, sortOrder: 0, createdAt: "", updatedAt: "", metadata: { ecosCode: 9 } }]);
+    vi.spyOn(api, "decoderLibrary").mockResolvedValue({ schemaVersion: 1, profiles: [] });
+    const read = vi.spyOn(api, "readVehicleECoSFunctions");
+    const readCVs = vi.spyOn(api, "readDigitalCenterCVBatch");
+    const onOpenCreate = vi.fn();
+    renderHook(() => useVehicleECoSDraftController({ onOpenCreate, onOpenUpdate: vi.fn(),
+      onFinishOpen: vi.fn(), onMessage: vi.fn(), t: key => key }));
+    await waitFor(() => expect(onOpenCreate).toHaveBeenCalledOnce());
+    expect(onOpenCreate).toHaveBeenCalledWith(expect.objectContaining({ functionEdits: {
+      F1: expect.objectContaining({ name: "Rangieren", symbolKey: "shunt", mode: "moment" })
+    } }));
+    expect(read).not.toHaveBeenCalled();
+    expect(readCVs).not.toHaveBeenCalled();
   });
 
   it("loads a CS3 vehicle draft and removes its navigation marker", async () => {

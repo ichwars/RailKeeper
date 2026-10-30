@@ -117,6 +117,13 @@ export type ECoSVehicleDraftPayload = {
   externalMapping: VehicleExternalMappingInput;
   cvValues: VehicleCVValueInput[];
   functionValues: (VehicleFunctionInput & { functionKey: string })[];
+  cvSourceConflicts?: Array<{ number: number; indexCV31?: number; indexCV32?: number }>;
+  ecosFunctions?: {
+    objectId: number;
+    host: string;
+    readAt: string;
+    functions: Array<{ index: number; description: number; momentary: boolean }>;
+  };
   unclearFields: ECoSRequiredField[];
   returnToEcos?: {
     sessionId: string;

@@ -1,0 +1,576 @@
+[
+  {
+    "name": "stored exact model enables indexed definitions without inventing CV8",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot 5 micro DCC",
+    "rows": [
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "matched",
+      "profileId": "esu-lokpilot-5-micro-dcc",
+      "matchedBy": "ecos-profile",
+      "sourceStatus": "matched",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": true,
+    "inventoryMissing": false
+  },
+  {
+    "name": "matching measured manufacturer remains measured",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot 5 micro DCC",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 151
+      },
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "matched",
+      "profileId": "esu-lokpilot-5-micro-dcc",
+      "matchedBy": "ecos-profile",
+      "sourceStatus": "matched",
+      "manufacturerId": 151
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": true,
+    "inventoryMissing": false
+  },
+  {
+    "name": "whitespace case and manual alias agree",
+    "label": "ECoS",
+    "modelLabel": "ESU LokPilot 5 micro DCC",
+    "ecosProfile": "  lokpilot 5 MICRO dcc  ",
+    "rows": [
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "matched",
+      "profileId": "esu-lokpilot-5-micro-dcc",
+      "matchedBy": "ecos-profile",
+      "sourceStatus": "matched",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": true,
+    "inventoryMissing": false
+  },
+  {
+    "name": "manual decoder type conflict blocks source model",
+    "label": "ECoS",
+    "modelLabel": "Kühn N45",
+    "ecosProfile": "LokPilot 5 micro DCC",
+    "rows": [
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics",
+      "matchedBy": "",
+      "sourceStatus": "conflict",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": false,
+    "inventoryMissing": false
+  },
+  {
+    "name": "actual CV8 conflict blocks source model",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot 5 micro DCC",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics",
+      "matchedBy": "",
+      "sourceStatus": "conflict",
+      "manufacturerId": 97
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": false,
+    "inventoryMissing": false
+  },
+  {
+    "name": "conflicting CV8 readings cannot be masked",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot 5 micro DCC",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 151
+      },
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics",
+      "matchedBy": "",
+      "sourceStatus": "conflict",
+      "manufacturerId": "conflicting"
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": false,
+    "inventoryMissing": false
+  },
+  {
+    "name": "generic station profile stays generic",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "Generic NMRA",
+    "rows": [
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "standard",
+      "profileId": "dcc-basics",
+      "matchedBy": "",
+      "sourceStatus": "unknown",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": false,
+    "inventoryMissing": false
+  },
+  {
+    "name": "family labels do not borrow a model profile",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot 5",
+    "rows": [
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "standard",
+      "profileId": "dcc-basics",
+      "matchedBy": "",
+      "sourceStatus": "unknown",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": false,
+    "inventoryMissing": false
+  },
+  {
+    "name": "reviewed nano uses its own model without inventing CV8",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot 5 nano DCC",
+    "rows": [
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "matched",
+      "profileId": "esu-lokpilot-5-nano-dcc",
+      "matchedBy": "ecos-profile",
+      "sourceStatus": "matched",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": true,
+    "inventoryMissing": false
+  },
+  {
+    "name": "inactive model stays inactive",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot 5 micro DCC",
+    "rows": [
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [
+      "esu-lokpilot-5-micro-dcc"
+    ],
+    "duplicate": "",
+    "expected": {
+      "status": "standard",
+      "profileId": "dcc-basics",
+      "matchedBy": "",
+      "sourceStatus": "unknown",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": false,
+    "inventoryMissing": false
+  },
+  {
+    "name": "ambiguous source aliases stay unresolved",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot 5 micro DCC",
+    "rows": [
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "esu-lokpilot-5-micro-dcc",
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics",
+      "matchedBy": "",
+      "sourceStatus": "conflict",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": false,
+    "inventoryMissing": false
+  },
+  {
+    "name": "profile does not infer an unknown index page",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot 5 micro DCC",
+    "rows": [
+      {
+        "cvNumber": 257,
+        "value": 20
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "matched",
+      "profileId": "esu-lokpilot-5-micro-dcc",
+      "matchedBy": "ecos-profile",
+      "sourceStatus": "matched",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20
+    },
+    "definition": false,
+    "inventoryMissing": false
+  },
+  {
+    "name": "source is ignored outside the ECoS CV group",
+    "label": "LokPilot 5 micro DCC",
+    "modelLabel": "LokPilot 5 micro DCC",
+    "ecosProfile": "D&H DH18A",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 151
+      },
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "matched",
+      "profileId": "esu-lokpilot-5-micro-dcc",
+      "matchedBy": "name",
+      "sourceStatus": null,
+      "manufacturerId": 151
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": true,
+    "inventoryMissing": false
+  },
+  {
+    "name": "decoder identity CV contradicts stored model",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "Doehler & Haass DH18A",
+    "rows": [
+      {
+        "cvNumber": 8,
+        "value": 97
+      },
+      {
+        "cvNumber": 261,
+        "value": 160
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "conflict",
+      "profileId": "dcc-basics",
+      "matchedBy": "",
+      "sourceStatus": "conflict",
+      "manufacturerId": 97
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": false,
+    "inventoryMissing": false
+  },
+  {
+    "name": "missing active identity inventory cannot enable source model rules",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot 5 micro DCC",
+    "rows": [
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "standard",
+      "profileId": "dcc-basics",
+      "matchedBy": "",
+      "sourceStatus": "unknown",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": false,
+    "inventoryMissing": true
+  },
+  {
+    "name": "unreviewed model does not borrow adjacent variant",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot 5 micro DCC Direct",
+    "rows": [
+      {
+        "cvNumber": 257,
+        "value": 20,
+        "indexCV31": 16,
+        "indexCV32": 3
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "standard",
+      "profileId": "dcc-basics",
+      "matchedBy": "",
+      "sourceStatus": "unknown",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 257,
+      "value": 20,
+      "indexCV31": 16,
+      "indexCV32": 3
+    },
+    "definition": false,
+    "inventoryMissing": false
+  },
+  {
+    "name": "reviewed exact stored profile LokPilot V4.0 micro DCC",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot V4.0 micro DCC",
+    "rows": [
+      {
+        "cvNumber": 266,
+        "value": 64,
+        "indexCV31": 16,
+        "indexCV32": 2
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "matched",
+      "profileId": "esu-lokpilot-v4-micro-dcc",
+      "matchedBy": "ecos-profile",
+      "sourceStatus": "matched",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 266,
+      "value": 64,
+      "indexCV31": 16,
+      "indexCV32": 2
+    },
+    "definition": true,
+    "inventoryMissing": false
+  },
+  {
+    "name": "reviewed exact stored profile LokPilot Standard",
+    "label": "ECoS",
+    "modelLabel": "ECoS",
+    "ecosProfile": "LokPilot Standard",
+    "rows": [
+      {
+        "cvNumber": 37,
+        "value": 64
+      }
+    ],
+    "deactivate": [],
+    "duplicate": "",
+    "expected": {
+      "status": "matched",
+      "profileId": "esu-lokpilot-standard",
+      "matchedBy": "ecos-profile",
+      "sourceStatus": "matched",
+      "manufacturerId": null
+    },
+    "probe": {
+      "cvNumber": 37,
+      "value": 64
+    },
+    "definition": true,
+    "inventoryMissing": false
+  }
+]

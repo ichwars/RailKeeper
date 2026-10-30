@@ -20,6 +20,8 @@ func TestOpenAPIDocumentsDigitalCenterWorkspaceOperationsAndSecurity(t *testing.
 		responses []string
 	}{
 		{path: "/digital-centers/workspace", method: "get", responses: []string{"403"}},
+		{path: "/digital-centers/ecos/backup-import", method: "post", write: true,
+			responses: []string{"400", "401", "403", "409", "413", "415", "422", "503"}},
 		{path: "/digital-centers/{provider}/read-sessions", method: "post", write: true,
 			responses: []string{"400", "403", "404", "409"}},
 		{path: "/digital-centers/read-sessions/{id}", method: "get", responses: []string{"403", "404"}},

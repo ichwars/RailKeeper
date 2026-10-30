@@ -47,6 +47,7 @@ describe("useDigitalCentersWorkspace", () => {
     vi.spyOn(api, "digitalCenterWorkspace").mockResolvedValue({ centers });
     vi.spyOn(api, "digitalCenterLiveStatus").mockResolvedValue(stoppedLive);
     vi.spyOn(api, "startDigitalCenterReadSession").mockResolvedValue(readySession);
+    vi.spyOn(api, "digitalCenterReadSession").mockResolvedValue(readySession);
     vi.spyOn(api, "digitalCenterWorkItems").mockResolvedValue(worklist);
     vi.spyOn(api, "digitalCenterWorkItem").mockResolvedValue(item);
     vi.spyOn(api, "digitalCenterSessionMessages").mockResolvedValue({ messages: [] });
@@ -60,6 +61,41 @@ describe("useDigitalCentersWorkspace", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("loads a saved offline review through GETs and disables device actions", async () => {
+    const offlineSession: DigitalCenterReadSession = { ...readySession, id: "backup-1",
+      capabilities: capabilitiesFixture({ testConnection: false, readLocomotives: false,
+        liveMonitor: false, writeLocomotives: false, writeCVs: false, diagnose: false }) };
+    vi.mocked(api.digitalCenterReadSession).mockResolvedValue(offlineSession);
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.loadSession("backup-1"));
+    await waitFor(() => expect(result.current.workItems.items).toEqual([item]));
+    expect(api.digitalCenterReadSession).toHaveBeenCalledWith("backup-1");
+    expect(api.digitalCenterWorkItems).toHaveBeenCalledWith("backup-1", expect.any(Object));
+    expect(result.current.reviewingSnapshot).toBe(true);
+    expect(result.current.actions.canRead).toBe(false);
+    expect(result.current.actions.canMonitor).toBe(false);
+    expect(result.current.actions.canWrite).toBe(false);
+    expect(api.startDigitalCenterReadSession).not.toHaveBeenCalled();
+    expect(api.startDigitalCenterLive).not.toHaveBeenCalled();
+  });
+
+  it("ignores a late saved-session response after selecting another station", async () => {
+    let resolveSession: ((session: DigitalCenterReadSession) => void) | undefined;
+    vi.mocked(api.digitalCenterReadSession).mockImplementation(() => new Promise(resolve => {
+      resolveSession = resolve;
+    }));
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    let pending: Promise<DigitalCenterReadSession> | undefined;
+    act(() => { pending = result.current.loadSession("old-backup"); });
+    act(() => result.current.selectCenter("z21"));
+    await act(async () => { resolveSession?.(readySession); await pending; });
+    expect(result.current.selectedProvider).toBe("z21");
+    expect(result.current.readSession).toBeNull();
+    expect(api.digitalCenterWorkItems).not.toHaveBeenCalled();
   });
 
   it("preserves work-list filters and page across center and detail selection", async () => {

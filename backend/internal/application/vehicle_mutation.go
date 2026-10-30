@@ -265,6 +265,10 @@ VALUES(?, ?, 'VehicleUpdated', 'vehicle', ?, ?, '{}')
 		return nil, err
 	}
 	vehicle.ExternalMappings = externalMappings
+	vehicle.ECoSDecoderProfile, err = s.loadECoSDecoderProfile(ctx, vehicle.ID)
+	if err != nil {
+		return nil, err
+	}
 
 	return &vehicle, nil
 }

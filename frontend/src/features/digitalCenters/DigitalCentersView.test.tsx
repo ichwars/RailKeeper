@@ -32,6 +32,10 @@ vi.mock("./useDigitalCenterVehicleAdoption", () => ({
 type Workspace = ReturnType<typeof useDigitalCentersWorkspace>;
 
 describe("DigitalCentersView", () => {
+  it("keeps the comparison heading and actions visible while large CV tables scroll", () => {
+    expect(digitalCentersCSS).toMatch(/\.digital-comparison-dialog > header\s*\{[^}]*position: sticky;[^}]*top: 0;/);
+    expect(digitalCentersCSS).toMatch(/\.digital-comparison-dialog > footer\s*\{[^}]*position: sticky;[^}]*bottom: 0;/);
+  });
   beforeEach(() => {
     vi.spyOn(api, "readDigitalCenterCVBatch").mockResolvedValue(unmatchedWorkItem());
     setLanguage("de");
@@ -282,27 +286,70 @@ describe("DigitalCentersView", () => {
       });
   });
 
-  it("automatically reads the whole CV range before creating the vehicle draft", async () => {
+  it("automatically reads the complete CV database before creating the vehicle draft", async () => {
     const unmatched = unmatchedWorkItem();
     unmatched.center = { ...unmatched.center, cvRead: undefined };
     const workspace = workspaceFixture({ selectedItemId: unmatched.id, selectedItem: unmatched,
       dialog: { kind: "comparison", itemId: unmatched.id } });
     workspaceHook.mockReturnValue(workspace);
-    const read = vi.spyOn(api, "readDigitalCenterCVBatch").mockImplementation(async (_, __, start) => ({
+    const read = vi.spyOn(api, "readDigitalCenterCVBatch").mockImplementation(async () => ({
       ...unmatched, center: { ...unmatched.center,
-        cvs: Array.from({ length: start + 31 }, (_, i) => ({ number: i + 1, value: (i + 1) % 256 })),
-        cvRead: { nextCV: start + 32, unavailable: 0, readAt: "2026-10-22T11:00:00Z", sourceHost: "ecos.local" }
+        cvs: Array.from({ length: 1024 }, (_, i) => ({ number: i + 1, value: (i + 1) % 256 })),
+        cvRead: { source: "database", nextCV: 1025, unavailable: 0, readAt: "2026-10-22T11:00:00Z", sourceHost: "ecos.local" }
       }
     }));
     try {
       render(<DigitalCentersView roles={["Admin"]} />);
       fireEvent.click(screen.getByRole("button", { name: "Neues Fahrzeug anlegen" }));
       await waitFor(() => expect(window.location.pathname).toBe("/vehicles"));
-      expect(read).toHaveBeenCalledTimes(32);
+      expect(read).toHaveBeenCalledOnce();
       const draft = JSON.parse(window.sessionStorage.getItem(ecosVehicleDraftStorageKey) || "null");
       expect(draft.cvValues).toHaveLength(1024);
       expect(draft.cvValues[1023]).toMatchObject({ cvNumber: 1024, value: 0 });
     } finally { read.mockRestore(); }
+  });
+
+  it("creates the draft from one complete normal comparison including saved functions", async () => {
+    const unmatched = unmatchedWorkItem();
+    unmatched.center.cvRead = { source: "database", nextCV: 1025, unavailable: 0,
+      readAt: "2026-10-29T08:00:00Z", sourceHost: "ecos.test" };
+    unmatched.center.cvs = [{ number: 257, value: 0, indexCV31: 0, indexCV32: 0 }];
+    unmatched.center.functionSnapshot = { objectId: Number(unmatched.centerObjectId), host: "ecos.test",
+      readAt: "2026-10-29T08:00:00Z", functions: [{ index: 1, description: 9, momentary: true }] };
+    const workspace = workspaceFixture({ selectedItemId: unmatched.id, selectedItem: unmatched,
+      dialog: { kind: "comparison", itemId: unmatched.id } });
+    workspaceHook.mockReturnValue(workspace);
+    const read = vi.spyOn(api, "readDigitalCenterCVBatch");
+    render(<DigitalCentersView roles={["Admin"]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Neues Fahrzeug anlegen" }));
+    await waitFor(() => expect(window.location.pathname).toBe("/vehicles"));
+    const draft = JSON.parse(window.sessionStorage.getItem(ecosVehicleDraftStorageKey) || "null");
+    expect(draft.cvValues).toHaveLength(1);
+    expect(draft.ecosFunctions).toEqual(unmatched.center.functionSnapshot);
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it("allows a new vehicle from an incomplete comparison without retrying or importing partial CVs", async () => {
+    const unmatched = unmatchedWorkItem();
+    unmatched.stationStatus = "incomplete";
+    unmatched.center.cvs = [{ number: 8, value: 151 }];
+    unmatched.center.cvRead = undefined;
+    unmatched.center.cvSources = { sources: [], backupStatus: "failed", backupAdded: 0,
+      conflicts: [], warning: "Unavailable" };
+    unmatched.center.functionSnapshot = { objectId: Number(unmatched.centerObjectId), host: "ecos.test",
+      readAt: "2026-10-29T08:00:00Z", functions: [{ index: 1, description: 9, momentary: true }] };
+    const workspace = workspaceFixture({ selectedItemId: unmatched.id, selectedItem: unmatched,
+      dialog: { kind: "comparison", itemId: unmatched.id } });
+    workspaceHook.mockReturnValue(workspace);
+    const read = vi.spyOn(api, "readDigitalCenterCVBatch");
+    render(<DigitalCentersView roles={["Admin"]} />);
+    expect(screen.getByText(/Die CV-Erfassung ist unvollständig/)).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Neues Fahrzeug anlegen" }));
+    await waitFor(() => expect(window.location.pathname).toBe("/vehicles"));
+    const draft = JSON.parse(window.sessionStorage.getItem(ecosVehicleDraftStorageKey) || "null");
+    expect(draft.cvValues).toEqual([]);
+    expect(draft.ecosFunctions).toEqual(unmatched.center.functionSnapshot);
+    expect(read).not.toHaveBeenCalled();
   });
 
   it("does not expose vehicle adoption actions without the Admin role", () => {
@@ -368,6 +415,47 @@ describe("DigitalCentersView", () => {
 
     await waitFor(() => expect(workspace.readData).toHaveBeenCalledOnce());
     expect(window.location.pathname + window.location.search).toBe("/digital-centers");
+  });
+
+  it("reopens a saved backup review without starting a device read and preserves its reload link", async () => {
+    const workspace = workspaceFixture();
+    workspaceHook.mockReturnValue(workspace);
+    window.history.replaceState(null, "", "/digital-centers?sessionId=backup-1&review=backup");
+    const { rerender } = render(<DigitalCentersView roles={["Admin"]} />);
+    await waitFor(() => expect(workspace.loadSession).toHaveBeenCalledWith("backup-1"));
+    rerender(<DigitalCentersView roles={["Admin"]} />);
+    expect(workspace.loadSession).toHaveBeenCalledOnce();
+    expect(workspace.readData).not.toHaveBeenCalled();
+    expect(window.location.search).toBe("?sessionId=backup-1&review=backup");
+  });
+
+  it("uses one normal comparison action without a separate backup upload flow", () => {
+    const workspace = workspaceFixture();
+    workspaceHook.mockReturnValue(workspace);
+    render(<DigitalCentersView roles={["Admin"]} />);
+    expect(screen.queryByLabelText("ECoS-Sicherung (.eco)")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sicherung prüfen" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Daten lesen" }));
+    expect(workspace.readData).toHaveBeenCalledOnce();
+    expect(api.readDigitalCenterCVBatch).not.toHaveBeenCalled();
+  });
+
+  it("keeps backup review separate from device writes and vehicle adoption", () => {
+    const backupItem: DigitalCenterWorkItem = { ...workItem, vehicleId: "", center: {
+      ...workItem.center, cvRead: { source: "backup", nextCV: 1025, unavailable: 0,
+        readAt: "2026-10-28T06:00:00Z", sourceHost: "ecos.local" }
+    } };
+    workspaceHook.mockReturnValue(workspaceFixture({
+      reviewingSnapshot: true, selectedItem: backupItem, selectedItemId: backupItem.id,
+      dialog: { kind: "comparison", itemId: backupItem.id }, actions: actionsFixture(false)
+    }));
+    render(<DigitalCentersView roles={["Admin"]} />);
+    expect(screen.queryByRole("heading", { name: "ECoS-Sicherung prüfen" })).not.toBeInTheDocument();
+    expect(screen.getByText(/Quelle: ECoS-Sicherung/)).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Neues Fahrzeug anlegen" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Bestehendem Fahrzeug zuordnen" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Schreibvorschau erstellen" })).not.toBeInTheDocument();
+    expect(api.readDigitalCenterCVBatch).not.toHaveBeenCalled();
   });
 
   it("renders factual pagination without current-page quick-filter counts or text glyph controls", () => {
@@ -492,7 +580,7 @@ function unmatchedWorkItem(): DigitalCenterWorkItem {
       decoderAddress: 1001,
       protocol: "DCC",
       cvs: [],
-      cvRead: { nextCV: 1025, unavailable: 1024, readAt: "2026-10-22T11:00:00Z", sourceHost: "ecos.local" }
+      cvRead: { source: "database", nextCV: 1025, unavailable: 0, readAt: "2026-10-22T11:00:00Z", sourceHost: "ecos.local" }
     },
     railkeeper: {}
   };
@@ -517,6 +605,7 @@ function workspaceFixture(overrides: Partial<Workspace> = {}): Workspace {
     centers: [ecosCenter, z21Center], selectedProvider: "ecos", selectedCenter: ecosCenter,
     selectCenter: vi.fn(), liveStatus, connectionState: "running", readSession,
     readData: vi.fn(async () => readSession),
+    loadSession: vi.fn(async () => readSession), reviewingSnapshot: false,
     workItems: { items: [workItem], page: 1, pageSize: 10, total: 42, totalPages: 5 },
     sessionTotal: 42,
     messages: [], search: "", setSearch: vi.fn(), compareStatus: "all", setCompareStatus: vi.fn(),

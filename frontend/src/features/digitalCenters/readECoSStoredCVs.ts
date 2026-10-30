@@ -4,18 +4,28 @@ import type { DigitalCenterWorkItem } from "./digitalCenterModel";
 export async function readECoSStoredCVs(
   item: DigitalCenterWorkItem,
   onProgress: (item: DigitalCenterWorkItem) => void,
-  options: { restart?: boolean; refresh?: boolean; isCancelled?: () => boolean } = {}
+  options: { restart?: boolean; refresh?: boolean; useSaved?: boolean; isCancelled?: () => boolean } = {}
 ): Promise<DigitalCenterWorkItem | null> {
-  let snapshot = item;
-  let start = options.restart || options.refresh ? 1 : item.center.cvRead?.nextCV || 1;
-  while (start <= 1024 && !options.isCancelled?.()) {
-    const next = await api.readDigitalCenterCVBatch(item.sessionId, item.id, start,
-      { restart: options.restart === true && start === 1 });
-    const cursor = next.center.cvRead?.nextCV;
-    if (!cursor || cursor <= start || cursor > 1025) throw new Error("invalid CV cursor");
-    onProgress(next);
-    snapshot = next;
-    start = cursor;
+  if (options.isCancelled?.()) return null;
+  if (options.useSaved && hasCompleteECoSCVSnapshot(item)) return item;
+  if (options.useSaved && item.center.cvSources) {
+    return { ...item, center: { ...item.center, cvs: [] } };
   }
-  return options.isCancelled?.() ? null : snapshot;
+  // One complete database export includes all stored pages. A TCP scan over
+  // CV1–1024 silently misses registers such as ECoS address 4099:257.
+  const snapshot = await api.readDigitalCenterCVBatch(item.sessionId, item.id, 1,
+    { restart: options.restart === true, source: "database" });
+  if (snapshot.center.cvRead?.source !== "database" || snapshot.center.cvRead.nextCV !== 1025) {
+    throw new Error("incomplete CV database snapshot");
+  }
+  if (options.isCancelled?.()) return null;
+  onProgress(snapshot);
+  return snapshot;
+}
+
+export function hasCompleteECoSCVSnapshot(item: DigitalCenterWorkItem): boolean {
+  const state = item.center.cvRead;
+  return Boolean((state?.source === "database" || state?.source === "backup") &&
+    state.nextCV === 1025 && state.unavailable === 0 && state.readAt && state.sourceHost &&
+    item.center.cvs);
 }

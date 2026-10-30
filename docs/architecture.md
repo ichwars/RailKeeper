@@ -64,6 +64,8 @@ Node.js is only used to build the frontend.
 - Intellibox 3 keeps Z21-compatible UDP and LocoNet over TCP as separate transports. Only the bounded,
   read-only Z21 connection test and diagnostics are available today. See
   `docs/architecture/intellibox3-transports.md` for the validation status and hardware test boundary.
+- ECoS function keys can be read into a protected vehicle-function draft with decoder-library
+  comparison and explicit selection; see [ECoS functions](architecture/ecos-functions.md).
 - ECoS activation requires a successful end marker and complete version fields. Firmware 4.3.3 is the
   currently recorded real-device acceptance; other complete versions remain explicitly unverified. See
   `docs/architecture/ecos-compatibility.md` for the status model and evidence boundary.
@@ -72,8 +74,8 @@ Node.js is only used to build the frontend.
   discarded. See `docs/architecture/z21-read-scope.md` for protocol evidence, bounds, and hardware gaps.
 - Decoder CV identity is vehicle + exact trimmed decoder profile + CV number + optional CV31/CV32 pair.
   Unindexed values and zero index pages remain distinct. Reviewed CV selections commit atomically.
-  ECoS stored-memory CVs have a bounded full-range read and additive adoption with provenance;
-  see [stored ECoS CV values](architecture/ecos-stored-cvs.md) for unknown index pages and firmware limits.
+  ECoS CVs use a bounded database XML export with explicit index pages and additive adoption with
+  provenance; see [stored ECoS CV values](architecture/ecos-stored-cvs.md) for cache and identity limits.
 - Decoder definitions are local `decoder_profile` master-data entries, separate from vehicle readings.
   `internal/decoderlibrary/catalog.json` holds reviewed DCC and selected model CV rules for all eight catalogued brands.
   Coverage remains model- and document-specific, not a blanket family guarantee. `inventory.json` separately describes manufacturers, families and products, persisted as
@@ -98,8 +100,12 @@ Node.js is only used to build the frontend.
   known previous revisions. Local labels, ordering, source URLs and activation remain unchanged;
   edited metadata and custom origins are preserved. Restore uses the same seed policy.
   The authenticated `/api/v1/decoder-library` endpoint serves persisted definitions to import
-  previews and vehicle views. Matching requires unindexed CV8 plus model/family aliases or a
-  documented type identifier (D&H CV261, ZIMO CV250, Lenz CV7). ZIMO identifies the base type only,
+  previews and vehicle views. Matching uses unindexed CV8 plus model/family aliases or a
+  documented type identifier (D&H CV261, ZIMO CV250, Lenz CV7). For ECoS source groups, an exact,
+  unique saved ECoS model profile can also select an active library model without inventing CV8.
+  Manual type and supplied identity conflicts block this path; source context stays separate
+  from inventory fields. See [stored ECoS CVs](architecture/ecos-stored-cvs.md).
+  ZIMO identifies the base type only,
   without inferring an interface or borrowing a variant's CV rules. Identified models without
   reviewed profiles use DCC foundations. Conflicts fall back to DCC basics; CV8 alone never
   selects a model. Recognition does not rename raw profile groups or modify readings. Shared

@@ -58,7 +58,7 @@ func TestDHCompactSeedUpgradesOnlyReleasedMetadata(t *testing.T) {
 				if mode == "bundled" {
 					expected := "2026-10-20.3"
 					if kind == decoderlibrary.InventoryMasterDataType {
-						expected = "2026-10-21.2"
+						expected = decoderlibrary.BundledInventory().Revision
 					}
 					if value["revision"] != expected {
 						t.Fatal("DH compact evidence not upgraded")

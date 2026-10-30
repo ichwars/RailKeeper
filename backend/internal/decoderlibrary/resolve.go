@@ -28,6 +28,7 @@ type Match struct {
 	TotalValues        int               `json:"totalValues"`
 	MatchedBy          string            `json:"matchedBy,omitempty"`
 	Identification     *IdentityEvidence `json:"identification,omitempty"`
+	ECoSProfile        *ECoSProfileMatch `json:"ecosProfile,omitempty"`
 }
 
 var firmwareDescription = regexp.MustCompile(`^LokProgrammer Decoder: .+ \(([\d.]+)\)$`)
@@ -47,6 +48,14 @@ func includes(values []string, value string) bool {
 }
 
 func Resolve(profiles []Profile, label string, values []Reading, inventories ...*Inventory) Match {
+	var inventory *Inventory
+	if len(inventories) > 0 {
+		inventory = inventories[0]
+	}
+	return resolve(profiles, label, values, inventory, ResolutionContext{ModelLabel: label})
+}
+
+func resolve(profiles []Profile, label string, values []Reading, inventory *Inventory, context ResolutionContext) Match {
 	match := Match{Status: "standard"}
 	manufacturerConflict := false
 	var rows []Reading
@@ -75,11 +84,24 @@ func Resolve(profiles []Profile, label string, values []Reading, inventories ...
 	if match.Status == "unsupported" {
 		return match
 	}
-	var inventory *Inventory
-	if len(inventories) > 0 {
-		inventory = inventories[0]
+	source, evidence, sourceConflict := selectECoSProfile(profiles, label, context.ModelLabel, context.ECoSProfile)
+	if source != nil && inventory == nil {
+		source = nil
+		evidence.Status = "unknown"
 	}
-	identity, identityConflict := identify(inventory, label, rows, match.ManufacturerID)
+	match.ECoSProfile = evidence
+	manufacturerContext := match.ManufacturerID
+	identityLabel := context.ModelLabel
+	if source != nil {
+		if manufacturerContext == nil {
+			manufacturerContext = source.ManufacturerID
+		}
+		identityLabel = source.Model
+		if identityLabel == "" {
+			identityLabel = source.Name
+		}
+	}
+	identity, identityConflict := identify(inventory, identityLabel, rows, manufacturerContext)
 	var selected *Profile
 	var exact, family []*Profile
 	for i := range profiles {
@@ -93,25 +115,28 @@ func Resolve(profiles []Profile, label string, values []Reading, inventories ...
 		if p.Kind != "model" {
 			continue
 		}
-		if includes(p.Aliases, label) {
+		if includes(p.Aliases, context.ModelLabel) {
 			exact = append(exact, p)
 		}
-		if includes(p.FamilyAliases, label) {
+		if includes(p.FamilyAliases, context.ModelLabel) {
 			family = append(family, p)
 		}
+	}
+	if source != nil {
+		exact = []*Profile{source}
 	}
 	candidates := exact
 	if len(candidates) == 0 {
 		candidates = family
 	}
-	if manufacturerConflict || identityConflict || len(candidates) > 1 {
+	if manufacturerConflict || sourceConflict || identityConflict || len(candidates) > 1 {
 		match.Status = "conflict"
 	} else if len(candidates) == 1 {
 		p := candidates[0]
 		switch {
-		case match.ManufacturerID == nil:
+		case manufacturerContext == nil:
 			match.Status = "suggested"
-		case p.ManufacturerID == nil || *p.ManufacturerID != *match.ManufacturerID:
+		case p.ManufacturerID == nil || *p.ManufacturerID != *manufacturerContext:
 			match.Status = "conflict"
 		default:
 			if identity != nil && !identity.supportsProfile(p.ID) {
@@ -120,6 +145,9 @@ func Resolve(profiles []Profile, label string, values []Reading, inventories ...
 			}
 			selected = p
 			match.MatchedBy = "name"
+			if source != nil {
+				match.MatchedBy = "ecos-profile"
+			}
 			match.Status = "family"
 			if len(exact) > 0 {
 				match.Status = "matched"
@@ -137,7 +165,7 @@ func Resolve(profiles []Profile, label string, values []Reading, inventories ...
 			if identity.evidence.Scope == "model" {
 				for i := range profiles {
 					p := &profiles[i]
-					if p.Active && p.Kind == "model" && p.ID == identity.profileID && p.ManufacturerID != nil && *p.ManufacturerID == *match.ManufacturerID {
+					if p.Active && p.Kind == "model" && p.ID == identity.profileID && p.ManufacturerID != nil && manufacturerContext != nil && *p.ManufacturerID == *manufacturerContext {
 						selected = p
 						match.Status = "matched"
 					}
@@ -148,6 +176,9 @@ func Resolve(profiles []Profile, label string, values []Reading, inventories ...
 	if selected == nil {
 		match.Status = "unavailable"
 		return match
+	}
+	if match.Status == "conflict" && source != nil {
+		match.ECoSProfile.Status = "conflict"
 	}
 	if selected.Kind == "standard" && match.Status == "standard" && match.ManufacturerID != nil {
 		for _, p := range profiles {

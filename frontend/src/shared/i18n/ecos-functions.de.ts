@@ -1,0 +1,20 @@
+export const ecosFunctionsDE: Record<string, string> = {
+  "ecosFunctions.title": "Funktionstasten aus ECoS übernehmen",
+  "ecosFunctions.help": "Lies die zugeordnete Lok und vergleiche ihre Tasten mit der Decoderbibliothek. Nur ausgewählte freie Angaben werden ergänzt. Manuelle Namen, Symbole und Einstellungen bleiben erhalten.",
+  "ecosFunctions.read": "Aus ECoS lesen",
+  "ecosFunctions.reading": "Funktionstasten werden gelesen …",
+  "ecosFunctions.mappingRequired": "Speichere das Fahrzeug und ordne ihm zuerst die passende ECoS-Lok unter Digitalzentralen zu.",
+  "ecosFunctions.error": "Die Funktionstasten konnten nicht vollständig gelesen werden. Prüfe Verbindung und ECoS-Zuordnung und lies anschließend erneut.",
+  "ecosFunctions.source": "ECoS-Lok #{id} · Gelesen: {at}",
+  "ecosFunctions.empty": "Die ECoS hat keine belegten Funktionstasten geliefert.",
+  "ecosFunctions.unknownSymbol": "Symbol noch nicht zugeordnet",
+  "ecosFunctions.code": "Symbolcode {code}",
+  "ecosFunctions.proposal": "Ergänzung",
+  "ecosFunctions.fields": "Freie Angaben: {fields}",
+  "ecosFunctions.conflict": "ECoS und Decoderdaten widersprechen sich. Angaben einzeln im Editor prüfen.",
+  "ecosFunctions.protected": "Vorhandene Angaben bleiben erhalten.",
+  "ecosFunctions.notesFull": "Kein Platz für den Herkunftsnachweis. Notizen prüfen.",
+  "ecosFunctions.selectFree": "Freie Angaben auswählen",
+  "ecosFunctions.apply": "Auswahl in Entwurf übernehmen",
+  "ecosFunctions.applied": "Ausgewählte Angaben wurden im Entwurf ergänzt. Speichere das Fahrzeug, um sie dauerhaft zu übernehmen."
+};

@@ -18,8 +18,11 @@ export function DecoderLibraryNotice({ values, profile, match: suppliedMatch, ve
     <div><strong>{t(`decoderLibrary.status.${match.status}`, { profile: name || "" })}</strong>
       <small>{t("decoderLibrary.coverage", { known: match.knownValues, total: match.totalValues })}
         {match.revision && ` · ${t("decoderLibrary.revision")}: ${match.revision}`}</small>
-      {match.identification && <small>{t("decoderLibrary.identityEvidence", {
+      {match.identification && <small>{t(match.manufacturerId == null ? "vehicles.decoder.profileCVIdentity" : "decoderLibrary.identityEvidence", {
         manufacturer: match.manufacturerId ?? "?", cv: match.identification.cvNumber, value: match.identification.value
+      })}</small>}
+      {match.ecosProfile && <small>{t(`vehicles.decoder.ecosProfile.${match.ecosProfile.status}`, {
+        profile: match.ecosProfile.name
       })}</small>}
       {vehicleDecoderType && <small>{t("vehicles.decoder.vehicleEvidence", {
         manufacturer: match.manufacturerId ?? "?"
