@@ -3,6 +3,7 @@
 FROM node:24-alpine AS frontend-build
 WORKDIR /src/frontend
 COPY backend/internal/decoderlibrary/*.json /src/backend/internal/decoderlibrary/
+COPY backend/internal/application/function_symbol_ecos_codes.json /src/backend/internal/application/
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend ./

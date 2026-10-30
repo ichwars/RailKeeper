@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
-import type { MasterDataEntry, VehicleCVValueInput } from "../../shared/api";
+import { api, type MasterDataEntry, type VehicleCVValueInput } from "../../shared/api";
 import { translate } from "../../shared/i18n";
 import { cvValueFixture, functionFixture, vehicleFixture } from "../../test/fixtures/vehicles";
 import { decoderAnalysis } from "./decoderAnalysis";
@@ -32,10 +32,12 @@ const vehicle = vehicleFixture({ cvValues:readings.map((row,i)=>cvValueFixture({
   functionFixture({functionKey:"F1",name:"",symbolKey:"",revision:"b".repeat(64),directionDependent:null,inverted:false})
 ] });
 let controller: ReturnType<typeof useVehicleFunctionsController>;
-function Harness({ readonly = false, data = vehicle }: { readonly?: boolean; data?: typeof vehicle }) {
+function Harness({ readonly = false, data = vehicle, canReadECoS = false }: {
+  readonly?: boolean; data?: typeof vehicle; canReadECoS?: boolean;
+}) {
   controller = useVehicleFunctionsController({selected:data,form:emptyVehicle,setSaving:vi.fn(),onMessage:vi.fn(),refreshSelectedVehicle:vi.fn()});
   useEffect(()=>controller.commands.loadDetail(data.functions,data.id),[data]);
-  return <VehicleFunctionsTab selected={data} readonly={readonly} saving={false}
+  return <VehicleFunctionsTab selected={data} readonly={readonly} saving={false} canReadECoS={canReadECoS}
     functionImportInputRef={controller.refs.importInputRef} configuredFunctionKeys={controller.state.configuredKeys}
     showConfiguredFunctionsOnly={controller.state.showConfiguredOnly} symbols={symbols}
     onImportFunctions={controller.commands.importValues} onExportFunctions={controller.commands.exportValues}
@@ -56,6 +58,23 @@ it("shows CV-mapped keys by default in one list, with a collapsed mapping last",
   fireEvent.click(screen.getByRole("checkbox",{name:"Nur belegte"}));
   expect(container.querySelectorAll(".function-row")).toHaveLength(32);
   expect(screen.getAllByText("Nicht belegt").length).toBeGreaterThan(0);
+});
+
+it("makes ECoS keys available for manual review without creating function changes", async () => {
+  const read = vi.spyOn(api, "readVehicleECoSFunctions").mockResolvedValue({
+    objectId: 1002, host: "ecos.invalid", readAt: "2026-10-26T08:00:00Z",
+    functions: [{ index: 8, description: 4095, momentary: false }]
+  });
+  const data = vehicleFixture({ cvValues: [], externalMappings: [{
+    id: "mapping", vehicleId: "vehicle-1", provider: "ecos", externalId: "1002", syncStatus: "linked",
+    createdAt: "2026-10-26T08:00:00Z", updatedAt: "2026-10-26T08:00:00Z"
+  }] });
+  render(<Harness data={data} canReadECoS />);
+  fireEvent.click(screen.getByText("Funktionstasten aus ECoS übernehmen"));
+  fireEvent.click(screen.getByRole("button", { name: "Aus ECoS lesen" }));
+  expect(await screen.findByRole("textbox", { name: "F8 Funktionsname" })).toBeInTheDocument();
+  expect(controller.commands.changes()).toEqual([]);
+  read.mockRestore();
 });
 
 it("opens the symbol picker from the marked control and preserves a manual name", () => {
@@ -115,6 +134,48 @@ it("retains firmware and notes guards in the combined action", () => {
   expect(candidate.patch).not.toHaveProperty("mode");
   expect(candidate.patch).not.toHaveProperty("inverted");
   expect(functionCVSuggestion(decoderAnalysis(readings,profile),"F3",{notes:"ä".repeat(500)},symbols,t)).toEqual({notesFull:true});
+});
+
+it("uses an exact saved ECoS profile for indexed mapping without inventing identity or replacing manual fields", () => {
+  const source = { name: profile, objectId: "1002", host: "ecos.test", readAt: "2026-10-27T07:00:00Z" };
+  const rows = readings.filter(row => row.cvNumber !== 7 && row.cvNumber !== 8)
+    .map(row => ({ ...row, decoderProfile: "ECoS" }));
+  const t = (key: string, args?: Record<string, string | number>) => translate("de", key, args);
+  const analysis = decoderAnalysis(rows, "ECoS", undefined, undefined, " ESU LokPilot 5 micro DCC ", source);
+  expect(analysis.libraryMatch).toMatchObject({ status: "matched", matchedBy: "ecos-profile" });
+  expect(analysis.libraryMatch.manufacturerId).toBeUndefined();
+  expect(analysis.firmware).toBeUndefined();
+  const manual = { persisted: true, name: "Meine Stirnbeleuchtung", symbolKey: "", functionType: "standard",
+    mode: "moment", directionDependent: true, inverted: true, notes: "Meine Notiz" };
+  const suggestion = functionCVSuggestion(analysis, "F0", manual, symbols, t);
+  expect(suggestion.patch).toMatchObject({ symbolKey: "light" });
+  for (const key of ["name", "functionType", "mode", "directionDependent", "inverted"]) {
+    expect(suggestion.patch).not.toHaveProperty(key);
+  }
+  expect(suggestion.patch?.notes).toContain("Meine Notiz");
+  const free = functionCVSuggestion(analysis, "F3", {}, symbols, t);
+  expect(free.patch).toMatchObject({ name: "Rangiergang", symbolKey: "shunt" });
+  expect(free.patch?.notes).toContain(`ECoS-Profil: ${profile}`);
+  expect(free.patch).not.toHaveProperty("mode");
+  expect(free.patch).not.toHaveProperty("inverted");
+  const conflicting = decoderAnalysis(rows, "ECoS", undefined, undefined, "DH18A", source);
+  expect(conflicting.libraryMatch.status).toBe("conflict");
+  expect(functionCVSuggestion(conflicting, "F3", {}, symbols, t)).toEqual({ notesFull: false });
+});
+
+it("offers profile-backed names in the vehicle editor only as an explicit draft supplement", () => {
+  const data = vehicleFixture({ decoderType: " ESU LokPilot 5 micro DCC ", ecosDecoderProfile: {
+    name: profile, objectId: "1002", host: "ecos.test", readAt: "2026-10-27T07:00:00Z"
+  }, cvValues: readings.filter(row => row.cvNumber !== 7 && row.cvNumber !== 8)
+    .map((row, index) => cvValueFixture({ ...row, id: `ecos-${index}`, decoderProfile: "ECoS" })),
+  functions: [functionFixture({ name: "Mein Licht", symbolKey: "light", mode: "moment", inverted: true })] });
+  render(<Harness data={data} />);
+  expect(screen.getByLabelText("F3 Funktionsname")).toHaveValue("");
+  expect(controller.commands.changes()).toEqual([]);
+  fireEvent.click(screen.getByRole("button", { name: "Fehlende Angaben aus CVs ergänzen" }));
+  expect(screen.getByLabelText("F3 Funktionsname")).toHaveValue("Rangiergang");
+  expect(controller.commands.functionEdit("F0")).toMatchObject({ name: "Mein Licht", symbolKey: "light", mode: "moment", inverted: true });
+  expect(data.decoderType).toBe(" ESU LokPilot 5 micro DCC ");
 });
 
 it("adds the untouched F0 default explicitly without saving when no CV mapping exists", () => {

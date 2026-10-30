@@ -109,9 +109,11 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     () => centers.find((center) => center.provider === selectedProvider) ?? null,
     [centers, selectedProvider]
   );
+  const reviewingSnapshot = Boolean(readSession && readSession.provider === selectedProvider &&
+    !readSession.capabilities.readLocomotives);
   const actions = useMemo(() => {
     const capabilities = selectedCenter?.capabilities;
-    const active = Boolean(selectedCenter?.active);
+    const active = Boolean(selectedCenter?.active) && !reviewingSnapshot;
     return {
       canTestConnection: active && Boolean(capabilities?.testConnection),
       canRead: active && Boolean(capabilities?.readLocomotives),
@@ -120,7 +122,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       canWriteCVs: active && Boolean(capabilities?.writeCVs),
       canDiagnose: active && Boolean(capabilities?.diagnose)
     };
-  }, [selectedCenter]);
+  }, [reviewingSnapshot, selectedCenter]);
 
   const setError = useCallback((area: keyof DigitalCenterWorkspaceErrors, message: string) => {
     setErrors((current) => ({ ...current, [area]: message }));
@@ -426,6 +428,37 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   }, [actions.canRead, clearSessionDependents, localizedError, setError, setLoadingArea, suspendSessionActions,
     workspaceText]);
 
+  const loadSession = useCallback(async (sessionID: string) => {
+    const requestID = ++requestsRef.current.read;
+    suspendSessionActions();
+    setError("read", "");
+    setLoadingArea("read", true);
+    try {
+      const session = await api.digitalCenterReadSession(sessionID);
+      if (!mountedRef.current || requestID !== requestsRef.current.read) return session;
+      clearSessionDependents();
+      requestsRef.current.live += 1;
+      selectedProviderRef.current = session.provider;
+      readSessionIDRef.current = session.id;
+      setSelectedProvider(session.provider);
+      setReadSession(session);
+      setLiveStatus(null);
+      setPageState(1);
+      setSearchState("");
+      setCompareStatusState("all");
+      return session;
+    } catch (loadError) {
+      if (mountedRef.current && requestID === requestsRef.current.read) {
+        setError("read", localizedError(loadError));
+      }
+      throw loadError;
+    } finally {
+      if (mountedRef.current && requestID === requestsRef.current.read) {
+        setLoadingArea("read", false);
+      }
+    }
+  }, [clearSessionDependents, localizedError, setError, setLoadingArea, suspendSessionActions]);
+
   const runLiveMutation = useCallback(async (operation: "start" | "stop") => {
     const provider = selectedProviderRef.current;
     if (!provider || !actions.canMonitor) {
@@ -609,6 +642,8 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     connectionState: liveStatus?.state ?? "stopped",
     readSession,
     readData,
+    loadSession,
+    reviewingSnapshot,
     workItems,
     sessionTotal,
     messages,

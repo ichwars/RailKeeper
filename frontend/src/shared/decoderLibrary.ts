@@ -1,6 +1,7 @@
 import { bundledDecoderInventory, bundledDecoderProfiles } from "./decoderLibraryModel";
 import type { DecoderDefinition, DecoderInventory, DecoderLibraryMatch, DecoderLibraryProfile, DecoderReading } from "./decoderLibraryModel";
 import { identifyDecoder } from "./decoderIdentity";
+import { selectECoSDecoderProfile } from "./ecosDecoderProfile";
 
 const normalized = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();
 const includes = (aliases: string[], label: string) => aliases.some(alias => normalized(alias) === normalized(label));
@@ -15,7 +16,7 @@ export function firmwareAtLeast(actual: string, minimum: string) {
 
 export function decoderDefinition(profiles: DecoderLibraryProfile[], match: DecoderLibraryMatch, value: DecoderReading) {
   if (match.status === "unsupported" || match.status === "unavailable") return undefined;
-  // ECoS supplies a numbered cache entry, not the index-page identity of that entry.
+  // Legacy ECoS numbered entries carry no index-page identity.
   // Even a documented base definition cannot disambiguate a banked number by itself.
   if (isECoSReading(value) && value.indexCV31 == null && value.indexCV32 == null &&
     decoderNumberIsIndexed(profiles, match, value.cvNumber)) return undefined;
@@ -61,7 +62,7 @@ function matchesDefinitionIndex(d: DecoderDefinition, value: DecoderReading) {
 }
 
 export function resolveDecoderLibrary(values: DecoderReading[], label: string, profiles = bundledDecoderProfiles,
-  inventory: DecoderInventory | null = bundledDecoderInventory, modelLabel = label): DecoderLibraryMatch {
+  inventory: DecoderInventory | null = bundledDecoderInventory, modelLabel = label, ecosProfile = ""): DecoderLibraryMatch {
   const rows = values.filter(v => (v.decoderProfile || "").trim() === label.trim());
   const base = rows.filter(v => v.indexCV31 == null && v.indexCV32 == null);
   const manufacturers = new Set(base.filter(v => v.cvNumber === 8).map(v => v.value));
@@ -71,29 +72,38 @@ export function resolveDecoderLibrary(values: DecoderReading[], label: string, p
   if (rows.some(v => v.protocol?.trim() && !/^DCC(?: ?(?:14|28|128))?$/i.test(v.protocol.trim()))) {
     return { ...match, status: "unsupported" };
   }
-  const { identity, conflict: identityConflict } = identifyDecoder(inventory, modelLabel, rows, manufacturerId);
+  let source = selectECoSDecoderProfile(profiles, label, modelLabel, ecosProfile);
+  if (!inventory && source.profile) {
+    source = { evidence: { name: ecosProfile, status: "unknown" }, conflict: false };
+  }
+  if (source.evidence) match.ecosProfile = source.evidence;
+  const manufacturerContext = manufacturerId ?? source.profile?.manufacturerId;
+  const identityLabel = source.profile ? source.profile.model || source.profile.name : modelLabel;
+  const { identity, conflict: identityConflict } = identifyDecoder(inventory, identityLabel, rows, manufacturerContext);
   let selected = profiles.find(p => p.active && p.kind === "standard" && p.id === "dcc-basics");
   const models = profiles.filter(p => p.active && p.kind === "model");
-  const exact = models.filter(p => includes(p.aliases, modelLabel));
+  const exact = source.profile ? [source.profile] : models.filter(p => includes(p.aliases, modelLabel));
   const candidates = exact.length ? exact : models.filter(p => includes(p.familyAliases, modelLabel));
-  if (manufacturers.size > 1 || identityConflict || candidates.length > 1) match.status = "conflict";
+  if (manufacturers.size > 1 || source.conflict || identityConflict || candidates.length > 1) match.status = "conflict";
   else if (candidates.length === 1) {
     const p = candidates[0];
-    if (manufacturerId == null) match.status = "suggested";
-    else if (p.manufacturerId !== manufacturerId) match.status = "conflict";
+    if (manufacturerContext == null) match.status = "suggested";
+    else if (p.manufacturerId !== manufacturerContext) match.status = "conflict";
     else if (identity && !identity.profiles.includes(p.id)) match.status = "conflict";
-    else { selected = p; match.status = exact.length ? "matched" : "family"; match.matchedBy = "name"; }
+    else { selected = p; match.status = exact.length ? "matched" : "family";
+      match.matchedBy = source.profile ? "ecos-profile" : "name"; }
   }
   if (identity && match.status !== "conflict") {
     match.identification = identity.evidence;
     if (!match.matchedBy) {
       match.matchedBy = "cv";
       match.status = identity.evidence.scope === "family" ? "family" : "identified";
-      const model = identity.evidence.scope === "model" ? models.find(p => p.id === identity.profileId && p.manufacturerId === manufacturerId) : undefined;
+      const model = identity.evidence.scope === "model" ? models.find(p => p.id === identity.profileId && p.manufacturerId === manufacturerContext) : undefined;
       if (model) { selected = model; match.status = "matched"; }
     }
   }
   if (!selected) return { ...match, status: "unavailable" };
+  if (match.status === "conflict" && source.profile) match.ecosProfile = { name: ecosProfile, status: "conflict" };
   if (selected.kind === "standard" && match.status === "standard" &&
     profiles.some(p => p.active && p.kind === "model" && p.manufacturerId === manufacturerId)) match.status = "manufacturer";
   Object.assign(match, { profileId: selected.id, profileName: match.status === "family" ? selected.family : selected.name, revision: selected.revision });

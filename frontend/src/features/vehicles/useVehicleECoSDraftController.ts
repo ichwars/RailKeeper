@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api, type CreateVehicleRequest, type Vehicle } from "../../shared/api";
 import type { FunctionEditState, PendingArticleImage } from "./vehicleTransforms";
 import { vehicleToForm } from "./vehicleTransforms";
+import { supplementECoSFunctionDraft } from "./ecosFunctionDraft";
 import {
   compactValue,
   ecosImportSessionStorageKey,
@@ -39,6 +40,12 @@ export function useVehicleECoSDraftController({
 }: UseVehicleECoSDraftControllerOptions) {
   const [draft, setDraft] = useState<ECoSVehicleDraftPayload | null>(null);
   const [unclearFields, setUnclearFields] = useState<Set<ECoSRequiredField>>(() => new Set());
+  const draftRequest = useRef(0);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; draftRequest.current += 1; };
+  }, []);
 
   const clear = () => {
     setDraft(null);
@@ -61,7 +68,7 @@ export function useVehicleECoSDraftController({
     draft && unclearFields.has(field) ? "ecos-unclear-field" : ""
   );
 
-  const openDraft = useCallback((nextDraft: ECoSVehicleDraftPayload) => {
+  const openPreparedDraft = useCallback((nextDraft: ECoSVehicleDraftPayload) => {
     const images: PendingArticleImage[] = [];
     const mergeImages = (current: PendingArticleImage[]) => current;
     const functionEdits: FunctionEditState = Object.fromEntries((nextDraft.functionValues || []).map((item) => [
@@ -122,17 +129,49 @@ export function useVehicleECoSDraftController({
     finish();
   }, [onFinishOpen, onMessage, onOpenCreate, onOpenUpdate]);
 
+  const openDraft = useCallback((nextDraft: ECoSVehicleDraftPayload, onPrepared: () => void) => {
+    const request = ++draftRequest.current;
+    if (nextDraft.source !== "ecos" || nextDraft.mode !== "create" || !nextDraft.ecosFunctions?.functions.length) {
+      onPrepared();
+      openPreparedDraft(nextDraft);
+      return;
+    }
+    Promise.all([api.masterData("symbols", true), api.decoderLibrary()])
+      .then(([symbols, library]) => {
+        if (alive.current && request === draftRequest.current) {
+          const prepared = supplementECoSFunctionDraft(nextDraft, symbols, library, t);
+          onPrepared();
+          openPreparedDraft(prepared);
+        }
+      })
+      .catch(() => {
+        if (alive.current && request === draftRequest.current) {
+          const prepared = supplementECoSFunctionDraft(nextDraft, [], null, t);
+          onPrepared();
+          openPreparedDraft(prepared);
+          onMessage(t("decoderLibrary.loadFailed"));
+        }
+      });
+  }, [onMessage, openPreparedDraft, t]);
+
   useEffect(() => {
     const rawDraft = window.sessionStorage.getItem(ecosVehicleDraftStorageKey);
     if (!rawDraft) return;
+    // Keep asynchronous preparations available across StrictMode replay or unmount.
+    const consume = () => {
+      if (window.sessionStorage.getItem(ecosVehicleDraftStorageKey) === rawDraft) {
+        window.sessionStorage.removeItem(ecosVehicleDraftStorageKey);
+      }
+    };
 
     try {
       const storedDraft = JSON.parse(rawDraft) as ECoSVehicleDraftPayload;
-      if (storedDraft?.source === "ecos" || storedDraft?.source === "cs3") openDraft(storedDraft);
+      if (storedDraft?.source === "ecos" || storedDraft?.source === "cs3") openDraft(storedDraft, consume);
+      else consume();
     } catch {
+      consume();
       onMessage(t("vehicles.ecosDraft.invalid"));
     } finally {
-      window.sessionStorage.removeItem(ecosVehicleDraftStorageKey);
       const source = new URLSearchParams(window.location.search).get("source");
       if (source === "ecos" || source === "cs3") {
         window.history.replaceState(null, "", "/vehicles");

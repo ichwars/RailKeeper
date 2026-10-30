@@ -21,6 +21,34 @@ const analyze = (rows = values, decoderType = type, catalog = bundledDecoderProf
 const t = (key: string, args?: Record<string, string | number>) => translate("de", key, args);
 
 describe("ECoS decoder-library interpretation", () => {
+  it("explains supplied index pages through the cached model profile while keeping missing CV8 absent", () => {
+    const rows = [{ ...reading(257, 20), indexCV31: 16, indexCV32: 3 },
+      { ...reading(257, 1), indexCV31: 16, indexCV32: 8 }];
+    const a = decoderAnalysis(rows, "ECoS", bundledDecoderProfiles, bundledDecoderInventory, "", {
+      name: type, objectId: "1002", host: "ecos.test", readAt: "2026-10-27T07:00:00Z"
+    });
+    expect(a.definition(rows[0])?.definition.name.de).toContain("Mapping-Bedingung A");
+    expect(a.definition(rows[1])?.definition.name.de).toContain("Mapping-Aktion K");
+    expect(a.get(8)).toBeUndefined();
+    render(<DecoderLibraryNotice values={rows} profile="ECoS" match={a.libraryMatch} />);
+    expect(screen.getByText(/Zuordnung über das gespeicherte ECoS-Profil/)).toBeVisible();
+    expect(screen.queryByText(/CV8=151/)).not.toBeInTheDocument();
+  });
+
+  it("uses supplied database pages exactly and keeps missing decoder identity unresolved", () => {
+    const rows = [
+      { ...reading(257, 20), indexCV31: 16, indexCV32: 3 },
+      { ...reading(257, 1), indexCV31: 16, indexCV32: 8 }
+    ];
+    const identified = analyze([reading(8, 151), ...rows]);
+    expect(identified.definition(rows[0])?.definition.name.de).toContain("Mapping-Bedingung A");
+    expect(identified.definition(rows[1])?.definition.name.de).toContain("Mapping-Aktion K");
+    expect(identified.indexPages).toBe(2);
+    const missing = analyze(rows);
+    expect(missing.modelRules).toBe(false);
+    expect(missing.definition(rows[0])).toBeUndefined();
+    expect(missing.indexUnknown(rows[0])).toBe(false);
+  });
   it("separates cache source from a vehicle model confirmed by CV8", () => {
     const a = analyze();
     expect(a.libraryMatch).toMatchObject({ status: "matched", matchedBy: "name",

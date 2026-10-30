@@ -55,7 +55,7 @@ func TestDH21AInventorySeedPreservesLocalChanges(t *testing.T) {
 				var value map[string]any
 				_ = json.Unmarshal([]byte(raw), &value)
 				if mode == "bundled" {
-					if value["revision"] != "2026-10-21.2" {
+					if value["revision"] != decoderlibrary.BundledInventory().Revision {
 						t.Fatal("DH21A inventory evidence not upgraded")
 					}
 				} else if raw != original || updated != "old" {

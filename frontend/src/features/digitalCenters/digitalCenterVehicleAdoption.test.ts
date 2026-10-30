@@ -29,6 +29,18 @@ const workItem: DigitalCenterWorkItem = {
 };
 
 describe("digitalCenterVehicleAdoption", () => {
+  it("retains exact indexed register addresses in the new-vehicle draft", () => {
+    const source = { ...workItem, center: { ...workItem.center, cvs: [
+      { number: 257, value: 20, indexCV31: 16, indexCV32: 3 },
+      { number: 257, value: 1, indexCV31: 16, indexCV32: 8 },
+      { number: 257, value: 0, indexCV31: 0, indexCV32: 0 }
+    ] } };
+    const draft = buildDigitalCenterVehicleDraft(source, "ecos");
+    expect(draft.cvValues).toHaveLength(3);
+    expect(draft.cvValues.map(value => [value.cvNumber, value.indexCV31, value.indexCV32]))
+      .toEqual([[257, 16, 3], [257, 16, 8], [257, 0, 0]]);
+    expect(draft.cvValues[2].description).toContain("CV31/CV32: 0/0");
+  });
   it("passes every supplied CV into the ECoS draft without inventing index pages or export dates", () => {
     const cvs = Array.from({ length: 1024 }, (_, i) => ({ number: i + 1, value: (i + 1) % 256 }));
     const source = { ...workItem, center: { ...workItem.center, cvs } };

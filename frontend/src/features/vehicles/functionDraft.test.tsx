@@ -9,7 +9,15 @@ import { emptyVehicle } from "./vehicleViewModel";
 const original = "Eigene Notiz\nRailComPlus · Betriebsart: Dauer; Invertiert: nein · CV31=1 / CV32=1 · CV257=0; CV258=3 · Originalzeile 175 / 176 · Exportdatum: 2026-10-17T17:41:59";
 
 describe("one function draft", () => {
+  it("retains large opaque ECoS descriptors as source notes when the own note changes", () => {
+    const source = "ECoS · #1004 · F3 · funcexists=2147483647 · dauer · 2026-10-27T08:00:00Z";
+    expect(functionNoteParts("Eigene Notiz\n" + source, "F3")).toEqual({ own: "Eigene Notiz", sources: [source] });
+    expect(withFunctionOwnNote("Eigene Notiz\n" + source, "F3", "Geändert")).toBe("Geändert\n" + source);
+  });
   it("separates source presentation without rewriting historical notes", () => {
+    const ecos = "ECoS · #1002 · F0 · funcexists=3 · dauer · 2026-10-26T08:00:00Z";
+    expect(functionNoteParts("Own note\n" + ecos, "F0")).toEqual({ own: "Own note", sources: [ecos] });
+    expect(functionNoteParts(ecos, "F1").own).toBe(ecos);
     expect(functionNoteParts(original, "F0")).toEqual({ own: "Eigene Notiz", sources: [original.split("\n")[1]] });
     expect(functionNoteParts(original, "F1").own).toBe(original);
     const changed = withFunctionOwnNote(original, "F0", "Neue Notiz\nZweite Zeile");

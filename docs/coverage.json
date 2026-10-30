@@ -309,7 +309,8 @@
       "vehicles.uploads": "vehicle-media",
       "locomotiveImage": "vehicle-media",
       "vehicles": "vehicles-core",
-      "decoderLibrary": "vehicle-decoder-cv"
+      "decoderLibrary": "vehicle-decoder-cv",
+      "ecosFunctions": "digital-centers"
     },
     "apiPrefixes": {
       "/health": "system-operations",
@@ -348,7 +349,8 @@
       "/api/v1/master-data": "master-data",
       "/api/v1/backup": "backup-restore",
       "/api/v1/exhibition-lists": "exhibition",
-      "/api/v1/decoder-library": "vehicle-decoder-cv"
+      "/api/v1/decoder-library": "vehicle-decoder-cv",
+      "/api/v1/vehicles/{id}/ecos-functions": "digital-centers"
     },
     "environmentVariables": {
       "LOCALAPPDATA": "deployment-configuration",

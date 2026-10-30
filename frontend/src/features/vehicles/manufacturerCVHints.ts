@@ -20,6 +20,10 @@ export function manufacturerReferenceModel(analysis: DecoderAnalysis, inventory:
   const id = analysis.libraryMatch.identification?.modelId;
   const identified = inventory.models.find(model => model.id === id);
   if (identified) return identified;
+  if (analysis.libraryMatch.matchedBy === "ecos-profile") {
+    const models = inventory.models.filter(model => !model.brandOnly && model.profileId === analysis.libraryMatch.profileId);
+    return models.length === 1 ? models[0] : undefined;
+  }
   const matches = inventory.models.filter(model => {
     const family = inventory.families.find(family => family.id === model.familyId);
     const maker = inventory.manufacturers.find(maker => maker.id === family?.manufacturerId);

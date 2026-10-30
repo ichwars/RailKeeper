@@ -21,8 +21,8 @@ type ECoSCVImportResult struct {
 	Preserved int `json:"preserved"`
 }
 
-// Add memory values atomically. Existing unindexed CVs, under any profile,
-// remain authoritative; indexed readings are distinct and are never rewritten.
+// Add memory values atomically. Existing readings at the same full CV address,
+// under any profile, remain authoritative. Unknown and explicit pages stay distinct.
 func (s *VehicleService) ImportECoSStoredCVs(
 	ctx context.Context, vehicleID string, source ECoSStoredCVSource,
 ) (ECoSCVImportResult, error) {
@@ -52,19 +52,25 @@ WHERE vehicle_id=? AND provider='ecos' AND external_id=?`, vehicleID, source.Obj
 	for _, value := range values {
 		var exists int
 		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM vehicle_cv_values
-WHERE vehicle_id=? AND cv_number=? AND index_cv31 IS NULL AND index_cv32 IS NULL`,
-			vehicleID, value.Number).Scan(&exists); err != nil {
+WHERE vehicle_id=? AND cv_number=? AND COALESCE(index_cv31,-1)=COALESCE(?,-1)
+AND COALESCE(index_cv32,-1)=COALESCE(?,-1)`,
+			vehicleID, value.Number, value.IndexCV31, value.IndexCV32).Scan(&exists); err != nil {
 			return ECoSCVImportResult{}, err
 		}
 		if exists > 0 {
 			result.Preserved++
 			continue
 		}
+		index := "?"
+		if value.IndexCV31 != nil {
+			index = fmt.Sprintf("%d/%d", *value.IndexCV31, *value.IndexCV32)
+		}
 		input := VehicleCVValueInput{
 			CVNumber: value.Number, Value: value.Value, Protocol: source.Protocol, DecoderProfile: "ECoS",
+			IndexCV31: value.IndexCV31, IndexCV32: value.IndexCV32,
 			Category: "ECoS",
-			Description: fmt.Sprintf("ECoS @ %s · #%s · CV%d · %s · Cache/Speicher · CV31/CV32: ?",
-				source.Host, source.ObjectID, value.Number, source.ReadAt),
+			Description: fmt.Sprintf("ECoS @ %s · #%s · CV%d · %s · Cache/Speicher · CV31/CV32: %s",
+				source.Host, source.ObjectID, value.Number, source.ReadAt, index),
 		}
 		if !isValidVehicleCVValueInput(input) {
 			return ECoSCVImportResult{}, ErrVehicleValidation

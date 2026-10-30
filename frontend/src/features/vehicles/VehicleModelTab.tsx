@@ -1,6 +1,6 @@
 import { Barcode, ChevronDown, ChevronRight, FileText, ExternalLink, PackageSearch, RadioTower } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { CreateVehicleRequest, MasterDataEntry, MasterDataRelation, VehicleExternalMapping, VehicleCVValue } from "../../shared/api";
+import { CreateVehicleRequest, MasterDataEntry, MasterDataRelation, VehicleExternalMapping, VehicleCVValue, type ECoSDecoderProfileEvidence } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { sourceDisplayName } from "./articleSearch";
 import { RequiredLabel, VehicleDetailsFields, VehicleOwnershipFields } from "./VehicleFormFields";
@@ -73,6 +73,7 @@ function digitalMappingFromDescription(description: string | undefined): Digital
 export function VehicleModelTab({
   form,
   cvValues = [],
+  ecosDecoderProfile,
   onOpenCV,
   externalMappings,
   readonly,
@@ -100,6 +101,7 @@ export function VehicleModelTab({
 }: {
   form: CreateVehicleRequest;
   cvValues?: VehicleCVValue[];
+  ecosDecoderProfile?: ECoSDecoderProfileEvidence;
   onOpenCV?: () => void;
   externalMappings: VehicleExternalMapping[];
   readonly: boolean;
@@ -382,7 +384,7 @@ export function VehicleModelTab({
           {digitalOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />} {t("vehicles.decoder.digital")}
           {cvValues.length > 0 && <span className="digital-import-badge"><FileText size={12} aria-hidden="true" />{t("vehicles.decoder.fromCVList")}</span>}
         </button>
-        {digitalOpen && <div className="accordion-content"><VehicleDigitalFields form={form} values={cvValues}
+        {digitalOpen && <div className="accordion-content"><VehicleDigitalFields form={form} values={cvValues} ecosProfile={ecosDecoderProfile}
           readonly={readonly} update={onUpdate} onOpenCV={onOpenCV} /></div>}
       </section>
     </div>

@@ -1,0 +1,20 @@
+export const ecosFunctionsEN: Record<string, string> = {
+  "ecosFunctions.title": "Import function keys from ECoS",
+  "ecosFunctions.help": "Read the linked locomotive and compare its keys with the decoder library. Only selected empty fields are supplemented. Manual names, symbols and settings are preserved.",
+  "ecosFunctions.read": "Read from ECoS",
+  "ecosFunctions.reading": "Reading function keys …",
+  "ecosFunctions.mappingRequired": "Save the vehicle and link the correct ECoS locomotive under Command stations first.",
+  "ecosFunctions.error": "The function keys could not be read completely. Check the connection and ECoS mapping, then read again.",
+  "ecosFunctions.source": "ECoS locomotive #{id} · Read: {at}",
+  "ecosFunctions.empty": "The ECoS returned no assigned function keys.",
+  "ecosFunctions.unknownSymbol": "Symbol not yet matched",
+  "ecosFunctions.code": "Symbol code {code}",
+  "ecosFunctions.proposal": "Supplement",
+  "ecosFunctions.fields": "Empty fields: {fields}",
+  "ecosFunctions.conflict": "ECoS and decoder data disagree. Review these fields individually in the editor.",
+  "ecosFunctions.protected": "Existing fields are preserved.",
+  "ecosFunctions.notesFull": "No room for source evidence. Review the notes.",
+  "ecosFunctions.selectFree": "Select empty fields",
+  "ecosFunctions.apply": "Apply selection to draft",
+  "ecosFunctions.applied": "Selected fields were added to the draft. Save the vehicle to keep them."
+};
