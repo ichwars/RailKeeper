@@ -24,6 +24,7 @@ func (s *ECoSService) ReadStoredLocomotiveRoster(ctx context.Context, input ECoS
 	if err != nil {
 		return nil, fmt.Errorf("%w: database transport unavailable", ErrDigitalCenterDeviceOutput)
 	}
+	web = &storedRosterWeb{storedECoSWeb: web}
 	target.Host = web.Address()
 	before, err := s.ListLocomotives(ctx, target)
 	if err != nil {

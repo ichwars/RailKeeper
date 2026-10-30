@@ -29,6 +29,10 @@ key descriptors. It never runs the diagnostic TCP CV probes, takes control, prog
 or changes index registers. The roster and each locomotive identity are checked before/after
 collection, and the configured host/port must remain unchanged. Read context is bounded to
 90 seconds with a 95-second response deadline only on the relevant Admin read operations.
+An HTTP transport failure suppresses further optional HTTP requests for that roster read,
+including after a failed backup download. TCP metadata and function collection continues,
+with unavailable CV sources marked incomplete. Invalid individual workbooks do not suppress
+other locomotive exports. A new roster read retries the HTTP transport.
 
 If private backup configuration is available, the same pinned HTTP transport reads
 `/cgi/save?lang=en` once per complete roster. The verified backup is an internal source, not
@@ -52,6 +56,8 @@ vehicle uses that snapshot directly in ordinary CV/function draft fields. Active
 and decoder-library evidence prepare supported suggestions; unknown codes remain source notes,
 and manual draft values are never overwritten. A separate function import dialog is not required
 for a newly adopted locomotive. Existing manually assigned functions remain unchanged.
+The stored draft handoff is consumed only after asynchronous library preparation completes.
+StrictMode effect replay or a remount can restart that preparation without losing the draft.
 
 On source conflicts the raw profile name is `sourceProfile` for display only and `profile` is
 empty. This prevents quarantined identity CVs from becoming a misleading missing-CV/profile-name
