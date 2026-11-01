@@ -15,9 +15,9 @@ import (
 	"strconv"
 	"strings"
 
-	"golang.org/x/crypto/openpgp"                  //nolint:staticcheck // Legacy ECoS OpenPGP format; bounded, integrity-checked read-only compatibility.
-	pgperrors "golang.org/x/crypto/openpgp/errors" //nolint:staticcheck // Legacy ECoS OpenPGP format; bounded, integrity-checked read-only compatibility.
-	"golang.org/x/crypto/openpgp/packet"           //nolint:staticcheck // Legacy ECoS OpenPGP format; bounded, integrity-checked read-only compatibility.
+	"github.com/ProtonMail/go-crypto/openpgp"
+	pgperrors "github.com/ProtonMail/go-crypto/openpgp/errors"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
 const (
@@ -108,7 +108,8 @@ func backupHasIntegrity(data []byte) bool {
 		case *packet.EncryptedKey:
 			keys++
 		case *packet.SymmetricallyEncrypted:
-			return keys > 0 && p.MDC
+			// The supported station format uses version-1 MDC protection.
+			return keys > 0 && p.IntegrityProtected && p.Version == 1
 		default:
 			return false
 		}

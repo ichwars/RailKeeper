@@ -182,12 +182,14 @@ at most 8 MiB encrypted data and verifies the complete OpenPGP integrity check b
 the gzip/tar or ZIP contents in memory. Limits include 32 MiB decoded data, 10,000 archive members,
 64 locomotive configurations and 8,192 CVs per configuration. Unsafe paths, links, duplicate
 addresses, malformed configurations and incomplete archives fail without creating a session.
-No archive file is extracted, executed or restored. This uses the already bundled Go crypto
-dependency and does not invoke a GnuPG process or install firmware.
-The deprecated `golang.org/x/crypto/openpgp` package is confined to reading the station's
-legacy format, with narrowly scoped staticcheck exceptions on those imports. It is not used
-to create application backups or provide general encryption. Integrity verification, input
-and expansion limits, private key confinement and Admin access remain mandatory.
+No archive file is extracted, executed or restored. The maintained
+`github.com/ProtonMail/go-crypto/openpgp` compatibility API reads the station's legacy format
+without invoking a GnuPG process or installing firmware. This replaces the deprecated
+`golang.org/x/crypto/openpgp` package identified by
+[GO-2026-5932](https://pkg.go.dev/vuln/GO-2026-5932). Only version-1 MDC-protected encrypted
+messages are accepted, and the complete integrity check must pass before archive parsing.
+The package is not used to create application backups or provide general encryption.
+Input and expansion limits, private key confinement and Admin access remain mandatory.
 
 An administrator provisions `private/ecos-backup/keyring.gpg` and `passphrase` beneath the private
 data directory, outside `uploads`. They are read with a confined filesystem root and size limits;
