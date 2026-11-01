@@ -135,8 +135,8 @@ stattdessen die verlinkte GitHub-Release-Seite.
 Docker-Builds unterstützen `linux/amd64` und `linux/arm64`. Auf einem Raspberry Pi ist ein
 64-Bit-ARM-Betriebssystem erforderlich; 32-Bit-ARM-Images werden nicht angeboten. Docker wählt
 die passende Architektur automatisch. Entferne auf ARM64 daher ein gesetztes `platform: linux/amd64`.
-Ältere Release-Tags werden nicht automatisch neu gebaut. ARM64 steht zuerst unter `edge` bereit,
-sobald der Multi-Plattform-Workflow in `main` übernommen wurde, danach in neuen stabilen/Beta-Releases.
+Ab v0.1.22 enthalten die stabilen Images (`latest` und versionierte Release-Tags) auch ARM64.
+Ältere Release-Tags werden nicht automatisch neu gebaut. `edge` folgt der Entwicklung auf `main`.
 
 ```bash
 git clone https://github.com/ichwars/RailKeeper.git
@@ -167,7 +167,7 @@ SQLite-Datenbank, Uploads und lokale Dateien bleiben im Docker-Volume `railkeepe
 Um statt `latest` ein bestimmtes Release festzulegen, trage Folgendes in `.env` ein:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.21
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.22
 ```
 
 Wenn du bewusst den ausgecheckten Quellstand bauen möchtest, verwende:

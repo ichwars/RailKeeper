@@ -6,16 +6,42 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.22] - 2026-11-01
+
+### Hinzugefügt
+
+- Stabile Docker-Images für Linux AMD64 und ARM64 mit nativen Start-, SQLite-, Frontend- und
+  Sicherheitsprüfungen vor Veröffentlichung gemeinsamer Tags. Raspberry Pi benötigt ein 64-Bit-ARM-OS.
+- Gemeinsames Lesen, Vergleichen und Übernehmen von ECoS-Lokdaten, gespeicherten CVs und statischen
+  Funktionstasten unter Erhalt von Entwürfen und unvollständigen Abgleichergebnissen.
+- Hersteller-/Modellprofile der Decoderbibliothek, indizierte CVs, Dateiimporte, Funktionskennzeichen
+  sowie prüfbare herstellerspezifische CV-Erklärungen und Vorschläge.
+- Zuschnitt, Freistellung und ECoS-Export von Lokbildern sowie ausdrücklich bestätigte direkte
+  Bildübertragung mit Vorschau und Prüfergebnis.
+- Zweisprachige Handbuch-Anleitungen für Import, Bilder, Betrieb und Wiederherstellung.
+
+### Geändert
+
+- SQLite auf 1.61.1 mit passender libc 1.79.0 aktualisiert; Lucide, Vite und GitHub Actions erneuert.
+- Laufzeitversion, Docker-Beispiele und stabile Dokumentationsmetadaten stehen auf v0.1.22.
+- App-Backups verwenden Formatversion 24 mit Kompatibilitätsprüfung für ältere unterstützte
+  Backups. Vor dem Update App-Daten und persistentes Volume sichern.
+
 ### Entfernt
 
-- Anlagenarbeitsbereich, Modul-/Gleisplanung, Planungs-APIs und Planner-Rolle entfernt. Zubehörreservierungen und Einbauten in Fahrzeugen bleiben erhalten. Vorhandene Anlagenzuordnungen werden archiviert, Reservierungen freigegeben und Einbauten unter Erhalt des Eigentumsbestands ins Ursprungslager zurückgeführt; ältere Backups bleiben importierbar (Backupversion 23).
+- Anlagenarbeitsbereich, Modul-/Gleisplanung, Planungs-APIs und Planner-Rolle entfernt.
+  Zubehörreservierungen und Einbauten in Fahrzeugen bleiben erhalten. Vorhandene Anlagenzuordnungen
+  werden archiviert, Reservierungen freigegeben und Einbauten unter Erhalt des Eigentumsbestands
+  ins Ursprungslager zurückgeführt.
 
 ### Sicherheit
 
-- Go-Mindestversion auf 1.26.9 erhöht, um die von `govulncheck` erkannten erreichbaren
+- Go-Mindestversion auf 1.26.10 erhöht, um die von `govulncheck` erkannten erreichbaren
   Standardbibliotheks-Sicherheitslücken zu beheben.
 - Die transitive Frontend-Abhängigkeit `source-map-js` ist auf 1.2.2 aktualisiert und behebt
   GHSA-68fv-2mgg-jv7q.
+- Abgekündigte OpenPGP-Imports zu GO-2026-5932 durch die gepflegte ProtonMail-Implementierung
+  ersetzt. Version-1-MDC-Prüfung und sämtliche Grenzen des ECoS-Backupimports bleiben erhalten.
 
 ## [0.1.21] - 2026-10-03
 
@@ -482,6 +508,7 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Die Vorprüfung der Backup-Wiederherstellung bleibt konservativ, Authentifizierungsdaten bleiben
   aus Exporten ausgeschlossen.
 
+[0.1.22]: https://github.com/ichwars/RailKeeper/compare/v0.1.21...v0.1.22
 [0.1.20.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.20.1...v0.1.20.2
 [0.1.20.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.20...v0.1.20.1
 [0.1.20]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.2...v0.1.20
