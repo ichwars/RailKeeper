@@ -916,6 +916,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             model: {
               form,
               cvValues: selected?.cvValues || [],
+              ecosDecoderProfile: selected?.ecosDecoderProfile,
               onOpenCV: () => setActiveTab("cv"),
               externalMappings: selected?.externalMappings || [],
               readonly,
@@ -940,8 +941,11 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             },
             functions: {
               selected,
+              canReadECoS: roles.includes("Admin") && !readonly,
+              decoderType: form.decoderType,
               draftMode: mode === "create" || Boolean(ecosDraft),
               draftCVValues: ecosDraft?.cvValues,
+              draftDecoderProfile: ecosDraft?.source === "ecos" ? ecosDraft.sourceSummary.profile : undefined,
               readonly,
               saving,
               functionImportInputRef,
@@ -959,6 +963,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             speedCurve: { selected, ecosDraft },
             cv: {
               selected,
+              decoderType: form.decoderType,
               ecosDraft,
               readonly,
               saving,

@@ -13,6 +13,9 @@ func retainLaterDHModels(current, previous Model) Model {
 	switch current.ID {
 	case "dh-dh-dh21b", "dh-dh-dh22a", "dh-dh-dh22b", "dh-dh-dh24a", "dh-dh-dhsp10a":
 		current.ProfileID, current.Notes, current.Identification = previous.ProfileID, previous.Notes, previous.Identification
+	case "esu-lokpilot-5-lokpilot-5-nano-dcc", "esu-lokpilot-legacy-lokpilot-micro-v4-0",
+		"esu-lokpilot-legacy-lokpilot-micro-v4-0-dcc", "esu-lokpilot-legacy-lokpilot-standard":
+		current.ProfileID = previous.ProfileID
 	}
 	return current
 }
@@ -106,7 +109,7 @@ func TestDHExtendedUpgradeChangesOnlyFiveModels(t *testing.T) {
 	current := BundledInventory()
 	changed := 0
 	for i, model := range current.Models {
-		if !reflect.DeepEqual(model, old.Models[i]) {
+		if strings.HasPrefix(model.ID, "dh-") && !reflect.DeepEqual(model, old.Models[i]) {
 			changed++
 		}
 		if !reflect.DeepEqual(retainLaterDHModels(model, old.Models[i]), old.Models[i]) {

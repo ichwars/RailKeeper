@@ -26,6 +26,7 @@
     "decoder-identification.png",
     "decoder-library.png",
     "digital-settings.png",
+    "ecos-functions.png",
     "exhibition-entry.png",
     "exhibition-lock-conflicts.png",
     "exhibition-locked.png",
@@ -96,8 +97,14 @@
     "baseCommit": "bb6f27dedd1d1740101b874fe2e94564b3738786",
     "workingTree": "codex/locomotive-image-dialog",
     "capturedAt": "2026-10-25",
-    "images": ["image-export.png", "image-low-resolution.png"],
-    "languages": ["de", "en"],
+    "images": [
+      "image-export.png",
+      "image-low-resolution.png"
+    ],
+    "languages": [
+      "de",
+      "en"
+    ],
     "evidence": "Actual revised image preparation dialog with the published synthetic PNG examples. Enlarged output preview, automatic background and local image processing. No station connection or device write."
   },
   "privacyMasks": [
@@ -109,5 +116,18 @@
     "Native printer/PDF dialogs",
     "SMTP delivery",
     "Physical camera/barcode scanner"
-  ]
+  ],
+  "ecosFunctionCaptures": {
+    "baseCommit": "ed668ceed6232c31e9e072215f430d21df84b147",
+    "workingTree": "codex/ecos-function-import",
+    "capturedAt": "2026-10-26",
+    "images": [
+      "ecos-functions.png"
+    ],
+    "languages": [
+      "de",
+      "en"
+    ],
+    "evidence": "Actual vehicle editor, function draft controller, decoder-library evaluator and ECoS function preview with synthetic CVs/manual data and simulated station replies. No production data or station writes."
+  }
 }

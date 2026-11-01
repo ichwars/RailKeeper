@@ -20,7 +20,7 @@ export function railComPlus(values: Reading[], profile: DecoderLibraryProfile | 
   match: DecoderLibraryMatch): RailComPlusData | undefined {
   if (!profile?.active || profile.id !== "esu-lokpilot-5-micro-dcc" || profile.manufacturerId !== 151 ||
     profile.family !== "LokPilot 5" || match.profileId !== profile.id ||
-    match.manufacturerId !== 151 || !["matched", "family"].includes(match.status) ||
+    (match.manufacturerId !== 151 && match.matchedBy !== "ecos-profile") || !["matched", "family"].includes(match.status) ||
     match.firmwareCompatible === false) return undefined;
   if (new Set(values.map(row => (row.decoderProfile || "").trim())).size > 1) return undefined;
   if (values.some(row => row.protocol?.trim() && !/^DCC(?: ?(?:14|28|128))?$/i.test(row.protocol.trim()))) {

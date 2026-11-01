@@ -60,6 +60,7 @@
 .cv-import-table td small { display: block; color: var(--muted); font-size: var(--font-size-caption); min-width: 100px; white-space: normal; }
 @media (max-width: 560px) {
   .decoder-library-notice { flex-wrap: wrap; }
+  .decoder-library-notice > div { flex-basis: calc(100% - 29px); }
   .decoder-library-notice > a { margin-left: 29px; min-height: 44px; display: flex; align-items: center; }
   .decoder-library-profile-head { align-items: start; flex-direction: column; }
   .decoder-library-profiles button { width: 100%; min-height: 44px; }

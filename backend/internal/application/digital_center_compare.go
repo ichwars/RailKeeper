@@ -85,6 +85,12 @@ func (service *DigitalCenterWorkspaceService) startReadSessionUnlocked(
 	if err != nil {
 		return service.finishFailedReadSession(ctx, session, err)
 	}
+	if center.Provider == "ecos" {
+		current, err := service.configuredCenter(ctx, center.Provider)
+		if err != nil || !current.Active || current.Host != center.Host || current.Port != center.Port {
+			return service.finishFailedReadSession(ctx, session, ErrDigitalCenterReadNotFresh)
+		}
+	}
 	items := compareDigitalCenterLocomotives(center.Provider, locomotives, vehicles)
 	if err := service.repository.ReplaceWorkItems(ctx, session.ID, items); err != nil {
 		return service.finishFailedReadSession(ctx, session, fmt.Errorf("persist comparison worklist: %w", err))
@@ -123,10 +129,13 @@ func (service *DigitalCenterWorkspaceService) readDigitalCenterLocomotives(
 		if service.ecos == nil {
 			return nil, 0, ErrDigitalCenterWorkspaceUnavailable
 		}
-		probe, err := service.ecos.ProbeLocomotiveRaw(
-			ctx,
-			ECoSConnectionInput{Host: center.Host, Port: center.Port},
-		)
+		var probe *ECoSRawProbe
+		var err error
+		if reader, ok := service.ecos.(digitalCenterStoredRosterReader); ok {
+			probe, err = reader.ReadStoredLocomotiveRoster(ctx, ECoSConnectionInput{Host: center.Host, Port: center.Port})
+		} else {
+			probe, err = service.ecos.ProbeLocomotiveRaw(ctx, ECoSConnectionInput{Host: center.Host, Port: center.Port})
+		}
 		if err != nil {
 			return nil, 0, err
 		}
@@ -299,7 +308,11 @@ func compareDigitalCenterLocomotives(
 	for _, locomotive := range locomotives {
 		objectID := strconv.Itoa(locomotive.ObjectID)
 		seenObjects[objectID] = struct{}{}
-		items = append(items, compareDigitalCenterLocomotive(provider, locomotive, vehicles))
+		item := compareDigitalCenterLocomotive(provider, locomotive, vehicles)
+		if locomotive.CVSources != nil && len(locomotive.CVSources.Conflicts) > 0 && item.CompareStatus == DigitalCompareOK {
+			item.CompareStatus = DigitalCompareDeviation
+		}
+		items = append(items, item)
 	}
 	missing := missingDigitalCenterLocomotives(provider, seenObjects, vehicles)
 	return append(items, missing...)
@@ -362,7 +375,7 @@ func newDigitalCenterWorkItem(locomotive ECoSRawLocomotive) DigitalCenterWorkIte
 	if strings.TrimSpace(locomotive.DetailError) != "" {
 		stationStatus = "incomplete"
 	}
-	return DigitalCenterWorkItem{
+	item := DigitalCenterWorkItem{
 		CenterObjectID: strconv.Itoa(locomotive.ObjectID),
 		Name:           locomotive.Name,
 		Address:        locomotive.Address,
@@ -375,6 +388,20 @@ func newDigitalCenterWorkItem(locomotive ECoSRawLocomotive) DigitalCenterWorkIte
 		},
 		RailKeeper: map[string]any{}, Proposed: map[string]any{}, Conflicts: []map[string]any{},
 	}
+	if locomotive.CVRead != nil {
+		item.Center["cvRead"] = *locomotive.CVRead
+	}
+	if locomotive.CVSources != nil {
+		item.Center["cvSources"] = *locomotive.CVSources
+		if len(locomotive.CVSources.Conflicts) != 0 {
+			item.Center["sourceProfile"] = locomotive.Profile
+			item.Center["profile"] = ""
+		}
+	}
+	if locomotive.FunctionSnapshot != nil {
+		item.Center["functionSnapshot"] = *locomotive.FunctionSnapshot
+	}
+	return item
 }
 
 func proposedDigitalCenterWorkItem(
@@ -505,6 +532,7 @@ func digitalCenterVehicleProtocol(vehicle Vehicle, provider string) string {
 func digitalCenterVehiclePayload(vehicle Vehicle, provider string) map[string]any {
 	return map[string]any{
 		"vehicleId": vehicle.ID, "name": strings.TrimSpace(vehicle.Name),
+		"decoderType":    vehicle.DecoderType,
 		"decoderAddress": digitalCenterVehicleAddress(vehicle, provider),
 		"protocol":       digitalCenterVehicleProtocol(vehicle, provider),
 	}
@@ -559,7 +587,8 @@ func normalizeDigitalCenterRoster(provider string, probe *ECoSRawProbe) ([]ECoSR
 		normalized = append(normalized, ECoSRawLocomotive{
 			ObjectID: locomotive.ObjectID, Name: name, Address: locomotive.Address,
 			Protocol: protocol, DetailError: strings.TrimSpace(locomotive.DetailError),
-			CVs: cvs, Profile: locomotive.Profile,
+			CVs: cvs, Profile: locomotive.Profile, CVRead: locomotive.CVRead,
+			CVSources: locomotive.CVSources, FunctionSnapshot: locomotive.FunctionSnapshot,
 		})
 	}
 	return normalized, skippedConsists, nil

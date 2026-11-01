@@ -31,12 +31,13 @@ export function invalidFunctionChanges(changes: VehicleFunctionChange[]) {
 }
 
 // Presentation only: retain every original note byte until the user edits their own text.
-// Match only the two explicit source-line formats emitted by RailKeeper for this key.
+// Match only the explicit source-line formats emitted by RailKeeper for this key.
 export function functionNoteParts(notes = "", functionKey: string) {
   const key = /^F(\d+)$/.exec(functionKey), cv = key ? 257 + 2 * Number(key[1]) : -1;
   const isSource = (line: string) => (line.startsWith("RailComPlus · ") &&
     line.includes("CV31=1 / CV32=1") && new RegExp(`CV${cv}=\\d+`).test(line) &&
-    new RegExp(`CV${cv + 1}=\\d+`).test(line)) || line.startsWith(`CV-Mapping · ${functionKey} · `);
+    new RegExp(`CV${cv + 1}=\\d+`).test(line)) || line.startsWith(`CV-Mapping · ${functionKey} · `) ||
+    Boolean(key && new RegExp(`^ECoS · #[1-9]\\d* · F${key[1]} · funcexists=\\d{1,10} · (dauer|moment) · \\d{4}-\\d{2}-\\d{2}T`).test(line));
   const lines = notes.split("\n");
   return { own: lines.filter(line => !isSource(line)).join("\n"), sources: lines.filter(isSource) };
 }

@@ -27,6 +27,7 @@ import type {
   DigitalCenterWriteField,
   DigitalCenterWritePreview,
   DigitalCenterWritePreviewInput,
+  ECoSBackupImportResult,
   ECoSLiveStatus
 } from "../features/digitalCenters/digitalCenterModel";
 
@@ -215,6 +216,8 @@ export type VehicleSetImage = {
 	updatedAt: string;
 };
 
+export type ECoSDecoderProfileEvidence = { name: string; objectId: string; host: string; readAt: string };
+
 export type Vehicle = {
   id: string;
   vehicleSetId?: string;
@@ -292,6 +295,7 @@ export type Vehicle = {
   cvValues?: VehicleCVValue[];
   cvFiles?: VehicleCVFile[];
   externalMappings?: VehicleExternalMapping[];
+  ecosDecoderProfile?: ECoSDecoderProfileEvidence;
   createdAt: string;
   updatedAt: string;
 };
@@ -458,6 +462,9 @@ export type VehicleSparePartInput = {
   url?: string;
 };
 
+
+export type ECoSFunctionValue = { index: number; description: number; momentary: boolean };
+export type ECoSFunctionSnapshot = { objectId: number; host: string; readAt: string; functions: ECoSFunctionValue[] };
 
 export type VehicleFunction = {
   id: string;
@@ -1700,6 +1707,8 @@ export const api = {
     request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/spare-parts/${encodeURIComponent(sparePartId)}`, {
       method: "DELETE"
     }),
+  readVehicleECoSFunctions: (vehicleId: string, signal?: AbortSignal) => request<ECoSFunctionSnapshot>(
+    `/vehicles/${encodeURIComponent(vehicleId)}/ecos-functions`, { signal }, { timeoutMs: 45000 }),
   vehicleFunctions: (vehicleId: string) =>
     request<VehicleFunction[]>(`/vehicles/${encodeURIComponent(vehicleId)}/functions`),
   updateVehicleFunction: (vehicleId: string, functionKey: string, input: VehicleFunctionInput) =>
@@ -1819,6 +1828,16 @@ export const api = {
     request<ECoSLiveStatus>(`/digital-centers/${encodeURIComponent("ecos")}/live/status`),
   digitalCenterWorkspace: () =>
     request<DigitalCenterWorkspaceSummary>("/digital-centers/workspace"),
+  importECoSBackup: (file: File, options: { confirmStation: boolean; stationHost: string }) =>
+    request<ECoSBackupImportResult>("/digital-centers/ecos/backup-import", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-RailKeeper-Confirm-Station": String(options.confirmStation),
+        ...(options.confirmStation ? { "X-RailKeeper-Backup-Station": options.stationHost } : {})
+      },
+      body: file
+    }, { timeoutMs: 120000 }),
   startDigitalCenterReadSession: (provider: DigitalCenterProvider) =>
     request<DigitalCenterReadSession>(
       `/digital-centers/${encodeURIComponent(provider)}/read-sessions`,
@@ -1845,11 +1864,11 @@ export const api = {
       `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/items/${encodeURIComponent(itemID)}`
     ),
   readDigitalCenterCVBatch: (sessionID: string, itemID: string, startCV: number,
-    options: { restart?: boolean } = {}) =>
+    options: { restart?: boolean; source?: "database" } = {}) =>
     request<DigitalCenterWorkItem>(
       `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/items/${encodeURIComponent(itemID)}/cv-read`,
-      { method: "POST", body: JSON.stringify({ startCV, restart: Boolean(options.restart) }) },
-      { timeoutMs: 20000 }
+      { method: "POST", body: JSON.stringify({ startCV, restart: Boolean(options.restart), source: options.source }) },
+      { timeoutMs: options.source === "database" ? 100000 : 30000 }
     ),
   importDigitalCenterCVs: (sessionID: string, itemID: string, vehicleId: string) =>
     request<{ imported: number; preserved: number }>(

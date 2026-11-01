@@ -51,7 +51,7 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
     setCVReadError("");
     try {
       return await readECoSStoredCVs(item, workspace.acceptCVRead,
-        { refresh: true, isCancelled: () => cvCancelled.current });
+        { useSaved: true, isCancelled: () => cvCancelled.current });
     } catch {
       if (!cvCancelled.current) setCVReadError(t("digitalCenters.cvs.readError"));
       return null;
@@ -62,13 +62,20 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
   };
 
   useEffect(() => {
-    if (returnReadStartedRef.current || !workspace.actions.canRead) return;
+    if (returnReadStartedRef.current || workspace.loading.workspace) return;
     const search = new URLSearchParams(window.location.search);
-    if (!search.get("sessionId")?.trim() || !search.get("objectId")?.trim()) return;
+    const sessionID = search.get("sessionId")?.trim();
+    if (!sessionID) return;
+    if (search.get("review") === "backup" || !search.get("objectId")?.trim()) {
+      returnReadStartedRef.current = true;
+      void workspace.loadSession(sessionID).catch(() => undefined);
+      return;
+    }
+    if (!workspace.actions.canRead) return;
     returnReadStartedRef.current = true;
     window.history.replaceState(null, "", "/digital-centers");
     void workspace.readData().catch(() => undefined);
-  }, [workspace.actions.canRead, workspace.readData]);
+  }, [workspace.actions.canRead, workspace.loadSession, workspace.loading.workspace, workspace.readData]);
 
   return (
     <section className="digital-centers-workspace" data-can-administer={roles.includes("Admin")}>
@@ -77,6 +84,11 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
         <h1>{t("digitalCenters.title")}</h1>
         <p>{t("digitalCenters.subtitle")}</p>
       </header>
+
+      {workspace.reviewingSnapshot && <p className="digital-workspace-snapshot-note" role="status">
+        {t("digitalCenters.backup.reviewHint")} {" "}
+        <a href="/digital-centers">{t("digitalCenters.backup.closeReview")}</a>
+      </p>}
 
       <DigitalCenterToolbar
         centers={workspace.centers}
@@ -120,7 +132,8 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
           onCompareStatus={workspace.setCompareStatus}
           onPage={workspace.setPage}
           onPageSize={workspace.setPageSize}
-          onRefresh={workspace.readData}
+          onRefresh={workspace.reviewingSnapshot && workspace.readSession
+            ? () => workspace.loadSession(workspace.readSession!.id) : workspace.readData}
           onCompare={(itemID) => {
             workspace.selectItem(itemID);
             workspace.openDialog("comparison", itemID);
@@ -146,7 +159,7 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
           cvReadError={cvReadError}
           onCancelCVRead={() => { cvCancelled.current = true; }}
           canWrite={workspace.actions.canWrite}
-          canAdopt={roles.includes("Admin") && adoptionProvider !== null}
+          canAdopt={roles.includes("Admin") && adoptionProvider !== null && !workspace.reviewingSnapshot}
           loading={workspace.loading.write}
           preview={workspace.writePreview}
           confirmation={workspace.writeConfirmation}

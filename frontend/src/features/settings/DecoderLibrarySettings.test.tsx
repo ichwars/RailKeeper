@@ -60,7 +60,7 @@ it("filters reviewed models and recovers from a search without results", async (
   await screen.findByRole("table");
   await user.click(screen.getByRole("button", { name: "Prüfumfang" }));
   await user.click(screen.getByRole("option", { name: "CV-Regeln geprüft" }));
-  expect(screen.getByText("19 Modelle")).toBeInTheDocument();
+  expect(screen.getByText("23 Modelle")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "10882 · PluX16-Decoder (NEM 658)" })).toBeInTheDocument();
   await user.type(screen.getByRole("searchbox"), "nicht-vorhanden");
   expect(screen.getByText("Keine Modelle für diese Auswahl gefunden.")).toBeInTheDocument();
@@ -83,7 +83,7 @@ it("refreshes interpretation after deactivation without editing vehicle values",
   await screen.findByText("Profil erkannt: ESU LokPilot 5 micro DCC");
   await user.click(await screen.findByRole("button", { name: "LokPilot 5 micro DCC" }));
   await user.click(screen.getByRole("button", { name: "Für Auswertung deaktivieren" }));
-  await screen.findByText("Auswertung mit DCC-Grundlagen");
+  await screen.findByText("Herstellerkennung vorhanden · Decodermodell offen");
   await waitFor(() => expect(screen.queryByText("Profil erkannt: ESU LokPilot 5 micro DCC")).not.toBeInTheDocument());
   expect(api.setMasterDataActive).toHaveBeenCalledWith("decoder_profile", "esu-lokpilot-5-micro-dcc", false);
   expect(rows[0].value).toBe(151);

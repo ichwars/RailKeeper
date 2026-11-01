@@ -1,4 +1,9 @@
 export const decoderDETranslations: Record<string, string> = {
+  "vehicles.decoder.ecosProfileSource": "ECoS-Profil: {profile}",
+  "vehicles.decoder.ecosProfile.matched": "Zuordnung über das gespeicherte ECoS-Profil „{profile}“. Fehlende CV8 und Firmware bleiben unbekannt; manuelle Angaben bleiben erhalten.",
+  "vehicles.decoder.ecosProfile.unknown": "ECoS-Profil „{profile}“: kein eindeutiger Treffer in der aktiven Decoderbibliothek. Daraus werden keine Modellregeln abgeleitet.",
+  "vehicles.decoder.ecosProfile.conflict": "ECoS-Profil „{profile}“: abweichende CV-Kennungen oder manuelle Decoderangaben, beziehungsweise mehrdeutige Bibliothekszuordnung. Modellabhängige Ergänzungen sind gesperrt; vorhandene Angaben bleiben erhalten.",
+  "vehicles.decoder.profileCVIdentity": "Zusätzlicher Modellnachweis aus CV{cv}={value}. Eine fehlende CV8 wird nicht ergänzt.",
   "vehicles.decoder.vehicleEvidence": "Zuordnung über den hinterlegten Decodertyp und CV8={manufacturer}. Die Quelle bleibt ECoS.",
   "vehicles.decoder.indexUnknown": "Indexseite unbekannt",
   "vehicles.decoder.indexUnresolved": "Zuordnung ungeklärt",
@@ -178,6 +183,7 @@ export const decoderDETranslations: Record<string, string> = {
   "vehicles.decoder.mappingTitle": "Funktionszuordnung aus CVs",
   "vehicles.decoder.mappingHelp": "Erkannte einfache Tastenzuordnungen mit Richtung und Quelle. AUX bezeichnet den Decoderausgang; die angeschlossene Fahrzeugfunktion muss bestätigt werden.",
   "vehicles.decoder.mappingEmpty": "Keine einfachen Tastenzuordnungen sicher erkannt. Indexseiten und vollständigen Export prüfen.",
+  "vehicles.decoder.esu.mappingLimits": "Nur gespeicherte Register der passenden Modellvariante werden ausgewertet. Fehlende Bedingungen oder Ausgänge bleiben unbekannt. Das Mapping belegt weder angeschlossene Verbraucher noch Tastenschaltart oder Invertierung.",
   "vehicles.decoder.unsupportedMapping": "Für dieses Profil ist noch keine verifizierte Funktionsauswertung vorhanden. Gespeicherte Funktionen bleiben unten bearbeitbar.",
   "vehicles.decoder.mappingLimits": "Nur exportierte Felder ausgewertet. Fehlende Mappingfelder bleiben unbekannt; komplexe Bedingungen werden nicht automatisch benannt. AUX3 im Modus 31 bedeutet PowerPack Control, kein Nachweis eines eingebauten PowerPacks.",
   "vehicles.decoder.review": "Zuordnung prüfen",

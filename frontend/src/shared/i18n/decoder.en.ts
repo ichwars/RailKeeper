@@ -1,4 +1,9 @@
 export const decoderENTranslations: Record<string, string> = {
+  "vehicles.decoder.ecosProfileSource": "ECoS profile: {profile}",
+  "vehicles.decoder.ecosProfile.matched": "Matched using stored ECoS profile “{profile}”. Missing CV8 and firmware remain unknown; manual entries are preserved.",
+  "vehicles.decoder.ecosProfile.unknown": "ECoS profile “{profile}”: no unique match in the active decoder library. It enables no model-specific rules.",
+  "vehicles.decoder.ecosProfile.conflict": "ECoS profile “{profile}”: conflicting CV identity or manual decoder information, or an ambiguous library match. Model-specific supplements are blocked; existing entries are preserved.",
+  "vehicles.decoder.profileCVIdentity": "Additional model evidence from CV{cv}={value}. A missing CV8 is not filled in.",
   "vehicles.decoder.vehicleEvidence": "Matched using the vehicle's recorded decoder type and CV8={manufacturer}. The source remains ECoS.",
   "vehicles.decoder.indexUnknown": "Unknown index page",
   "vehicles.decoder.indexUnresolved": "Register unresolved",
@@ -178,6 +183,7 @@ export const decoderENTranslations: Record<string, string> = {
   "vehicles.decoder.mappingTitle": "Function mapping from CVs",
   "vehicles.decoder.mappingHelp": "Recognized simple key mappings with direction and source. AUX identifies a decoder output; confirm the connected vehicle function.",
   "vehicles.decoder.mappingEmpty": "No simple key mappings confidently recognized. Check index pages and the complete export.",
+  "vehicles.decoder.esu.mappingLimits": "Only recorded registers for the matching model variant are evaluated. Missing conditions or outputs remain unknown. Mapping does not establish connected loads, key mode or inversion.",
   "vehicles.decoder.unsupportedMapping": "No verified function analysis is available for this profile yet. Stored functions remain editable below.",
   "vehicles.decoder.mappingLimits": "Only exported fields are evaluated. Missing mapping fields remain unknown; complex conditions are not named automatically. AUX3 in mode 31 means PowerPack Control and does not prove that a PowerPack is installed.",
   "vehicles.decoder.review": "Review mapping",

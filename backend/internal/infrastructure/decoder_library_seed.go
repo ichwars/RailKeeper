@@ -8,5 +8,8 @@ import (
 )
 
 func seedDecoderLibrary(ctx context.Context, tx *sql.Tx, now string) error {
+	if err := application.SeedFunctionSymbolCodes(ctx, tx, now); err != nil {
+		return err
+	}
 	return application.SeedDecoderLibrary(ctx, tx, now)
 }

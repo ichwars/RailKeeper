@@ -4,16 +4,18 @@ import type { MasterDataEntry, Vehicle, VehicleCVValueInput, VehicleFunctionInpu
 import { translate, useI18n } from "../../shared/i18n";
 import { functionKeys } from "./cvImport";
 import { DecoderProfileSelect, useDecoderProfile } from "./DecoderProfileSelect";
-import { esuMapping } from "./decoderAnalysis";
+import { decoderMapping } from "./decoderAnalysis";
+import { DecoderLibraryNotice } from "./DecoderLibraryNotice";
 import { functionCVSuggestion } from "./functionCVSuggestions";
 import { VehicleDecoderMapping } from "./VehicleDecoderMapping";
 import { VehicleFunctionRow } from "./VehicleFunctionRow";
+import { ECoSFunctionImport } from "./ECoSFunctionImport";
 import type { FunctionEdit } from "./vehicleTransforms";
 
 export function VehicleFunctionsTab({ selected, draftMode = false, draftCVValues, readonly, saving,
   functionImportInputRef, configuredFunctionKeys, showConfiguredFunctionsOnly, symbols,
   onImportFunctions, onExportFunctions, onShowConfiguredFunctionsOnlyChange, functionEdit,
-  updateFunctionEdit, inferFunctionTypeFromSymbol, deleteFunction }: {
+  updateFunctionEdit, inferFunctionTypeFromSymbol, deleteFunction, canReadECoS = false, decoderType, draftDecoderProfile = "" }: {
   selected: Vehicle | null; draftMode?: boolean; draftCVValues?: VehicleCVValueInput[];
   readonly: boolean; saving: boolean; functionImportInputRef: RefObject<HTMLInputElement | null>;
   configuredFunctionKeys: string[]; showConfiguredFunctionsOnly: boolean; symbols: MasterDataEntry[];
@@ -23,13 +25,19 @@ export function VehicleFunctionsTab({ selected, draftMode = false, draftCVValues
   updateFunctionEdit: (key: string, patch: Partial<VehicleFunctionInput>) => void;
   inferFunctionTypeFromSymbol: (key: string, symbols: MasterDataEntry[], fallback?: string) => string;
   deleteFunction: (key: string) => void;
+  canReadECoS?: boolean; decoderType?: string; draftDecoderProfile?: string;
 }) {
   const { t, language } = useI18n(), [message, setMessage] = useState("");
+  const ecosObjectID = selected?.externalMappings?.find(mapping => mapping.provider === "ecos")?.externalId;
+  const [ecosKeys, setECoSKeys] = useState<string[]>([]);
+  useEffect(() => setECoSKeys([]), [selected?.id, ecosObjectID]);
   useEffect(() => setMessage(""), [selected?.updatedAt, selected?.functions]);
-  const state = useDecoderProfile(selected?.cvValues || draftCVValues || [], selected?.decoderType);
-  const mappings = useMemo(() => esuMapping(state.analysis, (key, args) => translate(language, key, args)), [state.analysis, language]);
+  const ecosProfile = useMemo(() => selected?.ecosDecoderProfile || (draftDecoderProfile
+    ? { name: draftDecoderProfile, objectId: "", host: "", readAt: "" } : undefined), [selected?.ecosDecoderProfile, draftDecoderProfile]);
+  const state = useDecoderProfile(selected?.cvValues || draftCVValues || [], decoderType ?? selected?.decoderType, ecosProfile);
+  const mappings = useMemo(() => decoderMapping(state.analysis, (key, args) => translate(language, key, args)), [state.analysis, language]);
   const recognized = new Set(mappings.map(row => row.functionKey));
-  const relevant = functionKeys.filter(key => recognized.has(key) || configuredFunctionKeys.includes(key));
+  const relevant = functionKeys.filter(key => recognized.has(key) || configuredFunctionKeys.includes(key) || ecosKeys.includes(key));
   const visible = functionKeys.filter(key => !showConfiguredFunctionsOnly || relevant.includes(key) || functionEdit(key).deleted);
   const suggestions = relevant.map(key => ({ key,
     ...functionCVSuggestion(state.analysis, key, functionEdit(key), symbols, t, mappings) }));
@@ -55,6 +63,14 @@ export function VehicleFunctionsTab({ selected, draftMode = false, draftCVValues
     </div>
     {state.failed && <p className="decoder-notice" role="status">{t("decoderLibrary.loadFailed")}</p>}
     {state.loading && <p className="decoder-hint" role="status">{t("vehicles.functions.loadingSources")}</p>}
+    {state.analysis.libraryMatch.ecosProfile && <DecoderLibraryNotice values={state.analysis.rows}
+      profile={state.profile} match={state.analysis.libraryMatch} />}
+    {canReadECoS && selected && <ECoSFunctionImport key={`${selected?.id}:${ecosObjectID}`}
+      vehicleID={selected?.id} objectID={ecosObjectID}
+      analysis={state.analysis} mappings={mappings} symbols={symbols}
+      locked={locked} libraryUnavailable={state.loading || state.failed}
+      onKeysRead={setECoSKeys}
+      functionEdit={functionEdit} updateFunctionEdit={updateFunctionEdit} />}
     {!canEdit ? <p className="empty-state compact">{t("vehicles.functions.emptyUntilSave")}</p> : <>
       {state.profiles.length > 1 && <DecoderProfileSelect {...state} />}
       <div className="function-toolbar">

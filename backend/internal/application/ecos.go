@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +26,9 @@ const (
 type ECoSService struct {
 	timeout                  time.Duration
 	client                   ecospkg.Client
+	backupMu                 sync.RWMutex
+	backupDataDir            string
+	storedWebFactory         func(context.Context, string) (storedECoSWeb, error)
 	liveMu                   sync.Mutex
 	liveCancel               context.CancelFunc
 	liveDone                 chan struct{}
@@ -135,6 +139,9 @@ type ECoSRawLocomotive struct {
 	InterestingFields []string              `json:"interestingFields,omitempty"`
 	Probes            []ECoSRawCommandProbe `json:"probes,omitempty"`
 	DetailError       string                `json:"detailError,omitempty"`
+	CVRead            *ECoSCVReadState      `json:"cvRead,omitempty"`
+	CVSources         *ECoSCVSourceInfo     `json:"cvSources,omitempty"`
+	FunctionSnapshot  *ECoSFunctionSnapshot `json:"functionSnapshot,omitempty"`
 }
 
 type ECoSRawCommandProbe struct {
@@ -148,8 +155,10 @@ type ECoSRawCommandProbe struct {
 }
 
 type ECoSCVValue struct {
-	Number int `json:"number"`
-	Value  int `json:"value"`
+	Number    int  `json:"number"`
+	Value     int  `json:"value"`
+	IndexCV31 *int `json:"indexCV31,omitempty"`
+	IndexCV32 *int `json:"indexCV32,omitempty"`
 }
 
 type ECoSLiveMonitorState string
@@ -1359,15 +1368,12 @@ func parseECoSCVTextPair(value string) (int, int, bool) {
 }
 
 func sortECoSCVValues(values []ECoSCVValue) {
-	for i := 1; i < len(values); i++ {
-		value := values[i]
-		j := i - 1
-		for j >= 0 && values[j].Number > value.Number {
-			values[j+1] = values[j]
-			j--
+	sort.SliceStable(values, func(i, j int) bool {
+		if values[i].Number != values[j].Number {
+			return values[i].Number < values[j].Number
 		}
-		values[j+1] = value
-	}
+		return eCoSCVPage(values[i]) < eCoSCVPage(values[j])
+	})
 }
 
 func sortStrings(values []string) {

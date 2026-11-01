@@ -11,6 +11,7 @@ from tools.build_function_symbols import (
     EXPECTED_SYMBOL_COUNT,
     PRINT_PALETTE,
     build_sql,
+    build_code_upgrade,
     contact_sheet,
     encode_svg,
     icon_data_url,
@@ -35,6 +36,15 @@ def geometry_signature(svg_text: str) -> str:
 
 
 class FunctionSymbolGeneratorTest(unittest.TestCase):
+    def test_code_upgrade_artifact_matches_reviewed_manifest(self) -> None:
+        library = load_library(SYMBOL_LIBRARY_ROOT)
+        expected = REPOSITORY_ROOT / "backend/internal/application/function_symbol_ecos_codes.json"
+        self.assertEqual(expected.read_text(), build_code_upgrade(library))
+        symbols = {item["key"]: item["ecosCode"] for item in json.loads(expected.read_text())["symbols"]}
+        self.assertEqual(symbols["esu-f009-rangiergang"], 10)
+        self.assertEqual(symbols["esu-f010-abv"], 11)
+        self.assertIsNone(symbols["esu-f006-fahrgeraeusch"])
+
     def test_repository_library_is_complete_and_valid(self) -> None:
         library = load_library(SYMBOL_LIBRARY_ROOT)
         validate_library_contract(library)

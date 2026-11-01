@@ -151,6 +151,19 @@ describe("vehicle digital settings", () => {
 
 });
 
+it("keeps the manually named decoder when applying an exact cached ECoS profile without CV8", () => {
+  const update = vi.fn();
+  const source = { name: "LokPilot 5 micro DCC", objectId: "1002", host: "ecos.test", readAt: "2026-10-27T07:00:00Z" };
+  const imported = values.filter(row => row.cvNumber !== 8).map(row => ({ ...row, decoderProfile: "ECoS" }));
+  render(<VehicleDigitalFields form={{ ...emptyVehicle, decoderType: " ESU LokPilot 5 micro DCC " }} values={imported}
+    ecosProfile={source} readonly={false} update={update} />);
+  expect(screen.getByRole("status", { name: "Decoder-Typ" })).toHaveTextContent("LokPilot 5 micro DCC");
+  expect(screen.getByLabelText("Firmware")).toHaveTextContent("Unbekannt");
+  expect(update).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Aus CVs übernehmen" }));
+  expect(update).toHaveBeenCalledExactlyOnceWith({ digital: true, digitalDecoderNumber: "3", abcBrakes: false });
+});
+
 it("does not present an unknown N45 consist direction as forward or copy unreviewed permissions", () => {
   const values = [[8, 157], [19, 42], [21, 255], [22, 255], [27, 3]]
     .map(([cvNumber, value]) => cvValueFixture({ id: String(cvNumber), cvNumber, value, decoderProfile: "N45" }));

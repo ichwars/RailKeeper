@@ -48,6 +48,7 @@ export function LocomotiveComparisonDialog({
   const unassigned = item.vehicleId.trim() === "";
   const adoptable = unassigned && /^\d+$/.test(item.centerObjectId.trim());
   const missingInCenter = !unassigned && item.compareStatus === "missing" && item.stationStatus === "missing";
+  const backup = item.center.cvRead?.source === "backup";
   const grantValid = Boolean(preview?.token.trim()) && validExpiry(preview?.expiresAt);
   const verified = confirmation?.result === "verified" && confirmation.applied && confirmation.verified;
 	const resultTone = verified ? "verified" : confirmation?.result === "unknown" ? "warning" : "error";
@@ -117,7 +118,7 @@ export function LocomotiveComparisonDialog({
                 .catch(() => undefined)}>
               {t("digitalCenters.write.createInEcos")}
             </button>}
-            {!preview && !unassigned && !missingInCenter && <button type="button" className="digital-center-button"
+            {!preview && !backup && !unassigned && !missingInCenter && <button type="button" className="digital-center-button"
               disabled={!canWrite || loading || cvBusy || preparingCVs || changedFields.length === 0}
               onClick={() => void onPreview(changedFields).catch(() => undefined)}>
               {t("digitalCenters.write.createPreview")}
@@ -130,7 +131,7 @@ export function LocomotiveComparisonDialog({
             <button type="button" className="digital-center-button" onClick={onClose}>
               {t("digitalCenters.common.close")}</button>
           </footer>
-          {!canWrite && <p className="digital-write-unavailable">
+          {!canWrite && !backup && <p className="digital-write-unavailable">
             {t("digitalCenters.write.unsupported")}
           </p>}
           {canWrite && unassigned && <p className="digital-write-unavailable">

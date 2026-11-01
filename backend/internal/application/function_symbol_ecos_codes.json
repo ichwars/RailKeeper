@@ -1,0 +1,476 @@
+{
+  "revision": "2026-10-27.1",
+  "source": "https://www.esu.eu/uploads/tx_esudownloads/Netzwerkspezifikation_fuer_PC-Interface_ESU_KG_DE_Auflage_3.pdf",
+  "symbols": [
+    {
+      "key": "light",
+      "previousSHA256": "5e50ef05496c8b9375ab46c91bcd4ad4c5548fc92d9183b0b1d159546e3053c4",
+      "ecosCode": null
+    },
+    {
+      "key": "sound",
+      "previousSHA256": "d968a9c5132055133d89ad57ebd51fe5f8a80577e0718b93a8a417d1593e1bed",
+      "ecosCode": null
+    },
+    {
+      "key": "horn",
+      "previousSHA256": "c4dce80d07799dbd5356ed5d0d5f6b6bdac29be0762a5d4dc0b98205e3fce444",
+      "ecosCode": null
+    },
+    {
+      "key": "coupling",
+      "previousSHA256": "96efe314f2e0998bc7daf93a4e07652ebb38463da1701c082caf7bf632a95f30",
+      "ecosCode": 32
+    },
+    {
+      "key": "smoke",
+      "previousSHA256": "a55126f07c3a26659a40bdc683f09f89b3c8735d55ade76448ee38bd0f86e5b5",
+      "ecosCode": null
+    },
+    {
+      "key": "drive",
+      "previousSHA256": "48350792f7e6a6585e1739ca0f358cc255d6d43b73b42a84d520e5efbfce9d85",
+      "ecosCode": null
+    },
+    {
+      "key": "warning",
+      "previousSHA256": "f713e42c89cc1b8c29e0fdc41477cd3db9393b02f05909864e9445fcbef51d99",
+      "ecosCode": null
+    },
+    {
+      "key": "standard",
+      "previousSHA256": "9772b145c67911d613ec29569ce1e734c06ebd5c989bbb5c2e03d7e66267675c",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f002-allgemeine-funktion",
+      "previousSHA256": "4bf64988e38f131a46432147fe200fdc22db7e45d19792ce600a75d37e9a3bf2",
+      "ecosCode": 2
+    },
+    {
+      "key": "esu-f003-stirnbeleuchtung",
+      "previousSHA256": "ef0c3420de7cb10d217d0ca13293d2ae44b72fd4e98b5e71739ad7612cdb71a8",
+      "ecosCode": 3
+    },
+    {
+      "key": "esu-f004-innenraumbeleuchtung",
+      "previousSHA256": "52a0dbc115033d3e4528fecbeb6abdf944381b317da330e1958f1a0124b100f4",
+      "ecosCode": 260
+    },
+    {
+      "key": "esu-f005-allgemeines-licht-1",
+      "previousSHA256": "07de2633dd1f7bb4bc10e77da2ae08d327dc0a0fffe18deef582b810db5e1591",
+      "ecosCode": 5
+    },
+    {
+      "key": "esu-f006-fahrgeraeusch",
+      "previousSHA256": "63c914e714c0532e4ede3b0ad5b6ff2ebaed7eed443d87f4b481034345fbd907",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f007-allgemeines-geraeusch",
+      "previousSHA256": "e32616c8df2cf63924592a36cba8551f6275f3179a2ada1b3f0dcd628e8bd2b0",
+      "ecosCode": 7
+    },
+    {
+      "key": "esu-f008-bahnhofsdurchsage",
+      "previousSHA256": "fbf9075f65e4fe742716a78b01cf1fab265ad383969ae9c39a8c7d00fb5f9580",
+      "ecosCode": 9
+    },
+    {
+      "key": "esu-f009-rangiergang",
+      "previousSHA256": "d134c6cd018dda9ecd41b4d77c6596ccc83f3ebadc996d8965e02b56fde5e54d",
+      "ecosCode": 10
+    },
+    {
+      "key": "esu-f010-abv",
+      "previousSHA256": "359e644ffe17b200280933e6d56f3864e188909ad19bed3c199e18597f69a881",
+      "ecosCode": 11
+    },
+    {
+      "key": "esu-f011-automatische-kupplung",
+      "previousSHA256": "acf7820722c0d67c9fbd22acba48e5a4092a077b83b3a8ad64e63e6db4522d74",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f012-rauchgenerator",
+      "previousSHA256": "24401ba67f2f1c0dec5d589611a14c1b1a17bb36206d899e671cb5ef1f105d31",
+      "ecosCode": 33
+    },
+    {
+      "key": "esu-f013-panthograph",
+      "previousSHA256": "37bebaf0f976f128378cf35c9d5760be3630750414c22e2a016e4b6c492957b0",
+      "ecosCode": 34
+    },
+    {
+      "key": "esu-f014-fernlicht",
+      "previousSHA256": "8cead13993d79d389f9c4bac3773f5c06bc218a5cc8bd564e74be576c0503571",
+      "ecosCode": 35
+    },
+    {
+      "key": "esu-f015-glocke",
+      "previousSHA256": "dc06edfbbb363fe5f17d00841b79fcd087f3f6bbc86e1b1cba3f0cb18d20736f",
+      "ecosCode": 36
+    },
+    {
+      "key": "esu-f016-horn",
+      "previousSHA256": "7a02232d67f20579339026b64f0714548d1e89d34dc99f809855bdc4ccdbc211",
+      "ecosCode": 37
+    },
+    {
+      "key": "esu-f017-pfeife",
+      "previousSHA256": "42e6cb61a44595b5e2e8a62d68e6fabaf1a2088b620210a7bd2c3d20e2de545c",
+      "ecosCode": 38
+    },
+    {
+      "key": "esu-f018-tueren",
+      "previousSHA256": "db8e2e947c87fd9eec54a098387d129cf7a51195867383f43a6d6c3d2d8ef19c",
+      "ecosCode": 39
+    },
+    {
+      "key": "esu-f019-luefter",
+      "previousSHA256": "337f28fb824206cf7374877f6e2d2f88b5b1fc1c112d24401ad46274b76ba419",
+      "ecosCode": 40
+    },
+    {
+      "key": "esu-f020-kohle-schaufeln",
+      "previousSHA256": "cde8e3dbb19eafd37935ac4691a3f20646dc78a1db7c13a8a7fc75c1facdba23",
+      "ecosCode": 42
+    },
+    {
+      "key": "esu-f021-shift",
+      "previousSHA256": "c7885081ca7e43c07f9982b380097d5bf8be2a18bd78e3d3e69a80398d932800",
+      "ecosCode": 44
+    },
+    {
+      "key": "esu-f022-zugzielanzeige",
+      "previousSHA256": "abe9d484550cf771a861aa0c6ef44766d6b25f060f41eeed9f60d06c26ad7d74",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f023-bremsenquietschen",
+      "previousSHA256": "56ed09b6a2cb1e99860fde5707124ad9a3145f2b75a9d37cc1e79c00546132ff",
+      "ecosCode": 263
+    },
+    {
+      "key": "esu-f024-kranarm-heben-senken",
+      "previousSHA256": "d8323a43d16247683ecaa2de09f08eb84016ee1361675fddd177ca5b0b2c10e3",
+      "ecosCode": 299
+    },
+    {
+      "key": "esu-f025-kranhaken-heben-senken",
+      "previousSHA256": "40d2091bd9e4790cf790c4006de6737864337e29ad79c14dde5277dfca2cb636",
+      "ecosCode": 555
+    },
+    {
+      "key": "esu-f026-triebwerksbeleuchtung",
+      "previousSHA256": "25f5b0a0e22a388be5642b626dc50e530957b06af110eb80e6648c3b45ea6e88",
+      "ecosCode": 773
+    },
+    {
+      "key": "esu-f027-kran-drehen",
+      "previousSHA256": "39d98aac6fbe9168568ebcf327f6e82388cfaf7030ffb4fb3191c67535931127",
+      "ecosCode": 811
+    },
+    {
+      "key": "esu-f028-dampf-ablassen",
+      "previousSHA256": "4f3ce6f6ea46f772c6620a5c69e8d27865f27a7f2145b927f5777fda2b760d4e",
+      "ecosCode": 1031
+    },
+    {
+      "key": "esu-f029-betriebsfunk",
+      "previousSHA256": "213cdfd075eedf9d7e051592f45949fee460951e4cce0fa194c858c6cde1a1ce",
+      "ecosCode": 1033
+    },
+    {
+      "key": "esu-f030-kupplungsgeraeusch",
+      "previousSHA256": "84abb442153590e8c8f7d56846c9581b575a4a73e0e0f7d0f3caa5d7825c7210",
+      "ecosCode": 1287
+    },
+    {
+      "key": "esu-f031-schienenstoss",
+      "previousSHA256": "90b1063591fb647778cb609d2a998dd97fcfbb3c3d6f622461ded3dc4e4f3896",
+      "ecosCode": 1543
+    },
+    {
+      "key": "esu-f032-diesel-fahrstufe-auf",
+      "previousSHA256": "977fdda8513ed096ed5fad5f744aa12eed86d6390aee705c7d5d4aeb4a29e8c2",
+      "ecosCode": 1607
+    },
+    {
+      "key": "esu-f033-diesel-fahrstufe-ab",
+      "previousSHA256": "243e14f17940eb34f8da7b08998639c46f84ee841a540ad28b7a6be3d32dd00e",
+      "ecosCode": 1608
+    },
+    {
+      "key": "esu-f034-schaffnerpfiff",
+      "previousSHA256": "0f3c1e63058db089ac4545ea3ea8eaca61baa66f08212ea5e078f57df12385cd",
+      "ecosCode": 2055
+    },
+    {
+      "key": "esu-f035-pufferstoss",
+      "previousSHA256": "569a92213b4d88c2a1ed8373ddeb21c2c75bb8e5254433ea4827f1d0d50e0c47",
+      "ecosCode": 3847
+    },
+    {
+      "key": "esu-f036-allgemeines-licht-2",
+      "previousSHA256": "08bdf71c6996412b83f2245dec8b96bc47fe9673fda054c85893b252c7cbe8f7",
+      "ecosCode": 4
+    },
+    {
+      "key": "esu-f038-kurvengeraeusch",
+      "previousSHA256": "587b88b4bcda3ac176ee51fbf7e29a8640604007ed794cf325bd856a76ba3ef3",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f039-weichengeraeusch",
+      "previousSHA256": "a0947fae714cafe93a5db6c1dcc06ae0f57b9b167aaa37ae820ddf6339bd68da",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f040-sicherheitsventil",
+      "previousSHA256": "c480c35059267ac51dbf2cab81d6f342e06d3087e35bed80f421e8204e876080",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f041-oelbrenner",
+      "previousSHA256": "7885b3ff53d5c28756db995e3f127760d6d134eefc70a488a7a697ec2c9843d6",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f042-stoker",
+      "previousSHA256": "7699301d44b3a4925a63f75b77c24c9c4b3ec848f979f06ffaffe6fb5545aaf3",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f043-dynamische-bremse",
+      "previousSHA256": "7f0f136114227cb4e2bd167f4fcd200e03163fd1c12ebec64f22719c03ae5f15",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f044-kompressor",
+      "previousSHA256": "3c292500c596bd64ec9c2cc5ad6c9153794ce04b0ace5403b07ce04da632e1bf",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f045-pressluft-ablassen",
+      "previousSHA256": "66007735bbed9ea4d73c4751c6d73e570f4755759ebd01d5054ef3d097a5f82b",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f046-handbremse",
+      "previousSHA256": "48534f68a1d0c63090db2da85d6734c6f5629301c2c3f7d79914c63bdabe4410",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f047-luftpumpe",
+      "previousSHA256": "d8738616f49a7d47882e6ee68e349c2b2c979bd9bf786ab42651b47bcd927464",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f048-wasserpumpe",
+      "previousSHA256": "32ddafd4b453b25f18168f4acf9949745a53206c8c7b12e1142186a657ba61a6",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f050-ditchlight",
+      "previousSHA256": "38b745439d748b108a58e1311709b0e433f37890f135ebd571136a00288fa82e",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f051-marslight",
+      "previousSHA256": "01e7093f156aa242643e8932f8d436b74fff5afbdcf9e1aeed58857e690646c4",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f054-rotary-beacon",
+      "previousSHA256": "28d315b89e3818031cf021a814868fc4e173ec8dde378eb8db7aa847686b30d7",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f055-feuerbuechse",
+      "previousSHA256": "ffe35d329ca4f1787771d2302a6bc1a1c5e45ca28ea914963c71b7b1a175fc71",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f057-sanden",
+      "previousSHA256": "22d9de0bc8234af068df4192e8256a162110bfde19050f2a3f49eede5552570c",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f058-abschlammen",
+      "previousSHA256": "745e6636a0acf30884619e52d9f7ed450d5733b3b60d9615de4ddcf2ae6e2ebc",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f059-bremse-setzen",
+      "previousSHA256": "4bd3c3eaee12df2627350410925e1919541d3cb54eef3c727c8aca5a6e0664ab",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f060-rangierbeleuchtung",
+      "previousSHA256": "e8aaddd44df132f37f203083cf24ff37b0599df56c234814432d3d3542d5125a",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f061-fuehrerpultbeleuchtung",
+      "previousSHA256": "deefa3a96e7f62c3416398fb6272ab6668d56b7892f197f54a084cd1ded986c8",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f062-injektor",
+      "previousSHA256": "7f6bfa0597e9c452ac88da6d296d95dfc3b2a850bda873daffeba668c9550d62",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f063-hilfsdiesel",
+      "previousSHA256": "0579236635ab3f1987fb25cd6ef5310e64e6af27dd6664f2588e84ce2d2001d6",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f065-dopplereffekt",
+      "previousSHA256": "59b6ea5f7b0f154084fb5fb90b19c712d4c6023aa8f65dc81b183f52b5faecd5",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f066-kurzpfiff",
+      "previousSHA256": "2e7e009dcf856ea8b17b528dec6a1c91a80b8d99fa86ff34a6eb91985f8c3290",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f068-heizung",
+      "previousSHA256": "8002d0c3986a58ee2a2e39133e6f4f75257e186597852f7f9cebc2ab6617cba4",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f069-lichtmaschine",
+      "previousSHA256": "46ceb10694d57d7a477132622869549b39aef66bbe2a0298bffe61121b66acca",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f074-sifa-meldung",
+      "previousSHA256": "660a7187519305451c4e621404317d0b50ccdd5057687a3b172d33f036d5ef4c",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f076-lastbetrieb",
+      "previousSHA256": "138c4afe4d55f68ce7db882a3e99890860274068211e4c45b1799b381c534511",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f077-leerlaufbetrieb",
+      "previousSHA256": "aaa2839fc46db43e5baffe83d4471ecc646ce16bd8069b5c24796c40309ad7ce",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f078-licht-hinten",
+      "previousSHA256": "d2306b6f838eb62a6a39211c1202292ad030a1fa8a15977c6c9108346a0882a0",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f079-licht-vorne",
+      "previousSHA256": "05235e4e8ee26a24cf0f7bbdee4eb93f2fe8845216bc529d3b1e4b7beaa79223",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f080-fernlicht-hinten",
+      "previousSHA256": "8255ac3d949e6f00083811c68d1762809e3ef8dbae5f344928f0772aba42640d",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f081-fernlicht-vorne",
+      "previousSHA256": "a3d9d17b8633e789040cfaab903a7af4885979aac6fe2ba0a2013cc0be49cb31",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f084-tischbeleuchtung-1",
+      "previousSHA256": "e1047212febea91b87ea581cab9a6c4efd4f2e567fe8c016afffa5f4bb54a049",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f086-trittstufenbeleuchtung",
+      "previousSHA256": "87dda42fa5b4b635d3799c65d76206a73b34fcf0c435501b915f4066aae10352",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f087-fuehrerstandsbeleuchtung-hinten",
+      "previousSHA256": "c7c615c073fbf0f465e7df6b280abf59dcd0e30265b90bf7d1455122db925fed",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f088-fuehrerstandsbeleuchtung-vorne",
+      "previousSHA256": "83308cf3162fe062fc6cc50d40478c5ae0f0bd0487b98ac10d9e50b55930f0b0",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f089-panthograph-hinten",
+      "previousSHA256": "292880e9971f8f2a05724ee6b824761684937dd047ea8df680b592b44a655374",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f090-panthograph-vorne",
+      "previousSHA256": "0f831472369441d73a7f72459511c261c88e4548de0035414f0a4d91bfba12bc",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f093-entkuppler-hinten",
+      "previousSHA256": "4fb8e8e8259d64d755c3d02f68b4f773c7bce7260e4157e2572c7ca8e8b22e8e",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f094-entkuppler-vorne",
+      "previousSHA256": "554515ed953ecc2acf96b3b13c88e69a9be13fe9403df4a449556be1780cdc01",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f095-kran-links",
+      "previousSHA256": "56fedc40e07c5be51e4db90ae3661a5882bc52050b2d669221246666e3e3d432",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f096-kran-rechts",
+      "previousSHA256": "bfc11d8e0cdf82193fcfb2882630c92de6aea39316854302dc1d6b44c82f1c34",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f097-kran-auf",
+      "previousSHA256": "e7866ad2e5981a77d5c71bbeb046e0e5059719425e8a4b6a36fb679d5031281b",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f098-kran-ab",
+      "previousSHA256": "a91d8d550698f3e6e2c96f6138da3c23fe567b8de08b3fd81e760d095347bb34",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f099-kranarm-links-rechts",
+      "previousSHA256": "e4a29aaad6b5dddcc2d43d25b01e6ddf53131c7f403035784b7e9658dada80f8",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f101-soundfader-mute",
+      "previousSHA256": "a82484bdee8cfa0331dd3d0116cd06ff5c2b7ade16333a0b258bab327e6a0fdd",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f106-doppelhorn",
+      "previousSHA256": "572f2381148170175539d664bda7fdf29dc9f2c68d002df5ee3b8769c09de4f7",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f107-party",
+      "previousSHA256": "ff7b082629b923505d8fc26b0bfb0042315c7875597df7f0d3791b5123bc0ded",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f114-kran-magnet",
+      "previousSHA256": "8a3631053e975614887b38cc0f0992a98dd03e7fc81ee734d8e06994c4a01750",
+      "ecosCode": null
+    },
+    {
+      "key": "esu-f124-tanken-diesel",
+      "previousSHA256": "f70a3aa493afdd25292f297a694c760d98020b31bd2fb27a5dab616b0bd1eb04",
+      "ecosCode": null
+    }
+  ]
+}

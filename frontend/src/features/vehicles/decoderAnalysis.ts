@@ -1,13 +1,16 @@
-import type { VehicleCVValueInput } from "../../shared/api";
+import type { ECoSDecoderProfileEvidence, VehicleCVValueInput } from "../../shared/api";
 import { decoderDefinition, decoderIndexUnknown, isECoSReading, resolveDecoderLibrary } from "../../shared/decoderLibrary";
 import { bundledDecoderInventory, bundledDecoderProfiles, type DecoderInventory } from "../../shared/decoderLibraryModel";
 import { railComPlus } from "../../shared/railComPlus";
+import { esuMapping, esuStandardMapping } from "./esuMapping";
 import { zimoMNAnalysis } from "./zimoMNAnalysis";
 import { lenzStandardAnalysis } from "./lenzStandardAnalysis";
 import { piko56500Analysis } from "./piko56500Analysis";
 import { roco10882Analysis } from "./roco10882Analysis";
 import { uhlenbrock76420Analysis } from "./uhlenbrock76420Analysis";
 import { kuehnN45Analysis } from "./kuehnN45Analysis";
+
+export { esuMapping } from "./esuMapping";
 
 export type DecoderCV = VehicleCVValueInput;
 export type Translator = (key: string, values?: Record<string, string | number>) => string;
@@ -17,12 +20,13 @@ export function decoderProfiles(values: DecoderCV[]) {
 }
 
 export function decoderAnalysis(values: DecoderCV[], profile: string, catalog = bundledDecoderProfiles,
-  inventory: DecoderInventory | null = bundledDecoderInventory, decoderType = "") {
+  inventory: DecoderInventory | null = bundledDecoderInventory, decoderType = "", ecosProfile?: ECoSDecoderProfileEvidence) {
   const rows = values.filter((value) => (value.decoderProfile || "") === profile);
   // Never resolve a base CV from an indexed page, including page 0/0.
   const modelLabel = isECoSReading({ decoderProfile: profile }) && decoderType.trim()
     ? decoderType : profile;
-  const libraryMatch = resolveDecoderLibrary(rows, profile, catalog, inventory, modelLabel);
+  const ecosSource = isECoSReading({ decoderProfile: profile }) ? ecosProfile : undefined;
+  const libraryMatch = resolveDecoderLibrary(rows, profile, catalog, inventory, modelLabel, ecosSource?.name);
   const libraryProfile = catalog.find(p => p.active && p.id === libraryMatch.profileId);
   const modelRules = libraryProfile?.kind === "model" && ["matched", "family"].includes(libraryMatch.status) && libraryMatch.firmwareCompatible !== false;
   const ownDefinitionsScope = Boolean(modelRules && libraryProfile?.rules?.modelDefinitionsOnly);
@@ -43,15 +47,20 @@ export function decoderAnalysis(values: DecoderCV[], profile: string, catalog = 
         !documented.definition.allowedValues.includes(value.value)))) return undefined;
     return value.value;
   };
-  const indexed = (cv: number, cv31: number, cv32: number) => rows.find((row) =>
-    row.cvNumber === cv && row.indexCV31 === cv31 && row.indexCV32 === cv32)?.value;
+  const indexed = (cv: number, cv31: number, cv32: number) => {
+    const found = rows.filter(row => row.cvNumber === cv && row.indexCV31 === cv31 && row.indexCV32 === cv32);
+    return found.length === 1 && Number.isInteger(found[0].value) && found[0].value >= 0 && found[0].value <= 255
+      ? found[0].value : undefined;
+  };
   const config = get(29), high = get(17), low = get(18);
   const decodedLong = high == null || low == null || high < 192 || high > 231
     ? undefined : (high - 192) * 256 + low;
   const longAddress = (lenzScope || kuehnScope || uhlenbrockScope || rocoScope || pikoScope || ownDefinitionsScope) && decodedLong != null && (decodedLong < 1 || decodedLong > 9999) ? undefined : decodedLong;
   const validLongAddress = (uhlenbrockScope || pikoScope) && longAddress != null && longAddress < 128 ? undefined : longAddress;
   const address = config == null ? undefined : config & 32 ? validLongAddress : get(1);
-  const esu5 = Boolean(modelRules && libraryProfile?.mapping);
+  const esu5 = Boolean(modelRules && libraryProfile?.mapping && !libraryProfile.mapping.format);
+  const esuV4 = Boolean(modelRules && libraryProfile?.mapping?.format === "esu-v4");
+  const esuStandard = Boolean(modelRules && libraryProfile?.rules?.esuStandard);
   const consist = get(19);
   const enabledFunctions: string[] = [];
   const mask1 = get(21), mask2 = get(22);
@@ -78,11 +87,12 @@ export function decoderAnalysis(values: DecoderCV[], profile: string, catalog = 
   const firmware = rows.find((row) => row.cvNumber === 7 && row.indexCV31 == null)?.description
     ?.match(/^LokProgrammer Decoder: .+ \(([\d.]+)\)$/)?.[1];
   return {
-    rows, get, indexed, address, longAddress: validLongAddress, esu5, modelRules, rules, config, firmware,
+    rows, get, indexed, address, longAddress: validLongAddress, esu5, esuV4, esuStandard, modelRules, rules, config, firmware,
     dcAnalog: roco ? roco.analog : uhlenbrock ? uhlenbrock.dcAnalog : kuehn ? kuehn.dcAnalog : zimo ? zimo.dcAnalog : dcAnalog, zimo, lenz, kuehn, uhlenbrock, roco, piko,
     railcomEnabled: piko ? piko.railcomEnabled : roco ? roco.railcomEnabled : uhlenbrock ? undefined : lenz ? lenz.railcom : config == null ? undefined : Boolean(config & 8),
     libraryMatch, libraryProfile, catalog, railComPlus: railComPlus(rows, libraryProfile, libraryMatch),
     vehicleDecoderType: modelLabel !== profile && libraryMatch.matchedBy === "name" ? modelLabel : undefined,
+    ecosDecoderProfile: ecosSource,
     definition: (value: DecoderCV) => decoderDefinition(catalog, libraryMatch, { ...value, decoderProfile: profile }),
     indexUnknown: (value: DecoderCV) => decoderIndexUnknown(catalog, libraryMatch, { ...value, decoderProfile: profile }),
     consistAddress: kuehn && consist != null && consist > 127 ? undefined
@@ -143,6 +153,7 @@ export function decoderMapping(analysis: DecoderAnalysis, t: Translator): Mappin
     source: cvSource(analysis, m.cv), sourceCVs: [m.cv], warning: false
   }));
   if (analysis.kuehn) return kuehnMapping(analysis, t);
+  if (analysis.esuStandard) return esuStandardMapping(analysis, t);
   if (!analysis.lenz) return esuMapping(analysis, t);
   return analysis.lenz.mappings.map((mapping, index) => ({
     row: index + 1, functionKey: `F${mapping.key}`, direction: mapping.direction,
@@ -179,59 +190,4 @@ function kuehnMapping(a: DecoderAnalysis, t: Translator): MappingSuggestion[] {
     source: cvSource(a, cv), sourceCVs: [cv], warning: false
   })) ?? []);
   return [...mapped, ...logical].map((row, i) => ({ ...row, row: i + 1 }));
-}
-
-// ESU LokPilot 5 manual, mapping table: 72 rows, 16 rows per page, 16-byte stride.
-// Only simple positive single-key conditions are named. Missing fields stay unknown.
-export function esuMapping(analysis: DecoderAnalysis, t: Translator): MappingSuggestion[] {
-  const layout = analysis.libraryProfile?.mapping;
-  if (!analysis.esu5 || !layout) return [];
-  const result: MappingSuggestion[] = [];
-  for (let row = 0; row < layout.rows; row++) {
-    const start = layout.startCV + (row % layout.rowsPerPage) * layout.stride;
-    const conditionPage = layout.conditionPage + Math.floor(row / layout.rowsPerPage);
-    const actionPage = layout.actionPage + Math.floor(row / layout.rowsPerPage);
-    const conditions = Array.from({ length: 9 }, (_, i) => analysis.indexed(start + i, layout.indexCV31, conditionPage));
-    if (conditions.some((value) => value == null)) continue;
-    const extraCondition = analysis.indexed(start + 9, layout.indexCV31, conditionPage);
-    if (extraCondition != null && extraCondition !== 0) continue;
-    const a = conditions[0] ?? 0;
-    // Bits 0/1 also depend on driving/stopping; leave these complex rows unnamed.
-    if ((a & 3) || (a & 12) === 12) continue;
-    const keys: number[] = [];
-    let complex = false;
-    for (let key = 0; key <= 28; key++) {
-      const position = key + 2, value = conditions[Math.floor(position / 4)] ?? 0;
-      const condition = (value >> ((position % 4) * 2)) & 3;
-      if (condition === 1) keys.push(key);
-      if (condition > 1) complex = true;
-    }
-    if (complex || keys.length !== 1 || ((conditions[7] ?? 0) & 192) || (conditions[8] ?? 0)) continue;
-    const k = analysis.indexed(start, layout.indexCV31, actionPage), m = analysis.indexed(start + 2, layout.indexCV31, actionPage);
-    const n = analysis.indexed(start + 3, layout.indexCV31, actionPage), o = analysis.indexed(start + 4, layout.indexCV31, actionPage);
-    const q = analysis.indexed(start + 6, layout.indexCV31, actionPage);
-    if ([k, m, n, o, q].some((value) => value == null)) continue;
-    const actions: string[] = [];
-    let warning = false;
-    for (let bit = 0; bit < 8; bit++) if ((k ?? 0) & (1 << bit)) {
-      if (bit < 2) actions.push(t(bit === 0 ? "vehicles.decoder.frontLight" : "vehicles.decoder.rearLight"));
-      else {
-        const output = bit - 1;
-        const powerPack = output === 3 && analysis.indexed(291, 16, 0) === 31;
-        actions.push(`AUX${output}${powerPack ? " · PowerPack Control" : ""}`);
-        warning ||= powerPack;
-      }
-    }
-    if ((n ?? 0) & 2) actions.push(t("vehicles.decoder.shunting"));
-    if ((o ?? 0) & 8) actions.push(t("vehicles.decoder.noDelay"));
-    const l = analysis.indexed(start + 1, layout.indexCV31, actionPage), p = analysis.indexed(start + 5, layout.indexCV31, actionPage);
-    if (l || p || m || q || ((n ?? 0) & ~2) || ((o ?? 0) & ~8)) {
-      actions.push(t("vehicles.decoder.additionalActions")); warning = true;
-    }
-    if (!actions.length) continue;
-    result.push({ row: row + 1, functionKey: `F${keys[0]}`,
-      direction: a & 4 ? "forward" : a & 8 ? "reverse" : "both", actions, warning,
-      source: `CV${start}–${start + 8} · CV31=${layout.indexCV31} · CV32=${conditionPage}/${actionPage}` });
-  }
-  return result;
 }

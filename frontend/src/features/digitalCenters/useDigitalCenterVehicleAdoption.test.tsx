@@ -26,9 +26,28 @@ describe("useDigitalCenterVehicleAdoption", () => {
     const onAssigned = vi.fn();
     const { result } = renderHook(() => useDigitalCenterVehicleAdoption({ onAssigned }));
     await act(async () => result.current.commands.assign({ ...item,
-      center: { ...item.center, cvs: [{ number: 1, value: 3 }, { number: 1024, value: 0 }] }
+      center: { ...item.center, cvs: [{ number: 1, value: 3 }, { number: 1024, value: 0 }],
+        cvRead: { source: "database", nextCV: 1025, unavailable: 0,
+          readAt: "2026-10-29T08:00:00Z", sourceHost: "ecos.test" } }
     }, "ecos", "vehicle-2"));
     expect(save).toHaveBeenCalledWith(item.sessionId, item.id, "vehicle-2");
+    expect(onAssigned).toHaveBeenCalledOnce();
+  });
+
+  it("assigns available vehicle metadata without importing an incomplete CV snapshot", async () => {
+    const mapping = vi.spyOn(api, "upsertVehicleExternalMapping").mockResolvedValue({
+      id: "mapping", vehicleId: "vehicle-2", provider: "ecos", externalId: "77",
+      syncStatus: "linked", createdAt: "", updatedAt: ""
+    });
+    const save = vi.spyOn(api, "importDigitalCenterCVs");
+    const onAssigned = vi.fn();
+    const { result } = renderHook(() => useDigitalCenterVehicleAdoption({ onAssigned }));
+    await act(async () => result.current.commands.assign({ ...item,
+      stationStatus: "incomplete", center: { ...item.center, cvs: [{ number: 8, value: 151 }],
+        cvSources: { sources: [], backupStatus: "failed", backupAdded: 0, conflicts: [], warning: "Unavailable" } }
+    }, "ecos", "vehicle-2"));
+    expect(mapping).toHaveBeenCalledOnce();
+    expect(save).not.toHaveBeenCalled();
     expect(onAssigned).toHaveBeenCalledOnce();
   });
   beforeEach(() => {

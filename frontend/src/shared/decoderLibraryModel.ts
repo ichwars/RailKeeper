@@ -16,6 +16,7 @@ export type DecoderDefinition = {
   reserved?: boolean;
 };
 export type DecoderMapping = {
+  format?: "esu-v4";
   rows: number; rowsPerPage: number; stride: number; startCV: number;
   indexCV31: number; conditionPage: number; actionPage: number;
 };
@@ -23,7 +24,7 @@ export type DecoderLibraryProfile = {
   id: string; name: string; nameEn: string; revision: string; protocol: string; kind: string;
   manufacturerId?: number; family?: string; model?: string; parentId?: string; firmwareMin?: string;
   aliases: string[]; familyAliases: string[]; sources: DecoderSource[]; definitions: DecoderDefinition[];
-  rules?: { modelDefinitionsOnly?: boolean; piko56500?: boolean; roco10882?: boolean; uhlenbrock76420?: boolean; zimoMN?: boolean; lenzStandardV2?: boolean; kuehnN45?: boolean; motorCurveCV?: number; abc?: { cv: number; mask: number }; dcAnalog?: { cv: number; mask: number };
+  rules?: { modelDefinitionsOnly?: boolean; piko56500?: boolean; roco10882?: boolean; uhlenbrock76420?: boolean; zimoMN?: boolean; lenzStandardV2?: boolean; kuehnN45?: boolean; esuStandard?: boolean; motorCurveCV?: number; abc?: { cv: number; mask: number }; dcAnalog?: { cv: number; mask: number };
     constantBrake?: { forwardCV: number; reverseCV: number; enableCV?: number } };
   mapping?: DecoderMapping; active: boolean;
 };
@@ -67,7 +68,8 @@ export type DecoderLibraryMatch = {
   status: DecoderLibraryStatus; profileId?: string; profileName?: string; revision?: string;
   manufacturerId?: number; firmware?: string; firmwareCompatible?: boolean;
   knownValues: number; totalValues: number;
-  matchedBy?: "name" | "cv";
+  matchedBy?: "name" | "cv" | "ecos-profile";
+  ecosProfile?: { name: string; status: "matched" | "unknown" | "conflict" };
   identification?: { scope: string; name: string; cvNumber: number; value: number; modelId?: string };
 };
 export type DecoderReading = {
@@ -82,8 +84,15 @@ function documentedAccess(value?: string): DecoderDefinition["access"] {
   throw new Error("Invalid bundled decoder register access");
 }
 
+function documentedMappingFormat(value?: string): DecoderMapping["format"] {
+  if (value === undefined || value === "esu-v4") return value;
+  throw new Error("Invalid bundled decoder mapping format");
+}
+
 export const bundledDecoderProfiles: DecoderLibraryProfile[] = catalog.profiles.map(profile => ({
   ...profile, active: true,
+  mapping: profile.mapping ? { ...profile.mapping,
+    format: documentedMappingFormat("format" in profile.mapping ? profile.mapping.format : undefined) } : undefined,
   definitions: profile.definitions.map(definition => ({
     ...definition, access: documentedAccess("access" in definition ? definition.access : undefined)
   }))

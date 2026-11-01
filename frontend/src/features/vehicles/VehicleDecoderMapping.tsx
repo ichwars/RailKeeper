@@ -12,13 +12,15 @@ export function VehicleDecoderMapping({ state }: { state: ReturnType<typeof useD
     : state.analysis.kuehn ? "vehicles.decoder.kuehn.mappingHelp"
     : state.analysis.lenz ? "vehicles.decoder.lenz.mappingHelp" : "vehicles.decoder.mappingHelp";
   const flags = state.analysis.railComPlus?.flagsVerification;
+  const esuVariant = state.analysis.esuV4 || state.analysis.esuStandard ||
+    state.analysis.libraryProfile?.id === "esu-lokpilot-5-nano-dcc";
   return <details className="function-mapping-details">
     <summary><ChevronRight size={16} aria-hidden="true" />{t("vehicles.decoder.mappingTitle")}
       <span>{t("vehicles.functions.technicalDetails")}</span></summary>
     <section className="decoder-mapping">
       <DecoderProfileStrip state={state} />
       <p className="decoder-hint">{t(mappingHelp)}</p>
-      {!mappings.length ? <p className="empty-state compact">{t(state.analysis.piko || state.analysis.roco || state.analysis.uhlenbrock || state.analysis.esu5 || state.analysis.lenz || state.analysis.kuehn
+      {!mappings.length ? <p className="empty-state compact">{t(state.analysis.piko || state.analysis.roco || state.analysis.uhlenbrock || state.analysis.esu5 || state.analysis.esuV4 || state.analysis.esuStandard || state.analysis.lenz || state.analysis.kuehn
         ? "vehicles.decoder.mappingEmpty" : "vehicles.decoder.unsupportedMapping")}</p>
         : <div className="table-wrap decoder-mapping-table"><table><thead><tr>
           <th>{t("vehicles.functions.title")}</th><th>{t("vehicles.decoder.condition")}</th>
@@ -29,7 +31,8 @@ export function VehicleDecoderMapping({ state }: { state: ReturnType<typeof useD
             {row.warning && <span className="decoder-mapping-warning"><TriangleAlert size={14} aria-hidden="true" />
               {t("vehicles.decoder.review")}</span>}</td>
         </tr>)}</tbody></table></div>}
-      <p className="decoder-notice"><Info size={15} aria-hidden="true" />{t(state.analysis.piko || state.analysis.roco || state.analysis.uhlenbrock || state.analysis.kuehn || state.analysis.lenz ? mappingHelp : "vehicles.decoder.mappingLimits")}</p>
+      <p className="decoder-notice"><Info size={15} aria-hidden="true" />{t(state.analysis.piko || state.analysis.roco || state.analysis.uhlenbrock || state.analysis.kuehn || state.analysis.lenz
+        ? mappingHelp : esuVariant ? "vehicles.decoder.esu.mappingLimits" : "vehicles.decoder.mappingLimits")}</p>
       {state.analysis.railComPlus && <>
         <p className="decoder-notice">{flags ? t("railcom.flags.verified", flags) : t("railcom.flags")}</p>
         <p className="decoder-hint"><a href={railComPlusSymbolsSource} target="_blank" rel="noreferrer">{t("railcom.symbolSource")}</a>
