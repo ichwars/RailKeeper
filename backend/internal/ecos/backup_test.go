@@ -15,8 +15,8 @@ import (
 	"sync"
 	"testing"
 
-	"golang.org/x/crypto/openpgp"        //nolint:staticcheck // Legacy ECoS OpenPGP format; bounded, integrity-checked read-only compatibility.
-	"golang.org/x/crypto/openpgp/packet" //nolint:staticcheck // Legacy ECoS OpenPGP format; bounded, integrity-checked read-only compatibility.
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
 var backupFixture struct {
@@ -29,7 +29,7 @@ var backupFixture struct {
 func backupTestKeys(t *testing.T) (*openpgp.Entity, []byte) {
 	t.Helper()
 	backupFixture.Do(func() {
-		backupFixture.entity, backupFixture.err = openpgp.NewEntity("Synthetic backup test", "", "fixture@invalid.example", &packet.Config{RSABits: 1024, DefaultHash: crypto.SHA256})
+		backupFixture.entity, backupFixture.err = openpgp.NewEntity("Synthetic backup test", "", "fixture@invalid.example", &packet.Config{RSABits: 2048, DefaultHash: crypto.SHA256})
 		if backupFixture.err == nil {
 			var ring bytes.Buffer
 			backupFixture.err = backupFixture.entity.SerializePrivate(&ring, nil)
@@ -67,7 +67,8 @@ func encryptCompressedBackupFixture(t *testing.T, body []byte) []byte {
 	if err := packet.SerializeEncryptedKey(&encrypted, entity.Subkeys[0].PublicKey, packet.CipherAES128, key, nil); err != nil {
 		t.Fatal(err)
 	}
-	ciphertext, err := packet.SerializeSymmetricallyEncrypted(&encrypted, packet.CipherAES128, key, nil)
+	cipherSuite := packet.CipherSuite{Cipher: packet.CipherAES128}
+	ciphertext, err := packet.SerializeSymmetricallyEncrypted(&encrypted, packet.CipherAES128, false, cipherSuite, key, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
