@@ -123,6 +123,12 @@ trusted matching ZIP is available, use the linked GitHub release page instead.
 
 ### Docker Compose
 
+Docker builds support `linux/amd64` and `linux/arm64`. Raspberry Pi installations need a
+64-bit ARM operating system; 32-bit ARM images are not provided. Docker selects the matching
+architecture automatically, so remove any `platform: linux/amd64` override on ARM64.
+Older release tags are not rebuilt automatically. ARM64 first becomes available in `edge`
+after the multi-platform workflow reaches `main`, then in subsequent stable/beta releases.
+
 ```bash
 git clone https://github.com/ichwars/RailKeeper.git
 cd RailKeeper
