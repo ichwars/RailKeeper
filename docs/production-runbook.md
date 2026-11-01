@@ -11,6 +11,26 @@ Dieses Runbook beschreibt den sicheren Betrieb einer kleinen RailKeeper-Installa
 
 ## Erstinstallation
 
+### Prozessorarchitektur und Raspberry Pi
+
+Der Docker-Workflow baut und prüft `linux/amd64` und `linux/arm64` auf nativen Runnern.
+Erst nach erfolgreichen Startprüfungen mit frischer SQLite-Datenbank, Frontend-Prüfung und
+Sicherheitsscans für beide Architekturen werden gemeinsame Image-Tags veröffentlicht.
+Docker wählt daraus automatisch die passende Architektur. Auf ARM64 ein eventuell gesetztes
+`platform: linux/amd64` aus der eigenen Compose-Datei entfernen.
+
+Auf dem Raspberry Pi ist ein 64-Bit-ARM-Betriebssystem erforderlich. `uname -m` muss dort
+`aarch64` liefern; ein 32-Bit-Betriebssystem wird nicht unterstützt. Ältere Release-Tags erhalten
+nicht rückwirkend ARM64-Images. Nach Übernahme des Workflows in `main` liefert zunächst `edge`
+ARM64; `latest` und `beta` folgen mit den nächsten passenden Release-Tags. Die verfügbaren
+Architekturen vor einem Wechsel prüfen:
+
+```bash
+docker buildx imagetools inspect ghcr.io/ichwars/railkeeper:edge
+```
+
+### Container einrichten
+
 1. `.env` nur anlegen, wenn Werte überschrieben werden müssen.
 2. Container starten:
 
