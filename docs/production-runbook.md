@@ -21,12 +21,12 @@ Docker wählt daraus automatisch die passende Architektur. Auf ARM64 ein eventue
 
 Auf dem Raspberry Pi ist ein 64-Bit-ARM-Betriebssystem erforderlich. `uname -m` muss dort
 `aarch64` liefern; ein 32-Bit-Betriebssystem wird nicht unterstützt. Ältere Release-Tags erhalten
-nicht rückwirkend ARM64-Images. Nach Übernahme des Workflows in `main` liefert zunächst `edge`
-ARM64; `latest` und `beta` folgen mit den nächsten passenden Release-Tags. Die verfügbaren
+nicht rückwirkend ARM64-Images. Ab v0.1.22 liefern `latest` und die versionierten stabilen
+Release-Tags beide Architekturen. `edge` folgt der Entwicklung auf `main`. Die verfügbaren
 Architekturen vor einem Wechsel prüfen:
 
 ```bash
-docker buildx imagetools inspect ghcr.io/ichwars/railkeeper:edge
+docker buildx imagetools inspect ghcr.io/ichwars/railkeeper:latest
 ```
 
 ### Container einrichten
@@ -152,7 +152,7 @@ Rollback:
 
 Nach erfolgreicher `CI` für einen Push auf `main` prüft **Publish Release** die Laufzeitversion
 in `backend/cmd/railkeeper/main.go` und die passende Release-Datei, beispielsweise
-`docs/releases/v0.1.21.md`.
+`docs/releases/v0.1.22.md`.
 Der geprüfte Commit muss weiterhin der aktuelle Stand von `main` sein. Für eine noch nicht
 veröffentlichte Version erstellt der Workflow Tag und GitHub-Release mit den zweisprachigen
 Release-Notizen und startet die vorhandenen Docker- und Windows-Workflows für diesen Tag.

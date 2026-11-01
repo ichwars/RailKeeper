@@ -6,16 +6,41 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.22] - 2026-11-01
+
+### Added
+
+- Stable Docker images for Linux AMD64 and ARM64, with native startup, SQLite, frontend and
+  vulnerability checks before publishing shared tags. Raspberry Pi requires a 64-bit ARM OS.
+- A unified ECoS read/compare/adopt workflow for locomotive records, stored CVs and static
+  function keys, preserving drafts and incomplete comparison results.
+- Manufacturer/model decoder profiles, indexed CV handling, file imports, function flags and
+  reviewable manufacturer-specific CV explanations and suggestions.
+- Locomotive image crop, matting and ECoS export tools, plus explicitly confirmed direct
+  image transfer with preview and verification.
+- Bilingual handbook walkthroughs for imports, images, operation and recovery.
+
+### Changed
+
+- SQLite is updated to 1.61.1 with matching libc 1.79.0; Lucide, Vite and GitHub Actions are updated.
+- The runtime version, Docker examples and stable documentation metadata now identify v0.1.22.
+- Application backups use format version 24 and retain compatibility validation for older
+  supported backups. Back up application data and the persistent volume before upgrading.
+
 ### Removed
 
-- Removed the layout workspace, module and track planning, planning APIs and Planner role. Vehicle accessory reservations and installations remain available. Existing planning allocations are archived, released or returned to source storage without losing owned stock; legacy backups remain importable (backup version 23).
+- Removed the layout workspace, module and track planning, planning APIs and Planner role.
+  Vehicle accessory reservations and installations remain available. Existing planning allocations
+  are archived, released or returned to source storage without losing owned stock.
 
 ### Security
 
-- Raised the minimum Go version to 1.26.9 to address reachable standard-library vulnerabilities
+- Raised the minimum Go version to 1.26.10 to address reachable standard-library vulnerabilities
   reported by `govulncheck`.
 - Updated the transitive frontend dependency `source-map-js` to 1.2.2 to address
   GHSA-68fv-2mgg-jv7q.
+- Replaced deprecated OpenPGP imports reported by GO-2026-5932 with the maintained ProtonMail
+  implementation, preserving version-1 MDC verification and all ECoS backup import boundaries.
 
 ## [0.1.21] - 2026-10-03
 
@@ -464,6 +489,7 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.22]: https://github.com/ichwars/RailKeeper/compare/v0.1.21...v0.1.22
 [0.1.20.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.20.1...v0.1.20.2
 [0.1.20.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.20...v0.1.20.1
 [0.1.20]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.2...v0.1.20

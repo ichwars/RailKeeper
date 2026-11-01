@@ -126,8 +126,8 @@ trusted matching ZIP is available, use the linked GitHub release page instead.
 Docker builds support `linux/amd64` and `linux/arm64`. Raspberry Pi installations need a
 64-bit ARM operating system; 32-bit ARM images are not provided. Docker selects the matching
 architecture automatically, so remove any `platform: linux/amd64` override on ARM64.
-Older release tags are not rebuilt automatically. ARM64 first becomes available in `edge`
-after the multi-platform workflow reaches `main`, then in subsequent stable/beta releases.
+Starting with v0.1.22, stable images (`latest` and versioned release tags) include ARM64.
+Older release tags are not rebuilt automatically. `edge` follows development on `main`.
 
 ```bash
 git clone https://github.com/ichwars/RailKeeper.git
@@ -157,7 +157,7 @@ The SQLite database, uploads and local files stay in the `railkeeper_data` Docke
 To pin a specific release instead of `latest`, set this in `.env`:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.21
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.22
 ```
 
 If you intentionally want to build the checked-out source tree, use:

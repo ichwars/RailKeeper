@@ -27,8 +27,8 @@ Git and Docker Compose are required. The [Compose file](https://github.com/ichwa
 
 Docker builds support AMD64 and ARM64, including Raspberry Pi with a 64-bit ARM operating system.
 32-bit ARM is not supported. Docker selects the architecture automatically; remove any
-`platform: linux/amd64` override on ARM64. Older release tags remain unchanged. ARM64 first arrives
-in `edge` after the multi-platform workflow reaches `main`, then in subsequent stable/beta releases.
+`platform: linux/amd64` override on ARM64. Stable images include ARM64 starting with v0.1.22,
+both through `latest` and versioned release tags. Older release tags remain unchanged.
 
 ```sh
 git clone https://github.com/ichwars/RailKeeper.git

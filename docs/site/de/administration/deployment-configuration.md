@@ -27,9 +27,8 @@ Voraussetzung sind Git und Docker Compose. Die [Compose-Datei](https://github.co
 
 Docker-Builds unterstützen AMD64 und ARM64, auch Raspberry Pi mit einem 64-Bit-ARM-Betriebssystem.
 32-Bit-ARM wird nicht unterstützt. Docker wählt die Architektur automatisch; entferne auf ARM64
-ein gesetztes `platform: linux/amd64`. Ältere Release-Tags bleiben unverändert. ARM64 steht nach
-Übernahme des Multi-Plattform-Workflows in `main` zuerst unter `edge` bereit, danach in neuen
-stabilen/Beta-Releases.
+ein gesetztes `platform: linux/amd64`. Ab v0.1.22 enthalten die stabilen Images sowohl unter
+`latest` als auch unter versionierten Release-Tags ARM64. Ältere Release-Tags bleiben unverändert.
 
 ```sh
 git clone https://github.com/ichwars/RailKeeper.git
