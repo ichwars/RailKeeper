@@ -1,12 +1,14 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"railkeeper/backend/internal/application"
 )
@@ -27,8 +29,15 @@ func (a *App) startDigitalCenterReadSession(w http.ResponseWriter, r *http.Reque
 	if !a.requireDigitalCenterWorkspace(w) {
 		return
 	}
+	ctx := r.Context()
+	if r.PathValue("provider") == "ecos" {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 90*time.Second)
+		defer cancel()
+		_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(95 * time.Second))
+	}
 	session, err := a.digitalCenterWorkspace.StartReadSession(
-		r.Context(), r.PathValue("provider"), actorUserID(r),
+		ctx, r.PathValue("provider"), actorUserID(r),
 	)
 	if err != nil {
 		a.respondDigitalCenterWorkspaceError(w, err)

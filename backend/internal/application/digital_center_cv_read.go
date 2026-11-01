@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
+
+	ecospkg "railkeeper/backend/internal/ecos"
 )
 
 type ECoSCVReadState struct {
+	Source      string `json:"source,omitempty"`
 	NextCV      int    `json:"nextCV"`
 	Unavailable int    `json:"unavailable"`
 	ReadAt      string `json:"readAt"`
@@ -16,8 +20,9 @@ type ECoSCVReadState struct {
 }
 
 type ECoSCVReadInput struct {
-	StartCV int  `json:"startCV"`
-	Restart bool `json:"restart,omitempty"`
+	Source  string `json:"source,omitempty"`
+	StartCV int    `json:"startCV"`
+	Restart bool   `json:"restart,omitempty"`
 }
 
 type digitalCenterStoredCVReader interface {
@@ -32,6 +37,15 @@ type digitalCenterStoredCVImporter interface {
 func (service *DigitalCenterWorkspaceService) ReadStoredCVBatch(
 	ctx context.Context, sessionID, itemID string, input ECoSCVReadInput,
 ) (item DigitalCenterWorkItem, err error) {
+	if input.Source == "database" {
+		if input.StartCV != 1 {
+			return item, ErrDigitalCenterFilterValidation
+		}
+		return service.readStoredCVDatabase(ctx, sessionID, itemID, input.Restart)
+	}
+	if input.Source != "" {
+		return item, ErrDigitalCenterFilterValidation
+	}
 	startCV := input.StartCV
 	err = service.runECoSOperation(ctx, func() error {
 		if !validCVNumber(startCV) || (startCV-1)%ECoSStoredCVBatchSize != 0 || (input.Restart && startCV != 1) {
@@ -41,6 +55,13 @@ func (service *DigitalCenterWorkspaceService) ReadStoredCVBatch(
 		session, item, err = service.ecosCVWorkItem(ctx, sessionID, itemID)
 		if err != nil {
 			return err
+		}
+		values, state, err := storedECoSCVSnapshot(item)
+		if err != nil {
+			return err
+		}
+		if state.Source == "backup" {
+			return ErrDigitalCenterCapabilityUnavailable
 		}
 		center, err := service.configuredCenter(ctx, "ecos")
 		if err != nil {
@@ -53,9 +74,8 @@ func (service *DigitalCenterWorkspaceService) ReadStoredCVBatch(
 		if !ok {
 			return ErrDigitalCenterCapabilityUnavailable
 		}
-		values, state, err := storedECoSCVSnapshot(item)
-		if err != nil {
-			return err
+		if state.Source == "database" && !input.Restart {
+			return ErrDigitalCenterReadNotFresh
 		}
 		if !input.Restart && startCV < state.NextCV {
 			// Includes CV1: a lost first response must not reset another client's
@@ -83,7 +103,8 @@ func (service *DigitalCenterWorkspaceService) ReadStoredCVBatch(
 		}
 		seen := map[int]bool{}
 		for _, value := range batch.Values {
-			if value.Number < startCV || value.Number >= end || !validCVValue(value.Value) || seen[value.Number] {
+			if value.Number < startCV || value.Number >= end || !validCVValue(value.Value) || seen[value.Number] ||
+				value.IndexCV31 != nil || value.IndexCV32 != nil {
 				return ErrDigitalCenterDeviceOutput
 			}
 			seen[value.Number] = true
@@ -110,6 +131,12 @@ func (service *DigitalCenterWorkspaceService) ImportStoredCVs(
 		values, state, err := storedECoSCVSnapshot(item)
 		if err != nil {
 			return err
+		}
+		if state.Source == "backup" && state.SourceHost != session.Host {
+			return ErrDigitalCenterDeviceOutput
+		}
+		if state.Source == "backup" && (item.VehicleID == "" || item.VehicleID != vehicleID) {
+			return ErrDigitalCenterConflictUnresolved
 		}
 		if len(values) == 0 {
 			return ErrDigitalCenterFilterValidation
@@ -167,11 +194,17 @@ func storedECoSCVSnapshot(item DigitalCenterWorkItem) ([]ECoSCVValue, ECoSCVRead
 		return nil, snapshot.State, fmt.Errorf("%w: invalid CV snapshot", ErrDigitalCenterDeviceOutput)
 	}
 	values, err := validateStoredECoSCVs(snapshot.Values)
-	if snapshot.State.NextCV != 0 {
+	if snapshot.State.NextCV != 0 || snapshot.State.Source != "" {
 		state := snapshot.State
 		_, timeErr := time.Parse(time.RFC3339, state.ReadAt)
+		if state.Source == "database" || state.Source == "backup" {
+			if state.NextCV != 1025 || state.Unavailable != 0 || timeErr != nil || strings.TrimSpace(state.SourceHost) == "" {
+				return nil, state, ErrDigitalCenterDeviceOutput
+			}
+			return values, state, err
+		}
 		if state.NextCV < 33 || state.NextCV > ECoSStoredCVLimit+1 || (state.NextCV-1)%32 != 0 ||
-			state.Unavailable < 0 || len(values)+state.Unavailable != state.NextCV-1 || timeErr != nil || state.SourceHost == "" {
+			state.Unavailable < 0 || len(values)+state.Unavailable != state.NextCV-1 || timeErr != nil || state.SourceHost == "" || state.Source != "" {
 			return nil, state, ErrDigitalCenterDeviceOutput
 		}
 	}
@@ -179,18 +212,34 @@ func storedECoSCVSnapshot(item DigitalCenterWorkItem) ([]ECoSCVValue, ECoSCVRead
 }
 
 func validateStoredECoSCVs(values []ECoSCVValue) ([]ECoSCVValue, error) {
-	if len(values) > ECoSStoredCVLimit {
+	if len(values) > ecospkg.CVDatabaseLimit {
 		return nil, ErrDigitalCenterDeviceOutput
 	}
-	seen := map[int]bool{}
+	seen := map[string]bool{}
 	copyValues := make([]ECoSCVValue, 0, len(values))
 	for _, value := range values {
-		if !validCVNumber(value.Number) || !validCVValue(value.Value) || seen[value.Number] {
+		if !validCVNumber(value.Number) || !validCVValue(value.Value) ||
+			(value.IndexCV31 == nil) != (value.IndexCV32 == nil) {
 			return nil, ErrDigitalCenterDeviceOutput
 		}
-		seen[value.Number] = true
+		if value.IndexCV31 != nil && (value.Number < 257 || value.Number > 512 || *value.IndexCV31 < 0 ||
+			*value.IndexCV31 > 255 || *value.IndexCV32 < 0 || *value.IndexCV32 > 255) {
+			return nil, ErrDigitalCenterDeviceOutput
+		}
+		key := fmt.Sprintf("%d:%d", eCoSCVPage(value), value.Number)
+		if seen[key] {
+			return nil, ErrDigitalCenterDeviceOutput
+		}
+		seen[key] = true
 		copyValues = append(copyValues, value)
 	}
 	sortECoSCVValues(copyValues)
 	return copyValues, nil
+}
+
+func eCoSCVPage(value ECoSCVValue) int {
+	if value.IndexCV31 == nil || value.IndexCV32 == nil {
+		return -1
+	}
+	return *value.IndexCV31*256 + *value.IndexCV32
 }

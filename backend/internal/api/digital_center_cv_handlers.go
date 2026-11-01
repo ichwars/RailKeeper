@@ -1,9 +1,11 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
 
 	"railkeeper/backend/internal/application"
 )
@@ -16,7 +18,11 @@ func (a *App) readDigitalCenterCVBatch(w http.ResponseWriter, r *http.Request) {
 	if !decodeDigitalCenterCVRequest(w, r, &input) {
 		return
 	}
-	item, err := a.digitalCenterWorkspace.ReadStoredCVBatch(r.Context(),
+	ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
+	defer cancel()
+	_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(95 * time.Second))
+	w.Header().Set("Cache-Control", "no-store")
+	item, err := a.digitalCenterWorkspace.ReadStoredCVBatch(ctx,
 		r.PathValue("id"), r.PathValue("itemID"), input)
 	if err != nil {
 		a.respondDigitalCenterWorkspaceError(w, err)

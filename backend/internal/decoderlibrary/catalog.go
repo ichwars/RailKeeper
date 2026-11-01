@@ -85,6 +85,7 @@ type Rules struct {
 	ZIMOMN               bool       `json:"zimoMN,omitempty"`
 	LenzStandardV2       bool       `json:"lenzStandardV2,omitempty"`
 	KuehnN45             bool       `json:"kuehnN45,omitempty"`
+	ESUStandard          bool       `json:"esuStandard,omitempty"`
 	MotorCurveCV         int        `json:"motorCurveCV,omitempty"`
 	ABC                  *BitRule   `json:"abc,omitempty"`
 	DCAnalog             *BitRule   `json:"dcAnalog,omitempty"`
@@ -92,13 +93,14 @@ type Rules struct {
 }
 
 type Mapping struct {
-	Rows          int `json:"rows"`
-	RowsPerPage   int `json:"rowsPerPage"`
-	Stride        int `json:"stride"`
-	StartCV       int `json:"startCV"`
-	IndexCV31     int `json:"indexCV31"`
-	ConditionPage int `json:"conditionPage"`
-	ActionPage    int `json:"actionPage"`
+	Format        string `json:"format,omitempty"`
+	Rows          int    `json:"rows"`
+	RowsPerPage   int    `json:"rowsPerPage"`
+	Stride        int    `json:"stride"`
+	StartCV       int    `json:"startCV"`
+	IndexCV31     int    `json:"indexCV31"`
+	ConditionPage int    `json:"conditionPage"`
+	ActionPage    int    `json:"actionPage"`
 }
 
 type Profile struct {
@@ -247,6 +249,13 @@ func (p Profile) Validate() error {
 		}
 	}
 	if p.Rules != nil {
+		if p.Rules.ESUStandard && (p.ManufacturerID == nil || *p.ManufacturerID != 151 ||
+			p.ID != "esu-lokpilot-standard" || p.Family != "LokPilot Standard" ||
+			p.Mapping != nil || p.Rules.PIKO56500 || p.Rules.Roco10882 || p.Rules.Uhlenbrock76420 ||
+			p.Rules.KuehnN45 || p.Rules.LenzStandardV2 || p.Rules.ZIMOMN ||
+			p.Rules.ConstantBrake != nil || p.Rules.DCAnalog != nil || p.Rules.ABC != nil || p.Rules.MotorCurveCV != 0) {
+			return errors.New("unsupported ESU Standard rules")
+		}
 		if p.Rules.PIKO56500 && (p.ManufacturerID == nil || *p.ManufacturerID != 162 ||
 			p.Kind != "model" || p.Family != "SmartDecoder XP 5.1" || p.Model != "SmartDecoder XP 5.1 PluX22" ||
 			p.Rules.Roco10882 || p.Rules.Uhlenbrock76420 || p.Rules.KuehnN45 || p.Rules.LenzStandardV2 || p.Rules.ZIMOMN ||
@@ -307,10 +316,14 @@ func (p Profile) Validate() error {
 			return errors.New("invalid brake distance rule")
 		}
 	}
-	// Only the reviewed LokPilot-5 algorithm is supported; metadata cannot inject executable rules.
-	if m := p.Mapping; m != nil && (p.ManufacturerID == nil || *p.ManufacturerID != 151 || p.Family != "LokPilot 5" ||
-		m.Rows != 72 || m.RowsPerPage != 16 || m.Stride != 16 || m.StartCV != 257 || m.IndexCV31 != 16 || m.ConditionPage != 3 || m.ActionPage != 8) {
-		return errors.New("unsupported decoder mapping layout")
+	// Metadata selects only reviewed layouts; it cannot inject executable rules.
+	if m := p.Mapping; m != nil {
+		v5 := m.Format == "" && p.Family == "LokPilot 5" && m.Rows == 72 && m.ConditionPage == 3 && m.ActionPage == 8
+		v4 := m.Format == "esu-v4" && p.Family == "LokPilot V4.0" && m.Rows == 32 && m.ConditionPage == 2 && m.ActionPage == 2
+		if p.ManufacturerID == nil || *p.ManufacturerID != 151 || (!v5 && !v4) ||
+			m.RowsPerPage != 16 || m.Stride != 16 || m.StartCV != 257 || m.IndexCV31 != 16 {
+			return errors.New("unsupported decoder mapping layout")
+		}
 	}
 	return nil
 }

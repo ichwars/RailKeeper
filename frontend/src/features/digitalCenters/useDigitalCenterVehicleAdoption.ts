@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from "react";
 import { api, ApiError, type Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import type { DigitalCenterWorkItem } from "./digitalCenterModel";
+import { hasCompleteECoSCVSnapshot } from "./readECoSStoredCVs";
 import {
   digitalCenterExternalMapping,
   type DigitalCenterVehicleAdoptionProvider
@@ -62,7 +63,7 @@ export function useDigitalCenterVehicleAdoption({ onAssigned }: DigitalCenterVeh
     try {
       await api.upsertVehicleExternalMapping(vehicleId, digitalCenterExternalMapping(item, provider));
       mappingSaved = true;
-      if (provider === "ecos" && item.center.cvs?.length) {
+      if (provider === "ecos" && hasCompleteECoSCVSnapshot(item) && item.center.cvs?.length) {
         await api.importDigitalCenterCVs(item.sessionId, item.id, vehicleId);
       }
       await onAssigned();

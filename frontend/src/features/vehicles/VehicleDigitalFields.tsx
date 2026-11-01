@@ -1,6 +1,6 @@
 import { ArrowRight, Check, ChevronRight, FileText } from "lucide-react";
 import { useId, type ReactNode } from "react";
-import type { CreateVehicleRequest, VehicleCVValue } from "../../shared/api";
+import type { CreateVehicleRequest, ECoSDecoderProfileEvidence, VehicleCVValue } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { cvSource } from "./decoderAnalysis";
 import { DecoderProfileSelect, useDecoderProfile } from "./DecoderProfileSelect";
@@ -21,30 +21,33 @@ function DigitalField({ label, value, source, known = false, title }: DigitalFie
   </div>;
 }
 
-export function VehicleDigitalFields({ form, values, readonly, update, onOpenCV }: {
+export function VehicleDigitalFields({ form, values, readonly, update, onOpenCV, ecosProfile }: {
   form: CreateVehicleRequest; values: VehicleCVValue[]; readonly: boolean;
   update: (patch: Partial<CreateVehicleRequest>) => void; onOpenCV?: () => void;
+  ecosProfile?: ECoSDecoderProfileEvidence;
 }) {
   const { t } = useI18n();
   const dtNumberId = useId();
-  const state = useDecoderProfile(values, form.decoderType), a = state.analysis;
+  const state = useDecoderProfile(values, form.decoderType, ecosProfile), a = state.analysis;
   const { inventory } = useDecoderLibrary();
   const manufacturerName = inventory?.manufacturers.find(maker => maker.cv8 === a.get(8))?.name;
   const unknown = t("vehicles.decoder.unknown");
   const typeName = a.libraryMatch.matchedBy === "cv" && ["matched", "identified", "family"].includes(a.libraryMatch.status)
-    ? a.libraryMatch.identification?.name : a.modelRules ? a.vehicleDecoderType
+    ? a.libraryMatch.identification?.name : a.libraryMatch.matchedBy === "ecos-profile"
+      ? a.libraryProfile?.model || a.libraryProfile?.name : a.modelRules ? a.vehicleDecoderType
       ? a.libraryProfile?.model || a.libraryProfile?.name : state.profile : undefined;
   const yesNo = (value: boolean | undefined) => value == null ? unknown : t(value ? "common.yes" : "common.no");
   const apply = () => update({
     ...(a.address != null ? { digital: true, digitalDecoderNumber: String(a.address) } : {}),
-    ...(typeName ? { decoderType: typeName } : {}),
+    ...(typeName && (!ecosProfile || !form.decoderType?.trim()) ? { decoderType: typeName } : {}),
     ...(a.abc != null ? { abcBrakes: a.abc } : {})
   });
-  const canApply = a.address != null || Boolean(typeName) || a.abc != null;
+  const canApply = a.address != null || Boolean(typeName && (!ecosProfile || !form.decoderType?.trim())) || a.abc != null;
   const longActive = a.config != null && Boolean(a.config & 32);
   const address = a.address == null ? unknown : `${a.address} · ${t(longActive
     ? "vehicles.decoder.longDccAddress" : "vehicles.decoder.shortDccAddress")}`;
-  const headerSource = a.libraryMatch.identification
+  const headerSource = a.libraryMatch.matchedBy === "ecos-profile"
+    ? t("vehicles.decoder.ecosProfileSource", { profile: a.libraryMatch.ecosProfile?.name || "" }) : a.libraryMatch.identification
     ? `CV8=${a.libraryMatch.manufacturerId} · CV${a.libraryMatch.identification.cvNumber}=${a.libraryMatch.identification.value}`
     : a.firmware ? t("vehicles.decoder.txtHeader") : t("vehicle.field.decoderProfile");
   const firmwareSource = t(a.firmware ? "vehicles.decoder.firmwareHeader" : "vehicles.decoder.firmwareSource");

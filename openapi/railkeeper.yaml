@@ -1077,13 +1077,60 @@ components:
           type: string
         profile:
           type: string
+        sourceProfile:
+          type: string
+          description: Display-only station profile when conflicting sources prevent model interpretation.
         cvs:
           type: array
-          maxItems: 1024
+          maxItems: 8192
           items:
             $ref: "#/components/schemas/ECoSStoredCVValue"
         cvRead:
           $ref: "#/components/schemas/ECoSCVReadState"
+        cvSources:
+          $ref: "#/components/schemas/ECoSCVSourceInfo"
+        functionSnapshot:
+          $ref: "#/components/schemas/ECoSFunctionSnapshot"
+    ECoSCVSourceInfo:
+      type: object
+      additionalProperties: false
+      required: [sources, backupStatus, backupAdded, conflicts]
+      properties:
+        sources:
+          type: array
+          items: {type: string, enum: [database, backup, stored_cache]}
+        backupStatus:
+          type: string
+          enum: [checked, not_configured, failed]
+        backupAdded: {type: integer, minimum: 0}
+        storedCacheStatus:
+          type: string
+          enum: [available, unavailable]
+        unverifiedValues:
+          type: array
+          maxItems: 8192
+          description: Unverified nonzero serialized CV candidates. Never import as known values or use as identity evidence.
+          items: {$ref: "#/components/schemas/ECoSStoredCVValue"}
+        warning: {type: string}
+        conflicts:
+          type: array
+          maxItems: 16384
+          items:
+            type: object
+            additionalProperties: false
+            required: [number, databaseValue, backupValue]
+            properties:
+              number: {type: integer, minimum: 1, maximum: 1024}
+              indexCV31: {type: integer, minimum: 0, maximum: 255}
+              indexCV32: {type: integer, minimum: 0, maximum: 255}
+              databaseValue: {type: integer, minimum: 0, maximum: 255}
+              backupValue: {type: integer, minimum: 0, maximum: 255}
+              backupSource: {type: string, enum: [stored_cache]}
+              rawCacheValue:
+                type: integer
+                minimum: 0
+                maximum: 255
+                description: Additional unverified serialized-cache candidate when both text sources already conflict.
     ECoSStoredCVValue:
       type: object
       required: [number, value]
@@ -1097,11 +1144,24 @@ components:
           type: integer
           minimum: 0
           maximum: 255
+        indexCV31:
+          type: integer
+          minimum: 0
+          maximum: 255
+          description: Both index fields are present together for an explicitly indexed CV257–512; absent means unknown page.
+        indexCV32:
+          type: integer
+          minimum: 0
+          maximum: 255
     ECoSCVReadState:
       type: object
       required: [nextCV, unavailable, readAt, sourceHost]
       additionalProperties: false
       properties:
+        source:
+          type: string
+          enum: [database, backup]
+          description: Complete stored CV snapshot with explicit index pages. Database is an ECoS XML export; backup is an offline review snapshot. nextCV is 1025 and unavailable is 0. Backup reads cannot contact the device.
         nextCV:
           type: integer
           minimum: 1
@@ -1123,15 +1183,18 @@ components:
         imported:
           type: integer
           minimum: 0
-          maximum: 1024
+          maximum: 8192
         preserved:
           type: integer
           minimum: 0
-          maximum: 1024
+          maximum: 8192
     DigitalCenterVehicleSnapshot:
       type: object
       additionalProperties: false
       properties:
+        decoderType:
+          type: string
+          description: Saved manual decoder label from the comparison snapshot; never overwritten by the ECoS profile.
         vehicleId:
           type: string
         name:
@@ -1388,6 +1451,30 @@ components:
         name: {type: string}
         address: {type: integer}
         protocol: {type: string}
+    ECoSFunctionValue:
+      type: object
+      required: [index, description, momentary]
+      properties:
+        index: {type: integer, minimum: 0, maximum: 31}
+        description:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 2147483647
+          description: Opaque station descriptor. Values absent from the compatibility-symbol catalog remain unknown and are preserved without masking or assigning a meaning.
+        momentary: {type: boolean}
+    ECoSFunctionSnapshot:
+      type: object
+      required: [objectId, host, readAt, functions]
+      properties:
+        objectId: {type: integer, minimum: 1, maximum: 2000000000}
+        host: {type: string}
+        readAt: {type: string, format: date-time}
+        functions:
+          type: array
+          maxItems: 32
+          items:
+            $ref: "#/components/schemas/ECoSFunctionValue"
     ECoSImageOptions:
       type: object
       required: [host, locomotives]
@@ -1633,6 +1720,8 @@ components:
       type: object
       required: [id, inventoryNumber, manufacturer, name, gauge, createdAt, updatedAt]
       properties:
+        ecosDecoderProfile:
+          $ref: "#/components/schemas/ECoSDecoderProfileEvidence"
         id:
           type: string
           format: uuid
@@ -2665,6 +2754,7 @@ components:
             roco10882: {type: boolean, description: 'Enables only the reviewed Roco 10882 (2012, technical manufacturer145) algorithm: model-limited shifted outputs, documented braking/analog conditions, RailCom permissions, dimming and selected speed characteristic. No ZIMO MN rules, key mode/inversion or metadata executable formula.'}
             uhlenbrock76420: {type: boolean, description: 'Enables only the reviewed manufacturer85 IntelliDrive 76420 evaluation: uniform function masks, analog and braking conditions, timed outputs and raw speed parameters. No RailCom, ABC, key mode/inversion or executable metadata formula is inferred.'}
             kuehnN45: {type: boolean, description: 'Enables the reviewed manufacturer157 N45 algorithm, exact family/model N45 with ABC CV27/mask3: shifted output masks, SUSI gating, decimal effects, motor and DC braking parameters. No key mode/inversion or executable metadata formula.'}
+            esuStandard: {type: boolean, description: 'Reviewed ESU LokPilot Standard mapping, including directional registers, shunting and momentum. No LokPilot 5 rules, missing-register defaults or key-mode inference.'}
             lenzStandardV2: {type: boolean, description: 'Enables the reviewed STANDARD+ V2 algorithm for manufacturer99, exact family/model STANDARD+ V2: CV51 braking, motor configuration, RailCom channels, output masks and smoothed characteristic. Missing values stay unknown; no metadata-supplied formula or hardware write.'}
             zimoMN: {type: boolean, description: 'Enables the reviewed MN180N18 summary algorithm for source scope SW5.29: consist extension, function permissions, stopping parameters and smoothed speed characteristic. No executable formula is accepted in metadata.'}
             motorCurveCV: {type: integer, minimum: 1, maximum: 256, description: 'Documented model-specific motor characteristic register. Disables generic DCC curve plotting; no characteristic points are inferred from this scalar value.'}
@@ -2679,16 +2769,29 @@ components:
                 enableCV: {type: integer, minimum: 1, maximum: 1024, description: 'Optional register that must be positive to enable constant braking.'}
         mapping:
           type: object
-          description: Only the reviewed ESU LokPilot 5 layout is currently accepted.
+          description: Reviewed ESU layouts only. V5 defaults to 72 rows on condition pages 3–7 and action pages 8–12. esu-v4 uses 32 rows with both blocks on pages 2–3.
           required: [rows, rowsPerPage, stride, startCV, indexCV31, conditionPage, actionPage]
+          oneOf:
+            - not: {required: [format]}
+              properties:
+                rows: {const: 72}
+                conditionPage: {const: 3}
+                actionPage: {const: 8}
+            - required: [format]
+              properties:
+                format: {const: esu-v4}
+                rows: {const: 32}
+                conditionPage: {const: 2}
+                actionPage: {const: 2}
           properties:
-            rows: {type: integer, const: 72}
+            format: {type: string, enum: [esu-v4]}
+            rows: {type: integer, enum: [32, 72]}
             rowsPerPage: {type: integer, const: 16}
             stride: {type: integer, const: 16}
             startCV: {type: integer, const: 257}
             indexCV31: {type: integer, const: 16}
-            conditionPage: {type: integer, const: 3}
-            actionPage: {type: integer, const: 8}
+            conditionPage: {type: integer, enum: [2, 3]}
+            actionPage: {type: integer, enum: [2, 8]}
     DecoderLibrary:
       type: object
       required: [schemaVersion, profiles]
@@ -2828,6 +2931,17 @@ components:
         cvNumber: {type: integer, minimum: 1, maximum: 1024}
         value: {type: integer, minimum: 0, maximum: 255}
         modelId: {type: string}
+    ECoSDecoderProfileEvidence:
+      type: object
+      readOnly: true
+      additionalProperties: false
+      required: [name, objectId, host, readAt]
+      description: Derived source context from the latest saved ECoS comparison for this mapping and configured station. Requires no live device request and never changes manual fields or CV readings. Absent until a matching saved comparison exists.
+      properties:
+        name: {type: string, maxLength: 160}
+        objectId: {type: string}
+        host: {type: string}
+        readAt: {type: string, format: date-time}
     DecoderLibraryMatch:
       type: object
       required: [status, knownValues, totalValues]
@@ -2837,7 +2951,14 @@ components:
           enum: [matched, identified, family, manufacturer, suggested, conflict, standard, unsupported, unavailable]
         profileId: {type: string}
         profileName: {type: string}
-        matchedBy: {type: string, enum: [name, cv]}
+        matchedBy: {type: string, enum: [name, cv, ecos-profile]}
+        ecosProfile:
+          type: object
+          required: [name, status]
+          additionalProperties: false
+          properties:
+            name: {type: string}
+            status: {type: string, enum: [matched, unknown, conflict]}
         identification: {$ref: '#/components/schemas/DecoderIdentityEvidence'}
         revision: {type: string}
         manufacturerId: {type: integer}
@@ -8921,6 +9042,66 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/ecos-functions:
+    get:
+      tags: [DigitalCenters]
+      summary: Read function keys of the saved vehicle’s linked ECoS locomotive
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: ECoSFunctionSnapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ECoSFunctionSnapshot"
+        "400":
+          description: Invalid input or missing explicit confirmation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Vehicle or configured ECoS not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Inactive center, missing/ambiguous mapping or changed locomotive identity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: ECoS unavailable or function response incomplete, rejected or malformed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "503":
+          description: Workspace unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /vehicles/{id}/ecos-image/options:
     get:
       tags: [DigitalCenters]
@@ -9129,6 +9310,79 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /digital-centers/ecos/backup-import:
+    post:
+      tags: [DigitalCenters]
+      deprecated: true
+      summary: Decrypt and inspect an ECoS backup as a separate offline comparison
+      description: >
+        Maintenance compatibility endpoint. Normal users read all sources through the configured
+        ECoS read-session workflow; there is no separate backup upload in that UI.
+        Admin only. The complete encrypted upload and its integrity are checked before a session
+        is created. Never queries or restores a device and never creates vehicles or imports CVs.
+        Private decryption configuration remains on the server. Existing comparisons provide optional
+        names and decoder-profile context, not newly recovered backup identity. Without station
+        confirmation all vehicle links remain empty. Explicit confirmation permits only unambiguous
+        existing mappings whose saved identity, address and protocol agree. importedAt is the review
+        creation time, not a claimed backup export time. The resulting session has no device capabilities.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: X-RailKeeper-Confirm-Station
+          in: header
+          schema: {type: boolean, default: false}
+        - name: X-RailKeeper-Backup-Station
+          in: header
+          description: Current selected ECoS host, required when station confirmation is true. Never used as a network target.
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+              maxLength: 8388608
+      responses:
+        "201":
+          description: A separate persisted offline review; vehicle records remain unchanged
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [session, summary]
+                additionalProperties: false
+                properties:
+                  session:
+                    $ref: "#/components/schemas/DigitalCenterReadSession"
+                  summary:
+                    type: object
+                    required: [stationSerial, profiles, cvValues, importedAt, linkedVehicles, identitySource]
+                    additionalProperties: false
+                    properties:
+                      stationSerial: {type: integer, minimum: 1, maximum: 4294967295}
+                      profiles: {type: integer, minimum: 1, maximum: 64}
+                      cvValues: {type: integer, minimum: 0, maximum: 524288}
+                      importedAt: {type: string, format: date-time}
+                      linkedVehicles: {type: integer, minimum: 0, maximum: 64}
+                      identitySource: {type: string, enum: [saved_comparison]}
+        "400":
+          description: Invalid station-confirmation header
+        "401":
+          description: Authentication required
+        "403":
+          description: Admin role and valid CSRF token required
+        "409":
+          description: The confirmed ECoS host no longer matches the configuration
+        "413":
+          description: Encrypted upload exceeds 8 MiB
+        "415":
+          description: Raw application/octet-stream required
+        "422":
+          description: Damaged, unsupported or oversized decrypted backup contents
+        "503":
+          description: Private server decryption configuration is unavailable or cannot unlock the key
   /digital-centers/workspace:
     get:
       tags: [DigitalCenters]
@@ -9152,6 +9406,14 @@ paths:
     post:
       tags: [DigitalCenters]
       summary: Read a configured digital center into a persisted comparison session
+      description: >
+        The normal ECoS read collects the roster, saved function keys and full indexed CV exports.
+        Where private decryption configuration is available, one configuration backup is fetched
+        internally and checked as another source. No separate file upload is required.
+        No TCP CV probes, decoder programming or control requests are used in this workflow.
+        Conflicting full register addresses are retained as source evidence and omitted from
+        importable CV values. Unverified serialized-cache candidates never become known readings.
+        Complete snapshots are reused for vehicle adoption. This read has a bounded 90-second context.
       security:
         - sessionCookie: []
           csrfHeader: []
@@ -9350,12 +9612,17 @@ paths:
   /digital-centers/read-sessions/{id}/items/{itemID}/cv-read:
     post:
       tags: [DigitalCenters]
-      summary: Read the next 32 stored ECoS CV numbers (CV1 through CV1024)
+      summary: Refresh the combined saved ECoS snapshot, or a legacy base-CV batch
       description: >
         Admin only. Uses the saved session target, never a client-supplied host or CV values.
         Reads stored locomotive-object memory, without decoder programming or control takeover.
-        Index pages are unknown. No raw reply is interpreted as a zero default.
-        Import requires a completed scan and preserves existing unindexed values across profiles and all indexed readings.
+        With source=database and startCV=1, reads the bounded XML database export and internally
+        checks the configuration backup where configured, preserving explicit CV31/CV32 pages.
+        Saved function keys and source disagreements belong to the same snapshot.
+        Conflicting registers and unverified binary candidates are excluded from importable values.
+        Locomotive identity is checked before and after reading. Without source,
+        retains the legacy 32-number scan over CV1–CV1024 with unknown pages. Values may be cached profile defaults.
+        Import requires a completed snapshot and preserves existing values at the same full address across profiles.
       security:
         - sessionCookie: []
           csrfHeader: []
@@ -9379,6 +9646,10 @@ paths:
               additionalProperties: false
               required: [startCV]
               properties:
+                source:
+                  type: string
+                  enum: [database]
+                  description: Read the complete stored database with startCV 1. Omit for the legacy numbered batch reader.
                 startCV:
                   type: integer
                   minimum: 1
@@ -9387,7 +9658,7 @@ paths:
                 restart:
                   type: boolean
                   default: false
-                  description: Explicitly replace the saved scan; allowed only with startCV 1.
+                  description: Explicitly replace the saved snapshot; allowed only with startCV 1. A database retry without restart returns a committed database snapshot.
       responses:
         "200":
           description: Confirmed result; CV batches update only the comparison workspace
@@ -9432,8 +9703,8 @@ paths:
       description: >
         Admin only. Uses the saved session target, never a client-supplied host or CV values.
         Reads stored locomotive-object memory, without decoder programming or control takeover.
-        Index pages are unknown. No raw reply is interpreted as a zero default.
-        Import requires a completed scan and preserves existing unindexed values across profiles and all indexed readings.
+        Explicit database index pages remain attached to their values; missing pages stay unknown.
+        Import requires a completed snapshot and preserves existing values at the same full address across profiles.
       security:
         - sessionCookie: []
           csrfHeader: []

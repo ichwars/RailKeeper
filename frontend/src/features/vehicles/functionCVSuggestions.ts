@@ -1,11 +1,12 @@
 import type { MasterDataEntry, VehicleFunctionInput } from "../../shared/api";
 import { exactECoSSymbol } from "../../shared/ecosSymbols";
-import { esuMapping, type DecoderAnalysis, type MappingSuggestion, type Translator } from "./decoderAnalysis";
+import { decoderMapping, esuMapping, type DecoderAnalysis, type MappingSuggestion, type Translator } from "./decoderAnalysis";
 import { railComPlusFlagAvailability, railComPlusFlagPatch } from "./railComPlusFunctionFlags";
 import type { FunctionEdit } from "./vehicleTransforms";
 
 export function functionCVSuggestion(analysis: DecoderAnalysis, key: string, current: FunctionEdit,
-  symbols: MasterDataEntry[], t: Translator, mappingRows: MappingSuggestion[] = esuMapping(analysis, t)): { patch?: Partial<VehicleFunctionInput>; notesFull?: boolean } {
+  symbols: MasterDataEntry[], t: Translator, mappingRows: MappingSuggestion[] = analysis.esuStandard
+    ? decoderMapping(analysis, t) : esuMapping(analysis, t)): { patch?: Partial<VehicleFunctionInput>; notesFull?: boolean } {
   if (current.deleted) return {};
   const data = analysis.railComPlus, row = data?.functions.find(item => item.functionKey === key);
   const flags = data && row ? railComPlusFlagPatch(data, row, current, t) : undefined;
@@ -18,11 +19,13 @@ export function functionCVSuggestion(analysis: DecoderAnalysis, key: string, cur
   const sources: string[] = [];
   if (!current.name?.trim() && knownName) {
     patch.name = actions.join(" / ");
-    sources.push(`CV-Mapping · ${key} · ${patch.name} · ${mappings.map(item => item.source).join("; ")}`);
+    const context = analysis.libraryMatch.matchedBy === "ecos-profile" && analysis.ecosDecoderProfile
+      ? ` · ECoS-Profil: ${analysis.ecosDecoderProfile.name}` : "";
+    sources.push(`CV-Mapping · ${key} · ${patch.name} · ${mappings.map(item => item.source).join("; ")}${context}`);
   }
   if (symbol && row) {
     patch.symbolKey = symbol.key;
-    if ((!current.functionType || current.functionType === "standard") && symbol.metadata?.category === "Licht") {
+    if (!current.persisted && (!current.functionType || current.functionType === "standard") && symbol.metadata?.category === "Licht") {
       patch.functionType = "licht";
     }
     if (flags?.notes) patch.notes = `${flags.notes} · ${t("railcom.symbol.code", { code: row.iconCode })}`;

@@ -239,6 +239,14 @@ func (s *VehicleService) Get(ctx context.Context, id string) (*Vehicle, error) {
 	if err != nil {
 		return nil, err
 	}
+	vehicle.ExternalMappings, err = s.loadVehicleExternalMappings(ctx, vehicle.ID)
+	if err != nil {
+		return nil, err
+	}
+	vehicle.ECoSDecoderProfile, err = s.loadECoSDecoderProfile(ctx, vehicle.ID)
+	if err != nil {
+		return nil, err
+	}
 	return vehicle, nil
 }
 

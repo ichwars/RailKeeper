@@ -324,3 +324,13 @@
     min-height: 44px;
   }
 }
+
+.ecos-function-import { min-width: 0; margin-block: var(--space-md); padding-block: var(--space-sm); border-block: 1px solid var(--line); }
+.ecos-function-import > summary { cursor: pointer; min-height: 44px; display: list-item; align-content: center; }
+.ecos-function-import > p { color: var(--muted); }
+.ecos-function-table { max-width: 100%; overflow: auto; margin-block: var(--space-md); }
+.ecos-function-table table { min-width: 720px; width: 100%; border-collapse: collapse; }
+.ecos-function-table th, .ecos-function-table td { padding: var(--space-sm); text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+.ecos-function-table td > span, .ecos-function-table small { display: block; }
+.ecos-function-table small { color: var(--muted); }
+.ecos-function-table .app-checkbox { min-height: 44px; }

@@ -4,7 +4,7 @@ description: RailKeeper installieren.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-01
 ---
 
 # RailKeeper installieren
@@ -24,6 +24,12 @@ Der Standard ist `%LOCALAPPDATA%\RailKeeper\data`. Er liegt außerhalb des austa
 ## Docker: auf deinem eigenen Rechner oder Server
 
 Voraussetzung sind Git und Docker Compose. Die [Compose-Datei](https://github.com/ichwars/RailKeeper/blob/main/docker-compose.yml) bindet den Dienst zunächst nur an den eigenen Rechner.
+
+Docker-Builds unterstützen AMD64 und ARM64, auch Raspberry Pi mit einem 64-Bit-ARM-Betriebssystem.
+32-Bit-ARM wird nicht unterstützt. Docker wählt die Architektur automatisch; entferne auf ARM64
+ein gesetztes `platform: linux/amd64`. Ältere Release-Tags bleiben unverändert. ARM64 steht nach
+Übernahme des Multi-Plattform-Workflows in `main` zuerst unter `edge` bereit, danach in neuen
+stabilen/Beta-Releases.
 
 ```sh
 git clone https://github.com/ichwars/RailKeeper.git

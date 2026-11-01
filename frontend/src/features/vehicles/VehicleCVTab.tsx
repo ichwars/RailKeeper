@@ -16,15 +16,18 @@ import { AppSelect } from "../../shared/ui/AppSelect";
 import { ManufacturerCVProvider, ManufacturerCVStatus } from "./ManufacturerCVProvider";
 
 type ECoSDraftPreview = {
+  source?: "ecos" | "cs3";
   cvValues: VehicleCVValueInput[];
   sourceSummary: {
     name: string;
     objectId: number;
+    profile?: string;
   };
 };
 
 export function VehicleCVTab({
   selected,
+  decoderType,
   ecosDraft,
   readonly,
   saving,
@@ -60,6 +63,7 @@ export function VehicleCVTab({
   deleteCVFile
 }: {
   selected: Vehicle | null;
+  decoderType?: string;
   ecosDraft: ECoSDraftPreview | null;
   readonly: boolean;
   saving: boolean;
@@ -124,10 +128,15 @@ export function VehicleCVTab({
     if (body) body.scrollTop = 0;
   }, [view]);
   const activeView = view;
-  const decoder = useDecoderProfile(values, selected?.decoderType);
+  const ecosProfile = useMemo(() => selected?.ecosDecoderProfile ||
+    (ecosDraft?.source === "ecos" && ecosDraft.sourceSummary.profile
+      ? { name: ecosDraft.sourceSummary.profile, objectId: String(ecosDraft.sourceSummary.objectId), host: "", readAt: "" }
+      : undefined), [selected?.ecosDecoderProfile, ecosDraft]);
+  const manualType = decoderType ?? selected?.decoderType ?? "";
+  const decoder = useDecoderProfile(values, manualType, ecosProfile);
   const viewIcons = { explained: CircleHelp, raw: Database, files: FolderOpen };
   return <ManufacturerCVProvider values={values} profile={detailValue?.decoderProfile ?? decoder.profile}
-    manualType={selected?.decoderType || ""}><section className="cv-tab" ref={sectionRef}>
+    manualType={manualType} ecosProfile={ecosProfile}><section className="cv-tab" ref={sectionRef}>
     <div className="cv-entry-actions"><h3>{t("vehicles.decoder.dataTitle")}</h3><div className="cv-toolbar">
       <input ref={cvImportInputRef} type="file" accept=".json,.csv,.txt" className="visually-hidden"
         onChange={(event) => importCVValues(event.target.files)} disabled={readonly || !selected || saving} />

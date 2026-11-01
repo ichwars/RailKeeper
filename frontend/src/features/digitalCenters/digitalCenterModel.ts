@@ -73,17 +73,47 @@ export type DigitalCenterReadSession = {
   updatedAt: string;
 };
 
+export type ECoSBackupImportResult = {
+  session: DigitalCenterReadSession;
+  summary: {
+    stationSerial: number;
+    profiles: number;
+    cvValues: number;
+    importedAt: string;
+    linkedVehicles: number;
+    identitySource: "saved_comparison";
+  };
+};
+
 export type DigitalCenterStationSnapshot = {
   objectId?: number;
   name?: string;
   decoderAddress?: number;
   protocol?: string;
   profile?: string;
-  cvs?: Array<{ number: number; value: number }>;
-  cvRead?: { nextCV: number; unavailable: number; readAt: string; sourceHost: string };
+  sourceProfile?: string;
+  functionSnapshot?: {
+    objectId: number;
+    host: string;
+    readAt: string;
+    functions: Array<{ index: number; description: number; momentary: boolean }>;
+  };
+  cvs?: Array<{ number: number; value: number; indexCV31?: number; indexCV32?: number }>;
+  cvRead?: { source?: "database" | "backup"; nextCV: number; unavailable: number; readAt: string; sourceHost: string };
+  cvSources?: {
+    sources: Array<"database" | "backup">;
+    backupStatus: "checked" | "not_configured" | "failed";
+    backupAdded: number;
+    storedCacheStatus?: "available" | "unavailable";
+    unverifiedValues?: Array<{ number: number; value: number }>;
+    conflicts: Array<{ number: number; indexCV31?: number; indexCV32?: number;
+      databaseValue: number; backupValue: number; backupSource?: "stored_cache"; rawCacheValue?: number }>;
+    warning?: string;
+  };
 };
 
 export type DigitalCenterVehicleSnapshot = {
+  decoderType?: string;
   vehicleId?: string;
   name?: string;
   decoderAddress?: number;

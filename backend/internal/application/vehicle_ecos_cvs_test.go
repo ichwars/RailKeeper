@@ -85,3 +85,61 @@ func TestECoSCVImportAllValuesPreservesManualProvenanceAndIndexedPages(t *testin
 		t.Fatal("partial failed import")
 	}
 }
+
+func TestECoSCVDatabaseImportProtectsExactPagesAcrossProfiles(t *testing.T) {
+	db := backupTestDB(t, t.TempDir())
+	service := application.NewVehicleService(db)
+	vehicle, err := service.Create(t.Context(), application.CreateVehicleInput{
+		Manufacturer: "Test", Name: "Test", Gauge: "H0", Category: "Lokomotive", Gattung: "Diesellok",
+	}, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	high, low, other, zero := 16, 3, 8, 0
+	manual := []application.VehicleCVValueInput{
+		{CVNumber: 257, Value: 99, DecoderProfile: "Manual", IndexCV31: &high, IndexCV32: &low},
+		{CVNumber: 257, Value: 88, DecoderProfile: "Manual"},
+		{CVNumber: 257, Value: 77, DecoderProfile: "Manual", IndexCV31: &zero, IndexCV32: &zero},
+	}
+	if _, err := service.ImportCVValues(t.Context(), vehicle.ID, application.VehicleCVImportInput{Values: manual}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.UpsertExternalMapping(t.Context(), vehicle.ID,
+		application.VehicleExternalMapInput{Provider: "ecos", ExternalID: "1002"}, "admin"); err != nil {
+		t.Fatal(err)
+	}
+	source := application.ECoSStoredCVSource{Host: "ecos.local", ObjectID: "1002", ReadAt: "2026-10-27T07:00:00Z", Protocol: "DCC",
+		Values: []application.ECoSCVValue{
+			{Number: 257, Value: 20, IndexCV31: &high, IndexCV32: &low},
+			{Number: 257, Value: 1, IndexCV31: &high, IndexCV32: &other},
+			{Number: 257, Value: 0, IndexCV31: &zero, IndexCV32: &zero},
+			{Number: 257, Value: 7},
+		}}
+	before, _ := service.ListCVValues(t.Context(), vehicle.ID)
+	result, err := service.ImportECoSStoredCVs(t.Context(), vehicle.ID, source)
+	if err != nil || result.Imported != 1 || result.Preserved != 3 {
+		t.Fatal(result, err)
+	}
+	after, _ := service.ListCVValues(t.Context(), vehicle.ID)
+	for _, original := range before {
+		found := false
+		for _, current := range after {
+			if original.ID == current.ID {
+				found = reflect.DeepEqual(original, current)
+			}
+		}
+		if !found {
+			t.Fatal("existing value or provenance changed")
+		}
+	}
+	for _, current := range after {
+		if current.DecoderProfile == "ECoS" && (*current.IndexCV31 != 16 || *current.IndexCV32 != 8 ||
+			!strings.Contains(current.Description, "CV31/CV32: 16/8")) {
+			t.Fatalf("index lost: %+v", current)
+		}
+	}
+	result, err = service.ImportECoSStoredCVs(t.Context(), vehicle.ID, source)
+	if err != nil || result.Imported != 0 || result.Preserved != 4 {
+		t.Fatal(result, err)
+	}
+}

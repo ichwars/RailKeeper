@@ -150,6 +150,10 @@ func NewRouter(config Config) http.Handler {
 	if app.ecosService == nil {
 		app.ecosService = application.NewECoSService()
 	}
+	app.ecosService.SetBackupDataDir(app.dataDir)
+	if app.digitalCenterWorkspace != nil {
+		app.digitalCenterWorkspace.SetECoSBackupDataDir(app.dataDir)
+	}
 	if app.digitalCenterService == nil {
 		app.digitalCenterService = application.NewDigitalCenterService()
 	}

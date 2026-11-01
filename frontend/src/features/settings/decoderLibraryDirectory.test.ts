@@ -5,10 +5,11 @@ const filter = { manufacturer: "", family: "", kind: "", coverage: "", search: "
 it("scopes model and article search by manufacturer and family", () => {
   expect(directoryModels(inventory, profiles, { ...filter, manufacturer: "esu", search: "151" })).toHaveLength(58);
   expect(directoryModels(inventory, profiles, { ...filter, search: "CV51" }).map(m => m.name).sort()).toEqual([
+    "LokPilot 5 Nano DCC", "LokPilot micro V4.0", "LokPilot micro V4.0 DCC",
     "LokPilot 5 micro DCC", "DH18A", "DH05C", "DH10C", "DH16A", "DH12A", "DH14B", "DH21A", "DH21B", "DH22A", "DH22B", "DH24A", "DHSP10A", "STANDARD+ V2", "N45", "SmartDecoder XP 5.1 PluX22", "IntelliDrive 76420", "10882 · PluX16-Decoder (NEM 658)"
   ].sort());
   expect(directoryModels(inventory, profiles, { ...filter, manufacturer: "zimo", kind: "sound" })).toHaveLength(84);
-  expect(directoryModels(inventory, profiles, { ...filter, coverage: "reviewed" })).toHaveLength(19);
+  expect(directoryModels(inventory, profiles, { ...filter, coverage: "reviewed" })).toHaveLength(23);
   expect(directoryModels(inventory, profiles, { ...filter, family: "dh-pd", coverage: "reviewed" })).toEqual([]);
 });
 

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api } from "../../shared/api";
+import { api, type ECoSDecoderProfileEvidence } from "../../shared/api";
 import { useDecoderLibrary } from "../../shared/DecoderLibraryProvider";
 import type { DecoderCVReference, DecoderReading } from "../../shared/decoderLibraryModel";
 import { useI18n } from "../../shared/i18n";
@@ -13,13 +13,13 @@ type HintState = {
 const Context = createContext<HintState>({ lookup: () => undefined, status: "idle", retry: () => {} });
 export const useManufacturerCVHints = () => useContext(Context);
 
-export function ManufacturerCVProvider({ values, profile, manualType, children }: {
-  values: DecoderReading[]; profile: string; manualType: string; children: ReactNode;
+export function ManufacturerCVProvider({ values, profile, manualType, ecosProfile, children }: {
+  values: DecoderReading[]; profile: string; manualType: string; ecosProfile?: ECoSDecoderProfileEvidence; children: ReactNode;
 }) {
   const library = useDecoderLibrary();
   const model = useMemo(() => manufacturerReferenceModel(
-    decoderAnalysis(values, profile, library.profiles, library.inventory ?? null, manualType), library.inventory, profile, manualType
-  ), [values, profile, manualType, library]);
+    decoderAnalysis(values, profile, library.profiles, library.inventory ?? null, manualType, ecosProfile), library.inventory, profile, manualType
+  ), [values, profile, manualType, ecosProfile, library]);
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<{
     modelId: string; library: typeof library; attempt: number; references?: DecoderCVReference[]; failed?: boolean;

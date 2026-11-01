@@ -104,14 +104,17 @@ func (web *ImageWeb) request(ctx context.Context, method, path, contentType stri
 	req.Header.Set("Cache-Control", "no-cache")
 	response, err := web.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrImageWeb, err)
+		return nil, fmt.Errorf("%w: %w", ErrImageWeb, err)
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		return nil, ErrImageWeb
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, limit+1))
-	if err != nil || int64(len(data)) > limit {
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrImageWeb, err)
+	}
+	if int64(len(data)) > limit {
 		return nil, ErrImageWeb
 	}
 	return data, nil

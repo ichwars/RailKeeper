@@ -1,19 +1,22 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24-alpine AS frontend-build
+FROM --platform=$BUILDPLATFORM node:24-alpine AS frontend-build
 WORKDIR /src/frontend
 COPY backend/internal/decoderlibrary/*.json /src/backend/internal/decoderlibrary/
+COPY backend/internal/application/function_symbol_ecos_codes.json /src/backend/internal/application/
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend ./
 RUN npm run build
 
-FROM golang:1.27.3-alpine AS backend-build
+FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS backend-build
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /src/backend
 COPY backend/go.mod ./
 RUN go mod download
 COPY backend ./
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/railkeeper ./cmd/railkeeper
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/railkeeper ./cmd/railkeeper
 
 FROM alpine:3.24 AS runtime
 LABEL org.opencontainers.image.source="https://github.com/ichwars/RailKeeper" \
@@ -28,8 +31,8 @@ RUN apk add --no-cache --upgrade \
   && chown -R railkeeper:railkeeper /app /data
 COPY --from=backend-build /out/railkeeper /usr/local/bin/railkeeper
 COPY --from=frontend-build /src/frontend/dist /app/web
-COPY backend/migrations /app/migrations
-COPY backend/seeds /app/seeds
+COPY --chown=railkeeper:railkeeper backend/migrations /app/migrations
+COPY --chown=railkeeper:railkeeper backend/seeds /app/seeds
 USER railkeeper
 ENV RAILKEEPER_ADDR=:8080 \
   RAILKEEPER_DATA_DIR=/data \
