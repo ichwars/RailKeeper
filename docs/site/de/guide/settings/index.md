@@ -56,6 +56,8 @@ entfernt niemals Berechtigungen.
 Der allgemeine [Arbeitsbereich Import und Export](/de/guide/import-export/) ist eine andere Seite. Er
 tauscht Bestandsdaten aus. Der ECoS-Lokablauf liegt unter **Digitalzentralen**. Das Register **Backup** in den **Einstellungen** enthält administrative Sicherung und Stammdaten-Transfer. [Sicherungsanleitung](/de/administration/backup-restore).
 
+Die globale Aktion [**Fehler melden**](/de/guide/settings/bug-reporting) öffnet nach Einrichtung durch den Betreiber das Meldeformular für alle angemeldeten Rollen. Automatische Diagnosedaten sind dort abschaltbar.
+
 ## Speicherung persönlicher Einstellungen
 
 Die meisten Vorgaben wirken sofort im Browser, werden im Browserspeicher abgelegt und zusätzlich an

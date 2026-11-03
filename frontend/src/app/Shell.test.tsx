@@ -1,8 +1,29 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../shared/api";
+import type { BugReportCapability } from "../shared/apiBugReports";
 import { Shell } from "./Shell";
+
+const disabledBugReporting: BugReportCapability = {
+  enabled: false,
+  fallbackUrl: "https://github.com/ichwars/RailKeeper/issues/new",
+  maxScreenshotBytes: 5 * 1024 * 1024,
+  acceptedScreenshotTypes: ["image/png", "image/jpeg", "image/webp"],
+  includedDiagnosticCategories: [],
+  excludedDiagnosticCategories: [],
+  contactAvailable: false,
+  serverDiagnostics: {
+    railkeeperVersion: "1.0.0",
+    deploymentType: "native",
+    goVersion: "go1.26.0",
+    operatingSystem: "windows",
+    architecture: "amd64",
+    schemaVersion: 67,
+    enabledDigitalProviderTypes: []
+  }
+};
 
 describe("Shell article navigation", () => {
   beforeEach(() => {
@@ -14,6 +35,7 @@ describe("Shell article navigation", () => {
       status: "current",
       message: "current"
     });
+    vi.spyOn(api, "bugReportConfig").mockResolvedValue(disabledBugReporting);
   });
 
   it("uses the approved vehicle and accessory navigation labels", async () => {
@@ -135,5 +157,80 @@ describe("Shell article navigation", () => {
       within(navigation).getByRole("link", { name: "Digitalzentralen" }),
       within(navigation).getByRole("link", { name: "Einstellungen" })
     ]);
+  });
+
+  it("opens the in-app report dialog when reporting is enabled", async () => {
+    vi.mocked(api.bugReportConfig).mockResolvedValue({ ...disabledBugReporting, enabled: true });
+    render(
+      <Shell username="editor" roles={["Editor"]} activeView="accessories" onLogout={vi.fn()}>
+        <p>Inhalt</p>
+      </Shell>
+    );
+
+    const trigger = await screen.findByRole("button", { name: "Fehler melden" });
+    trigger.click();
+
+    expect(await screen.findByRole("dialog", { name: "Fehler melden" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Wo tritt der Fehler auf?" })).toHaveTextContent("Zubehör");
+  });
+
+  it("keeps the external fallback when the capability check fails", async () => {
+    vi.mocked(api.bugReportConfig).mockRejectedValue(new Error("not configured"));
+    render(
+      <Shell username="editor" roles={["Editor"]} activeView="overview" onLogout={vi.fn()}>
+        <p>Inhalt</p>
+      </Shell>
+    );
+
+    await waitFor(() => expect(api.bugReportConfig).toHaveBeenCalledOnce());
+    expect(screen.getByRole("link", { name: "Fehler melden" })).toHaveAttribute(
+      "href",
+      "https://github.com/ichwars/RailKeeper/issues/new"
+    );
+  });
+
+  it("rechecks a disabled capability when the window regains focus", async () => {
+    vi.mocked(api.bugReportConfig)
+      .mockResolvedValueOnce(disabledBugReporting)
+      .mockResolvedValueOnce({ ...disabledBugReporting, enabled: true });
+    render(
+      <Shell username="editor" roles={["Editor"]} activeView="overview" onLogout={vi.fn()}>
+        <p>Inhalt</p>
+      </Shell>
+    );
+
+    await waitFor(() => expect(api.bugReportConfig).toHaveBeenCalledOnce());
+    expect(screen.getByRole("link", { name: "Fehler melden" })).toBeInTheDocument();
+    window.dispatchEvent(new Event("focus"));
+
+    expect(await screen.findByRole("button", { name: "Fehler melden" })).toBeInTheDocument();
+    expect(vi.mocked(api.bugReportConfig).mock.calls.filter((args) => args[0] !== true)).toHaveLength(2);
+  });
+
+  it("refreshes capability after submission failure without discarding the open draft", async () => {
+    const user = userEvent.setup();
+    const enabled = { ...disabledBugReporting, enabled: true };
+    vi.mocked(api.bugReportConfig).mockResolvedValueOnce(enabled).mockResolvedValueOnce(disabledBugReporting);
+    vi.spyOn(api, "submitBugReport").mockRejectedValue(new Error("GitHub unavailable"));
+    render(
+      <Shell username="editor" roles={["Editor"]} activeView="vehicles" onLogout={vi.fn()}>
+        <p>Inhalt</p>
+      </Shell>
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Fehler melden" }));
+    await user.type(screen.getByLabelText(/Was ist passiert/i),
+      "Das Vorschaubild verschwindet nach dem Speichern.");
+    await user.click(screen.getByRole("button", { name: "Fehlerbericht senden" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/konnte nicht gesendet/i);
+    await waitFor(() => expect(vi.mocked(api.bugReportConfig).mock.calls.filter((args) => args[0] !== true)).toHaveLength(2));
+    expect(screen.getByRole("dialog", { name: "Fehler melden" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Was ist passiert/i)).toHaveValue(
+      "Das Vorschaubild verschwindet nach dem Speichern."
+    );
+    expect(screen.getByRole("link", { name: "Fehler melden" })).toHaveAttribute(
+      "href", "https://github.com/ichwars/RailKeeper/issues/new"
+    );
   });
 });

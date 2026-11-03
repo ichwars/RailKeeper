@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"railkeeper/backend/internal/api"
 	"railkeeper/backend/internal/application"
@@ -74,6 +75,7 @@ type applicationHandlerOptions struct {
 	SMTPConfig                  application.SMTPPasswordResetMailConfig
 	PublicURL                   string
 	CookieSecure                bool
+	BugReports                  bugReportOptions
 }
 
 func prepareStartup(
@@ -228,6 +230,13 @@ func buildApplicationHandler(
 	ecosService := application.NewECoSService()
 	digitalCenterService := application.NewDigitalCenterService()
 	settingsService := application.NewSettingsService(database)
+	serverDiagnostics := application.BugReportServerDiagnostics{
+		RailKeeperVersion: options.Version, DeploymentType: bugReportDeploymentType(state),
+		GoVersion: runtime.Version(), OperatingSystem: runtime.GOOS, Architecture: runtime.GOARCH,
+	}
+	bugReports := buildBugReportFeature(
+		ctx, database, options.BugReports, serverDiagnostics, options.Logger,
+	)
 	digitalCenterWorkspace := application.NewDigitalCenterWorkspaceService(
 		infrastructure.NewDigitalCenterWorkspaceRepository(database),
 		settingsService,
@@ -271,7 +280,12 @@ func buildApplicationHandler(
 			paths.DataDir,
 			application.WithDataTransferFolderOpener(state.Runtime.OpenDataFolderSupported, openStorageFolder),
 		),
-		RateLimitService:          application.NewRateLimitService(database),
+		RateLimitService:    application.NewRateLimitService(database),
+		BugReportService:    bugReports.Service,
+		BugReportCapability: bugReports.Capability,
+		BugReportCapabilityControl: api.BugReportCapabilityControl{
+			Provider: bugReports.Provider, Invalidate: bugReports.Invalidate,
+		},
 		SettingsService:           settingsService,
 		PasswordResetMailer:       options.PasswordResetMailer,
 		SMTPSettingsService:       application.NewSMTPSettingsService(database, options.SMTPConfig, options.PublicURL),

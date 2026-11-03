@@ -20,6 +20,7 @@ tags:
   - name: Accessories
   - name: DataTransfer
   - name: DigitalCenters
+  - name: BugReports
 components:
   securitySchemes:
     sessionCookie:
@@ -4416,6 +4417,199 @@ components:
       properties:
         reason: { type: string }
         expectedRevision: { type: integer, minimum: 1 }
+    BugReportArea:
+      type: string
+      enum: [overview, vehicles, accessories, exhibition, importExport, digitalCenters, settings, other]
+    BugReportClientError:
+      type: object
+      additionalProperties: false
+      required: [timestamp, category, errorClass, problemCode, message, method, route]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        category:
+          type: string
+          enum: [window, promise, api, network, timeout]
+        errorClass:
+          type: string
+          enum: [AbortError, ApiError, DOMException, Error, RangeError, ReferenceError, SyntaxError, TypeError, UnhandledRejection]
+        problemCode:
+          type: string
+          enum: ['', network_error, request_failed, request_timeout, unknown_error]
+        message:
+          type: string
+          enum: [Unexpected client error, Unhandled promise rejection, API request failed, Network request failed, Request timed out]
+        method:
+          type: string
+          enum: ['', DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT]
+        route:
+          type: string
+          pattern: '^$|^/[a-z][a-z-]{0,39}$'
+        status:
+          type: integer
+          minimum: 0
+          maximum: 599
+    BugReportClientDiagnostics:
+      type: object
+      additionalProperties: false
+      required:
+        [browserFamily, browserMajor, osFamily, osMajor, viewportWidth, viewportHeight, language,
+         timeZone, theme, pathname, area, roles, errors]
+      properties:
+        browserFamily:
+          type: string
+          enum: [Chrome, Edge, Firefox, Safari, Unknown]
+        browserMajor:
+          type: string
+          pattern: '^\d{0,4}$'
+        osFamily:
+          type: string
+          enum: [Android, iOS, Linux, macOS, Unknown, Windows]
+        osMajor:
+          type: string
+          pattern: '^\d{0,4}$'
+        viewportWidth:
+          type: integer
+          minimum: 0
+          maximum: 32768
+        viewportHeight:
+          type: integer
+          minimum: 0
+          maximum: 32768
+        language:
+          type: string
+          maxLength: 35
+          pattern: '^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$'
+        timeZone:
+          type: string
+          maxLength: 100
+          pattern: '^[A-Za-z0-9_+.-]+(?:/[A-Za-z0-9_+.-]+)*$'
+        theme:
+          type: string
+          enum: [light, dark]
+        pathname:
+          type: string
+          pattern: '^/$|^/[a-z][a-z-]{0,39}$'
+        area:
+          $ref: "#/components/schemas/BugReportArea"
+        roles:
+          type: array
+          maxItems: 8
+          uniqueItems: true
+          items:
+            type: string
+            enum: [Admin, Editor, Viewer, Messe]
+        errors:
+          type: array
+          maxItems: 30
+          items:
+            $ref: "#/components/schemas/BugReportClientError"
+    BugReportServerDiagnostics:
+      type: object
+      additionalProperties: false
+      required:
+        [railkeeperVersion, deploymentType, goVersion, operatingSystem, architecture, schemaVersion,
+         enabledDigitalProviderTypes]
+      properties:
+        collectedAt:
+          type: string
+          format: date-time
+        uptimeSeconds:
+          type: integer
+          minimum: 0
+        cpuCount:
+          type: integer
+          minimum: 1
+        goroutines:
+          type: integer
+          minimum: 1
+        heapBytes:
+          type: integer
+          minimum: 0
+        runtimeBytes:
+          type: integer
+          minimum: 0
+        sqliteVersion:
+          type: string
+        databaseBytes:
+          type: integer
+          minimum: 0
+        journalMode:
+          type: string
+        railkeeperVersion:
+          type: string
+        deploymentType:
+          type: string
+          enum: [windows-portable, container, native]
+        goVersion:
+          type: string
+        operatingSystem:
+          type: string
+        architecture:
+          type: string
+        schemaVersion:
+          type: integer
+          minimum: 0
+        enabledDigitalProviderTypes:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum: [ecos, z21, intellibox3, cs3]
+    BugReportCapability:
+      type: object
+      additionalProperties: false
+      required:
+        [enabled, screenshotAvailable, fallbackUrl, maxScreenshotBytes, acceptedScreenshotTypes,
+         includedDiagnosticCategories, excludedDiagnosticCategories, contactAvailable]
+      properties:
+        enabled:
+          type: boolean
+        screenshotAvailable:
+          type: boolean
+        fallbackUrl:
+          type: string
+          format: uri
+        maxScreenshotBytes:
+          type: integer
+          const: 5242880
+        acceptedScreenshotTypes:
+          type: array
+          items:
+            type: string
+            enum: [image/png, image/jpeg, image/webp]
+        includedDiagnosticCategories:
+          type: array
+          items:
+            type: string
+        excludedDiagnosticCategories:
+          type: array
+          items:
+            type: string
+        contactAvailable:
+          type: boolean
+        serverDiagnostics:
+          $ref: "#/components/schemas/BugReportServerDiagnostics"
+    BugReportSubmissionResult:
+      type: object
+      additionalProperties: false
+      required: [reportId, issueNumber, issueUrl, status, warning]
+      properties:
+        reportId:
+          type: string
+          format: uuid
+        issueNumber:
+          type: integer
+          minimum: 1
+        issueUrl:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum: [complete, partial]
+        warning:
+          type: string
 paths:
   /setup/status:
     get:
@@ -4658,6 +4852,152 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VersionInfo"
+  /bug-reports/config:
+    get:
+      tags: [BugReports]
+      summary: Read the safe in-app bug-reporting capability and diagnostic scope
+      parameters:
+        - in: query
+          name: diagnostics
+          schema:
+            type: boolean
+            default: false
+          description: Collect fresh diagnostics only when explicitly requested. Otherwise serverDiagnostics is omitted.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Capability is returned even when direct reporting is disabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BugReportCapability"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "503":
+          description: Explicitly requested diagnostics could not be collected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /bug-reports:
+    post:
+      tags: [BugReports]
+      summary: Create or continue an idempotent in-app bug report
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reportId, area, description]
+              properties:
+                reportId:
+                  type: string
+                  format: uuid
+                area:
+                  $ref: "#/components/schemas/BugReportArea"
+                description:
+                  type: string
+                  minLength: 20
+                  maxLength: 10000
+                expectedBehavior:
+                  type: string
+                  maxLength: 5000
+                reproductionSteps:
+                  type: string
+                  maxLength: 10000
+                email:
+                  type: string
+                  format: email
+                  maxLength: 254
+                includeDiagnostics:
+                  type: boolean
+                  default: true
+                  description: When false, the server skips collection and discards supplied clientDiagnostics.
+                clientDiagnostics:
+                  description: Required only when includeDiagnostics is true; ignored otherwise.
+                  type: string
+                  contentMediaType: application/json
+                  contentSchema:
+                    $ref: "#/components/schemas/BugReportClientDiagnostics"
+                screenshotConsent:
+                  type: boolean
+                  description: Required and true when screenshot is present.
+                screenshot:
+                  type: string
+                  format: binary
+                  contentMediaType: image/png, image/jpeg, image/webp
+                  maxLength: 5242880
+      responses:
+        "201":
+          description: First accepted submission, complete or partial after issue creation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BugReportSubmissionResult"
+        "200":
+          description: Idempotent retry, complete or partial after issue creation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BugReportSubmissionResult"
+        "400":
+          description: Invalid report or screenshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Invalid CSRF token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Submission ownership or state conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "413":
+          description: Screenshot or multipart request exceeds the bound
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "429":
+          description: Five new report IDs per user and hour exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: GitHub issue creation is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "503":
+          description: Direct reporting is not configured or not healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /system/printers:
     get:
       tags: [System]

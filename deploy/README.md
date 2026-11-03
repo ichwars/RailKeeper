@@ -69,6 +69,75 @@ The `/data` volume is not part of the image replacement. Export an application b
 migration-heavy updates, also back up the volume or its host storage. Automatic pre-migration SQLite
 copies contain private authentication and inventory data and do not replace external backups.
 
+## In-app bug reporting
+
+The in-app form requires an issue token/repository and validation of the fixed issue labels.
+Without those settings the global action remains an external GitHub link. Prefer a fine-grained
+token limited to **Issues: Read and write** on the issue repository, plus metadata read.
+
+Each reporter can disable diagnostics. The remembered choice stops local error capture and omits
+browser and server diagnostics. Process memory, uptime and SQLite health are included only when
+enabled. No device probes or inventory data are collected.
+
+Screenshots are a separate optional capability. To enable them, configure a second token limited to
+**Contents: Read and write** on a different public asset repository. Without that pair, text reports
+remain available and the screenshot field is hidden. Never grant an asset-only token access to the
+source repository. An operator may explicitly choose an existing credential for a private test instance;
+that is not the recommended credential scope for general installations.
+
+Create these labels in the issue repository before starting RailKeeper:
+
+```text
+bug
+source:in-app
+area:overview
+area:vehicles
+area:accessories
+area:exhibition
+area:import-export
+area:digital-centers
+area:settings
+area:other
+```
+
+Then configure `.env` with repository names in `owner/name` form. Keep token values out of Git:
+
+```env
+RAILKEEPER_GITHUB_ISSUE_TOKEN=
+RAILKEEPER_GITHUB_ISSUE_REPOSITORY=github-owner/RailKeeper
+RAILKEEPER_GITHUB_ASSET_TOKEN=
+RAILKEEPER_GITHUB_ASSET_REPOSITORY=github-owner/railkeeper-bug-assets
+RAILKEEPER_BUG_REPORT_LABELS=bug,source:in-app
+```
+
+The optional contact field is available only with an age X25519 recipient. Generate and retain the
+private identity outside the RailKeeper data directory, backups, repository, and `.env` file:
+
+```bash
+age-keygen -o railkeeper-bug-report-identity.txt
+age-keygen -y railkeeper-bug-report-identity.txt
+```
+
+Set only the printed public `age1...` recipient:
+
+```env
+RAILKEEPER_BUG_REPORT_CONTACT_AGE_RECIPIENT=
+```
+
+Restart RailKeeper after changing tokens, repositories, labels, or the recipient. Check that the
+floating action opens the form. For token rotation, create the replacement token with the same
+narrow scope, update `.env`, restart and verify the form, then revoke the old token. If verification
+fails, RailKeeper leaves in-app submission disabled and retains the external fallback.
+This check verifies repository readability, required labels and public asset visibility. It does not
+create a test issue or file, so write permissions must be configured correctly and are checked by GitHub
+when a report is submitted.
+
+Screenshots are re-decoded and re-encoded before upload, but remain public in the asset repository.
+Users must explicitly consent for every selected screenshot. The optional email address is placed
+in the issue only as age-encrypted ciphertext. See the
+[operator runbook](../docs/production-runbook.md#in-app-fehlerberichte) for recovery and privacy
+checks.
+
 ## Password reset email
 
 Password reset links are not returned to the browser. SMTP can be configured and tested in the Admin UI under `Einstellungen > Authentifizierung > SMTP für Passwort-Reset`. Configure SMTP in `.env` when deployment defaults are preferred:

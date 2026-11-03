@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import textwrap
@@ -70,12 +71,13 @@ def release_script():
 class ReleaseWorkflowTests(unittest.TestCase):
     def run_release(self, *, version='0.1.21', main_sha=CHECKED_SHA, ci='success',
                     notes=True, languages=('Deutsch', 'English'), existing_release=False, existing_tag=False,
-                    tag_sha=CHECKED_SHA, attempt='1', event='workflow_run', lookup_error=False):
+                    tag_sha=CHECKED_SHA, attempt='1', event='workflow_run', lookup_error=False,
+                    main_source=None):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'backend/cmd/railkeeper').mkdir(parents=True)
             (root / 'backend/cmd/railkeeper/main.go').write_text(
-                f'const (\n\tversion = "{version}"\n)\n')
+                main_source if main_source is not None else f'const (\n\tversion = "{version}"\n)\n')
             (root / 'docs/releases').mkdir(parents=True)
             if notes:
                 (root / f'docs/releases/v{version}.md').write_text(
@@ -100,6 +102,15 @@ class ReleaseWorkflowTests(unittest.TestCase):
             result = subprocess.run(['bash', '-c', release_script()], cwd=root,
                                     env=environment, capture_output=True, text=True, check=False)
             return result, json.loads(state.read_text())
+
+    def test_runtime_source_version_can_publish(self):
+        main_source = (ROOT / 'backend/cmd/railkeeper/main.go').read_text()
+        version = re.search(r'\bversion\s*=\s*"([^"]+)"', main_source).group(1)
+        result, state = self.run_release(version=version, main_source=main_source)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIsNotNone(state['release'])
+        self.assertEqual(state['release']['args'][2], f'v{version}')
+        self.assertEqual(len(state['dispatches']), 2)
 
     def test_new_stable_release_uses_checked_commit_and_starts_both_builds(self):
         result, state = self.run_release()

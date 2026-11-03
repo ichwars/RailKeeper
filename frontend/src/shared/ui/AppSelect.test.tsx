@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { AppSelect } from "./AppSelect";
 
-function VehicleSelection({ onEscape }: { onEscape: () => void }) {
+function VehicleSelection({ onEscape, containMenu = false }: { onEscape: () => void; containMenu?: boolean }) {
   const [value, setValue] = useState("one");
-  return <div role="dialog" onKeyDown={(event) => {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  return <div ref={dialogRef} role="dialog" onKeyDown={(event) => {
     if (event.key === "Escape") onEscape();
   }}>
-    <label>Fahrzeug<AppSelect value={value} onChange={(event) => setValue(event.target.value)}>
+    <label>Fahrzeug<AppSelect value={value} portalContainerRef={containMenu ? dialogRef : undefined}
+      onChange={(event) => setValue(event.target.value)}>
       <option value="one">RK-1 · Lok</option>
       <option value="two">RK-2 · Wagen</option>
     </AppSelect></label>
@@ -18,6 +20,15 @@ function VehicleSelection({ onEscape }: { onEscape: () => void }) {
 }
 
 describe("AppSelect in a dialog", () => {
+  it("renders the menu in its supplied dialog layer", async () => {
+    const user = userEvent.setup();
+    render(<VehicleSelection containMenu onEscape={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Fahrzeug" }));
+    expect(screen.getByRole("dialog")).toContainElement(screen.getByRole("listbox"));
+    await user.click(screen.getByRole("option", { name: "RK-2 · Wagen" }));
+    expect(screen.getByRole("button", { name: "Fahrzeug" })).toHaveTextContent("RK-2 · Wagen");
+  });
+
   it("returns focus from a floating option to the vehicle selector", async () => {
     const user = userEvent.setup();
     render(<VehicleSelection onEscape={vi.fn()} />);

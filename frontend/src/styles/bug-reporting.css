@@ -1,0 +1,278 @@
+.feedback-button:is(button) {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.feedback-button:is(a) {
+  text-decoration: none;
+}
+
+.confirm-layer.bug-report-layer {
+  z-index: 140;
+  overflow: auto;
+}
+
+.bug-report-dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(680px, calc(100vw - 36px));
+  height: min(92vh, 920px);
+  max-height: min(92vh, 920px);
+  overflow: hidden;
+  border-color: var(--line-strong);
+}
+
+.bug-report-dialog-head,
+.bug-report-dialog-title,
+.bug-report-actions,
+.bug-report-result a {
+  display: flex;
+  align-items: center;
+}
+
+.bug-report-dialog-head {
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--line);
+}
+
+.bug-report-dialog-title {
+  gap: var(--space-sm);
+  min-width: 0;
+  color: var(--danger);
+}
+
+.bug-report-dialog-title h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-title-base);
+  line-height: var(--line-height-title-base);
+}
+
+.bug-report-form {
+  display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: var(--space-lg);
+  min-height: 0;
+  padding: var(--space-lg);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.bug-report-form .app-field-label {
+  color: var(--muted);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bug-report-form .bug-report-description textarea {
+  min-height: 88px;
+}
+
+.bug-report-form .bug-report-expected textarea,
+.bug-report-form .bug-report-reproduction textarea {
+  min-height: 68px;
+}
+
+.bug-report-area-field .app-select {
+  width: 100%;
+}
+
+.bug-report-screenshot-field {
+  display: grid;
+  gap: var(--space-md);
+  border-radius: var(--radius-sm);
+}
+
+.bug-report-screenshot-field:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  outline-offset: 4px;
+}
+
+.bug-report-screenshot-preview {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-subtle);
+  object-fit: contain;
+}
+
+.bug-report-screenshot-size {
+  margin: calc(-1 * var(--space-xs)) 0 0;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.bug-report-screenshot-field .app-checkbox {
+  align-items: flex-start;
+  line-height: var(--line-height-normal);
+}
+
+.bug-report-disclosure {
+  border: 1px solid color-mix(in srgb, var(--warm) 58%, var(--line));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--warm) 6%, var(--panel));
+  color: var(--text);
+  font-size: var(--font-size-md);
+}
+
+.bug-report-disclosure summary {
+  min-height: 40px;
+  padding: 10px var(--space-md);
+  color: color-mix(in srgb, var(--warm) 76%, var(--text));
+  cursor: pointer;
+  font-weight: var(--font-weight-extra-bold);
+}
+
+.bug-report-disclosure > div {
+  padding: 0 var(--space-md) var(--space-md);
+  border-top: 1px solid color-mix(in srgb, var(--warm) 34%, var(--line));
+}
+
+.bug-report-disclosure strong {
+  display: block;
+  margin-top: var(--space-md);
+}
+
+.bug-report-disclosure p {
+  margin: var(--space-xs) 0 0;
+  color: var(--muted);
+  line-height: var(--line-height-normal);
+}
+
+.bug-report-disclosure pre {
+  max-height: 240px;
+  margin: var(--space-sm) 0 0;
+  overflow: auto;
+  padding: var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-subtle);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bug-report-security-notice {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.bug-report-security-notice a {
+  color: var(--accent-strong);
+  font-weight: var(--font-weight-bold);
+}
+
+.bug-report-result {
+  display: grid;
+  gap: var(--space-xs);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  background: var(--panel-subtle);
+}
+
+.bug-report-result.complete {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
+}
+
+.bug-report-result.partial {
+  border-color: color-mix(in srgb, var(--warm) 55%, var(--line));
+  background: color-mix(in srgb, var(--warm) 7%, var(--panel));
+}
+
+.bug-report-result p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.bug-report-result a {
+  width: fit-content;
+  gap: var(--space-xs);
+  color: var(--accent-strong);
+  font-weight: var(--font-weight-bold);
+}
+
+.bug-report-actions {
+  position: sticky;
+  bottom: calc(-1 * var(--space-lg));
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin: 0 calc(-1 * var(--space-lg)) calc(-1 * var(--space-lg));
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
+}
+
+@media (max-width: 640px) {
+  .confirm-layer.bug-report-layer {
+    padding: 12px 10px;
+  }
+
+  .bug-report-dialog {
+    width: calc(100vw - 20px);
+    height: calc(100dvh - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+
+  .bug-report-dialog-head {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .bug-report-form {
+    gap: var(--space-md);
+    padding: var(--space-md);
+  }
+
+  .bug-report-actions {
+    bottom: calc(-1 * var(--space-md));
+    margin: 0 calc(-1 * var(--space-md)) calc(-1 * var(--space-md));
+    padding: var(--space-md);
+  }
+
+  .bug-report-actions button {
+    min-height: 44px;
+    flex: 1 1 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback-button {
+    transition: none;
+  }
+}
+
+.bug-report-diagnostic-toggle {
+  min-height: 44px;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  cursor: pointer;
+}
+
+.bug-report-diagnostic-toggle > span:last-child {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.bug-report-area-help,
+.bug-report-diagnostic-help,
+.bug-report-diagnostic-disabled {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}

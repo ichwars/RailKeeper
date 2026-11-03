@@ -3,6 +3,7 @@ package main
 import (
 	"net"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +14,29 @@ func TestNewHTTPServerConfiguresConnectionTimeouts(t *testing.T) {
 	if server.ReadHeaderTimeout != 5*time.Second || server.ReadTimeout != 15*time.Second ||
 		server.WriteTimeout != 30*time.Second || server.IdleTimeout != 60*time.Second {
 		t.Fatalf("unexpected HTTP server timeouts: %#v", server)
+	}
+}
+
+func TestBugReportOptionsReadOnlyDedicatedEnvironmentVariables(t *testing.T) {
+	values := map[string]string{
+		"RAILKEEPER_GITHUB_ISSUE_TOKEN":               "issue-token",
+		"RAILKEEPER_GITHUB_ISSUE_REPOSITORY":          "ichwars/RailKeeper",
+		"RAILKEEPER_GITHUB_ASSET_TOKEN":               "asset-token",
+		"RAILKEEPER_GITHUB_ASSET_REPOSITORY":          "ichwars/railkeeper-bug-assets",
+		"RAILKEEPER_BUG_REPORT_CONTACT_AGE_RECIPIENT": "age1recipient",
+		"RAILKEEPER_BUG_REPORT_LABELS":                " bug, source:in-app ,bug ",
+		"RAILKEEPER_SMTP_PASSWORD":                    "must-not-be-used",
+	}
+	options := bugReportOptionsFromLookup(func(key string) (string, bool) {
+		value, ok := values[key]
+		return value, ok
+	})
+	if options.IssueToken != "issue-token" || options.AssetToken != "asset-token" ||
+		options.ContactAgeRecipient != "age1recipient" {
+		t.Fatalf("unexpected options: %#v", options)
+	}
+	if !reflect.DeepEqual(options.Labels, []string{"bug", "source:in-app"}) {
+		t.Fatalf("labels = %#v", options.Labels)
 	}
 }
 
