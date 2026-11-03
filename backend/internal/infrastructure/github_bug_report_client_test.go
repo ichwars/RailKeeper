@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -138,6 +139,39 @@ func TestGitHubBugReportIssueClientPaginatesReconciliationBeyondFirstPage(t *tes
 	comments, err := client.ListIssueComments(t.Context(), 184, 200)
 	if err != nil || len(comments) != 101 || !strings.Contains(comments[100].Body, "second-page-comment-marker") {
 		t.Fatalf("comments=%d err=%v", len(comments), err)
+	}
+}
+
+func TestGitHubBugReportReconciliationFailsWhenScanLimitIsExhausted(t *testing.T) {
+	for _, comments := range []bool{false, true} {
+		t.Run(fmt.Sprintf("comments=%v", comments), func(t *testing.T) {
+			var requests atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+				requests.Add(1)
+				if request.URL.Query().Get("per_page") != "100" {
+					t.Errorf("unexpected reconciliation page size: %s", request.URL.RawQuery)
+				}
+				items := make([]map[string]any, 100)
+				for index := range items {
+					items[index] = map[string]any{"number": index + 1, "id": index + 1, "body": "ordinary"}
+					if !comments {
+						items[index]["pull_request"] = map[string]any{"url": "pr"}
+					}
+				}
+				_ = json.NewEncoder(response).Encode(items)
+			}))
+			defer server.Close()
+			client := newTestIssueClient(t, server, "o/r")
+			var err error
+			if comments {
+				_, err = client.ListIssueComments(t.Context(), 42, 1_000)
+			} else {
+				_, err = client.ListRecentIssues(t.Context(), time.Now().UTC().Add(-time.Hour), 1_000)
+			}
+			if err == nil || requests.Load() != 10 {
+				t.Fatalf("exhausted reconciliation must fail closed after 10 pages: requests=%d err=%v", requests.Load(), err)
+			}
+		})
 	}
 }
 

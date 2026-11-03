@@ -71,6 +71,9 @@ contact and screenshot bytes are not persisted. This table is excluded from appl
 The service serializes each report, enforces actor ownership and reconciles the public UUID marker
 before creating an issue. If reconciliation cannot be read, creation stops rather than risking a
 duplicate after an uncertain previous response. Screenshot/comment stages reconcile separately.
+Each reconciliation reads at most 1,000 GitHub entries, including pull requests in the issue list.
+Reaching that bound without proving the list complete stops the creation stage, even when exactly
+1,000 entries exist. The same rule prevents duplicate screenshot comments after an incomplete scan.
 Partial results retain the existing issue link and permit retry without intentional duplication.
 
 ## Optional screenshot and contact capabilities

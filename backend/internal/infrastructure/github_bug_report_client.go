@@ -195,10 +195,10 @@ func (client *GitHubBugReportIssueClient) ListRecentIssues(
 			})
 		}
 		if len(response) < pageSize {
-			break
+			return issues, nil
 		}
 	}
-	return issues, nil
+	return nil, &GitHubBugReportError{Operation: "reconcile issues: scan limit reached"}
 }
 
 func (client *GitHubBugReportIssueClient) ListIssueComments(
@@ -226,10 +226,10 @@ func (client *GitHubBugReportIssueClient) ListIssueComments(
 			comments = append(comments, application.GitHubBugReportComment{ID: comment.ID, Body: comment.Body})
 		}
 		if len(response) < pageSize {
-			break
+			return comments, nil
 		}
 	}
-	return comments, nil
+	return nil, &GitHubBugReportError{Operation: "reconcile comments: scan limit reached"}
 }
 
 func (client *GitHubBugReportIssueClient) CreateIssueComment(

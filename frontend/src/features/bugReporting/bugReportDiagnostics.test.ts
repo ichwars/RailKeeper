@@ -4,7 +4,29 @@ import { collectBugReportDiagnostics, collectBugReportDiagnosticsWithClientHints
 import type { ClientErrorBuffer } from "./clientErrorBuffer";
 
 describe("bug report diagnostics", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete document.documentElement.dataset.theme;
+  });
+
+  it.each([
+    ["system", true, "dark"],
+    ["system", false, "light"],
+    ["dark", false, "dark"],
+    ["light", true, "light"],
+    ["", true, "dark"],
+    ["", false, "light"]
+  ])("resolves theme %s with system dark mode %s to %s", (preference, prefersDark, theme) => {
+    document.documentElement.dataset.theme = preference;
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: prefersDark }));
+
+    const diagnostics = collectBugReportDiagnostics({
+      area: "overview", roles: ["Viewer"], language: "de",
+      buffer: { snapshot: () => [] } as unknown as ClientErrorBuffer
+    });
+
+    expect(diagnostics.theme).toBe(theme);
+  });
 
   it("collects the allowlisted presentation and navigation fields", () => {
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 1280 });

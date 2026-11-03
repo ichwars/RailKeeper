@@ -88,8 +88,9 @@ export function collectBugReportDiagnostics(input: {
     browserDetails(navigator.userAgent || "");
   const [osFamily, osMajor] = operatingSystemDetailsFromHints(hints?.platform) ||
     operatingSystemDetails(navigator.userAgent || "");
-  const theme = document.documentElement.dataset.theme === "dark" ||
-    (!document.documentElement.dataset.theme && window.matchMedia?.("(prefers-color-scheme: dark)").matches)
+  const themePreference = document.documentElement.dataset.theme;
+  const theme = themePreference === "dark" ||
+    ((!themePreference || themePreference === "system") && window.matchMedia?.("(prefers-color-scheme: dark)").matches)
     ? "dark" : "light";
   return {
     browserFamily,
