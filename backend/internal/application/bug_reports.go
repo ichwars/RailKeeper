@@ -256,7 +256,7 @@ func BuildBugReportIssue(input BugReportIssueInput) (BugReportIssue, error) {
 		"in public issues. [Privat melden / Report privately](https://github.com/ichwars/RailKeeper/security/advisories/new).\n\n")
 	writeBugReportTextSection(&body, "Fehlerbeschreibung / Bug description", input.Report.Description)
 	writeBugReportTextSection(&body, "Erwartetes Verhalten / Expected behavior", input.Report.ExpectedBehavior)
-	writeBugReportTextSection(&body, "Schritte zur Reproduktion / Reproduction steps", input.Report.ReproductionSteps)
+	writeBugReportTextSection(&body, "Schritte zum Nachstellen / Reproduction steps", input.Report.ReproductionSteps)
 	body.WriteString("## Produktbereich / Product area\n\n`")
 	body.WriteString(string(input.Report.Area))
 	body.WriteString("`\n\n")

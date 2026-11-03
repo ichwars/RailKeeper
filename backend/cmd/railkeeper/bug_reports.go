@@ -153,6 +153,7 @@ func collectBugReportServerDiagnostics(
 	diagnostics := application.BugReportServerDiagnostics{
 		RailKeeperVersion: appVersion, DeploymentType: deploymentType, GoVersion: runtime.Version(),
 		OperatingSystem: runtime.GOOS, Architecture: runtime.GOARCH,
+		EnabledDigitalProviderTypes: []string{},
 	}
 	diagnostics.CollectedAt = time.Now().UTC().Format(time.RFC3339)
 	diagnostics.UptimeSeconds = int64(time.Since(bugReportProcessStarted).Seconds())

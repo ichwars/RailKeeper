@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -81,6 +82,19 @@ func TestBugReportServerDiagnosticsIncludeOnlyEnabledProviderTypes(t *testing.T)
 		t.Fatal(err)
 	}
 	settings := application.NewSettingsService(database)
+	emptyDiagnostics, err := collectBugReportServerDiagnostics(
+		t.Context(), database, settings, StartupState{}, "0.1.20", "native",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	emptyJSON, err := json.Marshal(emptyDiagnostics)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(emptyJSON), `"enabledDigitalProviderTypes":[]`) {
+		t.Fatalf("empty provider diagnostics must match the array contract: %s", emptyJSON)
+	}
 	if _, err := settings.UpdateDigitalSettings(t.Context(), application.DigitalCenterSettings{
 		Provider: "ecos",
 		ECoS:     application.DigitalProviderSettings{Enabled: true, Host: "secret.internal", Port: "15471"},

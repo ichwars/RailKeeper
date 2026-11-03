@@ -4878,6 +4878,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "503":
+          description: Explicitly requested diagnostics could not be collected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /bug-reports:
     post:
       tags: [BugReports]

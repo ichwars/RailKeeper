@@ -261,9 +261,10 @@ zusätzlich folgende Regeln:
 - Screenshots sind trotz Bereinigung öffentlich. Keine Screenshots mit Personenbezug,
   Zugangsdaten, privaten Dokumenten oder nicht zur Veröffentlichung bestimmten Oberflächen senden.
 
-RailKeeper prüft die Repositories und sämtliche benötigten Labels beim Start. Fehlt eine
-Berechtigung, ist ein konfiguriertes Asset-Repository privat, fehlen Labels oder ist GitHub nicht erreichbar,
+RailKeeper prüft beim Start den lesenden Zugriff auf die Repositories und sämtliche benötigten Labels.
+Scheitert dieser Zugriff, ist ein konfiguriertes Asset-Repository privat, fehlen Labels oder ist GitHub nicht erreichbar,
 bleibt das In-App-Formular deaktiviert. Die Schaltfläche führt dann zum normalen GitHub-Issue-Link.
+Schreibrechte werden ohne Testübermittlung nicht geprüft; fehlende Schreibrechte zeigen sich erst beim Versand.
 Ohne optionale Asset-Konfiguration bleiben Textberichte verfügbar. Die Ursache wird nur als sichere
 Fehlerkategorie protokolliert, Tokens erscheinen nicht im Log.
 

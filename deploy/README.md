@@ -124,6 +124,9 @@ Restart RailKeeper after changing tokens, repositories, labels, or the recipient
 floating action opens the form. For token rotation, create the replacement token with the same
 narrow scope, update `.env`, restart and verify the form, then revoke the old token. If verification
 fails, RailKeeper leaves in-app submission disabled and retains the external fallback.
+This check verifies repository readability, required labels and public asset visibility. It does not
+create a test issue or file, so write permissions must be configured correctly and are checked by GitHub
+when a report is submitted.
 
 Screenshots are re-decoded and re-encoded before upload, but remain public in the asset repository.
 Users must explicitly consent for every selected screenshot. The optional email address is placed

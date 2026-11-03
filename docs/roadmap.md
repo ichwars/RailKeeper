@@ -143,7 +143,7 @@ integration issue does not mean that its entire adapter is missing.
   runtime acceptance. The Windows EXE metadata/COFF-header anomaly from release verification
   remains a separate builder follow-up, not a confirmed application runtime failure.
 - Dependency updates are tracked as pull requests rather than permanent feature milestones.
-  At this review, [PR #251](https://github.com/ichwars/RailKeeper/pull/251) is open.
+  [PR #251](https://github.com/ichwars/RailKeeper/pull/251) updated lucide-react to 1.64.0 and was merged on 2026-11-03.
 
 ## Explicitly Deferred
 

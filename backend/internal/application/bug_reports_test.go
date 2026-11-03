@@ -190,7 +190,7 @@ func TestBugReportRenderingIsBilingualDeterministicAndSafe(t *testing.T) {
 	for _, required := range []string{
 		"Fehlerbeschreibung / Bug description",
 		"Erwartetes Verhalten / Expected behavior",
-		"Schritte zur Reproduktion / Reproduction steps",
+		"Schritte zum Nachstellen / Reproduction steps",
 		"Automatisch erfasste Diagnosedaten / Automatically collected diagnostics",
 		"Verschlüsselter Kontakt / Encrypted contact",
 		"Öffentlicher Screenshot / Public screenshot",
