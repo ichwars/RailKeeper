@@ -1756,6 +1756,7 @@ ORDER BY name
 	excluded := map[string]bool{
 		"app_settings":                    true,
 		"audit_logs":                      true,
+		"bug_report_submissions":          true,
 		"data_transfer_artifacts":         true,
 		"data_transfer_job_issues":        true,
 		"data_transfer_jobs":              true,
@@ -1787,6 +1788,31 @@ ORDER BY name
 	}
 	if err := rows.Err(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestBackupExcludesBugReportSubmissionMetadata(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	_, err := db.Exec(`
+INSERT INTO bug_report_submissions(
+  report_id, actor_user_id, state, github_issue_number, github_issue_url, asset_url, asset_sha,
+  error_category, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		"018f6f9e-3c68-7df2-a0a4-1d6c37fbb205", "user-1", "complete", 184,
+		"https://github.com/ichwars/RailKeeper/issues/184",
+		"https://raw.githubusercontent.com/assets/sha/report.png", "sha", "",
+		"2026-08-29T08:00:00Z", "2026-08-29T08:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	document, err := application.NewBackupService(db, dataDir).Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, included := document.Tables["bug_report_submissions"]; included {
+		t.Fatal("bug report submission metadata must not be exported")
 	}
 }
 
