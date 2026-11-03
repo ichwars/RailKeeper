@@ -1,4 +1,6 @@
+import { notifyRequestFailure, abstractRequestRoute } from "./apiRequestDiagnostics";
 import { createAccessoriesAPI } from "./apiAccessories";
+import { createBugReportAPI } from "./apiBugReports";
 import type { ECoSImageOptions, ECoSImagePreview, ECoSImageResult } from "./ecosImageModel";
 import type { DecoderLibrary, DecoderLibraryMatch } from "./decoderLibraryModel";
 import type {
@@ -32,6 +34,7 @@ import type {
 } from "../features/digitalCenters/digitalCenterModel";
 
 export * from "./apiAccessories";
+export * from "./apiBugReports";
 export type * from "../features/importExport/dataTransferModel";
 export type * from "../features/digitalCenters/digitalCenterModel";
 
@@ -1282,7 +1285,12 @@ async function request<T>(path: string, init: RequestInit = {}, options: Request
         } catch {
           // Keep the HTTP status text when the server did not return JSON.
         }
-		throw new ApiError(message, code, response.status, details);
+		const apiError = new ApiError(message, code, response.status, details);
+        notifyRequestFailure({
+          category: "api", errorClass: apiError.name, problemCode: code, method,
+          route: abstractRequestRoute(path), status: response.status
+        });
+		throw apiError;
       }
 
       if (response.status === 204) {
@@ -1295,7 +1303,17 @@ async function request<T>(path: string, init: RequestInit = {}, options: Request
         continue;
       }
       if (error instanceof DOMException && error.name === "AbortError") {
+        notifyRequestFailure({
+          category: "timeout", errorClass: error.name, problemCode: "request_timeout", method,
+          route: abstractRequestRoute(path), status: null
+        });
         throw new Error("Die Anfrage hat zu lange gedauert. Bitte erneut versuchen.");
+      }
+      if (!(error instanceof ApiError)) {
+        notifyRequestFailure({
+          category: "network", errorClass: error instanceof Error ? error.name : "Error",
+          problemCode: "network_error", method, route: abstractRequestRoute(path), status: null
+        });
       }
       throw error;
     } finally {
@@ -1312,6 +1330,7 @@ function digitalCenterSessionSuffix(sessionID?: string) {
 }
 
 export const api = {
+  ...createBugReportAPI(request),
   ...createAccessoriesAPI(request),
   dataTransferSummary: () => request<DataTransferSummary>("/data-transfer/summary"),
   dataTransferProfiles: () => request<DataTransferProfile[]>("/data-transfer/profiles"),

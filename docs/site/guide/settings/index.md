@@ -54,6 +54,8 @@ operations on the server. Reordering or hiding a navigation entry never grants o
 The main [Import and export workspace](/guide/import-export/) is a different page. It exchanges
 inventory records. The ECoS locomotive workflow is under **Command stations**. The **Backup** tab inside **Settings** contains administrative backup and master-data transfer. [Backup guide](/administration/backup-restore).
 
+The global [**Report issue**](/guide/settings/bug-reporting) action opens the reporting form for every authenticated role once configured by the operator. Automatic diagnostics can be disabled in that form.
+
 ## How personal preferences are stored
 
 Most preferences apply immediately in the browser, are written to browser storage, and are also

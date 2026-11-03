@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { BarChart3, Box, Boxes, Bug, CalendarDays, ChevronLeft, ChevronRight, CircuitBoard, FileInput, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import type { AppView } from "./App";
 import { api } from "../shared/api";
+import { installClientErrorCapture } from "../features/bugReporting/clientErrorBuffer";
+import type { BugReportCapability } from "../shared/apiBugReports";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference, themePreferenceKey, type ThemePreference } from "../shared/theme";
 import {
@@ -10,6 +12,11 @@ import {
   sidebarOrderChangedEvent,
   sidebarPrefsKey
 } from "./sidebarPreferences";
+
+const LazyBugReportDialog = lazy(() => import("../features/bugReporting/BugReportDialog").then((module) => ({
+  default: module.BugReportDialog
+})));
+const bugReportFallbackURL = "https://github.com/ichwars/RailKeeper/issues/new";
 
 const navItems = [
   { view: "overview", href: "/overview", labelKey: "nav.overview", icon: BarChart3 },
@@ -85,14 +92,27 @@ export function Shell({
   activeView: AppView;
   onLogout: () => void;
 }) {
+  const loadBugReportDiagnostics = useCallback(() => api.bugReportConfig(true), []);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
   const [orderedNavItems, setOrderedNavItems] = useState(() => readNavItems(roles, username));
   const [appVersion, setAppVersion] = useState("");
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [bugReportCapability, setBugReportCapability] = useState<BugReportCapability | null>(null);
+  const [bugReportDialogCapability, setBugReportDialogCapability] = useState<BugReportCapability | null>(null);
+  useEffect(() => {
+    if (bugReportCapability?.enabled) return installClientErrorCapture();
+  }, [bugReportCapability?.enabled]);
   const ThemeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
   const { t } = useI18n();
+  const refreshBugReportCapability = useCallback(async () => {
+    try {
+      setBugReportCapability(await api.bugReportConfig());
+    } catch {
+      setBugReportCapability(null);
+    }
+  }, []);
 
   useEffect(() => {
     const syncOrder = () => setOrderedNavItems(readNavItems(roles, username));
@@ -180,6 +200,21 @@ export function Shell({
     };
   }, [appVersion]);
 
+  useEffect(() => {
+    void refreshBugReportCapability();
+  }, [refreshBugReportCapability]);
+
+  useEffect(() => {
+    if (bugReportCapability?.enabled) return;
+    const refresh = () => void refreshBugReportCapability();
+    const interval = window.setInterval(refresh, 30_000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [bugReportCapability?.enabled, refreshBugReportCapability]);
+
   function toggleTheme() {
     const nextTheme: ThemePreference = theme === "dark" ? "light" : theme === "light" ? "system" : "dark";
     setTheme(nextTheme);
@@ -193,6 +228,19 @@ export function Shell({
       window.localStorage.setItem(sidebarCollapsedKey, String(next));
       return next;
     });
+  }
+
+  async function submitBugReport(input: Parameters<typeof api.submitBugReport>[0]) {
+    try {
+      const result = await api.submitBugReport(input);
+      if (result.status === "partial") {
+        void refreshBugReportCapability();
+      }
+      return result;
+    } catch (error) {
+      void refreshBugReportCapability();
+      throw error;
+    }
   }
 
   return (
@@ -273,9 +321,40 @@ export function Shell({
 
       <main className="main">{children}</main>
 
-      <a className="feedback-button" href="https://github.com/ichwars/RailKeeper/issues/new" target="_blank" rel="noreferrer" title={t("nav.feedback")} aria-label={t("nav.feedback")}>
-        <Bug size={20} aria-hidden="true" />
-      </a>
+      {bugReportCapability?.enabled ? (
+        <button
+          type="button"
+          className="feedback-button"
+          title={t("nav.feedback")}
+          aria-label={t("nav.feedback")}
+          onClick={() => setBugReportDialogCapability(bugReportCapability)}
+        >
+          <Bug size={20} aria-hidden="true" />
+        </button>
+      ) : (
+        <a
+          className="feedback-button"
+          href={bugReportCapability?.fallbackUrl || bugReportFallbackURL}
+          target="_blank"
+          rel="noreferrer"
+          title={t("nav.feedback")}
+          aria-label={t("nav.feedback")}
+        >
+          <Bug size={20} aria-hidden="true" />
+        </a>
+      )}
+      {bugReportDialogCapability ? (
+        <Suspense fallback={null}>
+          <LazyBugReportDialog
+            onLoadDiagnostics={loadBugReportDiagnostics}
+            capability={bugReportDialogCapability}
+            initialArea={activeView}
+            roles={roles}
+            onClose={() => setBugReportDialogCapability(null)}
+            onSubmit={submitBugReport}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

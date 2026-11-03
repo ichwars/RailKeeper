@@ -179,6 +179,22 @@ RAILKEEPER_SEEDS_DIR=/app/seeds
 RAILKEEPER_STATIC_DIR=/app/web
 ```
 
+### Optional in-app bug reporting
+
+Operators can enable the floating **Report issue** form so authenticated users can create a labeled
+GitHub issue directly from RailKeeper. It requires an issue token/repository. Separate asset credentials for a different public repository
+optionally enable screenshots. If startup validation fails or the
+feature is not configured, the button remains an external GitHub Issues link.
+
+Users can disable automatic diagnostics; the choice is remembered in their browser.
+When enabled, the report contains bounded runtime, browser, presentation, navigation, role, enabled
+digital-provider-type, and sanitized client-error diagnostics. It does not collect inventory data
+or counts, connected-device statistics or connection details, credentials, request contents, or
+local paths. Screenshots are optional, sanitized, and public only after explicit consent.
+
+See the [bug-reporting guide](docs/site/guide/settings/bug-reporting.md) and the
+[deployment notes](deploy/README.md#in-app-bug-reporting) for the full setup and privacy contract.
+
 ## Local Development
 
 Backend:

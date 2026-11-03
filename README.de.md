@@ -190,6 +190,25 @@ RAILKEEPER_SEEDS_DIR=/app/seeds
 RAILKEEPER_STATIC_DIR=/app/web
 ```
 
+### Optionale Fehlerberichte direkt aus RailKeeper
+
+Betreiber können das schwebende Formular **Fehler melden** aktivieren. Angemeldete Benutzer erstellen
+damit direkt aus RailKeeper ein beschriftetes GitHub-Issue. Dafür ist ein Fine-grained Token
+für das Issue-Repository erforderlich. Ein separates öffentliches Asset-Repository ermöglicht optional Screenshots. Schlägt
+die Startprüfung fehl oder fehlt die Konfiguration, bleibt die Schaltfläche ein externer Link zu
+GitHub Issues.
+
+Nutzer können automatische Diagnosen abschalten; die Auswahl bleibt im Browser gespeichert.
+Der Bericht enthält begrenzte Diagnosewerte zu RailKeeper-Laufzeit, Browser, Darstellung,
+Navigation, Rollen, aktivierten Digitalzentralen-Typen und bereinigten Browserfehlern. Nicht erfasst
+werden Bestandsdaten oder Bestandszahlen, Statistiken oder Verbindungsdetails zu verbundenen Geräten,
+Zugangsdaten, Anfrageinhalte oder lokale Pfade. Screenshots sind optional, werden bereinigt und nur
+nach ausdrücklicher Zustimmung öffentlich gespeichert.
+
+Die vollständige Einrichtung und Datenschutzabgrenzung stehen im
+[Leitfaden für Fehlerberichte](docs/site/de/guide/settings/bug-reporting.md) und in den
+[Bereitstellungshinweisen](deploy/README.md#in-app-bug-reporting).
+
 ## Lokale Entwicklung
 
 Backend:

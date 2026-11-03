@@ -7,6 +7,11 @@ Consult the [English handbook](https://ichwars.github.io/RailKeeper/) or the
 troubleshooting guidance. If the handbook does not resolve the problem:
 
 - Report reproducible defects through [GitHub Issues](https://github.com/ichwars/RailKeeper/issues).
+  When the operator has enabled it, authenticated users can use **Report issue / Fehler melden**
+  inside RailKeeper. It creates the same kind of labeled GitHub issue without requiring a GitHub
+  account in the browser. Review the disclosed diagnostics and remember that an attached screenshot
+  is public. See the [English guide](docs/site/guide/settings/bug-reporting.md) or the
+  [German guide](docs/site/de/guide/settings/bug-reporting.md).
 - Discuss usage questions and feature ideas in
   [GitHub Discussions](https://github.com/ichwars/RailKeeper/discussions).
 - Report vulnerabilities only through the private process described in [SECURITY.md](SECURITY.md).

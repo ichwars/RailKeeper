@@ -246,6 +246,72 @@ Prüfpunkte:
 - Passwortwechsel nach geteilten oder temporären Zugängen durchführen.
 - Sicherheitsereignisse nach Setup, Restore und Updates prüfen.
 
+## In-App-Fehlerberichte
+
+Die Funktion ist optional. Die vollständige GitHub- und age-Einrichtung steht in den
+[Bereitstellungshinweisen](../deploy/README.md#in-app-bug-reporting). Für den Betrieb gelten
+zusätzlich folgende Regeln:
+
+- Für allgemeine Installationen das Issue-Token auf das Issue-Repository begrenzen. Es benötigt
+  **Issues: Read and write**.
+- Das optionale Asset-Token darf nur auf das getrennte öffentliche Screenshot-Repository zugreifen und
+  benötigt ausschließlich **Contents: Read and write**.
+- Die private age-Identität bleibt außerhalb des RailKeeper-Datenverzeichnisses, der App-Backups,
+  des Repositorys und der `.env`. RailKeeper erhält nur den öffentlichen Empfänger.
+- Screenshots sind trotz Bereinigung öffentlich. Keine Screenshots mit Personenbezug,
+  Zugangsdaten, privaten Dokumenten oder nicht zur Veröffentlichung bestimmten Oberflächen senden.
+
+RailKeeper prüft die Repositories und sämtliche benötigten Labels beim Start. Fehlt eine
+Berechtigung, ist ein konfiguriertes Asset-Repository privat, fehlen Labels oder ist GitHub nicht erreichbar,
+bleibt das In-App-Formular deaktiviert. Die Schaltfläche führt dann zum normalen GitHub-Issue-Link.
+Ohne optionale Asset-Konfiguration bleiben Textberichte verfügbar. Die Ursache wird nur als sichere
+Fehlerkategorie protokolliert, Tokens erscheinen nicht im Log.
+
+Prüfung nach Einrichtung oder Rotation:
+
+1. RailKeeper neu starten und Startprotokoll auf die Kategorie `github_capability` prüfen.
+2. Als Viewer oder Editor anmelden und **Fehler melden** öffnen.
+3. Prüfen, dass Bereich, Beschreibung und Datenhinweis angezeigt werden.
+4. Einen Testbericht ohne Screenshot absenden und Labels sowie zweisprachigen Issue-Inhalt prüfen.
+5. Optional einen unkritischen Test-Screenshot mit Zustimmung senden und den öffentlichen,
+   commitgebundenen Link im Issue prüfen.
+6. Test-Issue und Test-Asset nach der Prüfung nach den Projektregeln bereinigen.
+
+Ein neuer Benutzer kann höchstens fünf neue Bericht-IDs pro Stunde erstellen. Ein erneuter Versuch
+mit derselben Bericht-ID zählt nicht als neuer Bericht. Wird das Issue erstellt, aber Screenshot oder
+Kommentar schlagen fehl, zeigt RailKeeper einen Teilstatus und verwendet beim erneuten Versuch
+dieselbe Bericht-ID und dasselbe Issue. Dadurch entstehen keine beabsichtigten Duplikate.
+
+Die optionale E-Mail-Adresse steht im Issue als ASCII-armierter age-Block. Den Block einschließlich
+Kopf- und Fußzeile in eine Datei kopieren und ausschließlich auf einem vertrauenswürdigen System
+entschlüsseln:
+
+```bash
+age --decrypt -i railkeeper-bug-report-identity.txt contact.age
+```
+
+Token-Rotation:
+
+1. Ersatz-Token mit identischem, engem Repository-Scope erstellen.
+2. Wert in `.env` ersetzen und RailKeeper neu starten.
+3. Formular und einen kontrollierten Testbericht prüfen.
+4. Erst danach das alte Token widerrufen.
+
+Bei vermutetem Token-Abfluss das betroffene Token sofort auf GitHub widerrufen, RailKeeper neu
+starten und GitHub-Auditdaten sowie Repository-Änderungen prüfen. Ein widerrufenes oder ungültiges
+Token deaktiviert das Formular beim nächsten Start. Das jeweils andere Token ebenfalls rotieren,
+wenn eine gemeinsame Ablage kompromittiert sein könnte.
+
+Der Diagnosevertrag ist bewusst eng. Enthalten sind RailKeeper- und Go-Version, Betriebssystem und
+Architektur, Schema-Version, Bereitstellungsart, Browserfamilie und Hauptversion, Darstellungsmodus,
+Sprache, Zeitzone, Viewport, aktueller Pfad und Bereich, Rollen, aktivierte
+Digitalzentralen-Typen sowie höchstens 30 bereinigte Browserfehler. Nicht enthalten sind:
+
+- Bestandsdaten und Bestandszahlen zu Fahrzeugen, Zubehör, Anlagen oder Ausstellungen
+- Statistiken, Gerätezahlen, Zustände, Adressen, Hosts oder Ports verbundener Geräte
+- Druckernamen, Seriennummern, Zugangsdaten, Tokens, Cookies oder API-Schlüssel
+- Anfrageinhalte, Webhook-URLs, Hostnamen der Benutzer, lokale Pfade oder Benutzernamen
+
 ## Lokaler Smoke-Test Nach Änderungen
 
 Für lokale Quellcode-Prüfung:
@@ -271,3 +337,13 @@ Für eine laufende Docker-Installation:
 - Keine Tokens, Passwörter oder privaten Backups in Git committen.
 - Externe Artikel-Suchergebnisse als untrusted input behandeln und nur bewusst übernehmen.
 - Vor öffentlicher Exposition immer Reverse Proxy, TLS und sichere Cookies prüfen.
+
+The issue token/repository enable text reports. Asset credentials are optional and enable screenshots.
+Diagnostic inclusion can be disabled by each reporter; the remembered choice stops local error capture
+and omits both browser and server diagnostics. Process memory/uptime and SQLite health are included
+only when enabled. No device probes or inventory data are collected.
+
+Der Issue-Token und das Ziel-Repository ermöglichen Textberichte. Asset-Zugangsdaten sind optional
+und schalten Screenshots frei. Nutzer können die Diagnose abschalten; die gespeicherte Auswahl
+stoppt die lokale Fehlererfassung und lässt Browser- und Serverdiagnose weg. Prozessspeicher, Laufzeit
+und SQLite-Zustand werden nur bei eingeschalteter Diagnose ergänzt. Es erfolgen keine Geräteabfragen.
