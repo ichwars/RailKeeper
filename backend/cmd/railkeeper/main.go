@@ -18,7 +18,9 @@ import (
 	"railkeeper/backend/internal/startup"
 )
 
-var version = "0.1.22"
+var (
+	version = "0.1.22"
+)
 
 const defaultUpdateCheckURL = "https://api.github.com/repos/ichwars/RailKeeper/releases/latest"
 
