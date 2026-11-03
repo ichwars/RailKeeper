@@ -10,11 +10,12 @@ import (
 type routeAccess string
 
 const (
-	routeAccessPublic routeAccess = "public"
-	routeAccessAdmin  routeAccess = "Admin"
-	routeAccessEditor routeAccess = "Editor"
-	routeAccessViewer routeAccess = "Viewer"
-	routeAccessMesse  routeAccess = "Messe"
+	routeAccessAuthenticated routeAccess = "authenticated"
+	routeAccessPublic        routeAccess = "public"
+	routeAccessAdmin         routeAccess = "Admin"
+	routeAccessEditor        routeAccess = "Editor"
+	routeAccessViewer        routeAccess = "Viewer"
+	routeAccessMesse         routeAccess = "Messe"
 )
 
 type routeHandler func(*App, http.ResponseWriter, *http.Request)
@@ -32,6 +33,8 @@ func apiRouteSpecs() []routeSpec {
 	return []routeSpec{
 		{http.MethodGet, "/health", routeAccessPublic, (*App).health, nil},
 		{http.MethodGet, "/api/v1/version", routeAccessPublic, (*App).versionInfo, nil},
+		{http.MethodGet, "/api/v1/bug-reports/config", routeAccessAuthenticated, (*App).bugReportConfig, nil},
+		{http.MethodPost, "/api/v1/bug-reports", routeAccessAuthenticated, (*App).submitBugReport, nil},
 		{http.MethodGet, "/api/v1/system/storage", routeAccessAdmin, (*App).systemStorage, nil},
 		{http.MethodPost, "/api/v1/system/storage/optimize", routeAccessAdmin, (*App).optimizeSystemStorage, nil},
 		{http.MethodGet, "/api/v1/system/storage/info", routeAccessAdmin, (*App).storageLocationInfo, nil},
@@ -239,6 +242,8 @@ func (a *App) registerRoutes(mux *http.ServeMux) {
 		})
 		if route.Authorize != nil {
 			handler = route.Authorize(a, handler)
+		} else if route.Access == routeAccessAuthenticated {
+			handler = a.requireAny([]string{"Admin", "Editor", "Viewer", "Messe"}, handler)
 		} else if route.Access != routeAccessPublic {
 			handler = a.require(string(route.Access), handler)
 		}

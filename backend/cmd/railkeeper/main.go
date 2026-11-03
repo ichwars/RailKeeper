@@ -18,10 +18,9 @@ import (
 	"railkeeper/backend/internal/startup"
 )
 
-const (
-	version               = "0.1.22"
-	defaultUpdateCheckURL = "https://api.github.com/repos/ichwars/RailKeeper/releases/latest"
-)
+var version = "0.1.22"
+
+const defaultUpdateCheckURL = "https://api.github.com/repos/ichwars/RailKeeper/releases/latest"
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
@@ -71,6 +70,7 @@ func main() {
 	allowedAttachmentExtensions := envExtensionSet("RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS")
 	updateCheckURL := env("RAILKEEPER_UPDATE_CHECK_URL", defaultUpdateCheckURL)
 	trustedProxyCIDRs := envList("RAILKEEPER_TRUSTED_PROXY_CIDRS")
+	bugReports := bugReportOptionsFromLookup(os.LookupEnv)
 
 	listener, appURL, err := listen(addr, standalone)
 	if err != nil {
@@ -107,6 +107,7 @@ func main() {
 			SMTPConfig:                  smtpConfig,
 			PublicURL:                   publicURL,
 			CookieSecure:                cookieSecure,
+			BugReports:                  bugReports,
 		}),
 	)
 	if err != nil {

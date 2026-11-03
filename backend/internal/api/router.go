@@ -40,6 +40,9 @@ type Config struct {
 	DataTransferService         *application.DataTransferService
 	SettingsService             *application.SettingsService
 	RateLimitService            *application.RateLimitService
+	BugReportService            *application.BugReportService
+	BugReportCapability         BugReportCapability
+	BugReportCapabilityControl  BugReportCapabilityControl
 	PasswordResetMailer         application.PasswordResetMailer
 	SMTPSettingsService         *application.SMTPSettingsService
 	PublicURL                   string
@@ -82,6 +85,9 @@ type App struct {
 	cookieSecure                bool
 	windowsStandaloneDownload   bool
 	rateLimits                  rateLimitStore
+	bugReportService            *application.BugReportService
+	bugReportCapability         BugReportCapability
+	bugReportCapabilityControl  BugReportCapabilityControl
 	storageLocation             *storageLocationState
 	trustedProxyPrefixes        []netip.Prefix
 	versionCheckMu              sync.Mutex
@@ -134,6 +140,9 @@ func NewRouter(config Config) http.Handler {
 		cookieSecure:                config.CookieSecure,
 		windowsStandaloneDownload:   config.WindowsStandaloneDownload,
 		rateLimits:                  config.RateLimitService,
+		bugReportService:            config.BugReportService,
+		bugReportCapability:         normalizeBugReportCapability(config.BugReportCapability),
+		bugReportCapabilityControl:  config.BugReportCapabilityControl,
 		storageLocation:             newStorageLocationState(config.StorageLocation, config.DataDir),
 		trustedProxyPrefixes:        trustedProxyPrefixes,
 		versionCheckCache:           map[bool]cachedUpdateCheck{},

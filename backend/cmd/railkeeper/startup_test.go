@@ -4,11 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
+	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/infrastructure"
 	"railkeeper/backend/internal/startup"
 )
@@ -65,6 +68,40 @@ func TestPrepareStartupConflictSkipsDatabaseMigrationsSeedsAndRouter(t *testing.
 	}
 	if !reflect.DeepEqual(calls, []string{"resolve"}) {
 		t.Fatalf("conflict startup calls = %v, want only legacy resolution", calls)
+	}
+}
+
+func TestBugReportServerDiagnosticsIncludeOnlyEnabledProviderTypes(t *testing.T) {
+	database, err := infrastructure.OpenSQLite(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = database.Close() })
+	if err := infrastructure.Migrate(database, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatal(err)
+	}
+	settings := application.NewSettingsService(database)
+	if _, err := settings.UpdateDigitalSettings(t.Context(), application.DigitalCenterSettings{
+		Provider: "ecos",
+		ECoS:     application.DigitalProviderSettings{Enabled: true, Host: "secret.internal", Port: "15471"},
+		CS3:      application.DigitalProviderSettings{Enabled: true, Host: "192.0.2.42", Port: "80"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	diagnostics, err := collectBugReportServerDiagnostics(
+		t.Context(), database, settings, StartupState{}, "0.1.20", "native",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(diagnostics.EnabledDigitalProviderTypes, []string{"cs3", "ecos"}) ||
+		diagnostics.SchemaVersion < 72 {
+		t.Fatalf("unexpected diagnostics: %#v", diagnostics)
+	}
+	encoded := fmt.Sprintf("%#v", diagnostics)
+	if strings.Contains(encoded, "secret.internal") || strings.Contains(encoded, "192.0.2.42") ||
+		strings.Contains(encoded, "15471") {
+		t.Fatalf("provider address leaked: %s", encoded)
 	}
 }
 
