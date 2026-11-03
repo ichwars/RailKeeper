@@ -1,5 +1,9 @@
 # Roadmap
 
+Reviewed against the current source on 2026-11-03. Stable baseline: v0.1.22. Implemented features, remaining
+development and missing hardware acceptance are listed separately below. An open
+integration issue does not mean that its entire adapter is missing.
+
 ## Completed Foundation
 
 - Go API and static frontend runtime
@@ -60,12 +64,14 @@
 - current-user password change with automatic revocation of other sessions
 - admin password resets revoke affected user sessions
 - token-based password reset flow from login
+- optional TOTP two-factor authentication enforced by the backend
 - settings security event review for audit logs
 - compact backup export storage summary in settings
 - exhibition lists for fair/show operations with a dedicated Messe role
 - exhibition entry dialogs with shared function symbol picker
 - exhibition print view for the current list state
 - audit coverage for exhibition list and entry lifecycle actions
+- server-side exhibition address and duplicate-vehicle conflict detection, scoped by interface and day
 - inventory filter bar with segmented icon filters and master-data dropdowns
 - inventory PDF report dialog for overview and detailed vehicle reports
 - read-only vehicle detail view with clickable source links and image preview
@@ -75,42 +81,77 @@
 - hierarchical storage locations and stock adjustments
 - reservations and installations for vehicles
 - accessory condition, removal and allocation history
+- vehicle spare-parts research with reviewable sources and extraction from attachments
+- inline PDF, text and image attachment previews
+- decoder manufacturer/model library with source-backed CV and function suggestions
+- unified ECoS reading and comparison of locomotive data, stored CVs and static functions
+- confirmed ECoS image upload with target preview and verification
+- bounded Z21 address reads for decoder addresses already known to RailKeeper
+- separate Intellibox 3 transport capabilities for implemented Z21 UDP and planned LocoNet TCP
+- stable Linux AMD64 and ARM64 Docker images
 - lossless retirement of former layout planning, preserving vehicle installations and old backups
 
-## Next Practical Milestones
+## Implemented, Awaiting a Stable Release
 
-1. ESU LokProgrammer import
-   - only reverse-engineer proprietary ESUX blocks if no supported export path exists
-   - keep expanding supported export formats when real samples become available
-2. Digital command-station adapters
-   - finish the Z21 adapter beyond the current UDP connection test where useful
-   - evaluate Intellibox 3 as a Z21-compatible provider first
-   - evaluate Intellibox 3 LocoNet-over-TCP for data that Z21 does not expose
-   - defer Intellibox 2 USB/COM-Port support until the Windows-local workflow and Docker limitations are clear
-3. Settings and system integration
+- Direct in-app bug reports for authenticated users, with operator-configured GitHub delivery.
+- Reviewable system/process/SQLite and browser diagnostics, a remembered opt-out, and no background upload.
+- Optional screenshot and encrypted-contact capabilities, independent of text reporting.
+- Safe report IDs also on local HTTP origins, persistent submission admission and retry reconciliation.
+
+## Current Development
+
+1. Digital command-station adapters
+   - [ECoS #132](https://github.com/ichwars/RailKeeper/issues/132): add identified real-device/firmware
+     fixtures, extend compatibility evidence and harden interrupted or incomplete workflows
+   - [Z21 #133](https://github.com/ichwars/RailKeeper/issues/133): validate the implemented bounded
+     address-read path on real Z21/z21 hardware and resolve firmware-dependent protocol ambiguities
+   - [Intellibox 3 #134](https://github.com/ichwars/RailKeeper/issues/134): validate Z21-compatible UDP
+     on real hardware; implement LocoNet TCP and locomotive import only after protocol evidence exists
+
+## Further Improvements Requiring Scope or Samples
+
+1. Decoder imports and reference data
+   - expand supported LokProgrammer export formats when real samples become available
+   - proprietary ESUX CV blocks remain undecoded; investigate only if supported exports are insufficient
+   - extend manufacturer/model and CV coverage using the documented gaps and primary sources
+2. Settings and system integration
    - decide how far print jobs should be automated beyond the browser system dialog
-   - decide which authentication options should become functional instead of informational
    - keep storage usage, backup and restore visible without making settings feel overloaded
-4. Exhibition hardening
-   - add backend-side duplicate address validation for exhibition entries, matching the current UI warning for DCC/SX address conflicts
-   - decide whether duplicate exhibition addresses should be warning-only or blocked at database/API level
-5. Ongoing Bambuddy-inspired design polish
+3. Exhibition conflict policy
+   - address conflicts are already detected by the backend and shown to users
+   - decide separately whether conflicts should prevent saving instead of remaining warnings
+4. Ongoing Bambuddy-inspired design polish
    - continue refining dense toolbar/table layouts without boxed hover effects
    - keep icon buttons transparent by default with color-only hover feedback
    - review mobile navigation after the collapsible desktop sidebar work
    - continue checking table, card and modal readability in dark mode
    - refine maintenance placement and visual hierarchy in the inventory area
    - adapt Bambuddy-style row context menus further where they add clear value
-6. Vehicle action depth
+5. Vehicle action depth
    - evaluate direct upload shortcuts in the quick menu where useful
    - keep destructive actions separated and confirmed
    - later upload polish: drag sorting for vehicle images
-   - later upload polish: direct preview for PDF/TXT attachments
    - later upload polish: bulk actions for attachments
+
+## Acceptance and Maintenance Follow-up
+
+- Existing compatibility evidence and limitations are recorded in
+  [command-station compatibility](site/reference/command-station-compatibility.md).
+  In particular, the ECoS busy-control image-transfer flow has automated coverage but still lacks
+  an additional real-device acceptance run.
+- v0.1.22 has native AMD64/ARM64 container checks, but no new physical Raspberry Pi or Windows
+  runtime acceptance. The Windows EXE metadata/COFF-header anomaly from release verification
+  remains a separate builder follow-up, not a confirmed application runtime failure.
+- Dependency updates are tracked as pull requests rather than permanent feature milestones.
+  At this review, [PR #251](https://github.com/ichwars/RailKeeper/pull/251) is open.
 
 ## Explicitly Deferred
 
-- spare parts tab with targeted web search, images, prices, source, article numbers and update checks
+- Intellibox 2 USB/COM support until the Windows-local workflow and Docker limitations are clear
+- CV programming and wider device writes without a separate protocol and safety decision
 - public sharing by default
 - cloud sync
 - multi-tenant hosting
+
+Layout/module/track planning was deliberately retired in v0.1.22. Historical worktrees and plans
+for that area are retained context, not unfinished work scheduled for reintegration.
