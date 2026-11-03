@@ -62,7 +62,7 @@ ON CONFLICT(report_id) DO NOTHING`, reportID, actorUserID, application.BugReport
 
 	if admission.Scope != "" && admission.Limit > 0 && admission.Window > 0 {
 		cutoff := now.Add(-admission.Window).Format(time.RFC3339Nano)
-		if _, err := tx.ExecContext(ctx, `DELETE FROM rate_limit_attempts WHERE attempted_at <= ?`, cutoff); err != nil {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM rate_limit_attempts WHERE scope=? AND attempted_at <= ?`, admission.Scope, cutoff); err != nil {
 			return false, false, application.BugReportSubmission{}, fmt.Errorf("cleanup bug report admission: %w", err)
 		}
 		var count int

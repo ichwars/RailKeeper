@@ -39,6 +39,12 @@ func TestBugReportRepositoryReservesAndLoadsSubmission(t *testing.T) {
 
 func TestBugReportRepositoryAtomicallyAdmitsOnlyNewReservedIDs(t *testing.T) {
 	db := testDB(t)
+	if _, err := db.ExecContext(t.Context(), `
+INSERT INTO rate_limit_attempts(id, scope, key, attempted_at) VALUES(?, ?, ?, ?)`,
+		"long-window-attempt", "other-scope", "user-1",
+		time.Now().UTC().Add(-90*time.Minute).Format(time.RFC3339Nano)); err != nil {
+		t.Fatal(err)
+	}
 	repository := infrastructure.NewBugReportRepository(db)
 	policy := application.BugReportAdmissionPolicy{Scope: "bug_report_new", Limit: 1, Window: time.Hour}
 
@@ -70,6 +76,13 @@ func TestBugReportRepositoryAtomicallyAdmitsOnlyNewReservedIDs(t *testing.T) {
 	}
 	if submissions != 1 || attempts != 1 {
 		t.Fatalf("submissions=%d attempts=%d, want 1 and 1", submissions, attempts)
+	}
+	var otherAttempts int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM rate_limit_attempts WHERE scope='other-scope'`).Scan(&otherAttempts); err != nil {
+		t.Fatal(err)
+	}
+	if otherAttempts != 1 {
+		t.Fatal("report admission must not prune counters from another scope")
 	}
 }
 

@@ -3,6 +3,7 @@ package infrastructure_test
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -223,6 +224,49 @@ func TestGitHubBugReportClientErrorsNeverExposeTokenOrResponseBody(t *testing.T)
 	_, err := client.CreateIssue(t.Context(), application.BugReportIssue{Title: "title", Body: "body"})
 	if err == nil || strings.Contains(err.Error(), "issue-token") || strings.Contains(err.Error(), "remote-secret-body") {
 		t.Fatalf("unsafe error: %v", err)
+	}
+}
+
+func TestGitHubBugReportCapabilityPaginatesLabelsAndFailsOnLaterPageErrors(t *testing.T) {
+	for _, failSecondPage := range []bool{false, true} {
+		t.Run(fmt.Sprintf("later-page-error=%v", failSecondPage), func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+				assertGitHubBugReportHeaders(t, request, "issue-token")
+				if request.URL.Path == "/repos/o/r" {
+					_, _ = io.WriteString(response, `{"private":false}`)
+					return
+				}
+				if request.URL.Path != "/repos/o/r/labels" || request.URL.Query().Get("per_page") != "100" {
+					t.Fatalf("unexpected labels request: %s", request.URL.String())
+				}
+				switch request.URL.Query().Get("page") {
+				case "", "1":
+					labels := make([]map[string]string, 100)
+					for index := range labels {
+						labels[index] = map[string]string{"name": fmt.Sprintf("existing-%03d", index)}
+					}
+					_ = json.NewEncoder(response).Encode(labels)
+				case "2":
+					if failSecondPage {
+						response.WriteHeader(http.StatusServiceUnavailable)
+						return
+					}
+					_, _ = io.WriteString(response, `[{"name":"bug"},{"name":"source:in-app"},{"name":"area:vehicles"}]`)
+				default:
+					t.Fatalf("unexpected label page: %s", request.URL.RawQuery)
+				}
+			}))
+			defer server.Close()
+			err := infrastructure.ValidateGitHubBugReportCapability(t.Context(), newTestIssueClient(t, server, "o/r"), nil,
+				[]string{"bug", "source:in-app", "area:vehicles"})
+			if failSecondPage {
+				if err == nil || !strings.Contains(err.Error(), "status 503") {
+					t.Fatalf("later label-page failure must disable reporting: %v", err)
+				}
+			} else if err != nil {
+				t.Fatalf("required labels on a later page must enable reporting: %v", err)
+			}
+		})
 	}
 }
 

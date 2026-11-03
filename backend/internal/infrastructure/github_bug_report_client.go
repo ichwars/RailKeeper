@@ -379,19 +379,23 @@ func (client *GitHubBugReportAssetClient) repositoryInfo(ctx context.Context) (g
 }
 
 func (client *GitHubBugReportIssueClient) labels(ctx context.Context) ([]string, error) {
-	var response []struct {
-		Name string `json:"name"`
+	labels := []string{}
+	for page := 1; ; page++ {
+		var response []struct {
+			Name string `json:"name"`
+		}
+		query := url.Values{"per_page": {"100"}, "page": {strconv.Itoa(page)}}
+		if err := client.client.requestJSON(ctx, http.MethodGet, client.repository.apiPath("labels"), query,
+			nil, &response, http.StatusOK); err != nil {
+			return nil, err
+		}
+		for _, label := range response {
+			labels = append(labels, label.Name)
+		}
+		if len(response) < 100 {
+			return labels, nil
+		}
 	}
-	query := url.Values{"per_page": {"100"}}
-	if err := client.client.requestJSON(ctx, http.MethodGet, client.repository.apiPath("labels"), query,
-		nil, &response, http.StatusOK); err != nil {
-		return nil, err
-	}
-	labels := make([]string, 0, len(response))
-	for _, label := range response {
-		labels = append(labels, label.Name)
-	}
-	return labels, nil
 }
 
 func (client *githubBugReportClient) requestJSON(

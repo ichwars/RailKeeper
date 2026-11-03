@@ -33,7 +33,7 @@ func (s *RateLimitService) Allow(ctx context.Context, scope, key string, limit i
 		}
 	}()
 
-	if _, err = tx.ExecContext(ctx, `DELETE FROM rate_limit_attempts WHERE attempted_at <= ?`, cutoff); err != nil {
+	if _, err = tx.ExecContext(ctx, `DELETE FROM rate_limit_attempts WHERE scope=? AND attempted_at <= ?`, scope, cutoff); err != nil {
 		return false, fmt.Errorf("cleanup rate limits: %w", err)
 	}
 
