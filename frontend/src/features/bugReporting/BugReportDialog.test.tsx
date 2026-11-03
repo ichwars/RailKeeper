@@ -42,6 +42,31 @@ describe("BugReportDialog", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(/mindestens 20|at least 20/i);
   });
 
+  it("explains the area selection, keeps its menu inside the dialog and submits the chosen area", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue({
+      reportId: "8b1d6340-0f66-472e-9954-58f1e9d88c88", issueNumber: 184,
+      issueUrl: "https://github.com/ichwars/RailKeeper/issues/184", status: "complete", warning: ""
+    });
+    render(<BugReportDialog capability={capability} initialArea="overview" roles={["Viewer"]}
+      onClose={vi.fn()} onSubmit={onSubmit} />);
+    const dialog = screen.getByRole("dialog", { name: /Fehler melden|Report issue/i });
+    const selector = screen.getByRole("button", { name: /Wo tritt der Fehler auf|Where does the problem occur/i });
+    expect(selector).toHaveAccessibleDescription(/Sonstiges|Other/);
+    expect(selector).toHaveAttribute("aria-required", "true");
+    await user.click(selector);
+    expect(dialog).toContainElement(screen.getByRole("listbox"));
+    expect(screen.getAllByRole("option")).toHaveLength(8);
+    await user.click(screen.getByRole("option", { name: /Import und Export|Import and export/i }));
+    expect(selector).toHaveTextContent(/Import und Export|Import and export/i);
+    expect(selector).toHaveFocus();
+    await user.type(screen.getByLabelText(/Was ist passiert|What happened/i),
+      "Der Import lässt sich nach der Dateiauswahl nicht starten.");
+    await user.click(screen.getByRole("button", { name: /Fehlerbericht senden|Send bug report/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ area: "importExport", clientDiagnostics: { area: "importExport" } });
+  });
+
   it("submits current diagnostics and shows the created issue", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn().mockResolvedValue({

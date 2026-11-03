@@ -7,6 +7,7 @@ import {
   KeyboardEvent,
   ReactNode,
   type Ref,
+  type RefObject,
   isValidElement,
   useEffect,
   useId,
@@ -37,10 +38,11 @@ type AppSelectProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" |
   onChange?: (event: AppSelectChangeEvent) => void;
   required?: boolean;
   triggerRef?: Ref<HTMLButtonElement>;
+  portalContainerRef?: RefObject<HTMLElement | null>;
 };
 
 export function AppSelect({ value, children, onChange, className = "", disabled, required, triggerRef,
-  ...buttonProps }: AppSelectProps) {
+  portalContainerRef, ...buttonProps }: AppSelectProps) {
   const listID = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -266,7 +268,7 @@ export function AppSelect({ value, children, onChange, className = "", disabled,
             );
           })}
         </div>,
-        document.body
+        portalContainerRef?.current || document.body
       )}
     </div>
   );

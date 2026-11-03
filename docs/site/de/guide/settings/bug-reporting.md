@@ -23,7 +23,8 @@ an einen anderen Dienst umgeleitet.
 ## Einen hilfreichen Bericht senden
 
 1. Die Seite öffnen, auf der das Problem aufgetreten ist, und **Fehler melden** wählen.
-2. Den vorausgewählten Bereich prüfen und bei Bedarf ändern.
+2. Unter **Wo tritt der Fehler auf?** den betroffenen Teil von RailKeeper wählen. Die aktuelle Seite
+   ist vorausgewählt. Bei Unsicherheit **Sonstiges** wählen.
 3. Das Problem mit mindestens 20 Zeichen beschreiben.
 4. Optional den erwarteten Zustand und Reproduktionsschritte ergänzen.
 5. Eine E-Mail-Adresse nur angeben, wenn der Maintainer Kontakt aufnehmen darf. Das Feld erscheint

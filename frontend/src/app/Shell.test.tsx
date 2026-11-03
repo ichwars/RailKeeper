@@ -171,7 +171,7 @@ describe("Shell article navigation", () => {
     trigger.click();
 
     expect(await screen.findByRole("dialog", { name: "Fehler melden" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Bereich" })).toHaveTextContent("Zubehör");
+    expect(screen.getByRole("button", { name: "Wo tritt der Fehler auf?" })).toHaveTextContent("Zubehör");
   });
 
   it("keeps the external fallback when the capability check fails", async () => {

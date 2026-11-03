@@ -21,7 +21,8 @@ Issues page instead. Your form content is never silently redirected to a differe
 ## Send a useful report
 
 1. Open the page where the problem occurred and select **Report issue**.
-2. Check the preselected area and change it when necessary.
+2. Under **Where does the problem occur?**, choose the affected part of RailKeeper. The current page
+   is selected automatically. Choose **Other** if you are unsure.
 3. Describe what happened in at least 20 characters.
 4. Optionally add the expected behaviour and reproduction steps.
 5. Add an email address only when you want the maintainer to contact you. This field appears only

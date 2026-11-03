@@ -267,6 +267,7 @@
   min-width: 0;
 }
 
+.bug-report-area-help,
 .bug-report-diagnostic-help,
 .bug-report-diagnostic-disabled {
   margin: 0;

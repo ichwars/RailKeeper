@@ -1,5 +1,5 @@
 import { Bug, ExternalLink, RotateCw, Send, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 
 import type { BugReportClientDiagnostics } from "../../shared/apiBugReports";
@@ -45,6 +45,8 @@ export function BugReportDialog({
   onSubmit: (input: BugReportSubmissionInput) => Promise<BugReportSubmissionResult>;
 }) {
   const { t, language } = useI18n();
+  const areaId = useId();
+  const areaHelpId = `${areaId}-help`;
   const [reportID] = useState(createBugReportID);
   const [area, setArea] = useState<BugReportArea>(initialArea || areaForPathname(window.location.pathname));
   const [description, setDescription] = useState("");
@@ -158,13 +160,17 @@ export function BugReportDialog({
         </header>
 
         <form className="bug-report-form" onSubmit={submit}>
-          <label className="app-field bug-report-area-field">
-            <span className="app-field-label">{t("bugReport.area")} <span aria-hidden="true">*</span></span>
-            <AppSelect aria-label={t("bugReport.area")} value={area} disabled={busy}
+          <div className="app-field bug-report-area-field">
+            <label className="app-field-label" htmlFor={areaId}>
+              {t("bugReport.area")} <span aria-hidden="true">*</span>
+            </label>
+            <AppSelect id={areaId} aria-label={t("bugReport.area")} aria-describedby={areaHelpId}
+              portalContainerRef={layerRef} value={area} disabled={busy} required
               onChange={(event) => setArea(event.target.value as BugReportArea)}>
               {areas.map((entry) => <option key={entry} value={entry}>{t(`bugReport.area.${entry}`)}</option>)}
             </AppSelect>
-          </label>
+            <p id={areaHelpId} className="bug-report-area-help">{t("bugReport.area.help")}</p>
+          </div>
           <AppTextArea
             ref={descriptionRef}
             className="bug-report-description"
