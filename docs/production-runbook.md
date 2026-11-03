@@ -252,6 +252,10 @@ Die Funktion ist optional. Die vollständige GitHub- und age-Einrichtung steht i
 [Bereitstellungshinweisen](../deploy/README.md#in-app-bug-reporting). Für den Betrieb gelten
 zusätzlich folgende Regeln:
 
+Nutzer können die Diagnose abschalten. Die gespeicherte Auswahl stoppt die lokale Fehlererfassung
+und lässt Browser- und Serverdiagnose weg. Prozessspeicher, Laufzeit und SQLite-Zustand werden nur
+bei eingeschalteter Diagnose ergänzt. Es erfolgen keine Geräteabfragen.
+
 - Für allgemeine Installationen das Issue-Token auf das Issue-Repository begrenzen. Es benötigt
   **Issues: Read and write**.
 - Das optionale Asset-Token darf nur auf das getrennte öffentliche Screenshot-Repository zugreifen und
@@ -338,13 +342,3 @@ Für eine laufende Docker-Installation:
 - Keine Tokens, Passwörter oder privaten Backups in Git committen.
 - Externe Artikel-Suchergebnisse als untrusted input behandeln und nur bewusst übernehmen.
 - Vor öffentlicher Exposition immer Reverse Proxy, TLS und sichere Cookies prüfen.
-
-The issue token/repository enable text reports. Asset credentials are optional and enable screenshots.
-Diagnostic inclusion can be disabled by each reporter; the remembered choice stops local error capture
-and omits both browser and server diagnostics. Process memory/uptime and SQLite health are included
-only when enabled. No device probes or inventory data are collected.
-
-Der Issue-Token und das Ziel-Repository ermöglichen Textberichte. Asset-Zugangsdaten sind optional
-und schalten Screenshots frei. Nutzer können die Diagnose abschalten; die gespeicherte Auswahl
-stoppt die lokale Fehlererfassung und lässt Browser- und Serverdiagnose weg. Prozessspeicher, Laufzeit
-und SQLite-Zustand werden nur bei eingeschalteter Diagnose ergänzt. Es erfolgen keine Geräteabfragen.

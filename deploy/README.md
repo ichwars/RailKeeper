@@ -75,6 +75,10 @@ The in-app form requires an issue token/repository and validation of the fixed i
 Without those settings the global action remains an external GitHub link. Prefer a fine-grained
 token limited to **Issues: Read and write** on the issue repository, plus metadata read.
 
+Each reporter can disable diagnostics. The remembered choice stops local error capture and omits
+browser and server diagnostics. Process memory, uptime and SQLite health are included only when
+enabled. No device probes or inventory data are collected.
+
 Screenshots are a separate optional capability. To enable them, configure a second token limited to
 **Contents: Read and write** on a different public asset repository. Without that pair, text reports
 remain available and the screenshot field is hidden. Never grant an asset-only token access to the
@@ -149,13 +153,3 @@ RAILKEEPER_SMTP_TLS=starttls
 ```
 
 `RAILKEEPER_SMTP_TLS` supports `starttls`, `implicit` and `none`. Without SMTP, local recovery links are written only to the backend log.
-
-The issue token/repository enable text reports. Asset credentials are optional and enable screenshots.
-Diagnostic inclusion can be disabled by each reporter; the remembered choice stops local error capture
-and omits both browser and server diagnostics. Process memory/uptime and SQLite health are included
-only when enabled. No device probes or inventory data are collected.
-
-Der Issue-Token und das Ziel-Repository ermöglichen Textberichte. Asset-Zugangsdaten sind optional
-und schalten Screenshots frei. Nutzer können die Diagnose abschalten; die gespeicherte Auswahl
-stoppt die lokale Fehlererfassung und lässt Browser- und Serverdiagnose weg. Prozessspeicher, Laufzeit
-und SQLite-Zustand werden nur bei eingeschalteter Diagnose ergänzt. Es erfolgen keine Geräteabfragen.
