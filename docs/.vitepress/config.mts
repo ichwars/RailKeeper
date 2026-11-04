@@ -3,11 +3,33 @@ import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vitepress";
 
 const repositoryUrl = "https://github.com/ichwars/RailKeeper";
+const siteUrl = "https://ichwars.github.io/RailKeeper/";
 
 export default defineConfig({
   title: "RailKeeper",
-  description: "Documentation for the local-first model railway inventory and operations tool.",
+  description: "Manage your model railway collection, pictures, documents, maintenance and decoder data locally.",
   base: "/RailKeeper/",
+  sitemap: { hostname: siteUrl },
+  transformHead({ pageData }) {
+    if (pageData.relativePath === "404.md") return [];
+    const path = pageData.relativePath.replace(/(^|\/)index\.md$/, "$1").replace(/\.md$/, "");
+    const german = path.startsWith("de/");
+    const englishPath = german ? path.slice(3) : path;
+    const url = new URL(path, siteUrl).href;
+    return [
+      ["link", { rel: "canonical", href: url }],
+      ["link", { rel: "alternate", hreflang: "en", href: new URL(englishPath, siteUrl).href }],
+      ["link", { rel: "alternate", hreflang: "de", href: new URL(`de/${englishPath}`, siteUrl).href }],
+      ["meta", { property: "og:site_name", content: "RailKeeper" }],
+      ["meta", { property: "og:type", content: "website" }],
+      ["meta", { property: "og:url", content: url }],
+      ["meta", { property: "og:title", content: `${pageData.title} | RailKeeper` }],
+      ["meta", { property: "og:description", content: pageData.description }],
+      ["meta", { property: "og:locale", content: german ? "de_DE" : "en_US" }],
+      ["meta", { property: "og:image", content: new URL("brand/railkeeper-logo.png", siteUrl).href }],
+      ["meta", { name: "twitter:card", content: "summary" }],
+    ];
+  },
   head: [
     [
       "link",
@@ -30,9 +52,10 @@ export default defineConfig({
       label: "Deutsch",
       lang: "de",
       link: "/de/",
-      description: "Dokumentation für RailKeeper.",
+      description: "Modellbahnsammlung, Bilder, Unterlagen, Wartung und Decoderdaten lokal verwalten.",
       themeConfig: {
         nav: [
+          { text: "Ausprobieren", link: "/de/try" },
           { text: "Benutzerhandbuch", link: "/de/guide/" },
           { text: "Administration", link: "/de/administration/" },
           { text: "Hilfe und Begriffe", link: "/de/reference/navigation-and-glossary" },
@@ -179,13 +202,14 @@ export default defineConfig({
   },
   themeConfig: {
     logo: "/brand/railkeeper-mark.png",
-    siteTitle: "RailKeeper Docs",
+    siteTitle: "RailKeeper",
     socialLinks: [{ icon: "github", link: repositoryUrl }],
     editLink: {
       pattern: `${repositoryUrl}/edit/main/docs/site/:path`,
       text: "Edit this page on GitHub",
     },
     nav: [
+      { text: "Try RailKeeper", link: "/try" },
       { text: "User Guide", link: "/guide/" },
       { text: "Administration", link: "/administration/" },
       { text: "Help and terms", link: "/reference/navigation-and-glossary" },

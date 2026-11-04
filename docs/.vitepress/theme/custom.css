@@ -45,6 +45,14 @@
   color: var(--vp-c-text-1);
 }
 
+.VPHero .text {
+  overflow-wrap: anywhere;
+}
+
+.VPHero .actions .VPButton {
+  min-height: 44px;
+}
+
 @media (min-width: 768px) and (max-width: 1099px) {
   .VPNavBarMenu,
   .VPNavBarExtra {
