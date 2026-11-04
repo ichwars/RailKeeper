@@ -1,20 +1,17 @@
 <p align="center">
-  <img src="frontend/public/brand/railkeeper-logo.png" alt="RailKeeper" width="360">
+  <img src="frontend/public/brand/railkeeper-mark.png" alt="RailKeeper" width="128">
 </p>
 
 <h1 align="center">RailKeeper</h1>
 
 <p align="center">
-  Selbst gehostetes Bestands-, Dokumentations- und Betriebswerkzeug für Modelleisenbahnsammlungen.
+  Deine Modellbahnsammlung an einem Ort. Lokal auf deinem Rechner oder Heimserver.
 </p>
 
 <p align="center">
   <a href="https://github.com/ichwars/RailKeeper/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/ichwars/RailKeeper?style=for-the-badge"></a>
   <a href="https://github.com/ichwars/RailKeeper/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ichwars/RailKeeper/ci.yml?branch=main&style=for-the-badge"></a>
-  <img alt="Go" src="https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white">
   <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white">
-  <img alt="React" src="https://img.shields.io/badge/React-UI-61DAFB?style=for-the-badge&logo=react&logoColor=111">
-  <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local--first-003B57?style=for-the-badge&logo=sqlite&logoColor=white">
   <a href="LICENSE.md"><img alt="Lizenz" src="https://img.shields.io/badge/License-AGPL--3.0--only-7AC943?style=for-the-badge"></a>
   <a href="https://github.com/ichwars/RailKeeper/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/ichwars/RailKeeper/total?style=for-the-badge"></a>
 </p>
@@ -24,22 +21,41 @@
   <a href="https://ichwars.github.io/RailKeeper/de/">Dokumentation</a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/ichwars/RailKeeper/releases/latest">Für Windows herunterladen</a> ·
+  <a href="https://ichwars.github.io/RailKeeper/de/try#docker">Mit Docker starten</a> ·
+  <a href="https://ichwars.github.io/RailKeeper/de/try#beispieldaten">Mit Beispieldaten ausprobieren</a>
+</p>
+
 ## Überblick
 
-RailKeeper ist eine vollständige, selbst gehostete Anwendung, die Modelleisenbahnfahrzeuge,
-Decoderdaten, Bilder, Dokumente, Wartungen, Ausstellungslisten und Importe in einem lokalen
-Arbeitsbereich verwaltet. Sie läuft als einzelner Go-Dienst mit integriertem React-Frontend und
-speichert sämtliche Betriebsdaten in SQLite.
+RailKeeper bringt deine Modellbahnsammlung zusammen: Fahrzeuge, Bilder, Unterlagen,
+Wartung und Decoderdaten an einem Ort. Du kannst mit einer einzelnen Lok anfangen oder
+vorhandene Tabellen mit Vorschau importieren. Für die Bestandsverwaltung brauchst du keine Digitalzentrale.
 
-Das Projekt richtet sich an private Sammlungen, Vereine und kleine Werkstätten, die ein ernsthaftes
-Bestandssystem ohne Cloud-Abhängigkeit benötigen. RailKeeper hält Daten, Uploads und Backups unter
-deiner Kontrolle und bietet gleichzeitig moderne Abläufe wie Artikelsuche im Web, strukturierte
-Importprüfung, ECoS-Auslesung und die Suche nach neuen Releases.
+- **Den Bestand wiederfinden:** Loks, Wagen und Sets durchsuchen und ihre Daten nachschlagen.
+- **Unterlagen am Fahrzeug:** Bilder, Anleitungen und Beilagen beim passenden Modell ablegen.
+- **Wartung im Blick:** Reinigung, Reparaturen und Umbauten mit ihrem Verlauf dokumentieren.
 
-Das [Handbuch mit Bildern](https://ichwars.github.io/RailKeeper/de/guide/) führt von einer Aufgabe
-zur passenden Anleitung. Beginne mit [deinem ersten Fahrzeug](https://ichwars.github.io/RailKeeper/de/guide/quick-start).
-Die [Abdeckungsübersicht](https://ichwars.github.io/RailKeeper/de/reference/coverage) zeigt Themen,
-Prüfnachweise und bekannte Grenzen; `main` und veröffentlichte Releases sind getrennt gekennzeichnet.
+Der [Tester-Einstieg](https://ichwars.github.io/RailKeeper/de/try) führt vom Start bis zu
+Beispielfahrzeugen und einem eigenen Fahrzeug mit Bild. Das
+[Handbuch mit Bildern](https://ichwars.github.io/RailKeeper/de/guide/) hilft bei den nächsten Aufgaben.
+RailKeeper ist kostenlos und quelloffen und läuft unter Windows oder mit Docker auf deinem Heimserver.
+
+## Ansichten
+
+| Fahrzeugbestand | Bilder und Unterlagen | Wartung |
+| --- | --- | --- |
+| ![Fahrzeugbestand mit synthetischen Beispielfahrzeugen](docs/site/assets/screenshots/de/vehicles.png) | ![Bilder und Beilagen im Fahrzeugeditor](docs/site/assets/screenshots/de/media.png) | ![Geplante Reinigung in der Fahrzeugwartung](docs/site/assets/screenshots/de/maintenance.png) |
+
+Die Aufnahmen zeigen eine getrennte Demo-Installation mit künstlichen Daten und den dokumentierten
+Entwicklungsstand. Den Umfang des veröffentlichten Downloads findest du in den
+[Release-Notizen](https://github.com/ichwars/RailKeeper/releases/latest).
+Die [Abdeckungsübersicht](https://ichwars.github.io/RailKeeper/de/reference/coverage) hält
+Prüfnachweise und bekannte Grenzen fest.
+
+Teile deine Erfahrung in den [Discussions](https://github.com/ichwars/RailKeeper/discussions/categories/general).
+RailKeeper hilft dir? Mit einem [Stern auf GitHub](https://github.com/ichwars/RailKeeper) unterstützt du das Projekt.
 
 ## Funktionsumfang
 
@@ -71,33 +87,6 @@ Prüfnachweise und bekannte Grenzen; `main` und veröffentlichte Releases sind g
 - Stammdatenverwaltung für Hersteller, Spurweiten, Epochen, Kategorien, Unterarten, Bahngesellschaften und Symbole
 - Docker-Compose-Bereitstellung mit gehärtetem Laufzeitcontainer und persistentem `/data`-Volume
 - Integrierte GitHub-Release-Prüfung mit Release-Notizen und benutzergesteuerter Aktualisierung
-
-## Ansichten
-
-RailKeeper ist um responsive Arbeitsansichten statt Marketingseiten aufgebaut. Die folgenden
-Aufnahmen zeigen die aktuelle deutsche Oberfläche und konzentrieren sich auf die neuesten Abläufe:
-
-| Responsive Übersicht | Profilbasierter Import/Export |
-| --- | --- |
-| ![Responsive RailKeeper-Übersicht auf Deutsch](docs/screenshots/overview-de.png) | ![Profilbasierter Import und Export in RailKeeper auf Deutsch](docs/screenshots/import-export-de.png) |
-| Digitalzentralen | Ausstellungsbetrieb |
-| ![RailKeeper-Arbeitsplatz für Digitalzentralen auf Deutsch](docs/screenshots/digital-centers-de.png) | ![RailKeeper-Arbeitsplatz für Ausstellungen auf Deutsch](docs/screenshots/exhibition-de.png) |
-
-Weitere Detailabläufe:
-
-| Artikel-Websuche | Ersatzteilsuche | Decoder-Geschwindigkeitskurve |
-| --- | --- | --- |
-| ![RailKeeper Artikelsuche mit Produktdetails](docs/screenshots/search_product_details.png) | ![RailKeeper Ersatzteilsuche und Fahrzeugteileliste](docs/screenshots/spare_parts_search.png) | ![RailKeeper Decoder-Geschwindigkeitskurve](docs/screenshots/speed-performance_curve.png) |
-
-- **Übersicht** für Bestand, Wert, Wartung, Datenqualität und Zentralenstatus
-- **Fahrzeugbestand** für Fahrzeugsuche, Filter, Leseansichten, Berichte, Bearbeitung, Uploads, CVs und Funktionstasten
-- **Zubehör** für Artikeldaten- und Barcodesuche, sortierbare Bestandsdaten, Lagerbestände,
-  Reservierungen, Einbauten, Dokumente und Historie
-- **Ausstellung** für persistente Veranstaltungen, Teilnehmer, Fahrtage, Bereitschaft und Konflikte
-- **Import/Export** für wiederverwendbare Profile und kontrollierte Übertragungen von Fahrzeugen,
-  Zubehör und Ausstellungslisten
-- **Digitalzentralen** für Auslesen, Vergleich, Diagnose, Live-Monitoring und bestätigte Schreibvorgänge
-- **Einstellungen** für Stammdaten, Darstellung, Backups, Aktualisierungen und Authentifizierung
 
 ## Schnellstart
 

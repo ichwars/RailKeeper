@@ -1,20 +1,17 @@
 <p align="center">
-  <img src="frontend/public/brand/railkeeper-logo.png" alt="RailKeeper" width="360">
+  <img src="frontend/public/brand/railkeeper-mark.png" alt="RailKeeper" width="128">
 </p>
 
 <h1 align="center">RailKeeper</h1>
 
 <p align="center">
-  Self-hosted inventory, documentation and operations cockpit for model railway collections.
+  Your model railway collection in one place. Locally on your computer or home server.
 </p>
 
 <p align="center">
   <a href="https://github.com/ichwars/RailKeeper/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/ichwars/RailKeeper?style=for-the-badge"></a>
   <a href="https://github.com/ichwars/RailKeeper/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ichwars/RailKeeper/ci.yml?branch=main&style=for-the-badge"></a>
-  <img alt="Go" src="https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white">
   <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white">
-  <img alt="React" src="https://img.shields.io/badge/React-UI-61DAFB?style=for-the-badge&logo=react&logoColor=111">
-  <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local--first-003B57?style=for-the-badge&logo=sqlite&logoColor=white">
   <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/badge/License-AGPL--3.0--only-7AC943?style=for-the-badge"></a>
   <a href="https://github.com/ichwars/RailKeeper/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/ichwars/RailKeeper/total?style=for-the-badge"></a>
 </p>
@@ -24,16 +21,40 @@
   <a href="https://ichwars.github.io/RailKeeper/">Documentation</a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/ichwars/RailKeeper/releases/latest">Download for Windows</a> ·
+  <a href="https://ichwars.github.io/RailKeeper/try#docker">Start with Docker</a> ·
+  <a href="https://ichwars.github.io/RailKeeper/try#sample-data">Try with sample data</a>
+</p>
+
 ## Overview
 
-RailKeeper is a complete self-hosted application for managing model railway vehicles, decoder data, images, documents, maintenance, exhibition lists and imports in one local-first workspace. It runs as a single Go service with an integrated React frontend and stores all operational data in SQLite.
+RailKeeper brings your model railway collection together: vehicles, pictures, documents,
+maintenance and decoder data in one place. Start with a single locomotive or import existing
+tables with a preview. You do not need a command station to manage your collection.
 
-The project is designed for private collections, clubs and small workshops that want a serious inventory system without a cloud dependency. RailKeeper keeps data, uploads and backups under your control while still offering modern workflows such as article web search, structured import review, ECoS readout and release update checks.
+- **Find your stock:** Search locomotives, coaches and sets and look up their details.
+- **Documents with their vehicle:** Keep pictures, manuals and attachments with the right model.
+- **Keep track of maintenance:** Document cleaning, repairs and modifications and their history.
 
-The [illustrated handbook](https://ichwars.github.io/RailKeeper/guide/) connects tasks to instructions.
-Start with [your first vehicle](https://ichwars.github.io/RailKeeper/guide/quick-start).
-The [coverage overview](https://ichwars.github.io/RailKeeper/reference/coverage) shows topics, review
-evidence and known limits; `main` is distinguished from published releases.
+The [tester quick start](https://ichwars.github.io/RailKeeper/try) takes you from startup to sample
+vehicles and a vehicle of your own with a picture. The
+[illustrated handbook](https://ichwars.github.io/RailKeeper/guide/) helps with the next tasks.
+RailKeeper is free and open source and runs on Windows or with Docker on your home server.
+
+## Screens
+
+| Vehicle inventory | Pictures and documents | Maintenance |
+| --- | --- | --- |
+| ![Vehicle inventory with synthetic sample vehicles](docs/site/assets/screenshots/en/vehicles.png) | ![Pictures and attachments in the vehicle editor](docs/site/assets/screenshots/en/media.png) | ![Planned cleaning in vehicle maintenance](docs/site/assets/screenshots/en/maintenance.png) |
+
+These pictures show a separate demo installation with synthetic data and the documented development
+version. See the [release notes](https://github.com/ichwars/RailKeeper/releases/latest) for the
+published download's scope. The [coverage overview](https://ichwars.github.io/RailKeeper/reference/coverage)
+records review evidence and known limits.
+
+Share your experience in [Discussions](https://github.com/ichwars/RailKeeper/discussions/categories/general).
+Does RailKeeper help you? Support the project with a [star on GitHub](https://github.com/ichwars/RailKeeper).
 
 ## Highlights
 
@@ -65,32 +86,6 @@ evidence and known limits; `main` is distinguished from published releases.
 - Master data management for manufacturers, gauges, epochs, categories, subtypes, railway companies and symbols
 - Docker Compose deployment with hardened runtime container and persistent `/data` volume
 - Built-in GitHub release update check with release notes and user-controlled installation flow
-
-## Screens
-
-RailKeeper is built around responsive operational workspaces instead of marketing pages. The
-screens below show the current English interface and focus on the newest workflows:
-
-| Responsive overview | Profile-based import/export |
-| --- | --- |
-| ![RailKeeper responsive overview dashboard in English](docs/screenshots/overview-en.png) | ![RailKeeper profile-based import and export workspace in English](docs/screenshots/import-export-en.png) |
-| Command stations | Exhibition operations |
-| ![RailKeeper command-station workspace in English](docs/screenshots/digital-centers-en.png) | ![RailKeeper exhibition workspace in English](docs/screenshots/exhibition-en.png) |
-
-Additional detailed workflows:
-
-| Article Web Search | Spare Parts Search | Decoder Speed Curve |
-| --- | --- | --- |
-| ![RailKeeper article web search with product details](docs/screenshots/search_product_details.png) | ![RailKeeper spare parts search and vehicle parts list](docs/screenshots/spare_parts_search.png) | ![RailKeeper decoder speed performance curve](docs/screenshots/speed-performance_curve.png) |
-
-- **Overview** for inventory, value, maintenance, data quality and command-station status
-- **Inventory** for vehicle search, filtering, read views, reports, editing, uploads, CVs and function keys
-- **Accessories** for article-data and barcode search, sortable inventory data, stock, reservations,
-  installations, documents and history
-- **Exhibition** for persistent events, participants, operating days, readiness and conflicts
-- **Import/Export** for reusable profiles and controlled vehicle, accessory and exhibition-list transfers
-- **Command stations** for read, comparison, diagnostics, live monitoring and confirmed writes
-- **Settings** for master data, appearance, backups, updates and authentication
 
 ## Quick Start
 
