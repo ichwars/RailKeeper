@@ -23,8 +23,8 @@ func TestBackupVersionFourteenRestoresLegacyTrackGeometrySnapshots(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 25 {
-		t.Fatalf("expected version 25 export, got %d", backup.Version)
+	if backup.Version != 26 {
+		t.Fatalf("expected version 26 export, got %d", backup.Version)
 	}
 	legacy := cloneBackupWithoutTrackGeometrySnapshots(backup)
 	if _, err := service.Import(ctx, legacy); err != nil {
@@ -50,7 +50,7 @@ WHERE id='tillig-tt-modellgleis-83101-v1'`); err != nil {
 
 func cloneBackupWithoutTrackGeometrySnapshots(source *application.BackupDocument) *application.BackupDocument {
 	legacy := *source
-	legacy.Version = 13
+	setLegacyBackupVersion(&legacy, 13)
 	legacy.Tables = make(map[string][]map[string]any, len(source.Tables))
 	for table, rows := range source.Tables {
 		legacyRows := make([]map[string]any, 0, len(rows))

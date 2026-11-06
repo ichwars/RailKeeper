@@ -10,7 +10,7 @@ from pathlib import Path
 
 from preservation import assert_same, database_manifest, digest, installation_manifest
 from runtime import Runtime
-from catalog import TABLES, expected_catalog_backfill
+from catalog import TABLES, expected_catalog_backfill, expected_catalog_authority
 
 
 CATALOG_TABLES = {"catalog_articles", "catalog_article_revisions", "vehicle_article_links", "vehicle_set_article_links"}
@@ -42,7 +42,10 @@ def run(args):
             elif not args.catalog_backfill or name not in CATALOG_TABLES:
                 assert_same(original, after["tables"].get(name, {}), "Migration preserved table " + name)
             else:
-                assert_same({"columns": original["columns"]}, {"columns": after["tables"][name]["columns"]}, "Catalog schema columns")
+                columns = list(original["columns"])
+                if args.catalog_authority and name in TABLES[2:]:
+                    columns.append((len(columns), "source_authority", "TEXT", 0, None, 0))
+                assert_same({"columns": columns}, {"columns": after["tables"][name]["columns"]}, "Catalog schema columns")
         added = set(after["tables"]) - set(before["tables"])
         if args.catalog_backfill:
             if added != CATALOG_TABLES - set(before["tables"]):
@@ -52,6 +55,8 @@ def run(args):
                 db.row_factory = sqlite3.Row
                 actual = {"tables": {table: [dict(row) for row in db.execute('SELECT * FROM "' + table + '"')] for table in TABLES}}
             expected = expected_catalog_backfill(document, actual)
+            if args.catalog_authority:
+                expected = expected_catalog_authority(expected, document["version"])
             for table in TABLES:
                 assert_same({"rows": sorted(digest(row) for row in expected["tables"][table])},
                             {"rows": sorted(digest(row) for row in actual["tables"][table])}, "Complete expected catalog backfill " + table)
@@ -74,7 +79,8 @@ def run(args):
               "preservedFiles": before["files"], "addedTables": sorted(added),
               "catalogTables": {name: {"count": after["tables"][name]["count"], "sha256": digest(after["tables"][name])}
                                 for name in sorted(CATALOG_TABLES)},
-              "validatedSafetySnapshots": sorted(new_files), "catalogBackfillVerified": args.catalog_backfill}
+              "validatedSafetySnapshots": sorted(new_files), "catalogBackfillVerified": args.catalog_backfill,
+              "catalogAuthorityVerified": args.catalog_authority}
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     print(f"PASS migration preserved all {len(report['preservedTables'])} legacy tables, files and safety snapshot")
 
@@ -87,6 +93,7 @@ if __name__ == "__main__":
     parser.add_argument("--static-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--catalog-backfill", action="store_true")
+    parser.add_argument("--catalog-authority", action="store_true")
     arguments = parser.parse_args()
     for field in ("binary", "backend", "static_dir"):
         setattr(arguments, field, getattr(arguments, field).resolve(strict=True))

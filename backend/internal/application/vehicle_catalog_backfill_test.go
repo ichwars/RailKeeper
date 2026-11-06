@@ -29,6 +29,9 @@ func TestVehicleCatalogBackfillKeepsIdenticalOwnedVehiclesSeparateAndSetOverride
 	if _, err := db.Exec(`UPDATE vehicles SET description='', article_source_url=NULL WHERE id=?`, set.Members[1].ID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := db.Exec(`DELETE FROM vehicle_article_links; DELETE FROM vehicle_set_article_links`); err != nil {
+		t.Fatal(err)
+	}
 	before, err := service.List(t.Context(), "")
 	if err != nil {
 		t.Fatal(err)
@@ -43,8 +46,8 @@ func TestVehicleCatalogBackfillKeepsIdenticalOwnedVehiclesSeparateAndSetOverride
 	articleIDs := map[string]string{}
 	for _, assignment := range report.Assignments {
 		articleIDs[assignment.TargetID] = assignment.ArticleID
-		if assignment.Authority != "legacy" {
-			t.Fatal("backfill changed authority")
+		if assignment.Authority != "catalog" {
+			t.Fatal("a consistent backfill did not activate the catalog projection")
 		}
 	}
 	if articleIDs[first.ID] == articleIDs[second.ID] || articleIDs[first.ID] == articleIDs[set.ID] {
@@ -91,6 +94,9 @@ func TestVehicleCatalogBackfillKeepsIdenticalOwnedVehiclesSeparateAndSetOverride
 	if err := db.QueryRow(`SELECT COUNT(*) FROM audit_logs WHERE action='VehicleCatalogLegacyBackfilled'`).Scan(&audits); err != nil || audits != 1 {
 		t.Fatalf("duplicate backfill audit: %d / %v", audits, err)
 	}
+	if _, err := db.Exec(`UPDATE vehicle_article_links SET authority='legacy' WHERE vehicle_id=?`, first.ID); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := db.Exec(`UPDATE vehicles SET name='Later legacy correction' WHERE id=?`, first.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -108,17 +114,23 @@ func TestVehicleCatalogBackfillRollsBackAllNewRelationshipsOnFailure(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
+	if _, err := db.Exec(`DELETE FROM vehicle_article_links WHERE vehicle_id=?`, vehicle.ID); err != nil {
+		t.Fatal(err)
+	}
+	backup := application.NewBackupService(db, t.TempDir())
+	before, err := backup.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, err := db.Exec(`CREATE TRIGGER reject_catalog_link BEFORE INSERT ON vehicle_article_links BEGIN SELECT RAISE(ABORT, 'injected storage failure'); END`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.BackfillLegacyCatalog(t.Context(), "actor"); err == nil {
 		t.Fatal("injected failure was accepted")
 	}
-	for _, table := range []string{"catalog_articles", "catalog_article_revisions", "vehicle_article_links", "vehicle_set_article_links"} {
-		var count int
-		if err := db.QueryRow(`SELECT COUNT(*) FROM ` + table).Scan(&count); err != nil || count != 0 {
-			t.Fatalf("partial backfill in %s: %d / %v", table, count, err)
-		}
+	after, err := backup.Export(t.Context())
+	if err != nil || !reflect.DeepEqual(catalogBackupTableSnapshot(t, before), catalogBackupTableSnapshot(t, after)) {
+		t.Fatal("failed backfill changed stored data")
 	}
 	stored, err := service.Get(t.Context(), vehicle.ID)
 	if err != nil || stored.Name != vehicle.Name || stored.InventoryNumber != vehicle.InventoryNumber {

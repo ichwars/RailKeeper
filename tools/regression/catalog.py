@@ -85,3 +85,22 @@ def expected_catalog_backfill(document, actual):
             append(table, identity, row, "updated_at")
             links[identity] = row
     return expected
+
+
+def expected_catalog_authority(document, source_version):
+    """Derive only the documented authority conversion, retaining every original value."""
+    expected = copy.deepcopy(document)
+    tables = expected["tables"]
+    revisions = {row["id"]: json.loads(row["fields_json"]) for row in tables[TABLES[1]]}
+    for links, entities, identity in ((TABLES[2], "vehicles", "vehicle_id"),
+                                     (TABLES[3], "vehicle_sets", "vehicle_set_id")):
+        legacy = {row["id"]: {key: row.get(column) or "" for key, column in FIELDS.items()}
+                  for row in tables[entities]}
+        for row in tables[links]:
+            if source_version >= 26:
+                row.setdefault("source_authority", None)
+                continue
+            row["source_authority"] = row["authority"]
+            composed = {**revisions[row["revision_id"]], **json.loads(row["overrides_json"])}
+            row["authority"] = "catalog" if composed == legacy[row[identity]] else "legacy"
+    return expected

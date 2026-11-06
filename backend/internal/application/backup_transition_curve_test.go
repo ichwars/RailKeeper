@@ -28,8 +28,8 @@ INSERT INTO plan_track_objects(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 25 {
-		t.Fatalf("expected version 25 export, got %d", backup.Version)
+	if backup.Version != 26 {
+		t.Fatalf("expected version 26 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx,
 		`UPDATE plan_track_objects SET transition_path_json=NULL WHERE id='track-transition'`); err != nil {
@@ -49,7 +49,7 @@ INSERT INTO plan_track_objects(
 
 func cloneBackupWithoutTransitionPath(source *application.BackupDocument) *application.BackupDocument {
 	legacy := *source
-	legacy.Version = 11
+	setLegacyBackupVersion(&legacy, 11)
 	legacy.Tables = make(map[string][]map[string]any, len(source.Tables))
 	for table, rows := range source.Tables {
 		legacyRows := make([]map[string]any, 0, len(rows))

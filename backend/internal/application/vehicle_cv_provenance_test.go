@@ -58,7 +58,7 @@ func TestCVProvenanceSurvivesEditsImportsAndBackup(t *testing.T) {
 	}
 	delete(doc.Tables["vehicle_cv_values"][0], "source_line")
 	delete(doc.Tables["vehicle_cv_values"][0], "source_exported_at")
-	doc.Version = 21
+	setLegacyBackupVersion(doc, 21)
 	if _, err := backup.Import(t.Context(), doc); err != nil {
 		t.Fatal(err)
 	}

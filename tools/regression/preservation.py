@@ -82,31 +82,36 @@ def backup_manifest(document):
     }
 
 
-def expected_backup_upgrade(document, target_version, catalog_backfill=None):
-    """Describe the checked additive 24 -> 25 schema step; never ignore actual rows."""
+def expected_backup_upgrade(document, target_version, catalog_backfill=None, catalog_authority=False):
+    """Apply explicit checked schema rules; never ignore actual rows or unknown upgrades."""
     expected = copy.deepcopy(document)
     if document["version"] != target_version:
-        if (document["version"], target_version) != (24, 25):
+        versions = (document["version"], target_version)
+        if versions != (24, 25) and not (catalog_authority and versions in ((24, 26), (25, 26))):
             raise AssertionError("No checked reference rule for this backup-format upgrade")
-        expected["version"] = 25
-        for table in ("catalog_articles", "catalog_article_revisions", "vehicle_article_links", "vehicle_set_article_links"):
-            if expected["tables"].get(table):
-                raise AssertionError("Legacy backup unexpectedly contains catalog data")
-            expected["tables"][table] = []
+        expected["version"] = target_version
+        if document["version"] == 24:
+            for table in ("catalog_articles", "catalog_article_revisions", "vehicle_article_links", "vehicle_set_article_links"):
+                if expected["tables"].get(table):
+                    raise AssertionError("Legacy backup unexpectedly contains catalog data")
+                expected["tables"][table] = []
     if catalog_backfill is not None:
         from catalog import expected_catalog_backfill
         expected = expected_catalog_backfill(expected, catalog_backfill)
+    if catalog_authority and target_version == 26:
+        from catalog import expected_catalog_authority
+        expected = expected_catalog_authority(expected, document["version"])
     return expected
 
 
-def expected_fresh_restore(document, local_backup, local_user_ids, catalog_backfill=None):
+def expected_fresh_restore(document, local_backup, local_user_ids, catalog_backfill=None, catalog_authority=False):
     """Apply the checked schema upgrade and two existing cross-installation policies.
 
     BackupService retains the target's bundled workshop symbols and clears a
     transfer-profile creator if that installation does not contain that user.
     All remaining fields, including timestamps and IDs, must match exactly.
     """
-    expected = expected_backup_upgrade(document, local_backup["version"], catalog_backfill)
+    expected = expected_backup_upgrade(document, local_backup["version"], catalog_backfill, catalog_authority)
     symbols = {}
     for row in local_backup["tables"]["master_data_entries"]:
         if (row["type"] == "symbols" and row["origin"] == "bundled"
@@ -122,10 +127,14 @@ def expected_fresh_restore(document, local_backup, local_user_ids, catalog_backf
 
 
 def vehicle_edit_manifest(document, vehicle_id):
-    """A name edit may refresh only this vehicle's and submitted images' edit clocks."""
+    """A name edit may refresh only this vehicle's, its images' and its catalog link's edit clocks."""
     expected = copy.deepcopy(document)
     for table, identity in (("vehicles", "id"), ("vehicle_images", "vehicle_id")):
         for row in expected["tables"].get(table, []):
             if row[identity] == vehicle_id:
                 row.pop("updated_at", None)
+    for row in expected["tables"].get("vehicle_article_links", []):
+        if row["vehicle_id"] == vehicle_id and row["authority"] == "catalog":
+            row.pop("updated_at", None)
+            row["overrides_json"] = json.dumps(json.loads(row["overrides_json"]), sort_keys=True)
     return backup_manifest(expected)

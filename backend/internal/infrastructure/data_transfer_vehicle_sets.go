@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/infrastructure/vehicledata"
 )
 
 type transferVehicleSetApplyPolicy struct {
@@ -342,6 +343,11 @@ func applyTransferVehicleSets(
 INSERT INTO vehicle_set_members(vehicle_set_id, vehicle_id, position, label)
 VALUES(?, ?, ?, ?)`, setID, memberResults[index].ID, member.Position, member.Label); err != nil {
 				return fmt.Errorf("insert transfer vehicle set member: %w", err)
+			}
+			if memberResults[index].Created {
+				if err := vehicledata.LinkCreatedSetMember(ctx, tx, setID, memberResults[index].ID); err != nil {
+					return err
+				}
 			}
 		}
 		if _, err := tx.ExecContext(ctx, `

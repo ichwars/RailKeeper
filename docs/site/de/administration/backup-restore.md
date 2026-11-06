@@ -4,7 +4,7 @@ description: Sicherung und Wiederherstellung.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-11-06
+lastReviewed: 2026-11-07
 ---
 
 # Sicherung und Wiederherstellung
@@ -23,8 +23,10 @@ lastReviewed: 2026-11-06
 
 Die Anwendungssicherung enthält Bestand, Zubehör, Wartungen, CVs mit Herkunft, Stammdaten, Ausstellungsdaten und gespeicherte Medien. Benutzerkonten, Passwörter, Sitzungen und lokale Systemeinstellungen sind nicht enthalten. Sie ist deshalb keine vollständige Serversicherung.
 
-Format 25 sichert zusätzlich Artikelrevisionen, Fahrzeug-/Set-Zuordnungen und individuelle
-Artikelabweichungen. Ältere unterstützte Sicherungen bleiben einlesbar. Ein älteres Programm kann
+Format 26 sichert Artikelrevisionen, Fahrzeug-/Set-Zuordnungen, individuelle Artikelabweichungen
+und den ursprünglichen Zuordnungsmodus. Ungeklärte Katalogvorschläge bleiben beim Wiederherstellen
+erhalten. Aktive Artikelangaben müssen mit der gespeicherten Fahrzeugansicht übereinstimmen.
+Ältere unterstützte Sicherungen einschließlich Format 25 bleiben einlesbar. Ein älteres Programm kann
 das neue Format nicht vollständig wiederherstellen. Ändere deshalb die Formatnummer nicht manuell.
 Bewahre vor einer Datenmodellumstellung zusätzlich eine vollständige konsistente Installation und
 das dazu passende bisherige Programm auf. Nach neuen Eingaben ist diese ältere Kopie kein
