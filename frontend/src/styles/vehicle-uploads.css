@@ -73,6 +73,8 @@
 }
 
 .uploads-tab .upload-head {
+  flex-wrap: wrap;
+  align-items: flex-start;
   min-height: auto;
   padding: 0;
   border: 0;
@@ -83,20 +85,27 @@
   min-width: 0;
 }
 
+.uploads-tab .upload-head > div:first-child {
+  flex: 1 1 240px;
+}
+
 .uploads-tab .upload-head .primary-button {
+  flex: 0 0 auto;
+  max-width: 100%;
   margin-left: auto;
+  white-space: nowrap;
 }
 
 .upload-maintenance-select {
+  flex: 1 1 160px;
   width: min(260px, 100%);
-  min-height: 38px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 0 10px;
-  background: #fff;
-  color: var(--text);
-  font: inherit;
-  font-size: var(--font-size-md);
+  max-width: 260px;
+}
+
+@media (max-width: 600px) {
+  .uploads-tab .upload-head .app-select-trigger {
+    min-height: 44px;
+  }
 }
 
 .upload-list {
