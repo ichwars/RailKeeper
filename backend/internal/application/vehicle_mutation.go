@@ -10,6 +10,24 @@ import (
 )
 
 func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, actorUserID string) (*Vehicle, error) {
+	return s.createVehicle(ctx, input, nil, actorUserID)
+}
+
+// CreateWithExternalMapping binds the source identity in the vehicle transaction.
+// Its unique existing mapping prevents a repeated adoption from creating another vehicle.
+func (s *VehicleService) CreateWithExternalMapping(
+	ctx context.Context, input CreateVehicleInput, mapping VehicleExternalMapInput, actorUserID string,
+) (*Vehicle, error) {
+	mapping = cleanVehicleExternalMapInput(mapping)
+	if mapping.Provider == "" || mapping.ExternalID == "" {
+		return nil, ErrVehicleValidation
+	}
+	return s.createVehicle(ctx, input, &mapping, actorUserID)
+}
+
+func (s *VehicleService) createVehicle(
+	ctx context.Context, input CreateVehicleInput, mapping *VehicleExternalMapInput, actorUserID string,
+) (*Vehicle, error) {
 	input, err := validateCreateVehicleInput(input)
 	if err != nil {
 		return nil, err
@@ -35,6 +53,13 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 	if err != nil {
 		return nil, err
 	}
+	var savedMapping *VehicleExternalMap
+	if mapping != nil {
+		savedMapping, err = writeVehicleExternalMapping(ctx, tx, vehicle.ID, *mapping, now)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	vehicle, err = readVehicleCore(ctx, tx, vehicle.ID)
 	if err != nil {
@@ -46,6 +71,9 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 	}
 	vehicle.Images = images
 	vehicle.ImagesRevision = vehicleImagesRevision(images)
+	if savedMapping != nil {
+		vehicle.ExternalMappings = []VehicleExternalMap{*savedMapping}
+	}
 
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit create vehicle: %w", err)

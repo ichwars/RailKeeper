@@ -242,6 +242,7 @@ describe("createVehicleMutationCommands", () => {
     await createVehicleMutationCommands(options).submit(submitEvent());
 
     expect(api.upsertVehicleExternalMapping).toHaveBeenCalledWith(created.id, draft.externalMapping);
+    expect(api.createVehicle).toHaveBeenCalledWith(expect.objectContaining({ externalMapping: draft.externalMapping }));
     expect(api.importDigitalCenterCVs).toHaveBeenCalledWith("session-1", "item-77", created.id);
     expect(createCV).not.toHaveBeenCalled();
     expect(options.ecos.markSaved).toHaveBeenCalledWith(draft, created.id);
@@ -268,6 +269,33 @@ describe("createVehicleMutationCommands", () => {
     await createVehicleMutationCommands(options).submit(submitEvent());
 
     expect(options.onMessage).toHaveBeenCalledWith("vehicles.ecosDraft.mappingConflict");
+    expect(options.reloadVehicles).toHaveBeenCalledOnce();
+  });
+
+  it("does not perform a second mapping write after an atomic mapped creation", async () => {
+    const options = commandOptions();
+    const mapping = { id: "m", vehicleId: "created", provider: "cs3", externalId: "77", syncStatus: "linked",
+      createdAt: "before", updatedAt: "before" };
+    const created = vehicleFixture({ id: "created", externalMappings: [mapping] });
+    options.ecos.draft = { source: "cs3", mode: "create", sourceSummary: { objectId: 77, name: "Source", address: "3", protocol: "DCC", profile: "" },
+      vehicle: options.editor.form, importedKeys: ["name"], externalMapping: { provider: "cs3", externalId: "77" },
+      cvValues: [], functionValues: [], unclearFields: [] };
+    vi.spyOn(api, "createVehicle").mockResolvedValue(created); vi.spyOn(api, "vehicle").mockResolvedValue(created);
+    const extraWrite = vi.spyOn(api, "upsertVehicleExternalMapping");
+    await createVehicleMutationCommands(options).submit(submitEvent());
+    expect(extraWrite).not.toHaveBeenCalled();
+    expect(options.ecos.markSaved).toHaveBeenCalledWith(options.ecos.draft, created.id);
+  });
+
+  it("retains a rejected source draft without acknowledging another vehicle creation", async () => {
+    const options = commandOptions();
+    vi.spyOn(api, "createVehicle").mockRejectedValue(new ApiError("Source already linked", "external_mapping_conflict", 409));
+    await createVehicleMutationCommands(options).submit(submitEvent());
+    expect(options.editor.setSelectedDetail).not.toHaveBeenCalled();
+    expect(options.functions.acknowledgeSaved).not.toHaveBeenCalled();
+    expect(options.editor.close).not.toHaveBeenCalled();
+    expect(options.reloadVehicles).toHaveBeenCalledOnce();
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.ecosDraft.mappingConflict");
   });
 
   it("deletes the selected candidate and closes its editor", async () => {

@@ -18,38 +18,8 @@ func (s *VehicleService) UpsertExternalMapping(ctx context.Context, vehicleID st
 	if _, err := s.get(ctx, vehicleID); err != nil {
 		return nil, err
 	}
-	existing, err := s.getVehicleExternalMapping(ctx, input.Provider, input.ExternalID)
-	switch {
-	case err == nil && existing.VehicleID != vehicleID:
-		return nil, ErrVehicleExternalMappingConflict
-	case err == nil:
-		// Continue so metadata and the last-seen time can be refreshed idempotently.
-	case !errors.Is(err, sql.ErrNoRows):
-		return nil, fmt.Errorf("check vehicle external mapping owner: %w", err)
-	}
-
 	now := time.Now().UTC().Format(time.RFC3339)
-	lastSeenAt := now
-	if input.SyncStatus == "" {
-		input.SyncStatus = "linked"
-	}
-	_, err = s.db.ExecContext(ctx, `
-INSERT INTO vehicle_external_mappings(id, vehicle_id, provider, external_id, external_name, external_address, external_protocol, sync_status, last_seen_at, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(provider, external_id) DO UPDATE SET
-  vehicle_id=excluded.vehicle_id,
-  external_name=excluded.external_name,
-  external_address=excluded.external_address,
-  external_protocol=excluded.external_protocol,
-  sync_status=excluded.sync_status,
-  last_seen_at=excluded.last_seen_at,
-  updated_at=excluded.updated_at
-`, randomID(), vehicleID, input.Provider, input.ExternalID, nullableString(input.ExternalName), nullableString(input.ExternalAddress), nullableString(input.ExternalProtocol), input.SyncStatus, lastSeenAt, now, now)
-	if err != nil {
-		return nil, fmt.Errorf("upsert vehicle external mapping: %w", err)
-	}
-
-	return s.getVehicleExternalMapping(ctx, input.Provider, input.ExternalID)
+	return writeVehicleExternalMapping(ctx, s.db, vehicleID, input, now)
 }
 
 func (s *VehicleService) RebindExternalMapping(

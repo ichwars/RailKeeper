@@ -1895,7 +1895,7 @@ export const deTranslations: Record<string, string> = {
     "vehicles.ecosDraft.cvPreviewTitle": "ECoS-CV-Werte",
     "vehicles.ecosDraft.cvPreviewSubtitle": "{count} CV-Werte werden beim Speichern am neuen Fahrzeug hinterlegt.",
     "vehicles.ecosDraft.mappingPreviewTitle": "ECoS-Zuordnung wird gespeichert",
-    "vehicles.ecosDraft.mappingConflict": "Diese ECoS-Lok ist bereits einem anderen Fahrzeug zugeordnet. Bitte die Digitalzentrale erneut auslesen.",
+    "vehicles.ecosDraft.mappingConflict": "Diese Lok der Digitalzentrale ist bereits einem Fahrzeug zugeordnet. Prüfe den neu geladenen Bestand und die vorhandene Zuordnung, bevor du erneut übernimmst.",
     "vehicles.cv.emptyUntilSave": "CV-Werte können nach dem ersten Speichern gepflegt werden.",
     "vehicles.cv.values": "CV-Werte",
     "vehicles.cv.profiles": "Profile",

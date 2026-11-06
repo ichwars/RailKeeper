@@ -43,6 +43,7 @@ func TestOpenAPITransportFieldsMatchRuntimeJSON(t *testing.T) {
 		"VehicleCVValueHistory":          application.VehicleCVValueHistory{},
 		"VehicleCVFile":                  application.VehicleCVFile{},
 		"CreateVehicleRequest":           application.CreateVehicleInput{},
+		"CreateMappedVehicleRequest":     createVehicleRequest{},
 		"DataTransferProfile":            application.DataTransferProfile{},
 		"DataTransferJob":                application.DataTransferJob{},
 		"DataTransferIssue":              application.DataTransferIssue{},

@@ -1895,7 +1895,7 @@ export const enTranslations: Record<string, string> = {
     "vehicles.ecosDraft.cvPreviewTitle": "ECoS CV values",
     "vehicles.ecosDraft.cvPreviewSubtitle": "{count} CV values will be stored on the new vehicle when saving.",
     "vehicles.ecosDraft.mappingPreviewTitle": "ECoS mapping will be saved",
-    "vehicles.ecosDraft.mappingConflict": "This ECoS locomotive is already assigned to another vehicle. Please read the command station again.",
+    "vehicles.ecosDraft.mappingConflict": "This command-station locomotive is already assigned to a vehicle. Review the refreshed inventory and existing assignment before adopting it again.",
     "vehicles.cv.emptyUntilSave": "CV values can be maintained after the first save.",
     "vehicles.cv.values": "CV values",
     "vehicles.cv.profiles": "Profiles",
