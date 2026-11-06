@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api, type VehicleCVFilePreview } from "../../shared/api";
-import { cvFileFixture, functionFixture, vehicleFixture } from "../../test/fixtures/vehicles";
+import { cvFileFixture, vehicleFixture } from "../../test/fixtures/vehicles";
 import { useVehicleDecoderFilesController } from "./useVehicleDecoderFilesController";
 
 function fileList(...files: File[]) {
@@ -28,15 +28,17 @@ function renderController() {
   const setSaving = vi.fn();
   const onMessage = vi.fn();
   const onImportPreview = vi.fn();
+  const onFunctionSuggestions = vi.fn().mockReturnValue({ applied: 1, blocked: [] });
   const refreshSelectedVehicle = vi.fn().mockResolvedValue(undefined);
   const hook = renderHook(() => useVehicleDecoderFilesController({
     selected: vehicleFixture(),
     setSaving,
     onMessage,
     onImportPreview,
+    onFunctionSuggestions,
     refreshSelectedVehicle
   }));
-  return { ...hook, setSaving, onMessage, onImportPreview, refreshSelectedVehicle };
+  return { ...hook, setSaving, onMessage, onImportPreview, onFunctionSuggestions, refreshSelectedVehicle };
 }
 
 describe("useVehicleDecoderFilesController", () => {
@@ -55,10 +57,10 @@ describe("useVehicleDecoderFilesController", () => {
     expect(result.current.state.fileDescription).toBe("BR 106 Decoderprojekt");
   });
 
-  it("prepares CV values and imports valid function suggestions", async () => {
+  it("prepares CV values and sends function suggestions to the draft without writes", async () => {
     vi.spyOn(api, "previewVehicleCVFile").mockResolvedValue(preview);
-    vi.spyOn(api, "updateVehicleFunction").mockResolvedValue(functionFixture());
-    const { result, onImportPreview, refreshSelectedVehicle } = renderController();
+    const updateFunction = vi.spyOn(api, "updateVehicleFunction");
+    const { result, onImportPreview, onFunctionSuggestions, refreshSelectedVehicle, onMessage } = renderController();
     const file = new File(["decoder"], "decoder.esux", { type: "application/octet-stream" });
 
     await act(() => result.current.commands.uploadFiles(fileList(file)));
@@ -69,12 +71,10 @@ describe("useVehicleDecoderFilesController", () => {
     }));
 
     act(() => result.current.commands.applyFunctionSuggestions());
-    await waitFor(() => expect(api.updateVehicleFunction).toHaveBeenCalledWith(
-      "vehicle-1",
-      "F0",
-      expect.objectContaining({ name: "Licht", functionType: "licht" })
-    ));
-    expect(refreshSelectedVehicle).toHaveBeenCalledWith("vehicle-1");
+    expect(onFunctionSuggestions).toHaveBeenCalledWith([preview]);
+    expect(updateFunction).not.toHaveBeenCalled();
+    expect(refreshSelectedVehicle).not.toHaveBeenCalled();
+    expect(onMessage).toHaveBeenLastCalledWith(expect.stringContaining("Entwurf"));
   });
 
   it("uploads and removes stored decoder files", async () => {

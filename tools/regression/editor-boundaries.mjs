@@ -46,7 +46,9 @@ try {
     const designation = () => dialog.getByRole("textbox", { name: de ? /^Bezeichnung/ : /^Designation/ });
     await designation().fill("UNSAVED-CORE");
     await tab(de ? "Steuerung" : "Control");
-    const functionName = () => dialog.getByRole("textbox", { name: de ? "F0 Funktionsname" : "F0 Function name", exact: true });
+    const functionName = (key = "F0") => dialog.getByRole("textbox", {
+      name: `${key} ${de ? "Funktionsname" : "Function name"}`, exact: true
+    });
     await functionName().fill("UNSAVED-FUNCTION");
     await tab("CV");
     const raw = () => dialog.locator(".cv-subtabs button").nth(1).click();
@@ -59,6 +61,30 @@ try {
     };
     await raw();
     await (await manual()).fill("UNSAVED-CV-FORM");
+    await dialog.locator('.cv-tab input[type="file"]').nth(1).setInputFiles({
+      name: "synthetic-functions.xml", mimeType: "text/xml", buffer: Buffer.from(
+        '<decoder><function key="F0" name="Do not overwrite"/><function key="F2" name="Project function"/></decoder>')
+    });
+    await dialog.locator(".cv-subtabs button").nth(2).click();
+    const adoptFunctions = dialog.getByRole("button", {
+      name: de ? "In Funktionsentwurf übernehmen" : "Add to function draft", exact: true
+    });
+    await adoptFunctions.waitFor();
+    for (const width of [2580, 1440, 820, 390]) {
+      for (const theme of ["light", "dark"]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.evaluate(theme => document.documentElement.dataset.theme = theme, theme);
+        await adoptFunctions.scrollIntoViewIfNeeded();
+        const bounds = await adoptFunctions.boundingBox();
+        assert.ok(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width + 1,
+          `${language}/${theme}/${width}: function-preview action outside viewport`);
+        await page.screenshot({ path: `${input.output}/${language}-${theme}-${width}-function-preview.png` });
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await adoptFunctions.click();
+    assert.equal(await functionName().inputValue(), "UNSAVED-FUNCTION");
+    assert.equal(await functionName("F2").inputValue(), "Project function");
     await tab("Uploads");
     const imageTitle = () => dialog.getByRole("textbox", { name: de ? "Bildbeschreibung" : "Image description", exact: true }).first();
     const originalAttachment = () => dialog.locator(".attachment-row").filter({ hasText: "anleitung.txt" });
@@ -109,6 +135,7 @@ try {
     await dialog.getByRole("button", { name: de ? "Abbrechen" : "Cancel", exact: true }).click();
     assert.deepEqual(errors, []);
     checks.push(language + ":confirmed-upload-preserves-five-drafts-and-cancel");
+    checks.push(language + ":decoder-file-supplements-shared-function-draft-without-overwriting");
     await context.close();
   }
   await writeFile(input.output + "/report.json", JSON.stringify({ passed: true, checks }, null, 2) + "\n");

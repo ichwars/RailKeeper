@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState } from "react";
 
-import { api, type Vehicle, type VehicleCVFile, type VehicleCVValueInput } from "../../shared/api";
+import { api, type Vehicle, type VehicleCVFile, type VehicleCVFilePreview, type VehicleCVValueInput } from "../../shared/api";
+import { useI18n } from "../../shared/i18n";
 import {
   buildCVImportPreview,
-  isValidFunctionMapping,
   type CVFileUploadPreview,
   type CVImportPreview
 } from "./cvImport";
@@ -15,6 +15,7 @@ type UseVehicleDecoderFilesControllerOptions = {
   setSaving: (saving: boolean) => void;
   onMessage: (message: string) => void;
   onImportPreview: (preview: CVImportPreview) => void;
+  onFunctionSuggestions: (previews: VehicleCVFilePreview[]) => { applied: number; blocked: string[] };
   refreshSelectedVehicle: (vehicleId?: string) => Promise<void>;
 };
 
@@ -23,8 +24,10 @@ export function useVehicleDecoderFilesController({
   setSaving,
   onMessage,
   onImportPreview,
+  onFunctionSuggestions,
   refreshSelectedVehicle
 }: UseVehicleDecoderFilesControllerOptions) {
+  const { t } = useI18n();
   const [fileProfile, setFileProfile] = useState("");
   const [fileDescription, setFileDescription] = useState("");
   const [uploadPreview, setUploadPreview] = useState<CVFileUploadPreview | null>(null);
@@ -109,50 +112,9 @@ export function useVehicleDecoderFilesController({
 
   const applyFunctionSuggestions = () => {
     if (!selected || !uploadPreview) return;
-    const mappings = uploadPreview.previews.flatMap((preview) =>
-      (preview.suggestedFunctions || []).map((mapping) => ({
-        functionKey: mapping.functionKey,
-        name: mapping.name || "",
-        symbolKey: "",
-        functionType: mapping.functionType || "standard",
-        mode: "dauer",
-        directionDependent: selected.functions?.find(row => row.functionKey === mapping.functionKey)?.directionDependent ?? null,
-        inverted: selected.functions?.find(row => row.functionKey === mapping.functionKey)?.inverted ?? null,
-        legacyDirectionDependent: selected.functions?.find(row => row.functionKey === mapping.functionKey)?.legacyDirectionDependent ?? null,
-        flagsVersion: 2,
-        notes: preview.fileName
-      }))
-    );
-    const valid = Array.from(new Map(
-      mappings.filter(isValidFunctionMapping).map((mapping) => [mapping.functionKey, mapping])
-    ).values());
-    if (valid.length === 0) {
-      onMessage("Keine gültigen Funktionstasten in der Decoder-Vorschau gefunden.");
-      return;
-    }
-    setSaving(true);
-    onMessage("");
-    (async () => {
-      for (const row of valid) {
-        await api.updateVehicleFunction(selected.id, row.functionKey, {
-          name: row.name || "",
-          symbolKey: row.symbolKey || "",
-          functionType: row.functionType || "standard",
-          mode: row.mode || "dauer",
-          directionDependent: row.directionDependent ?? null,
-          inverted: row.inverted ?? null,
-          legacyDirectionDependent: row.legacyDirectionDependent ?? null,
-          flagsVersion: row.flagsVersion ?? 2,
-          notes: row.notes || ""
-        });
-      }
-    })()
-      .then(() => refreshSelectedVehicle(selected.id))
-      .then(() => onMessage(
-        `${valid.length} Funktionstaste${valid.length === 1 ? "" : "n"} aus der Decoder-Vorschau übernommen.`
-      ))
-      .catch((error: Error) => onMessage(error.message))
-      .finally(() => setSaving(false));
+    const result = onFunctionSuggestions(uploadPreview.previews);
+    onMessage(t("vehicles.functions.fileDraft", { count: result.applied }) + (result.blocked.length
+      ? " " + t("vehicles.functions.fileBlocked", { keys: result.blocked.join(", ") }) : ""));
   };
 
   const confirmUpload = () => {
