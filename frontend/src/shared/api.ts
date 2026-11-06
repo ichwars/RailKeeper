@@ -197,6 +197,8 @@ export type VehicleSetImage = components["schemas"]["VehicleSetImage"];
 export type ECoSDecoderProfileEvidence = components["schemas"]["ECoSDecoderProfileEvidence"];
 
 export type Vehicle = components["schemas"]["Vehicle"];
+export type VehicleCatalogAssignment = components["schemas"]["VehicleCatalogAssignment"];
+export type VehicleCatalogBackfillReport = components["schemas"]["VehicleCatalogBackfillReport"];
 
 export type VehicleSetInput = Pick<CreateVehicleRequest,
   | "name"
@@ -903,6 +905,8 @@ function digitalCenterSessionSuffix(sessionID?: string) {
 }
 
 export const api = {
+  catalogBackfillReport: () => request<VehicleCatalogBackfillReport>("/catalog/legacy-backfill"),
+  backfillLegacyCatalog: () => request<VehicleCatalogBackfillReport>("/catalog/legacy-backfill", { method: "POST" }),
   ...createBugReportAPI(request),
   ...createAccessoriesAPI(request),
   dataTransferSummary: () => request<DataTransferSummary>("/data-transfer/summary"),

@@ -20,6 +20,8 @@ func TestOpenAPITransportFieldsMatchRuntimeJSON(t *testing.T) {
 	}
 	for name, record := range map[string]any{
 		"Vehicle":                        application.Vehicle{},
+		"VehicleCatalogAssignment":       application.VehicleCatalogAssignment{},
+		"VehicleCatalogBackfillReport":   application.VehicleCatalogBackfillReport{},
 		"VehicleImage":                   application.VehicleImage{},
 		"VehicleImageCreation":           application.VehicleImageCreation{},
 		"VehicleImageInput":              application.VehicleImageInput{},

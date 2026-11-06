@@ -4,7 +4,7 @@ description: Architecture and contributions.
 audience: developer
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-06
 ---
 
 # Architecture and contributions
@@ -29,6 +29,19 @@ The [architecture reference](https://github.com/ichwars/RailKeeper/blob/main/doc
 Install the Go/Node versions specified by `backend/go.mod` and CI configuration. Install frontend dependencies with `npm ci`, build using `npm run build`, then start the backend from `backend` with `go run ./cmd/railkeeper`. Use a separate data folder for tests.
 
 Before a pull request: format Go, run `go test ./...` in the backend and `npm run build` in the frontend. Add focused tests for affected workflows. Documentation changes need both languages and `npm run check` in `docs`.
+
+## Check catalog assignments
+
+Admins can read the mapping/difference report using `GET /api/v1/catalog/legacy-backfill`. It lists
+missing relationships, pinned article revisions and individual overrides. Reading it changes no
+assignment. An explicitly sent `POST` on the same route completes only missing relationships and
+requires the existing CSRF protection. Retries add neither catalog rows nor another backfill audit
+event. Existing differences are never silently corrected; legacy vehicle/set fields remain
+authoritative during this transition.
+
+The [catalog-model reference](https://github.com/ichwars/RailKeeper/blob/main/docs/architecture/vehicle-catalog.md)
+documents field mapping, backups and preservation evidence. Viewer, Editor and Messe cannot use
+these administrative inspection operations.
 
 ## Preserve the boundaries
 

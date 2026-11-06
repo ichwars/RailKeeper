@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ROUTES_SHA256 = "5cdd088d9efe3111fd0fae9c112d388899917dfaf45ca11e75879273e1aeec88"
+ROUTES_SHA256 = "d69ca3234a75a6572ca55e962514e686a6bcf46a46ec65f966e0f8f7f0c4d8ca"
 
 # Longest matching prefix wins. New top-level areas must be classified explicitly.
 FEATURES = {
@@ -43,6 +43,12 @@ FEATURES = {
         "ui": "Uploads, Vorschau, Download, Hauptbild, Verknüpfungen",
         "storage": "vehicle_images, vehicle_attachments, file_blobs and referenced files",
         "tests": ["backend/internal/application/vehicles_test.go", "backend/internal/application/backup_test.go"],
+    },
+    "vehicle-catalog": {
+        "prefixes": ["/catalog"],
+        "ui": "Admin-Zuordnungsbericht und wiederholbare Altbestandsbefüllung",
+        "storage": "catalog_articles, catalog_article_revisions, vehicle_article_links, vehicle_set_article_links",
+        "tests": ["backend/internal/application/vehicle_catalog_backfill_test.go", "backend/internal/api/vehicle_catalog_handlers_test.go"],
     },
     "workshop": {
         "prefixes": ["/vehicles/{id}/maintenance", "/vehicles/{id}/spare-parts"],
