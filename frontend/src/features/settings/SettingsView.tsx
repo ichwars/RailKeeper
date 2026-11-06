@@ -4,11 +4,9 @@ import {
   ChevronDown,
   ChevronUp,
   Database,
-  Download,
   Eye,
   EyeOff,
   ExternalLink,
-  HardDrive,
   History,
   KeyRound,
   Mail,
@@ -16,12 +14,10 @@ import {
   Plus,
   RefreshCw,
   Shield,
-  ShieldAlert,
   Trash2,
   Upload,
   UserCog,
   Users,
-  Wrench,
   X
 } from "lucide-react";
 import type { AppView } from "../../app/App";
@@ -29,7 +25,6 @@ import { availableStartView } from "../../app/navigationAvailability";
 import {
   api,
   AuditLogEntry,
-  BackupValidationResult,
   InventoryNumberScheme,
   MasterDataEntry,
   MasterDataInput,
@@ -39,7 +34,6 @@ import {
   SMTPSettings,
   SMTPSettingsInput,
   SystemPrinters,
-  StorageUsage,
   TwoFactorStatus,
   UserAccount,
   VersionInfo
@@ -50,7 +44,6 @@ import { SettingsAuthTab } from "./SettingsAuthTab";
 import { SettingsDigitalTab } from "./SettingsDigitalTab";
 import { ArticleManagementSettings } from "./ArticleManagementSettings";
 import { DecoderLibrarySettings } from "./DecoderLibrarySettings";
-import { decoderLibraryChanged } from "../../shared/DecoderLibraryProvider";
 import {
   MasterDataBulkEntryCheckbox,
   MasterDataBulkSelectAllCheckbox,
@@ -70,7 +63,10 @@ import {
   type SettingsLocation
 } from "./settingsDataModel";
 import { SettingsTabList } from "./SettingsTabList";
-import { StorageLocationPanel } from "./StorageLocationPanel";
+import { SettingsStorageCard } from "./SettingsStorageCard";
+import { SettingsTransferTab } from "./SettingsTransferTab";
+import { useSettingsStorage } from "./useSettingsStorage";
+import { useSettingsTransfer } from "./useSettingsTransfer";
 import { WindowsUpdateDownload } from "./WindowsUpdateDownload";
 
 import {
@@ -92,7 +88,6 @@ import {
   emptyUserForm,
   entryToForm,
   externalLink,
-  formatBytes,
   formatDateTime,
   loadableMasterDataTypes,
   localSettingKeys,
@@ -116,7 +111,7 @@ import {
   sidebarOrderChangedEvent,
   sidebarPrefsKey
 } from "./settingsModel";
-import type { FormState, PasswordFormState, SettingsTab, UserFormState } from "./settingsModel";
+import type { FormState, PasswordFormState, SettingsConfirmDialog, SettingsTab, UserFormState } from "./settingsModel";
 import { AppSelect } from "../../shared/ui/AppSelect";
 
 const updateStatusChangedEvent = "railkeeper-update-status-changed";
@@ -127,14 +122,6 @@ const emptyInventorySchemeDraft = {
   nextNumber: 1,
   padding: 6,
   active: true
-};
-
-type SettingsConfirmDialog = {
-  title: string;
-  body?: string;
-  confirmLabel: string;
-  danger?: boolean;
-  onConfirm: () => void;
 };
 
 type MasterDataSortDirection = "asc" | "desc";
@@ -212,17 +199,6 @@ export function SettingsView({ username }: { username: string }) {
   const [inventorySchemesLoading, setInventorySchemesLoading] = useState(false);
   const [inventorySchemesMessage, setInventorySchemesMessage] = useState("");
   const [newInventoryScheme, setNewInventoryScheme] = useState(emptyInventorySchemeDraft);
-  const [backupFile, setBackupFile] = useState<File | null>(null);
-  const [backupValidation, setBackupValidation] = useState<BackupValidationResult | null>(null);
-  const [backupMessage, setBackupMessage] = useState("");
-  const [backupRestoreConfirm, setBackupRestoreConfirm] = useState("");
-  const [backupSaving, setBackupSaving] = useState(false);
-  const [backupValidating, setBackupValidating] = useState(false);
-  const [backupFileInputKey, setBackupFileInputKey] = useState(0);
-  const [masterDataFile, setMasterDataFile] = useState<File | null>(null);
-  const [masterDataMessage, setMasterDataMessage] = useState("");
-  const [masterDataSaving, setMasterDataSaving] = useState(false);
-  const [masterDataFileInputKey, setMasterDataFileInputKey] = useState(0);
   const [defaultView, setDefaultView] = useState(() =>
     availableStartView(readLocalSetting(localSettingKeys.defaultView, "overview"))
   );
@@ -241,10 +217,8 @@ export function SettingsView({ username }: { username: string }) {
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [versionMessage, setVersionMessage] = useState("");
   const [versionLoading, setVersionLoading] = useState(false);
-  const [storageUsage, setStorageUsage] = useState<StorageUsage | null>(null);
-  const [storageMessage, setStorageMessage] = useState("");
-  const [storageLoading, setStorageLoading] = useState(false);
-  const [storageOptimizing, setStorageOptimizing] = useState(false);
+  const storage = useSettingsStorage();
+  const { storageUsage, storageLoading, loadStorageUsage } = storage;
   const [systemPrinters, setSystemPrinters] = useState<SystemPrinters | null>(null);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
   const [authMessage, setAuthMessage] = useState("");
@@ -287,13 +261,18 @@ export function SettingsView({ username }: { username: string }) {
   const [twoFactorSaving, setTwoFactorSaving] = useState(false);
   const [twoFactorMessage, setTwoFactorMessage] = useState("");
   const [confirmDialog, setConfirmDialog] = useState<SettingsConfirmDialog | null>(null);
+  // Keep controller state mounted when navigating between settings tabs.
+  const transfer = useSettingsTransfer({
+    requestConfirmation: setConfirmDialog,
+    invalidateMasterData: () => {
+      setLoadedTypes({});
+      setItemsByType({});
+    },
+    clearMasterDataSearch: () => setSearch(""),
+    loadStorageUsage
+  });
   const canManageUsers = Boolean(currentSession?.roles.includes("Admin"));
   const canEditMasterData = Boolean(currentSession?.roles.some((role) => role === "Admin" || role === "Editor"));
-  const languageLocale = language === "de" ? "de-DE" : "en-US";
-  const backupRestorePhrase = t("settings.backup.confirmPhrase");
-  const backupRestoreConfirmed =
-    backupRestoreConfirm.trim().toLocaleUpperCase(languageLocale) === backupRestorePhrase.toLocaleUpperCase(languageLocale);
-
   const activeDataType = useMemo(
     () => masterDataTypes.find((item) => item.type === activeType) || masterDataTypes[0],
     [activeType]
@@ -333,23 +312,6 @@ export function SettingsView({ username }: { username: string }) {
     const label = t(`settings.category.${category}`);
     return label === `settings.category.${category}` ? category : label;
   };
-  const storageCategoryLabel = (key: string, label: string) => {
-    const normalized = `${key} ${label}`.toLocaleLowerCase("de-DE");
-    const categoryKey =
-      normalized.includes("database") || normalized.includes("datenbank") ? "database" :
-      normalized.includes("thumbnail") || normalized.includes("vorschau") ? "thumbnails" :
-      normalized.includes("image") || normalized.includes("bild") ? "images" :
-      normalized.includes("attachment") || normalized.includes("beilage") ? "attachments" :
-      normalized.includes("other") || normalized.includes("sonstig") ? "other" : "";
-    if (!categoryKey) return label;
-    return t(`settings.storage.category.${categoryKey}`);
-  };
-  const fileCountLabel = (count: number, bytes: number) =>
-    t("settings.storage.fileCount", {
-      count,
-      suffix: count === 1 ? "" : language === "de" ? "en" : "s",
-      size: formatBytes(bytes)
-    });
   const versionStatusLabel = (info: VersionInfo) => {
     if (info.updateAvailable) return t("settings.updates.status.updateAvailable");
     if (info.status === "current") return betaUpdates ? t("settings.updates.status.currentBeta") : t("settings.updates.status.current");
@@ -369,10 +331,6 @@ export function SettingsView({ username }: { username: string }) {
     : t("settings.updates.notChecked");
   const activeDataLabel = masterLabel(activeDataType.type);
   const activeDataDescription = masterDescription(activeDataType.type);
-  const storageFileCount = useMemo(
-    () => (storageUsage?.categories || []).reduce((total, category) => total + category.files, 0),
-    [storageUsage]
-  );
   const items = itemsByType[activeType] || [];
   const loading = Boolean(loadingTypes[activeType]);
   const isSymbolData = activeType === "symbols";
@@ -681,29 +639,6 @@ export function SettingsView({ username }: { username: string }) {
 
   const updateBetaUpdates = (enabled: boolean) => {
     setLocalBool(localSettingKeys.betaUpdates, enabled, setBetaUpdates);
-  };
-
-  const loadStorageUsage = () => {
-    setStorageLoading(true);
-    setStorageMessage("");
-    api
-      .storageUsage()
-      .then(setStorageUsage)
-      .catch((error: Error) => setStorageMessage(error.message))
-      .finally(() => setStorageLoading(false));
-  };
-
-  const optimizeStorage = () => {
-    setStorageOptimizing(true);
-    setStorageMessage("");
-    api
-      .optimizeStorage()
-      .then((result) => {
-        setStorageMessage(t("settings.storage.optimizeDone", { bytes: formatBytes(result.reclaimedBytes) }));
-        loadStorageUsage();
-      })
-      .catch((error: Error) => setStorageMessage(error.message))
-      .finally(() => setStorageOptimizing(false));
   };
 
   const loadSystemPrinters = () => {
@@ -1245,91 +1180,6 @@ export function SettingsView({ username }: { username: string }) {
     });
   };
 
-  const selectBackupFile = (file: File | null) => {
-    setBackupFile(file);
-    setBackupValidation(null);
-    setBackupMessage("");
-    setBackupRestoreConfirm("");
-    if (!file) return;
-
-    setBackupValidating(true);
-    api
-      .validateBackup(file)
-      .then((result) => setBackupValidation(result))
-      .catch((error: Error) => setBackupMessage(error.message))
-      .finally(() => setBackupValidating(false));
-  };
-
-  const restoreBackup = () => {
-    if (!backupFile) {
-      setBackupMessage(t("settings.backup.error.noFile"));
-      return;
-    }
-    if (!backupValidation?.compatible) {
-      setBackupMessage(t("settings.backup.error.notValidated"));
-      return;
-    }
-    if (!backupRestoreConfirmed) {
-      setBackupMessage(t("settings.backup.error.confirmRequired", { phrase: backupRestorePhrase }));
-      return;
-    }
-    setConfirmDialog({
-      title: t("settings.backup.restoreButton"),
-      body: t("settings.backup.confirmRestore"),
-      confirmLabel: t("settings.backup.restoreButton"),
-      danger: true,
-      onConfirm: () => {
-        setBackupSaving(true);
-        setBackupMessage("");
-        api
-          .restoreBackup(backupFile)
-          .then((result) => {
-            window.dispatchEvent(new Event(decoderLibraryChanged));
-            setBackupMessage(t("settings.backup.restored", { rows: result.restoredRows, files: result.restoredFiles }));
-            setLoadedTypes({});
-            setItemsByType({});
-            setBackupFile(null);
-            setBackupValidation(null);
-            setBackupRestoreConfirm("");
-            setBackupFileInputKey((current) => current + 1);
-            loadStorageUsage();
-          })
-          .catch((error: Error) => setBackupMessage(error.message))
-          .finally(() => setBackupSaving(false));
-      }
-    });
-  };
-
-  const importMasterData = () => {
-    if (!masterDataFile) {
-      setMasterDataMessage(t("settings.masterTransfer.fileMissing"));
-      return;
-    }
-    setConfirmDialog({
-      title: t("settings.masterTransfer.upload"),
-      body: t("settings.masterTransfer.confirm"),
-      confirmLabel: t("settings.masterTransfer.upload"),
-      danger: true,
-      onConfirm: () => {
-        setMasterDataSaving(true);
-        setMasterDataMessage("");
-        api
-          .importMasterData(masterDataFile)
-          .then((result) => {
-            window.dispatchEvent(new Event(decoderLibraryChanged));
-            setMasterDataMessage(t("settings.masterTransfer.imported", { entries: result.importedEntries, relations: result.importedRelations }));
-            setLoadedTypes({});
-            setItemsByType({});
-            setMasterDataFile(null);
-            setMasterDataFileInputKey((current) => current + 1);
-            setSearch("");
-          })
-          .catch((error: Error) => setMasterDataMessage(error.message))
-          .finally(() => setMasterDataSaving(false));
-      }
-    });
-  };
-
   const toggleMasterDataSort = (key: string) => {
     setMasterDataSort((current) => ({
       key,
@@ -1800,47 +1650,7 @@ export function SettingsView({ username }: { username: string }) {
               {versionMessage && <p className="form-message">{localizedStatusMessage(versionMessage)}</p>}
             </section>
 
-            <section className="panel settings-card settings-tool-card">
-              <div className="settings-section-head">
-                <div className="settings-card-title">
-                  <HardDrive size={17} />
-                  <h2>{t("settings.storage.title")}</h2>
-                </div>
-                <div className="settings-card-actions">
-                  <button type="button" className="icon-button subtle-icon-action" onClick={optimizeStorage} aria-label={t("settings.storage.optimize")} title={t("settings.storage.optimize")} disabled={storageLoading || storageOptimizing}>
-                    <Wrench size={15} />
-                  </button>
-                  <button type="button" className="icon-button" onClick={loadStorageUsage} aria-label={t("settings.storage.refresh")} title={t("settings.data.refresh")} disabled={storageLoading || storageOptimizing}>
-                    <RefreshCw size={16} />
-                  </button>
-                </div>
-              </div>
-              <p>{t("settings.storage.subtitle")}</p>
-              {canManageUsers && <StorageLocationPanel />}
-              <div className="storage-total">
-                <strong>{formatBytes(storageUsage?.totalBytes || 0)}</strong>
-                <span>{storageUsage?.updatedAt ? t("settings.storage.updated", { date: formatDateTime(storageUsage.updatedAt) }) : t("settings.storage.notUpdated")}</span>
-              </div>
-              <div className="storage-list">
-                {(storageUsage?.categories || []).map((category) => {
-                  const percent = storageUsage?.totalBytes ? Math.round((category.bytes / storageUsage.totalBytes) * 100) : 0;
-                  return (
-                    <div className="storage-row" key={category.key}>
-                      <div>
-                        <strong>{storageCategoryLabel(category.key, category.label)}</strong>
-                        <span>{fileCountLabel(category.files, category.bytes)}</span>
-                      </div>
-                      <div className="storage-bar" aria-label={storageCategoryLabel(category.key, category.label) + ": " + percent + "%"}>
-                        <span style={{ width: Math.max(2, percent) + "%" }} />
-                      </div>
-                    </div>
-                  );
-                })}
-                {storageLoading && <p className="empty-state compact">{t("settings.storage.loading")}</p>}
-                {!storageLoading && !storageUsage && <p className="empty-state compact">{t("settings.storage.empty")}</p>}
-              </div>
-              {storageMessage && <p className="form-message">{storageMessage}</p>}
-            </section>
+            <SettingsStorageCard storage={storage} canManageUsers={canManageUsers} />
           </aside>
         </section>
       )}
@@ -2086,179 +1896,7 @@ export function SettingsView({ username }: { username: string }) {
       )}
 
       {activeSettingsTab === "importExport" && (
-        <section className="panel settings-card import-export-card backup-operational-lanes">
-          <section className="backup-operational-lane">
-            <div className="backup-lane-heading">
-              <Database size={18} aria-hidden="true" />
-              <div>
-                <h3>{t("settings.masterTransfer.title")}</h3>
-                <p>{t("settings.masterTransfer.subtitle")}</p>
-              </div>
-            </div>
-            <div className="backup-lane-content">
-              <label className="file-picker-field">
-                <span>{t("settings.masterTransfer.file")}</span>
-                <span className="file-picker-shell">
-                  <span className="file-picker-button">{t("settings.file.pick")}</span>
-                  <span className="file-picker-name">{masterDataFile?.name || t("settings.file.none")}</span>
-                </span>
-                <input
-                  key={masterDataFileInputKey}
-                  type="file"
-                  accept="application/json,.json"
-                  onChange={(event) => {
-                    setMasterDataFile(event.target.files?.[0] || null);
-                    setMasterDataMessage("");
-                  }}
-                />
-              </label>
-              {masterDataSaving && <span className="inline-status">{t("settings.masterTransfer.saving")}</span>}
-            </div>
-            <div className="backup-lane-actions">
-              <a className="secondary-button" href={api.masterDataExportUrl()}>
-                <Download size={16} />
-                {t("settings.masterTransfer.download")}
-              </a>
-              <button type="button" className="secondary-button" onClick={importMasterData} disabled={masterDataSaving || !masterDataFile}>
-                <Upload size={16} />
-                {t("settings.masterTransfer.upload")}
-              </button>
-            </div>
-            {masterDataMessage && <p className="form-message">{masterDataMessage}</p>}
-          </section>
-
-          <section className="backup-operational-lane">
-            <div className="backup-lane-heading">
-              <HardDrive size={18} aria-hidden="true" />
-              <div>
-                <h3>{t("settings.backup.export.title")}</h3>
-                <p>{t("settings.backup.export.subtitle")}</p>
-              </div>
-            </div>
-            <div className="backup-lane-content">
-              <div className="backup-summary-strip">
-                <span>
-                  <strong>{formatBytes(storageUsage?.totalBytes || 0)}</strong>
-                  {t("settings.backup.storage")}
-                </span>
-                <span>
-                  <strong>{storageFileCount.toLocaleString("de-DE")}</strong>
-                  {t("settings.backup.files")}
-                </span>
-                <button type="button" className="icon-button" onClick={loadStorageUsage} disabled={storageLoading} aria-label={t("settings.backup.refreshStorage")} title={t("settings.backup.refreshStorage")}>
-                  <RefreshCw size={15} />
-                </button>
-              </div>
-            </div>
-            <div className="backup-lane-actions">
-              <a className="primary-button backup-export-button" href={api.backupExportUrl()} download>
-                <Download size={17} />
-                {t("settings.backup.create")}
-              </a>
-            </div>
-          </section>
-
-          <section className="backup-operational-lane warning">
-            <div className="backup-lane-heading">
-              <ShieldAlert size={18} aria-hidden="true" />
-              <div>
-                <h3>{t("settings.backup.restore.title")}</h3>
-                <p>{t("settings.backup.restore.subtitle")}</p>
-              </div>
-            </div>
-            <div className="backup-lane-workspace">
-              <div className="backup-restore-controls">
-                <label className="file-picker-field">
-                  <span>{t("settings.backup.file")}</span>
-                  <span className="file-picker-shell">
-                    <span className="file-picker-button">{t("settings.file.pick")}</span>
-                    <span className="file-picker-name">{backupFile?.name || t("settings.file.none")}</span>
-                  </span>
-                  <input
-                    key={backupFileInputKey}
-                    type="file"
-                    accept="application/json,.json"
-                    onChange={(event) => selectBackupFile(event.target.files?.[0] || null)}
-                  />
-                </label>
-                {backupValidating && <p className="backup-validation-status">{t("settings.backup.validating")}</p>}
-                <button type="button" className="secondary-button danger" onClick={restoreBackup} disabled={backupSaving || backupValidating || !backupValidation?.compatible || !backupRestoreConfirmed}>
-                  {backupSaving ? (
-                    t("settings.backup.restoring")
-                  ) : (
-                    <>
-                      <Upload size={17} />
-                      {t("settings.backup.restoreButton")}
-                    </>
-                  )}
-                </button>
-              </div>
-              {backupValidation && (
-                <div className={backupValidation.compatible ? "backup-validation ok" : "backup-validation danger"}>
-                  <strong>{backupValidation.compatible ? t("settings.backup.compatible") : t("settings.backup.incompatible")}</strong>
-                  <dl>
-                    <div>
-                      <dt>{t("settings.backup.version")}</dt>
-                      <dd>{backupValidation.version || "-"}</dd>
-                    </div>
-                    <div>
-                      <dt>{t("settings.backup.tables")}</dt>
-                      <dd>{backupValidation.tableCount}</dd>
-                    </div>
-                    <div>
-                      <dt>{t("settings.backup.rows")}</dt>
-                      <dd>{backupValidation.rowCount}</dd>
-                    </div>
-                    <div>
-                      <dt>{t("settings.backup.files")}</dt>
-                      <dd>
-                        {backupValidation.fileCount} / {formatBytes(backupValidation.fileBytes)}
-                      </dd>
-                    </div>
-                  </dl>
-                  {backupValidation.errors.length > 0 && (
-                    <div className="backup-validation-list danger">
-                      <strong>{t("settings.backup.errors")}</strong>
-                      <ul>
-                        {backupValidation.errors.map((error) => (
-                          <li key={error}>{error}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {backupValidation.warnings.length > 0 && (
-                    <div className="backup-validation-list warning">
-                      <strong>{t("settings.backup.warnings")}</strong>
-                      <ul>
-                        {backupValidation.warnings.map((warning) => (
-                          <li key={warning}>{warning}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-              {backupValidation?.compatible && (
-                <label className="backup-confirm-field">
-                  {t("settings.backup.confirmLabel")}
-                  <span>{t("settings.backup.confirmHelp", { phrase: backupRestorePhrase })}</span>
-                  <input
-                    value={backupRestoreConfirm}
-                    onChange={(event) => setBackupRestoreConfirm(event.target.value)}
-                    placeholder={backupRestorePhrase}
-                    autoComplete="off"
-                  />
-                </label>
-              )}
-              <p className="source-note backup-note">
-                <ShieldAlert size={16} aria-hidden="true" />
-                <span>{t("settings.backup.note")}</span>
-              </p>
-            </div>
-          </section>
-
-          {backupMessage && <p className="form-message">{backupMessage}</p>}
-        </section>
+        <SettingsTransferTab transfer={transfer} storage={storage} />
       )}
 
       {activeSettingsTab === "digital" && (

@@ -15,6 +15,16 @@ responsibility.
 `openapi/railkeeper.yaml` is the public contract. The frontend currently uses a small hand-written adapter
 in `frontend/src/shared/api.ts`; generated types can replace it later once the API stops changing rapidly.
 
+## Frontend settings
+
+`SettingsView` coordinates navigation, shared master-data caches and confirmation dialogs. Storage
+queries and optimization live in `useSettingsStorage`; backup validation, restore and master-data import
+live in `useSettingsTransfer`. Both controllers stay mounted across settings tabs so pending files,
+validation results and confirmation text survive tab changes. `SettingsStorageCard` and
+`SettingsTransferTab` render these controllers without changing the existing API calls, load points,
+save timing or server-side authorization. Successful imports invalidate the shared master-data cache;
+restores also refresh storage usage.
+
 ## Runtime
 
 The [regression baseline](testing-baseline.md) documents the feature matrix, synthetic reference collection,

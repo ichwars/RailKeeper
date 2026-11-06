@@ -19,6 +19,14 @@ export {
   readArticleSearchSources
 } from "../../shared/articleSearch/articleSearchPreferences";
 
+export type SettingsConfirmDialog = {
+  title: string;
+  body?: string;
+  confirmLabel: string;
+  danger?: boolean;
+  onConfirm: () => void;
+};
+
 export type SettingsTab =
   | "general"
   | "data"
