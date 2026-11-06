@@ -34,6 +34,7 @@ dist/
 .vite/
 coverage/
 *.tsbuildinfo
+/frontend/src/generated/
 /docs/.vitepress/cache/
 /docs/.vitepress/dist/
 /test-results/

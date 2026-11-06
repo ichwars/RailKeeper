@@ -4,9 +4,11 @@ FROM --platform=$BUILDPLATFORM node:24-alpine AS frontend-build
 WORKDIR /src/frontend
 COPY backend/internal/decoderlibrary/*.json /src/backend/internal/decoderlibrary/
 COPY backend/internal/application/function_symbol_ecos_codes.json /src/backend/internal/application/
+COPY tools/api-types/package.json tools/api-types/package-lock.json /src/tools/api-types/
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend ./
+COPY openapi /src/openapi
 RUN npm run build
 
 FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS backend-build

@@ -1,4 +1,5 @@
 import { notifyRequestFailure, abstractRequestRoute } from "./apiRequestDiagnostics";
+import type { components } from "../generated/api";
 import { createAccessoriesAPI } from "./apiAccessories";
 import { createBugReportAPI } from "./apiBugReports";
 import type { ECoSImageOptions, ECoSImagePreview, ECoSImageResult } from "./ecosImageModel";
@@ -38,9 +39,7 @@ export * from "./apiBugReports";
 export type * from "../features/importExport/dataTransferModel";
 export type * from "../features/digitalCenters/digitalCenterModel";
 
-export type SetupStatus = {
-  setupRequired: boolean;
-};
+export type SetupStatus = components["schemas"]["SetupStatus"];
 
 export type CreateAdminRequest = {
   username: string;
@@ -998,42 +997,13 @@ export type BackupValidationResult = {
   errors: string[];
 };
 
-export type VersionInfo = {
-  version: string;
-  latestVersion?: string;
-  updateAvailable: boolean;
-  sourceUrl?: string;
-  releaseUrl?: string;
-  releaseNotes?: string;
-  windowsPackage?: {
-    version: string;
-    name: string;
-    url: string;
-  };
-  checkedAt: string;
-  status: "local" | "not_configured" | "current" | "update_available" | "unavailable" | "no_release";
-  message: string;
-};
+export type VersionInfo = components["schemas"]["VersionInfo"];
 
-export type StorageUsageCategory = {
-  key: string;
-  label: string;
-  bytes: number;
-  files: number;
-};
+export type StorageUsageCategory = components["schemas"]["StorageUsageCategory"];
 
-export type StorageUsage = {
-  totalBytes: number;
-  categories: StorageUsageCategory[];
-  updatedAt: string;
-};
+export type StorageUsage = components["schemas"]["StorageUsage"];
 
-export type StorageOptimizeResult = {
-  beforeBytes: number;
-  afterBytes: number;
-  reclaimedBytes: number;
-  optimizedAt: string;
-};
+export type StorageOptimizeResult = components["schemas"]["StorageOptimizeResult"];
 
 export type StorageLocationInfo = {
   dataPath: string;

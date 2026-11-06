@@ -4,11 +4,20 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "scripts": {
+    "postinstall": "npm ci --prefix ../tools/api-types --ignore-scripts",
+    "generate:api": "node ../tools/api-types/node_modules/openapi-typescript/bin/cli.js ../openapi/railkeeper.yaml -o src/generated/api.d.ts --default-non-nullable false",
+    "predev": "npm run generate:api",
     "dev": "vite --host 0.0.0.0 --port 3000",
+    "prebuild": "npm run generate:api",
     "build": "tsc -b && vite build",
+    "pretypecheck": "npm run generate:api",
+    "typecheck": "tsc -b",
     "preview": "vite preview --host 0.0.0.0 --port 3000",
+    "pretest": "npm run generate:api",
     "test": "vitest",
+    "pretest:run": "npm run generate:api",
     "test:run": "vitest run",
+    "pretest:coverage": "npm run generate:api",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
