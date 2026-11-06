@@ -228,7 +228,7 @@ export function useVehicleEditorController({
     openVehicle(vehicle, "edit", tab);
   };
 
-  const refreshSelectedVehicle = (vehicleID = selectedRef.current?.id, action?: VehicleSavedAction) => {
+  const refreshSelectedVehicle = (vehicleID = selectedRef.current?.id, action?: VehicleSavedAction, propagateError = false) => {
     if (!vehicleID || selectedRef.current?.id !== vehicleID) return Promise.resolve();
     if (action) setLastSavedAction(action);
     const request = ++requestVersion.current;
@@ -241,6 +241,7 @@ export function useVehicleEditorController({
       })
       .catch((error: Error) => {
         if (request === requestVersion.current) onMessage(error.message);
+        if (propagateError) throw error;
       });
   };
 

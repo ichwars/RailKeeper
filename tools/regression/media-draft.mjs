@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { referenceActor } from "./browser-actor.mjs";
 
-export async function assertMediaDraftWorkflow(page, input, de) {
-  const { actor, csrfToken, origin } = await referenceActor(input), language = de ? "de" : "en";
+export async function assertMediaDraftWorkflow(page, input, de, reference) {
+  const { actor, csrfToken, origin } = reference || await referenceActor(input), language = de ? "de" : "en";
   const path = "/api/v1/vehicles/" + encodeURIComponent(input.fixture.vehicleId);
   try {
     const read = async () => {
@@ -152,5 +152,5 @@ export async function assertMediaDraftWorkflow(page, input, de) {
     await cancel.click(); await dialog.waitFor({ state: "hidden" });
     assert.deepEqual(await read(), after, "Cancel after confirmed saves must preserve those completed actions");
     return [`${language}:stale-core-and-media-requests-roll-back`, `${language}:reviewed-media-save-preserves-unselected-data-and-bytes`];
-  } finally { await actor.dispose(); }
+  } finally { if (!reference) await actor.dispose(); }
 }

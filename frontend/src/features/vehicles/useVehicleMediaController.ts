@@ -4,12 +4,12 @@ import { type DragEvent, type SetStateAction, useCallback, useRef, useState } fr
 import { api, ApiError, type Vehicle, type VehicleAttachment, type VehicleImage } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { activeMediaConflicts, refreshMediaDraft, resolveMediaImage, type MediaDraftConflict, type MediaMetadataDraft } from "./mediaDraftConflicts";
-import { attachmentCategoryForFile, isAllowedImageFile, isBlockedAttachmentFile } from "./vehicleFiles";
+import { acknowledgeVehicleImage } from "./vehicleImageAcknowledgement";
+import type { VehicleUploadKind, VehicleUploadMetadata } from "./vehicleUploadBatch";
 import {
   attachmentsToEditState,
   type AttachmentEditState,
   type PendingArticleImage,
-  uploadedImageToPending,
   vehicleImagesToPending
 } from "./vehicleTransforms";
 
@@ -21,7 +21,8 @@ type UseVehicleMediaControllerOptions = {
   onMessage: (message: string) => void;
   refreshSelectedVehicle: (vehicleId?: string) => Promise<void>;
   reloadSelectedVehicle?: (vehicleId?: string) => Promise<void>;
-  onImageUploadComplete: () => void;
+  prepareUpload: (kind: VehicleUploadKind, files: File[], metadata: VehicleUploadMetadata) => boolean;
+  prepareDelete: (request: { kind: "image"; record: VehicleImage } | { kind: "attachment"; record: VehicleAttachment }) => void;
 };
 
 export function useVehicleMediaController({
@@ -32,7 +33,8 @@ export function useVehicleMediaController({
   onMessage,
   refreshSelectedVehicle,
   reloadSelectedVehicle,
-  onImageUploadComplete
+  prepareUpload,
+  prepareDelete
 }: UseVehicleMediaControllerOptions) {
   const { t } = useI18n();
   const imageDraft = useVehicleImageDraftController();
@@ -40,7 +42,7 @@ export function useVehicleMediaController({
   const { setPendingImages, setPreviewImage } = imageDraft.setters;
   const { addImages, setPrimaryPendingImage, updatePendingImageTitle,
     updatePendingImageMaintenance, movePendingImage } = imageDraft.commands;
-  const [attachmentDeleteCandidate, setAttachmentDeleteCandidate] = useState<VehicleAttachment | null>(null);
+  const imageBaseline = useRef<Vehicle | null>(null);
   const [metadata, setMetadataState] = useState<MediaMetadataDraft>({ edits: {}, conflicts: [] });
   const metadataRef = useRef(metadata);
   const setMetadata = useCallback((action: SetStateAction<MediaMetadataDraft>) => {
@@ -61,16 +63,17 @@ export function useVehicleMediaController({
 
   const reset = (clearPreview = false) => {
     imageDraft.commands.reset(clearPreview);
+    imageBaseline.current = null;
     setMetadata({ edits: {}, conflicts: [] });
     setImageUploadMaintenanceId("");
     setAttachmentUploadCategory("");
     setAttachmentUploadDescription("");
     setAttachmentDragActive(false);
-    setAttachmentDeleteCandidate(null);
   };
 
   const loadDetail = (detail: Vehicle) => {
     imageDraft.commands.loadDetail(detail);
+    imageBaseline.current = detail;
     setMetadata({ edits: attachmentsToEditState(detail.attachments), conflicts: [] });
   };
 
@@ -83,9 +86,11 @@ export function useVehicleMediaController({
   };
 
   const refreshDetail = (detail: Vehicle, previous: Vehicle) => {
-    const refreshed = refreshMediaDraft(imageDraft.refs.pendingImagesRef.current, metadataRef.current, previous, detail);
+    const baseline = imageBaseline.current?.id === previous.id ? { ...previous, images: imageBaseline.current.images } : previous;
+    const refreshed = refreshMediaDraft(imageDraft.refs.pendingImagesRef.current, metadataRef.current, baseline, detail);
     setPendingImages(refreshed.images);
     setMetadata(refreshed.state);
+    imageBaseline.current = detail;
   };
 
   const resolveConflict = (conflict: MediaDraftConflict, choice: "draft" | "saved") => {
@@ -118,104 +123,45 @@ export function useVehicleMediaController({
       ...(phase === "core" ? current.filter(image => !image.persisted && /^https?:\/\//i.test(image.url)) : [])
     ]);
     refreshAttachments(detail, previous);
+    imageBaseline.current = detail;
     setMetadata(current => ({ ...current, conflicts: current.conflicts.filter(value => value.kind !== "image") }));
   };
 
-  const acknowledgeImportedImage = (pending: PendingArticleImage, image: VehicleImage) => {
-    setPendingImages(current => current.map(value => value.id === pending.id ? uploadedImageToPending(image)
-      : image.isPrimary && value.persisted ? { ...value, isPrimary: false } : value));
+  const acknowledgeImage = (image: VehicleImage, replacedId?: string) => {
+    const baseline = imageBaseline.current || selected;
+    if (!baseline) return;
+    const result = acknowledgeVehicleImage(imageDraft.refs.pendingImagesRef.current, baseline, image, replacedId);
+    setPendingImages(result.images);
+    imageBaseline.current = { ...baseline, images: result.baselineImages };
   };
+  const acknowledgeImportedImage = (pending: PendingArticleImage, image: VehicleImage) => acknowledgeImage(image, pending.id);
 
   const removePendingImage = (image: PendingArticleImage) => {
     if (readonly || saving) return;
-    if (image.maintenanceId) {
+    const stored = selected?.images?.find(value => value.id === image.id);
+    if (image.maintenanceId || stored?.maintenanceId) {
       onMessage(t("vehicles.uploads.maintenanceLinkedCannotDelete"));
       return;
     }
 
-    const removeFromState = () => imageDraft.commands.removeFromState(image.id);
-
     if (selected && image.persisted) {
-      const revision = selected.images?.find(value => value.id === image.id)?.revision;
-      if (!revision) { onMessage(t("vehicles.mediaConflict.missingRevision")); return; }
-      setSaving(true);
-      api.deleteVehicleImage(selected.id, image.id, revision)
-        .then(() => {
-          removeFromState();
-          return refreshSelectedVehicle(selected.id);
-        })
-        .catch(handleMediaError)
-        .finally(() => setSaving(false));
+      if (!stored) { onMessage(t("vehicles.mediaConflict.missingRevision")); return; }
+      prepareDelete({ kind: "image", record: stored });
       return;
     }
-    removeFromState();
+    imageDraft.commands.removeFromState(image.id);
   };
 
   const uploadImages = (files: FileList | null) => {
     if (!selected || !files || files.length === 0) return;
-    const uploadFiles = Array.from(files);
-    const invalid = uploadFiles.find((file) => !isAllowedImageFile(file));
-    if (invalid) {
-      onMessage(`${invalid.name} ist kein erlaubtes Bildformat.`);
-      if (imageInputRef.current) imageInputRef.current.value = "";
-      return;
-    }
-
-    setSaving(true);
-    onMessage("");
-    (async () => {
-      for (const file of uploadFiles) {
-        const image = await api.uploadVehicleImage(
-          selected.id,
-          file,
-          file.name,
-          pendingImages.length === 0,
-          imageUploadMaintenanceId
-        );
-        addImages([uploadedImageToPending(image)]);
-      }
-    })()
-      .then(() => refreshSelectedVehicle(selected.id))
-      .then(onImageUploadComplete)
-      .catch(handleMediaError)
-      .finally(() => {
-        setSaving(false);
-        if (imageInputRef.current) imageInputRef.current.value = "";
-      });
+    prepareUpload("image", Array.from(files), { isPrimary: pendingImages.length === 0, maintenanceId: imageUploadMaintenanceId });
+    if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
   const uploadAttachment = (files: FileList | null) => {
     if (!selected || !files || files.length === 0) return;
-    const uploadFiles = Array.from(files);
-    const blocked = uploadFiles.find(isBlockedAttachmentFile);
-    if (blocked) {
-      onMessage(
-        `${blocked.name} ist als Beilage nicht erlaubt. ` +
-        "Erlaubt sind PDF, TXT, CSV, JSON, XML, ZIP sowie JPG, PNG und WebP."
-      );
-      if (attachmentInputRef.current) attachmentInputRef.current.value = "";
-      return;
-    }
-
-    setSaving(true);
-    onMessage("");
-    (async () => {
-      for (const file of uploadFiles) {
-        await api.uploadVehicleAttachment(
-          selected.id,
-          file,
-          attachmentUploadCategory || attachmentCategoryForFile(file),
-          attachmentUploadDescription,
-          ""
-        );
-      }
-    })()
-      .then(() => refreshSelectedVehicle(selected.id))
-      .catch(handleMediaError)
-      .finally(() => {
-        setSaving(false);
-        if (attachmentInputRef.current) attachmentInputRef.current.value = "";
-      });
+    prepareUpload("attachment", Array.from(files), { category: attachmentUploadCategory, description: attachmentUploadDescription });
+    if (attachmentInputRef.current) attachmentInputRef.current.value = "";
   };
 
   const onAttachmentDrag = (event: DragEvent<HTMLElement>) => {
@@ -266,18 +212,11 @@ export function useVehicleMediaController({
 
   const deleteAttachment = (attachment: VehicleAttachment) => {
     if (!selected || readonly || saving) return;
-    if (!attachment.revision) { onMessage(t("vehicles.mediaConflict.missingRevision")); return; }
-    setSaving(true);
-    setAttachmentDeleteCandidate(null);
-    api.deleteVehicleAttachment(selected.id, attachment.id, attachment.revision)
-      .then(() => refreshSelectedVehicle(selected.id))
-      .catch(handleMediaError)
-      .finally(() => setSaving(false));
+    prepareDelete({ kind: "attachment", record: attachment });
   };
 
   return {
     state: {
-      attachmentDeleteCandidate,
       mediaConflicts: activeMediaConflicts(metadata, pendingImages, selected),
       pendingImages,
       previewImage,
@@ -289,7 +228,6 @@ export function useVehicleMediaController({
     },
     refs: { imageInputRef, attachmentInputRef },
     setters: {
-      setAttachmentDeleteCandidate,
       setPendingImages,
       setPreviewImage,
       setAttachmentEdits,
@@ -304,6 +242,8 @@ export function useVehicleMediaController({
       refreshDetail,
       acknowledgeCoreSaved,
       acknowledgeImportedImage,
+      acknowledgeImage,
+      removeDeletedImage: imageDraft.commands.removeFromState,
       resolveConflict,
       addImages,
       setPrimaryPendingImage,

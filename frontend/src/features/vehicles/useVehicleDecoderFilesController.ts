@@ -9,29 +9,41 @@ import {
 } from "./cvImport";
 import { readCVImportFile } from "./cvFileImport";
 import { isBlockedCVFile } from "./vehicleFiles";
+import { maxVehicleUploadFiles, type VehicleUploadKind, type VehicleUploadMetadata } from "./vehicleUploadBatch";
 
 type UseVehicleDecoderFilesControllerOptions = {
   selected: Vehicle | null;
+  readonly: boolean;
+  saving: boolean;
   setSaving: (saving: boolean) => void;
   onMessage: (message: string) => void;
+  onStatus: (message: string) => void;
   onImportPreview: (preview: CVImportPreview) => void;
   onFunctionSuggestions: (previews: VehicleCVFilePreview[]) => { applied: number; blocked: string[] };
-  refreshSelectedVehicle: (vehicleId?: string) => Promise<void>;
+  prepareUpload: (kind: VehicleUploadKind, files: File[], metadata: VehicleUploadMetadata, confirmed?: boolean) => boolean;
+  prepareDelete: (request: { kind: "decoder"; record: VehicleCVFile }) => void;
 };
 
 export function useVehicleDecoderFilesController({
   selected,
+  readonly,
+  saving,
   setSaving,
   onMessage,
+  onStatus,
   onImportPreview,
   onFunctionSuggestions,
-  refreshSelectedVehicle
+  prepareUpload,
+  prepareDelete
 }: UseVehicleDecoderFilesControllerOptions) {
   const { t } = useI18n();
   const [fileProfile, setFileProfile] = useState("");
   const [fileDescription, setFileDescription] = useState("");
   const [uploadPreview, setUploadPreview] = useState<CVFileUploadPreview | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const scope = useRef(selected?.id); scope.current = selected?.id;
+  const version = useRef(0), previewOwner = useRef("");
+  const canUsePreview = () => !readonly && !saving && selected && selected.id === previewOwner.current;
 
   const previewStats = useMemo(() => ({
     cvValues: uploadPreview?.previews.reduce(
@@ -45,35 +57,44 @@ export function useVehicleDecoderFilesController({
   }), [uploadPreview]);
 
   const reset = () => {
+    version.current++;
+    previewOwner.current = "";
     setFileProfile("");
     setFileDescription("");
     setUploadPreview(null);
   };
 
   const uploadFiles = async (files: FileList | null) => {
-    if (!selected || !files || files.length === 0) return;
+    if (!selected || readonly || saving || !files || files.length === 0) return;
     const uploadFiles = Array.from(files);
+    if (uploadFiles.length > maxVehicleUploadFiles) {
+      onMessage(t("vehicles.mediaUpload.limit", { count: maxVehicleUploadFiles })); return;
+    }
     const blocked = uploadFiles.find(isBlockedCVFile);
     if (blocked) {
-      onMessage(
-        `${blocked.name} ist als CV-Datei nicht erlaubt. ` +
-        "Erlaubt sind JSON, CSV, TXT, XML, Z21, ESU, ESUX, LokProgrammer und ZIP."
-      );
+      onMessage(t("vehicles.mediaUpload.invalid.decoder", { name: blocked.name }));
       return;
     }
     setSaving(true);
     onMessage("");
+    const request = ++version.current, vehicleId = selected.id;
     try {
-      setUploadPreview({ files: uploadFiles, previews: await Promise.all(uploadFiles.map(api.previewVehicleCVFile)) });
+      const previews = await Promise.all(uploadFiles.map(api.previewVehicleCVFile));
+      if (version.current !== request || scope.current !== vehicleId) return;
+      previewOwner.current = vehicleId;
+      setUploadPreview({ files: uploadFiles, previews });
     } catch (error) {
-      onMessage(error instanceof Error ? error.message : String(error));
+      if (version.current === request && scope.current === vehicleId) onMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setSaving(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (version.current === request) {
+        setSaving(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
     }
   };
 
   const applyFirstSuggestion = () => {
+    if (!canUsePreview()) return;
     const suggestion = uploadPreview?.previews.find((preview) => preview.hasMetadata);
     if (!suggestion) return;
     if (suggestion.suggestedDecoderProfile) setFileProfile(suggestion.suggestedDecoderProfile);
@@ -81,7 +102,8 @@ export function useVehicleDecoderFilesController({
   };
 
   const previewValuesForImport = async () => {
-    if (!selected || !uploadPreview) return;
+    if (!canUsePreview() || !selected || !uploadPreview) return;
+    const request = ++version.current, vehicleId = selected.id;
     setSaving(true);
     onMessage("");
     try {
@@ -96,54 +118,38 @@ export function useVehicleDecoderFilesController({
         }));
       }));
       const values = batches.flat();
+      if (version.current !== request || scope.current !== vehicleId) return;
       const preview = buildCVImportPreview("Decoder-Datei-Vorschau", values, selected.cvValues || []);
       if (!preview.rows.some((row) => row.status !== "invalid")) {
         onMessage("Keine gültigen CV-Werte in der Decoder-Vorschau gefunden.");
         return;
       }
       onImportPreview({ ...preview, vehicleId: selected.id });
-      onMessage(`${values.length} erkannte CV-Werte für die Prüfung vorbereitet.`);
+      onStatus(t("vehicles.mediaUpload.cvPrepared", { count: values.length }));
     } catch (error) {
-      onMessage(error instanceof Error ? error.message : String(error));
+      if (version.current === request && scope.current === vehicleId) onMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setSaving(false);
+      if (version.current === request) setSaving(false);
     }
   };
 
   const applyFunctionSuggestions = () => {
-    if (!selected || !uploadPreview) return;
+    if (!canUsePreview() || !uploadPreview) return;
     const result = onFunctionSuggestions(uploadPreview.previews);
-    onMessage(t("vehicles.functions.fileDraft", { count: result.applied }) + (result.blocked.length
+    onStatus(t("vehicles.functions.fileDraft", { count: result.applied }) + (result.blocked.length
       ? " " + t("vehicles.functions.fileBlocked", { keys: result.blocked.join(", ") }) : ""));
   };
 
   const confirmUpload = () => {
-    if (!selected || !uploadPreview) return;
-    const uploadFiles = uploadPreview.files;
-    setSaving(true);
-    onMessage("");
-    (async () => {
-      for (const file of uploadFiles) {
-        await api.uploadVehicleCVFile(selected.id, file, fileProfile, fileDescription);
-      }
-    })()
-      .then(() => refreshSelectedVehicle(selected.id))
-      .then(() => {
-        setUploadPreview(null);
-        onMessage(`${uploadFiles.length} CV-Datei${uploadFiles.length === 1 ? "" : "en"} gespeichert.`);
-      })
-      .catch((error: Error) => onMessage(error.message))
-      .finally(() => setSaving(false));
+    if (!canUsePreview() || !uploadPreview) return;
+    if (prepareUpload("decoder", uploadPreview.files, { decoderProfile: fileProfile, description: fileDescription }, true)) {
+      setUploadPreview(null);
+    }
   };
 
   const remove = (file: VehicleCVFile) => {
-    if (!selected) return;
-    setSaving(true);
-    onMessage("");
-    api.deleteVehicleCVFile(selected.id, file.id)
-      .then(() => refreshSelectedVehicle(selected.id))
-      .catch((error: Error) => onMessage(error.message))
-      .finally(() => setSaving(false));
+    if (!selected || readonly || saving) return;
+    prepareDelete({ kind: "decoder", record: file });
   };
 
   return {

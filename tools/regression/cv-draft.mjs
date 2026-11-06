@@ -5,9 +5,9 @@ const inputFields = ["cvNumber", "value", "decoderProfile", "indexCV31", "indexC
   "protocol", "sourceFileId", "sourceLine", "sourceExportedAt"];
 const editable = value => Object.fromEntries(inputFields.map(field => [field, value[field]]));
 
-export async function assertCVDraftWorkflow(page, input, de) {
+export async function assertCVDraftWorkflow(page, input, de, reference) {
   const language = de ? "de" : "en";
-  const { actor, csrfToken, origin } = await referenceActor(input);
+  const { actor, csrfToken, origin } = reference || await referenceActor(input);
   try {
     const path = "/api/v1/vehicles/" + encodeURIComponent(input.fixture.vehicleId);
     const read = async () => {
@@ -148,5 +148,5 @@ export async function assertCVDraftWorkflow(page, input, de) {
     assert.deepEqual({ ...after, cvValues: before.cvValues }, before, "Manual CV save changed another vehicle field/record");
     return [language + ":cv-stage-cancel-without-write", language + ":cv-stale-batch-rollback-and-explicit-rebase",
       language + ":cv-save-preserves-unselected-data-and-other-drafts", language + ":cv-draft-bounds-focus-and-busy-state"];
-  } finally { await actor.dispose(); }
+  } finally { if (!reference) await actor.dispose(); }
 }

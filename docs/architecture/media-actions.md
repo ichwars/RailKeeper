@@ -60,6 +60,26 @@ revision and omits images. Missing comparison tokens block the editor write and 
 
 ## File completion and cleanup
 
+Local image and attachment selections open a confirmation containing the captured vehicle, files and
+metadata before any payload write. Decoder originals use the existing reviewed file-preview action.
+Each operation owns at most 20 files and uploads sequentially. Selecting or cancelling a confirmation
+does not write. Acknowledged files remain independent of vehicle/CV drafts and survive editor cancel.
+File selection and successful image uploads retain decoder-file profile/note drafts.
+
+Results distinguish acknowledged IDs, definite rejections, unattempted/skipped files and unknown
+responses. Only definite rejections and unattempted files can be resumed; acknowledged or unknown
+responses are never resubmitted in the same operation. A failed refresh retains successful IDs and
+explains that storage succeeded. This is bounded client recovery, not server request idempotency.
+After an unknown response the user checks the refreshed file list before starting a new operation.
+Image uploads chain only their own committed collection receipts. A 409 freezes the old confirmation
+until it is closed and the missing selection is explicitly reviewed again.
+
+Image, attachment and decoder-file deletion require a captured-record confirmation. Decoder deletion
+shows the source-reference count from that record's revision snapshot and explains the retained CV
+history. A stale or missing record blocks reuse of the confirmation. An unsaved maintenance unlink
+cannot bypass the stored image's maintenance protection. Confirmations use the shared modal layer,
+trap focus, keep a keyboard-scrollable file list and block close/escape while a request is running.
+
 Uploads store new payloads under fresh blob identifiers before creating their metadata reference.
 Existing file references are replaced only inside a successful metadata transaction. Failed remote
 image localization/adoption may leave newly allocated blobs unreferenced; create/update clean those
