@@ -45,6 +45,7 @@ export function functionFixture(overrides: Partial<VehicleFunction> = {}): Vehic
     directionDependent: true,
     inverted: null,
     flagsVersion: 2,
+    revision: "a".repeat(64),
     sortOrder: 0,
     createdAt: timestamp,
     updatedAt: timestamp,

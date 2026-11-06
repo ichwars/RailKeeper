@@ -1,243 +1,61 @@
-export type DataTransferArea = "vehicles" | "accessories" | "exhibitionLists";
-export type DataTransferDirection = "import" | "export";
-export type DataTransferFormat = "csv" | "railkeeper-json";
-export type DataTransferJobState =
-  | "draft"
-  | "reading"
-  | "review_required"
-  | "ready"
-  | "running"
-  | "completed"
-  | "completed_with_warnings"
-  | "failed"
-  | "cancelled";
-export type DataTransferJobStage =
-  | "created"
-  | "snapshot"
-  | "preview"
-  | "review"
-  | "completed"
-  | "failed"
-  | "cancelled";
-export type DataTransferIssueSeverity = "warning" | "error";
-export type DataTransferIssueResolution = "replace" | "merge" | "copy" | "skip" | "use_existing" | "create" | "link";
-export type DataTransferProposedAction = "create" | "replace" | "use_existing" | "copy";
-export type DataTransferProposedResolution = DataTransferIssueResolution | "replace_or_copy";
-export type DataTransferOptions = Record<string, unknown>;
-export type DataTransferCSVMappingOrigin = "alias" | "profile" | "manual" | "ignored" | "unmapped";
+import type { components, paths } from "../../generated/api";
 
-export type DataTransferCSVColumnMapping = {
-  index: number;
-  sourceHeader: string;
-  normalizedHeader: string;
-  targetField: string;
-  origin: DataTransferCSVMappingOrigin;
-};
+export type DataTransferArea = components["schemas"]["TransferArea"];
+export type DataTransferDirection = components["schemas"]["TransferDirection"];
+export type DataTransferFormat = components["schemas"]["TransferFormat"];
+export type DataTransferJobState = components["schemas"]["TransferJobState"];
+export type DataTransferJobStage = components["schemas"]["TransferJobStage"];
+export type DataTransferIssueSeverity = components["schemas"]["TransferIssueSeverity"];
+export type DataTransferIssueResolution = components["schemas"]["TransferIssueResolution"];
+export type DataTransferProposedAction = components["schemas"]["TransferProposedAction"];
+export type DataTransferProposedResolution = components["schemas"]["TransferProposedResolution"];
+export type DataTransferOptions = components["schemas"]["DataTransferProfile"]["options"];
+export type DataTransferCSVMappingOrigin = components["schemas"]["DataTransferCSVColumnMapping"]["origin"];
 
-export type DataTransferCSVMappingInput = {
-  columns: DataTransferCSVColumnMapping[];
-  saveToProfile: boolean;
-};
+export type DataTransferCSVColumnMapping = components["schemas"]["DataTransferCSVColumnMapping"];
 
-export type VehicleTransferField = {
-  key: string;
-  labelDE: string;
-  labelEN: string;
-  kind: "string" | "integer" | "boolean";
+export type DataTransferCSVMappingInput = components["schemas"]["DataTransferCSVMappingInput"];
+
+// Stored previews from older versions can omit aliases; keep their existing rendering path.
+export type VehicleTransferField = Omit<components["schemas"]["VehicleTransferField"], "aliases"> & {
   aliases?: string[];
 };
 
-export type DataTransferProfile = {
-  id: string;
-  name: string;
-  direction: DataTransferDirection;
-  format: DataTransferFormat;
-  areas: DataTransferArea[];
-  options: DataTransferOptions;
-  enabled: boolean;
-  createdByUserId: string;
-  lastUsedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-};
+export type DataTransferProfile = components["schemas"]["DataTransferProfile"];
 
-export type DataTransferProfileInput = {
-  name: string;
-  direction: DataTransferDirection;
-  format: DataTransferFormat;
-  areas: DataTransferArea[];
-  options?: DataTransferOptions;
-};
+export type DataTransferProfileInput = components["schemas"]["DataTransferProfileInput"];
 
-export type DataTransferJobInput = {
-  profileId: string;
-};
+export type DataTransferJobInput = components["schemas"]["DataTransferImportJobInput"];
 
-export type DataTransferJob = {
-  id: string;
-  profileId: string;
-  profileName: string;
-  direction: DataTransferDirection;
-  format: DataTransferFormat;
-  areas: DataTransferArea[];
-  options: DataTransferOptions;
-  state: DataTransferJobState;
-  stage: DataTransferJobStage;
-  sourceName: string;
-  sourceSha256: string;
-  packageVersion: number;
-  revision: number;
-  totalRecords: number;
-  readyRecords: number;
-  warningRecords: number;
-  errorRecords: number;
-  preview: Record<string, unknown>;
-  createdByUserId: string;
-  confirmedByUserId: string;
-  confirmedAt: string;
-  completedAt: string;
-  resultMessage: string;
-  createdAt: string;
-  updatedAt: string;
-};
+export type DataTransferJob = components["schemas"]["DataTransferJob"];
 
-export type DataTransferJobFilter = {
-  profileId?: string;
-  direction?: DataTransferDirection;
-  states?: DataTransferJobState[];
-  limit?: number;
-};
+export type DataTransferJobFilter = NonNullable<
+  paths["/data-transfer/jobs"]["get"]["parameters"]["query"]
+>;
 
-export type DataTransferArtifact = {
-  id: string;
-  jobId: string;
-  relativePath: string;
-  displayName: string;
-  mimeType: string;
-  sizeBytes: number;
-  sha256: string;
-  deletedAt: string;
-  createdAt: string;
-};
+export type DataTransferArtifact = components["schemas"]["DataTransferArtifact"];
 
-export type DataTransferExportResult = {
-  job: DataTransferJob;
-  artifact: DataTransferArtifact;
-  openFolderAvailable: boolean;
-};
+export type DataTransferExportResult = components["schemas"]["DataTransferExportResult"];
 
-export type DataTransferIssue = {
-  id: string;
-  jobId: string;
-  area: DataTransferArea;
-  recordKey: string;
-  rowNumber: number | null;
-  field: string;
-  severity: DataTransferIssueSeverity;
-  code: string;
-  message: string;
-  proposedResolution: DataTransferProposedResolution | "";
-  selectedResolution: DataTransferIssueResolution | "";
-  createdAt: string;
-  updatedAt: string;
-};
+export type DataTransferIssue = components["schemas"]["DataTransferIssue"];
 
-export type DataTransferPreviewRecord = {
-  area: DataTransferArea;
-  recordKey: string;
-  rowNumber?: number;
-  classification: "ready" | "warning" | "error";
-  proposedAction: DataTransferProposedAction;
-  targetId?: string;
-  targetUpdatedAt?: string;
-  targetFingerprint?: string;
-  data: Record<string, unknown>;
-};
+export type DataTransferPreviewRecord = components["schemas"]["DataTransferPreviewRecord"];
 
-export type DataTransferVehicleSetMember = {
-  vehicleId: string;
-  vehicleInventoryNumber: string;
-  position: number;
-  label?: string;
-};
+export type DataTransferVehicleSetMember = components["schemas"]["DataTransferVehicleSetMember"];
 
-export type DataTransferVehicleSet = {
-  id?: string;
-  inventoryNumber: string;
-  name: string;
-  manufacturer: string;
-  articleNumber: string;
-  articleSourceUrl: string;
-  gauge: string;
-  epoch: string;
-  railwayCompany: string;
-  category: string;
-  gattung: string;
-  description: string;
-  ean: string;
-  productionPeriod: string;
-  listPrice: string;
-  acquisitionType: string;
-  acquiredFrom: string;
-  purchasePrice: string;
-  purchaseDate: string;
-  storageLocation: string;
-  storageDetails: string;
-  condition: string;
-  conditionDetails: string;
-  packaging: string;
-  members: DataTransferVehicleSetMember[];
-  createdAt?: string;
-  updatedAt?: string;
-};
+export type DataTransferVehicleSet = components["schemas"]["DataTransferVehicleSet"];
 
-export type DataTransferVehicleSetDiagnostic = {
-  rowNumber: number;
-  field: string;
-  code: string;
-};
+export type DataTransferVehicleSetDiagnostic = components["schemas"]["DataTransferVehicleSetDiagnostic"];
 
-export type DataTransferVehicleSetPreview = {
-  recordKey: string;
-  classification: "ready" | "warning" | "error";
-  proposedAction: DataTransferProposedAction;
-  targetId?: string;
-  targetUpdatedAt?: string;
-  targetFingerprint?: string;
-  memberRecordKeys: string[];
-  rowNumbers?: number[];
-  diagnostics?: DataTransferVehicleSetDiagnostic[];
-  data: DataTransferVehicleSet;
-};
+export type DataTransferVehicleSetPreview = components["schemas"]["DataTransferVehicleSetPreview"];
 
-export type DataTransferPreview = {
-  job: DataTransferJob;
-  records: DataTransferPreviewRecord[];
-  issues: DataTransferIssue[];
-  totalRecords: number;
-  readyRecords: number;
-  warningRecords: number;
-  errorRecords: number;
-  csvMapping?: DataTransferCSVColumnMapping[];
+export type DataTransferPreview = Omit<components["schemas"]["DataTransferPreview"], "vehicleFields"> & {
   vehicleFields?: VehicleTransferField[];
-  vehicleSets?: DataTransferVehicleSetPreview[];
 };
 
-export type DataTransferSummary = {
-  openJobs: number;
-  selectedRecords: number;
-  lastExportAt: string;
-  artifactCount: number;
-  artifactBytes: number;
-  openFolderAvailable: boolean;
-  artifactDirectory: string;
-};
+export type DataTransferSummary = components["schemas"]["DataTransferSummary"];
 
-export type DataTransferJobDetails = {
-  job: DataTransferJob;
-  issues: DataTransferIssue[];
-  artifacts: DataTransferArtifact[];
-};
+export type DataTransferJobDetails = components["schemas"]["DataTransferJobDetails"];
 
 export const emptyDataTransferSummary: DataTransferSummary = {
   openJobs: 0,

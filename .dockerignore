@@ -13,6 +13,7 @@ data
 dist
 frontend/dist
 frontend/node_modules
+tools/api-types/node_modules
 docs/.vitepress/cache
 docs/.vitepress/dist
 docs/node_modules

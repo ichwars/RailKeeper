@@ -55,6 +55,8 @@ describe("VehiclesView", () => {
     vi.mocked(api.vehicles).mockResolvedValue([visibleMember]);
     vi.spyOn(api, "vehicleSet").mockResolvedValue({
       ...setSummary,
+      category: "Wagen",
+      gattung: "Reisezugwagen",
       members: [visibleMember, hiddenMember],
       createdAt: "2026-08-17T00:00:00Z",
       updatedAt: "2026-08-17T00:00:00Z",

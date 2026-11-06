@@ -26,6 +26,12 @@ build stage; neither Node nor the generator is part of the production runtime.
 Generator flags follow the [openapi-typescript CLI](https://openapi-ts.dev/cli), with
 `default-non-nullable` disabled so schema defaults do not make optional input fields required.
 
+Vehicle, CV and transfer transport records use generated schema aliases. `vehicleFormModel` derives
+editable drafts while retaining incomplete control values until the existing save validation runs.
+Stored transfer previews retain their legacy optional alias list through a small view projection;
+their existing runtime parser is unchanged. JSON fields and required response fields are checked
+against the actual Go records, including optional media metadata and inherited schema properties.
+
 ## Vehicle editing and persistence
 
 `VehiclesView` composes the existing inventory and editor components. Collection loading, filtering input
