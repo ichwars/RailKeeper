@@ -210,6 +210,10 @@ npm run build
 
 The production runtime serves the built frontend from `frontend/dist`.
 
+`npm ci` also installs the isolated, pinned OpenAPI type generator. The frontend development,
+test, typecheck and build scripts generate ignored transport types from `openapi/railkeeper.yaml`
+automatically. Generated types do not need to be committed or prepared by hand.
+
 Create a Windows Standalone package:
 
 ```powershell

@@ -12,8 +12,25 @@ responsibility.
 
 ## API Contract
 
-`openapi/railkeeper.yaml` is the public contract. The frontend currently uses a small hand-written adapter
-in `frontend/src/shared/api.ts`; generated types can replace it later once the API stops changing rapidly.
+`openapi/railkeeper.yaml` is the public contract. The existing request adapter in
+`frontend/src/shared/api.ts` retains authentication, CSRF, errors, timeouts and runtime validation.
+Transport types are derived from the contract without replacing that adapter; editable UI drafts
+remain separate from transport records.
+
+`npm ci` in `frontend` installs the pinned generator toolchain from `tools/api-types`.
+Its TypeScript 5 dependency is isolated from the application's TypeScript 7 compiler.
+`npm run generate:api` produces the ignored `frontend/src/generated/api.d.ts`; development,
+typecheck, test and build scripts generate it automatically before use. A fresh checkout requires
+no generated source checked into Git. Docker copies the contract and generator manifests into its
+build stage; neither Node nor the generator is part of the production runtime.
+Generator flags follow the [openapi-typescript CLI](https://openapi-ts.dev/cli), with
+`default-non-nullable` disabled so schema defaults do not make optional input fields required.
+
+Vehicle, CV and transfer transport records use generated schema aliases. `vehicleFormModel` derives
+editable drafts while retaining incomplete control values until the existing save validation runs.
+Stored transfer previews retain their legacy optional alias list through a small view projection;
+their existing runtime parser is unchanged. JSON fields and required response fields are checked
+against the actual Go records, including optional media metadata and inherited schema properties.
 
 ## Vehicle editing and persistence
 

@@ -85,6 +85,10 @@ components:
             id: {type: string}
             vehicleId: {type: string}
             functionKey: {type: string, pattern: '^F([0-9]|[12][0-9]|3[01])$'}
+            functionType: {type: string}
+            mode: {type: string}
+            directionDependent: {type: [boolean, "null"]}
+            inverted: {type: [boolean, "null"]}
             flagsVersion: {type: integer, enum: [2], default: 2}
             sortOrder: {type: integer}
             createdAt: {type: string, format: date-time}
@@ -339,12 +343,12 @@ components:
           oneOf:
             - $ref: "#/components/schemas/TransferProposedResolution"
             - type: string
-              maxLength: 0
+              const: ""
         selectedResolution:
           oneOf:
             - $ref: "#/components/schemas/TransferIssueResolution"
             - type: string
-              maxLength: 0
+              const: ""
         createdAt:
           type: string
         updatedAt:
@@ -389,27 +393,65 @@ components:
         label:
           type: string
     DataTransferVehicleSet:
-      allOf:
-        - $ref: "#/components/schemas/VehicleSetInput"
-        - type: object
-          required: [inventoryNumber, members]
-          properties:
-            id:
-              type: string
-              description: Source set ID. Target installations assign their own ID.
-            inventoryNumber:
-              type: string
-            members:
-              type: array
-              minItems: 2
-              items:
-                $ref: "#/components/schemas/DataTransferVehicleSetMember"
-            createdAt:
-              type: string
-              format: date-time
-            updatedAt:
-              type: string
-              format: date-time
+      type: object
+      required: [inventoryNumber, name, manufacturer, articleNumber, articleSourceUrl, gauge, epoch, railwayCompany, category, gattung, description, ean, productionPeriod, listPrice, acquisitionType, acquiredFrom, purchasePrice, purchaseDate, storageLocation, storageDetails, condition, conditionDetails, packaging, members]
+      properties:
+        id:
+          type: string
+        inventoryNumber:
+          type: string
+        name:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        articleSourceUrl:
+          type: string
+        gauge:
+          type: string
+        epoch:
+          type: string
+        railwayCompany:
+          type: string
+        category:
+          type: string
+        gattung:
+          type: string
+        description:
+          type: string
+        ean:
+          type: string
+        productionPeriod:
+          type: string
+        listPrice:
+          type: string
+        acquisitionType:
+          type: string
+        acquiredFrom:
+          type: string
+        purchasePrice:
+          type: string
+        purchaseDate:
+          type: string
+        storageLocation:
+          type: string
+        storageDetails:
+          type: string
+        condition:
+          type: string
+        conditionDetails:
+          type: string
+        packaging:
+          type: string
+        members:
+          type: array
+          minItems: 2
+          items: {$ref: "#/components/schemas/DataTransferVehicleSetMember"}
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
     DataTransferVehicleSetDiagnostic:
       type: object
       required: [rowNumber, field, code]
@@ -472,6 +514,14 @@ components:
         origin:
           type: string
           enum: [alias, profile, manual, ignored, unmapped]
+    DataTransferCSVMappingInput:
+      type: object
+      required: [columns, saveToProfile]
+      properties:
+        columns:
+          type: array
+          items: {$ref: "#/components/schemas/DataTransferCSVColumnMapping"}
+        saveToProfile: {type: boolean}
     VehicleTransferField:
       type: object
       required: [key, labelDE, labelEN, kind, aliases]
@@ -1719,7 +1769,8 @@ components:
           $ref: "#/components/schemas/StorageMigrationReceipt"
     Vehicle:
       type: object
-      required: [id, inventoryNumber, manufacturer, name, gauge, createdAt, updatedAt]
+      required: [id, inventoryNumber, manufacturer, name, gauge, digital, dtDecoder, exhibitionReady, exhibition, abcBrakes,
+        couplingSame, driveEnabled, headlightsEnabled, lightingEnabled, soundGeneratorEnabled, smokeGeneratorEnabled, qrCodeEnabled, createdAt, updatedAt]
       properties:
         ecosDecoderProfile:
           $ref: "#/components/schemas/ECoSDecoderProfileEvidence"
@@ -1765,7 +1816,7 @@ components:
         vehicleNumber:
           type: string
         maximumSpeedKmh:
-          type: [integer, "null"]
+          type: integer
           minimum: 1
           maximum: 1000
         homeBase:
@@ -1804,7 +1855,11 @@ components:
           format: date
         storageLocation:
           type: string
+        storageDetails:
+          type: string
         condition:
+          type: string
+        conditionDetails:
           type: string
         packaging:
           type: string
@@ -1870,6 +1925,30 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/VehicleAttachment"
+        maintenance:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleMaintenance"
+        spareParts:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleSparePart"
+        functions:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleFunction"
+        cvValues:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleCVValue"
+        cvFiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleCVFile"
+        externalMappings:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleExternalMapping"
         createdAt:
           type: string
           format: date-time
@@ -1946,7 +2025,11 @@ components:
           format: date
         storageLocation:
           type: string
+        storageDetails:
+          type: string
         condition:
+          type: string
+        conditionDetails:
           type: string
         packaging:
           type: string
@@ -2286,6 +2369,11 @@ components:
           type: string
         url:
           type: string
+        thumbnailUrl: {type: string}
+        fileName: {type: string}
+        mimeType: {type: string}
+        maintenanceId: {type: string}
+        updatedAt: {type: string, format: date-time}
         title:
           type: string
         sourceUrl:
@@ -2301,6 +2389,8 @@ components:
       type: object
       required: [url]
       properties:
+        id: {type: string}
+        maintenanceId: {type: string}
         url:
           type: string
         title:
@@ -2323,6 +2413,7 @@ components:
           type: string
         originalName:
           type: string
+        maintenanceId: {type: string}
         description:
           type: string
         category:
@@ -2338,13 +2429,127 @@ components:
         updatedAt:
           type: string
           format: date-time
+    VehicleImageImportInput:
+      type: object
+      required: [url]
+      properties:
+        url: {type: string}
+        title: {type: string}
+        sourceUrl: {type: string}
+        maintenanceId: {type: string}
+        isPrimary: {type: boolean}
+        sortOrder: {type: integer}
+    VehicleAttachmentImportInput:
+      type: object
+      required: [url]
+      properties:
+        url: {type: string}
+        title: {type: string}
+        description: {type: string}
+        category: {type: string}
+        maintenanceId: {type: string}
     VehicleAttachmentUpdateRequest:
       type: object
       properties:
+        maintenanceId: {type: string}
         description:
           type: string
         category:
           type: string
+    VehicleMaintenance:
+      type: object
+      required: [id, vehicleId, kind, status, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        vehicleId: {type: string}
+        kind: {type: string}
+        status: {type: string}
+        conditionRating: {type: string}
+        dueDate: {type: string}
+        completedAt: {type: string}
+        cost: {type: string}
+        notes: {type: string}
+        createdAt: {type: string}
+        updatedAt: {type: string}
+    VehicleMaintenanceInput:
+      type: object
+      required: [kind, status]
+      properties:
+        kind: {type: string}
+        status: {type: string}
+        conditionRating: {type: string}
+        dueDate: {type: string}
+        completedAt: {type: string}
+        cost: {type: string}
+        notes: {type: string}
+    VehicleSparePart:
+      type: object
+      required: [id, vehicleId, articleNumber, description, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        vehicleId: {type: string}
+        articleNumber: {type: string}
+        description: {type: string}
+        price: {type: string}
+        url: {type: string}
+        createdAt: {type: string}
+        updatedAt: {type: string}
+    VehicleSparePartInput:
+      type: object
+      properties:
+        articleNumber: {type: string}
+        description: {type: string}
+        price: {type: string}
+        url: {type: string}
+    VehicleExternalMapping:
+      type: object
+      required: [id, vehicleId, provider, externalId, syncStatus, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        vehicleId: {type: string}
+        provider: {type: string}
+        externalId: {type: string}
+        externalName: {type: string}
+        externalAddress: {type: string}
+        externalProtocol: {type: string}
+        syncStatus: {type: string}
+        lastSeenAt: {type: string}
+        createdAt: {type: string}
+        updatedAt: {type: string}
+    VehicleExternalMappingInput:
+      type: object
+      required: [provider, externalId]
+      properties:
+        provider: {type: string}
+        externalId: {type: string}
+        externalName: {type: string}
+        externalAddress: {type: string}
+        externalProtocol: {type: string}
+        syncStatus: {type: string}
+    VehicleCVValueHistory:
+      type: object
+      required: [id, cvValueId, vehicleId, oldValue, newValue, changedAt]
+      properties:
+        id: {type: string}
+        cvValueId: {type: string}
+        vehicleId: {type: string}
+        oldValue: {type: integer}
+        newValue: {type: integer}
+        changedAt: {type: string}
+    VehicleCVFile:
+      type: object
+      required: [id, vehicleId, fileName, originalName, sizeBytes, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        vehicleId: {type: string}
+        fileName: {type: string}
+        originalName: {type: string}
+        description: {type: string}
+        decoderProfile: {type: string}
+        mimeType: {type: string}
+        sizeBytes: {type: integer}
+        createdAt: {type: string}
+        updatedAt: {type: string}
     MasterDataEntry:
       type: object
       required: [id, type, key, label, active, sortOrder, metadata, origin, createdAt, updatedAt]
@@ -2659,7 +2864,7 @@ components:
             history:
               type: array
               items:
-                type: object
+                $ref: "#/components/schemas/VehicleCVValueHistory"
     DecoderText:
       type: object
       required: [de, en]
@@ -10503,9 +10708,18 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/VehicleExternalMappingInput"}
       responses:
         "200":
           description: Stored external mapping
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleExternalMapping"
         "403":
           description: Editor role required
           content:
@@ -10551,22 +10765,7 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [url]
-              properties:
-                url:
-                  type: string
-                title:
-                  type: string
-                sourceUrl:
-                  type: string
-                maintenanceId:
-                  type: string
-                isPrimary:
-                  type: boolean
-                sortOrder:
-                  type: integer
+            schema: {$ref: "#/components/schemas/VehicleImageImportInput"}
       responses:
         "201":
           description: Image imported
@@ -10656,6 +10855,11 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/VehicleAttachmentImportInput"}
       responses:
         "201":
           description: Attachment imported
@@ -10676,6 +10880,11 @@ paths:
       responses:
         "200":
           description: Maintenance entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/VehicleMaintenance"}
     post:
       tags: [Vehicles]
       summary: Create a maintenance entry for a vehicle
@@ -10685,9 +10894,18 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/VehicleMaintenanceInput"}
       responses:
         "201":
           description: Maintenance entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleMaintenance"
   /vehicles/{id}/maintenance/{maintenanceID}:
     put:
       tags: [Vehicles]
@@ -10703,9 +10921,18 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/VehicleMaintenanceInput"}
       responses:
         "200":
           description: Maintenance entry updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleMaintenance"
     delete:
       tags: [Vehicles]
       summary: Delete a maintenance entry
@@ -10736,6 +10963,11 @@ paths:
       responses:
         "200":
           description: Spare parts
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/VehicleSparePart"}
     post:
       tags: [Vehicles]
       summary: Create a spare part for a vehicle
@@ -10745,9 +10977,18 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/VehicleSparePartInput"}
       responses:
         "201":
           description: Spare part created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleSparePart"
   /vehicles/{id}/spare-parts/suggestions:
     get:
       tags: [Vehicles]
@@ -10776,9 +11017,18 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/VehicleSparePartInput"}
       responses:
         "200":
           description: Spare part updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleSparePart"
     delete:
       tags: [Vehicles]
       summary: Delete a spare part
@@ -10894,6 +11144,10 @@ paths:
       responses:
         "201":
           description: CV value created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleCVValue"
   /vehicles/{id}/cv-values/import:
     post:
       tags: [Vehicles]
@@ -10962,6 +11216,10 @@ paths:
       responses:
         "200":
           description: CV value updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleCVValue"
     delete:
       tags: [Vehicles]
       summary: Delete a CV value
@@ -10992,6 +11250,10 @@ paths:
       responses:
         "201":
           description: CV file uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleCVFile"
   /vehicles/{id}/cv-files/{cvFileID}:
     delete:
       tags: [Vehicles]

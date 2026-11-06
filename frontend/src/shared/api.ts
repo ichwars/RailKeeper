@@ -1,4 +1,10 @@
+import type {
+  VehicleForm,
+  VehicleFunctionDraftInput,
+  VehicleFunctionDraftChange
+} from "../features/vehicles/vehicleFormModel";
 import { notifyRequestFailure, abstractRequestRoute } from "./apiRequestDiagnostics";
+import type { components } from "../generated/api";
 import { createAccessoriesAPI } from "./apiAccessories";
 import { createBugReportAPI } from "./apiBugReports";
 import type { ECoSImageOptions, ECoSImagePreview, ECoSImageResult } from "./ecosImageModel";
@@ -38,9 +44,7 @@ export * from "./apiBugReports";
 export type * from "../features/importExport/dataTransferModel";
 export type * from "../features/digitalCenters/digitalCenterModel";
 
-export type SetupStatus = {
-  setupRequired: boolean;
-};
+export type SetupStatus = components["schemas"]["SetupStatus"];
 
 export type CreateAdminRequest = {
   username: string;
@@ -182,126 +186,17 @@ export type OverviewValuation = {
   excludedForeignCurrencyPurchases: number;
 };
 
-export type VehicleSetSummary = {
-	id: string;
-	inventoryNumber: string;
-	name: string;
-	manufacturer: string;
-	articleNumber?: string;
-	gauge: string;
-	epoch?: string;
-	acquisitionType?: string;
-	purchaseDate?: string;
-	purchasePrice?: string;
-	condition?: string;
-	memberCount: number;
-	position: number;
-	mainImage?: VehicleSetMainImage;
-};
+export type VehicleSetSummary = components["schemas"]["VehicleSetSummary"];
 
-export type VehicleSetMainImageMode = "automatic" | "member" | "dedicated";
+export type VehicleSetMainImageMode = components["schemas"]["VehicleSetMainImage"]["source"];
 
-export type VehicleSetMainImage = {
-	source: VehicleSetMainImageMode;
-	imageId?: string;
-	vehicleId?: string;
-	url: string;
-	thumbnailUrl?: string;
-	title?: string;
-};
+export type VehicleSetMainImage = components["schemas"]["VehicleSetMainImage"];
 
-export type VehicleSetImage = {
-	url: string;
-	thumbnailUrl?: string;
-	fileName: string;
-	mimeType: string;
-	createdAt: string;
-	updatedAt: string;
-};
+export type VehicleSetImage = components["schemas"]["VehicleSetImage"];
 
-export type ECoSDecoderProfileEvidence = { name: string; objectId: string; host: string; readAt: string };
+export type ECoSDecoderProfileEvidence = components["schemas"]["ECoSDecoderProfileEvidence"];
 
-export type Vehicle = {
-  id: string;
-  vehicleSetId?: string;
-  vehicleSetName?: string;
-  vehicleSetPosition?: number;
-  vehicleSetSize?: number;
-	vehicleSet?: VehicleSetSummary;
-  inventoryNumber: string;
-  manufacturer: string;
-  articleNumber?: string;
-  articleSourceUrl?: string;
-  name: string;
-  gauge: string;
-  epoch?: string;
-  railwayCompany?: string;
-  category?: string;
-  gattung?: string;
-  description?: string;
-  series?: string;
-  vehicleNumber?: string;
-  maximumSpeedKmh?: number;
-  homeBase?: string;
-  digital: boolean;
-  digitalDecoderNumber?: string;
-  dtDecoder: boolean;
-  dtDecoderNumber?: string;
-  decoderType?: string;
-  exhibitionReady: boolean;
-  exhibition: boolean;
-  abcBrakes: boolean;
-  ean?: string;
-  productionPeriod?: string;
-  listPrice?: string;
-  acquisitionType?: string;
-  acquiredFrom?: string;
-  purchasePrice?: string;
-  purchaseDate?: string;
-  storageLocation?: string;
-  storageDetails?: string;
-  condition?: string;
-  conditionDetails?: string;
-  packaging?: string;
-  lengthMm?: string;
-  weightG?: string;
-  color?: string;
-  lettering?: string;
-  load?: string;
-  interior?: string;
-  axles?: string;
-  axleCount?: string;
-  tractionTireCount?: string;
-  wheelset?: string;
-  couplingSame: boolean;
-  couplingFront?: string;
-  couplingRear?: string;
-  powerPickup?: string;
-  adapter?: string;
-  driveEnabled: boolean;
-  driveDescription?: string;
-  headlightsEnabled: boolean;
-  headlightsDescription?: string;
-  lightingEnabled: boolean;
-  lightingDescription?: string;
-  soundGeneratorEnabled: boolean;
-  soundGeneratorDescription?: string;
-  smokeGeneratorEnabled: boolean;
-  smokeGeneratorDescription?: string;
-  additionalInfo?: string;
-  qrCodeEnabled: boolean;
-  images?: VehicleImage[];
-  attachments?: VehicleAttachment[];
-  maintenance?: VehicleMaintenance[];
-  spareParts?: VehicleSparePart[];
-  functions?: VehicleFunction[];
-  cvValues?: VehicleCVValue[];
-  cvFiles?: VehicleCVFile[];
-  externalMappings?: VehicleExternalMapping[];
-  ecosDecoderProfile?: ECoSDecoderProfileEvidence;
-  createdAt: string;
-  updatedAt: string;
-};
+export type Vehicle = components["schemas"]["Vehicle"];
 
 export type VehicleSetInput = Pick<CreateVehicleRequest,
   | "name"
@@ -333,342 +228,51 @@ export type CreateVehicleSetRequest = {
   members: CreateVehicleRequest[];
 };
 
-export type VehicleSet = VehicleSetInput & {
-  id: string;
-	inventoryNumber: string;
-  members: Vehicle[];
-  createdAt: string;
-  updatedAt: string;
-	mainImageMode: VehicleSetMainImageMode;
-	selectedMemberImageId?: string;
-	dedicatedImage?: VehicleSetImage;
-	mainImage?: VehicleSetMainImage;
-};
+export type VehicleSet = components["schemas"]["VehicleSet"];
 
-export type VehicleExternalMapping = {
-  id: string;
-  vehicleId: string;
-  provider: string;
-  externalId: string;
-  externalName?: string;
-  externalAddress?: string;
-  externalProtocol?: string;
-  syncStatus: string;
-  lastSeenAt?: string;
-  createdAt: string;
-  updatedAt: string;
-};
+export type VehicleExternalMapping = components["schemas"]["VehicleExternalMapping"];
 
-export type VehicleExternalMappingInput = {
-  provider: string;
-  externalId: string;
-  externalName?: string;
-  externalAddress?: string;
-  externalProtocol?: string;
-  syncStatus?: string;
-};
+export type VehicleExternalMappingInput = components["schemas"]["VehicleExternalMappingInput"];
 
-export type VehicleImage = {
-  id: string;
-  vehicleId: string;
-  url: string;
-  thumbnailUrl?: string;
-  title?: string;
-  sourceUrl?: string;
-  fileName?: string;
-  mimeType?: string;
-  maintenanceId?: string;
-  isPrimary: boolean;
-  sortOrder: number;
-  createdAt: string;
-  updatedAt?: string;
-};
+export type VehicleImage = components["schemas"]["VehicleImage"];
 
-export type VehicleImageInput = {
-  id?: string;
-  url: string;
-  title?: string;
-  sourceUrl?: string;
-  maintenanceId?: string;
-  isPrimary?: boolean;
-  sortOrder?: number;
-};
+export type VehicleImageInput = components["schemas"]["VehicleImageInput"];
 
-export type VehicleImageImportInput = {
-  url: string;
-  title?: string;
-  sourceUrl?: string;
-  maintenanceId?: string;
-  isPrimary?: boolean;
-  sortOrder?: number;
-};
+export type VehicleImageImportInput = components["schemas"]["VehicleImageImportInput"];
 
-export type VehicleAttachment = {
-  id: string;
-  vehicleId: string;
-  fileName: string;
-  originalName: string;
-  description?: string;
-  category?: string;
-  mimeType?: string;
-  sizeBytes: number;
-  maintenanceId?: string;
-  createdAt: string;
-  updatedAt: string;
-};
+export type VehicleAttachment = components["schemas"]["VehicleAttachment"];
 
-export type VehicleAttachmentUpdateInput = {
-  description?: string;
-  category?: string;
-  maintenanceId?: string;
-};
+export type VehicleAttachmentUpdateInput = components["schemas"]["VehicleAttachmentUpdateRequest"];
 
-export type VehicleMaintenance = {
-  id: string;
-  vehicleId: string;
-  kind: string;
-  status: string;
-  conditionRating?: string;
-  dueDate?: string;
-  completedAt?: string;
-  cost?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-};
+export type VehicleMaintenance = components["schemas"]["VehicleMaintenance"];
 
-export type VehicleMaintenanceInput = {
-  kind: string;
-  status: string;
-  conditionRating?: string;
-  dueDate?: string;
-  completedAt?: string;
-  cost?: string;
-  notes?: string;
-};
+export type VehicleMaintenanceInput = components["schemas"]["VehicleMaintenanceInput"];
 
-export type VehicleSparePart = {
-  id: string;
-  vehicleId: string;
-  articleNumber: string;
-  description: string;
-  price?: string;
-  url?: string;
-  createdAt: string;
-  updatedAt: string;
-};
+export type VehicleSparePart = components["schemas"]["VehicleSparePart"];
 
-export type VehicleSparePartInput = {
-  articleNumber?: string;
-  description?: string;
-  price?: string;
-  url?: string;
-};
+export type VehicleSparePartInput = components["schemas"]["VehicleSparePartInput"];
 
 
 export type ECoSFunctionValue = { index: number; description: number; momentary: boolean };
 export type ECoSFunctionSnapshot = { objectId: number; host: string; readAt: string; functions: ECoSFunctionValue[] };
 
-export type VehicleFunction = {
-  id: string;
-  vehicleId: string;
-  functionKey: string;
-  name?: string;
-  symbolKey?: string;
-  functionType: string;
-  mode: string;
-  directionDependent: boolean | null;
-  inverted: boolean | null;
-  legacyDirectionDependent?: boolean | null;
-  flagsVersion?: number;
-  notes?: string;
-  sortOrder: number;
-  createdAt: string;
-  updatedAt: string;
-  revision?: string;
-};
+export type VehicleFunction = components["schemas"]["VehicleFunction"];
 
-export type VehicleFunctionInput = {
-  name?: string;
-  symbolKey?: string;
-  functionType?: string;
-  mode?: string;
-  directionDependent?: boolean | null;
-  inverted?: boolean | null;
-  legacyDirectionDependent?: boolean | null;
-  flagsVersion?: number;
-  notes?: string;
-};
+export type VehicleFunctionInput = VehicleFunctionDraftInput;
 
-export type VehicleFunctionChange = {
-  functionKey: string;
-  expectedRevision: string;
-  value?: VehicleFunctionInput;
-  delete?: boolean;
-};
+export type VehicleFunctionChange = VehicleFunctionDraftChange;
 
-export type VehicleCVValue = {
-  id: string;
-  vehicleId: string;
-  cvNumber: number;
-  indexCV31?: number | null;
-  indexCV32?: number | null;
-  value: number;
-  description?: string;
-  category?: string;
-  protocol?: string;
-  decoderProfile?: string;
-  sourceFileId?: string;
-  sourceLine?: number | null;
-  sourceExportedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-  history?: VehicleCVValueHistory[];
-};
+export type VehicleCVValue = components["schemas"]["VehicleCVValue"];
 
-export type VehicleCVValueHistory = {
-  id: string;
-  cvValueId: string;
-  vehicleId: string;
-  oldValue: number;
-  newValue: number;
-  changedAt: string;
-};
+export type VehicleCVValueHistory = components["schemas"]["VehicleCVValueHistory"];
 
-export type VehicleCVValueInput = {
-  cvNumber: number;
-  indexCV31?: number | null;
-  indexCV32?: number | null;
-  value: number;
-  description?: string;
-  category?: string;
-  protocol?: string;
-  decoderProfile?: string;
-  sourceFileId?: string;
-  sourceLine?: number | null;
-  sourceExportedAt?: string;
-};
+export type VehicleCVValueInput = components["schemas"]["VehicleCVValueInput"];
 
-export type VehicleCVFile = {
-  id: string;
-  vehicleId: string;
-  fileName: string;
-  originalName: string;
-  description?: string;
-  decoderProfile?: string;
-  mimeType?: string;
-  sizeBytes: number;
-  createdAt: string;
-  updatedAt: string;
-};
+export type VehicleCVFile = components["schemas"]["VehicleCVFile"];
 
-export type VehicleCVFilePreview = {
-  decoderLibraryMatches?: Record<string, DecoderLibraryMatch>;
-  fileName: string;
-  sizeBytes: number;
-  mimeType: string;
-  hasMetadata: boolean;
-  projectName?: string;
-  address?: string;
-  type?: string;
-  decoder?: string;
-  manufacturer?: string;
-  manufacturerId?: string;
-  lokProgrammer?: string;
-  suggestedDecoderProfile?: string;
-  suggestedDescription?: string;
-  cvImportError?: string;
-  suggestedCvValues?: {
-    sourceLine?: number | null;
-    sourceExportedAt?: string;
-    decoderProfile?: string;
-    indexCV31?: number | null;
-    indexCV32?: number | null;
-    cvNumber: number;
-    value: number;
-    description?: string;
-    category?: string;
-    protocol?: string;
-  }[];
-  suggestedFunctions?: {
-    functionKey: string;
-    name: string;
-    functionType?: string;
-  }[];
-  suggestedPreviewImage?: {
-    mimeType: string;
-    width: number;
-    height: number;
-    dataUrl: string;
-  };
-};
+export type VehicleCVFilePreview = components["schemas"]["VehicleCVFilePreview"];
 
-export type CreateVehicleRequest = {
-  inventoryNumber?: string;
-  manufacturer: string;
-  articleNumber?: string;
-  articleSourceUrl?: string;
-  name: string;
-  gauge: string;
-  epoch?: string;
-  railwayCompany?: string;
-  category?: string;
-  gattung?: string;
-  description?: string;
-  series?: string;
-  vehicleNumber?: string;
-  maximumSpeedKmh?: number;
-  homeBase?: string;
-  digital?: boolean;
-  digitalDecoderNumber?: string;
-  dtDecoder?: boolean;
-  dtDecoderNumber?: string;
-  decoderType?: string;
-  exhibitionReady?: boolean;
-  exhibition?: boolean;
-  abcBrakes?: boolean;
-  ean?: string;
-  productionPeriod?: string;
-  listPrice?: string;
-  acquisitionType?: string;
-  acquiredFrom?: string;
-  purchasePrice?: string;
-  purchaseDate?: string;
-  storageLocation?: string;
-  storageDetails?: string;
-  condition?: string;
-  conditionDetails?: string;
-  packaging?: string;
-  lengthMm?: string;
-  weightG?: string;
-  color?: string;
-  lettering?: string;
-  load?: string;
-  interior?: string;
-  axles?: string;
-  axleCount?: string;
-  tractionTireCount?: string;
-  wheelset?: string;
-  couplingSame?: boolean;
-  couplingFront?: string;
-  couplingRear?: string;
-  powerPickup?: string;
-  adapter?: string;
-  driveEnabled?: boolean;
-  driveDescription?: string;
-  headlightsEnabled?: boolean;
-  headlightsDescription?: string;
-  lightingEnabled?: boolean;
-  lightingDescription?: string;
-  soundGeneratorEnabled?: boolean;
-  soundGeneratorDescription?: string;
-  smokeGeneratorEnabled?: boolean;
-  smokeGeneratorDescription?: string;
-  additionalInfo?: string;
-  qrCodeEnabled?: boolean;
-  images?: VehicleImageInput[];
-  functionChanges?: VehicleFunctionChange[];
-};
+export type CreateVehicleRequest = VehicleForm;
 
 export type MasterDataOrigin = "bundled" | "custom";
 
@@ -785,13 +389,7 @@ export type ArticleSearchDocument = {
   kind?: string;
 };
 
-export type VehicleAttachmentImportInput = {
-  url: string;
-  title?: string;
-  description?: string;
-  category?: string;
-  maintenanceId?: string;
-};
+export type VehicleAttachmentImportInput = components["schemas"]["VehicleAttachmentImportInput"];
 
 export type ArticleSearchResultTrace = {
   detailLoaded: boolean;
@@ -998,42 +596,13 @@ export type BackupValidationResult = {
   errors: string[];
 };
 
-export type VersionInfo = {
-  version: string;
-  latestVersion?: string;
-  updateAvailable: boolean;
-  sourceUrl?: string;
-  releaseUrl?: string;
-  releaseNotes?: string;
-  windowsPackage?: {
-    version: string;
-    name: string;
-    url: string;
-  };
-  checkedAt: string;
-  status: "local" | "not_configured" | "current" | "update_available" | "unavailable" | "no_release";
-  message: string;
-};
+export type VersionInfo = components["schemas"]["VersionInfo"];
 
-export type StorageUsageCategory = {
-  key: string;
-  label: string;
-  bytes: number;
-  files: number;
-};
+export type StorageUsageCategory = components["schemas"]["StorageUsageCategory"];
 
-export type StorageUsage = {
-  totalBytes: number;
-  categories: StorageUsageCategory[];
-  updatedAt: string;
-};
+export type StorageUsage = components["schemas"]["StorageUsage"];
 
-export type StorageOptimizeResult = {
-  beforeBytes: number;
-  afterBytes: number;
-  reclaimedBytes: number;
-  optimizedAt: string;
-};
+export type StorageOptimizeResult = components["schemas"]["StorageOptimizeResult"];
 
 export type StorageLocationInfo = {
   dataPath: string;
