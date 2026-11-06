@@ -17,13 +17,24 @@ in `frontend/src/shared/api.ts`; generated types can replace it later once the A
 
 ## Frontend settings
 
-`SettingsView` coordinates navigation, shared master-data caches and confirmation dialogs. Storage
-queries and optimization live in `useSettingsStorage`; backup validation, restore and master-data import
-live in `useSettingsTransfer`. Both controllers stay mounted across settings tabs so pending files,
-validation results and confirmation text survive tab changes. `SettingsStorageCard` and
-`SettingsTransferTab` render these controllers without changing the existing API calls, load points,
-save timing or server-side authorization. Successful imports invalidate the shared master-data cache;
-restores also refresh storage usage.
+`SettingsView` composes the existing settings areas and coordinates shared confirmations. Its controllers
+stay mounted across tabs so navigation does not discard pending form state. Existing load points, save
+timing and server-side authorization remain unchanged.
+
+| Controller | Responsibility |
+| --- | --- |
+| `useSettingsNavigation` | Tab, data-group and type selection, including existing URL normalization |
+| `useSettingsPreferences` | Profile preferences, local fallback, themes, sidebar and printer selection |
+| `useSettingsGeneral` | Version checks and inventory-number scheme drafts and persistence |
+| `useSettingsAuth` | Current user, accounts, password changes, sessions and audit reloads |
+| `useSettingsSMTP`, `useSettingsTwoFactor` | Existing mail and personal 2FA request/validation flows |
+| `useSettingsMasterData` | Shared master-data cache, edit drafts, filtering, selection and writes |
+| `useSettingsStorage`, `useSettingsTransfer` | Storage, backup preflight/restore and master-data transfer |
+
+The existing settings cards and tabs render these controllers. Master-data forms and table presentation
+are separate components; the table retains its existing columns, capabilities and sort rules. Successful
+imports invalidate the shared master-data cache; restores also refresh storage usage. Decoder, article
+and digital-center settings retain their existing feature components.
 
 ## Runtime
 
