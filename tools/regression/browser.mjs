@@ -34,10 +34,18 @@ try {
     await page.getByLabel(de ? "Passwort" : "Password", { exact: true }).fill(input.credentials.password);
     await page.getByRole("button", { name: de ? "Anmelden" : "Sign in", exact: true }).click();
     await page.waitForURL("**/overview");
-    for (const path of ["/overview", "/vehicles", "/accessories", "/exhibition", "/import-export", "/digital-centers", "/settings"]) {
+    const workspaces = [
+      ["/overview", de ? "Übersicht" : "Overview"],
+      ["/vehicles", de ? "Bestand" : "Inventory"],
+      ["/accessories", de ? "Artikel" : "Articles"],
+      ["/exhibition", de ? "Ausstellung" : "Exhibition"],
+      ["/import-export", "Import/Export"],
+      ["/digital-centers", de ? "Digitalzentralen" : "Command stations"],
+      ["/settings", de ? "Allgemein" : "General"]
+    ];
+    for (const [path, title] of workspaces) {
       await page.goto(input.base + path, { waitUntil: "networkidle" });
-      await page.locator("main").waitFor();
-      assert(await page.locator("main").innerText());
+      await page.getByRole("heading", { name: title, exact: true }).first().waitFor();
       assert.equal(await page.getByLabel(de ? "Benutzername" : "Username", { exact: true }).count(), 0);
       checks.push(language + path);
     }

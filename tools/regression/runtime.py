@@ -29,8 +29,11 @@ class Runtime:
             raise ValueError("Only bounded upload limits are accepted in the synthetic launcher configuration")
 
     def __enter__(self):
-        self.data_dir.mkdir(mode=0o700, exist_ok=True)
-        self.log_dir.mkdir(mode=0o700, exist_ok=True)
+        if self.windows_default:
+            self.data_dir.parents[1].mkdir(mode=0o700, parents=True, exist_ok=True)
+        else:
+            self.data_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        self.log_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
             port = probe.getsockname()[1]

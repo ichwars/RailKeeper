@@ -111,7 +111,10 @@ def run(args):
             if result.returncode:
                 raise AssertionError("Browser baseline failed: " + result.stderr[-2500:])
             passed("browser-login-navigation-edit-cancel-and-save")
-        client.request("PUT", "/api/v1/profile/settings", {"railkeeper.settings.defaultView": "vehicles"})
+        settings = client.request("PUT", "/api/v1/profile/settings",
+                                  {"settings": {"railkeeper.settings.defaultView": "vehicles"}})
+        if settings["settings"].get("railkeeper.settings.defaultView") != "vehicles":
+            raise AssertionError("Reference user preference was not persisted")
         backup = client.request("GET", "/api/v1/backup/export")
         baseline = backup_manifest(backup)
         observed = observations(client, fixture)
@@ -142,7 +145,10 @@ def run(args):
         with Runtime(args.binary, args.backend, args.static_dir, root / "app-restored-data",
                      root / "app-restored-runtime", image=args.image, configuration=configuration) as target:
             recovery = setup(target.client, "restore-owner")
-            target.client.request("PUT", "/api/v1/profile/settings", {"railkeeper.settings.defaultView": "overview"})
+            settings = target.client.request("PUT", "/api/v1/profile/settings",
+                                             {"settings": {"railkeeper.settings.defaultView": "overview"}})
+            if settings["settings"].get("railkeeper.settings.defaultView") != "overview":
+                raise AssertionError("Target-local user preference was not persisted")
             before = installation_manifest(target.data_dir)["tables"]
             expected = backup_manifest(expected_fresh_restore(
                 backup, target.client.request("GET", "/api/v1/backup/export"),
