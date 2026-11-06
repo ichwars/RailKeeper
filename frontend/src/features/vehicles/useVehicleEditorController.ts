@@ -19,6 +19,7 @@ type UseVehicleEditorControllerOptions = {
   onReset: (reason: EditorResetReason) => void;
   onDetailLoaded: (detail: Vehicle) => void;
   onFormChange: (form: CreateVehicleRequest) => void;
+  onCollectionChanged: () => void;
 };
 
 const initialOpenSections: OpenSections = {
@@ -32,7 +33,8 @@ export function useVehicleEditorController({
   onMessage,
   onReset,
   onDetailLoaded,
-  onFormChange
+  onFormChange,
+  onCollectionChanged
 }: UseVehicleEditorControllerOptions) {
   const [form, setForm] = useState<CreateVehicleRequest>(emptyVehicle);
   const [saving, setSaving] = useState(false);
@@ -130,6 +132,17 @@ export function useVehicleEditorController({
     openVehicle(vehicle, "edit", tab);
   };
 
+  const refreshSelectedVehicle = (vehicleID = selected?.id) => {
+    if (!vehicleID) return Promise.resolve();
+    return api
+      .vehicle(vehicleID)
+      .then((detail) => {
+        setSelectedDetail(detail);
+        onCollectionChanged();
+      })
+      .catch((error: Error) => onMessage(error.message));
+  };
+
   const toggleSection = (section: keyof OpenSections) => {
     setOpenSections((current) => ({ ...current, [section]: !current[section] }));
   };
@@ -166,7 +179,8 @@ export function useVehicleEditorController({
       closeModal,
       openDetail,
       openEdit,
-      toggleSection
+      toggleSection,
+      refreshSelectedVehicle
     }
   };
 }

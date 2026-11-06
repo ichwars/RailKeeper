@@ -11,14 +11,16 @@ function renderController() {
   const onReset = vi.fn();
   const onDetailLoaded = vi.fn();
   const onFormChange = vi.fn();
+  const onCollectionChanged = vi.fn();
   const hook = renderHook(() => useVehicleEditorController({
     options: emptyOptions,
     onMessage,
     onReset,
     onDetailLoaded,
-    onFormChange
+    onFormChange,
+    onCollectionChanged
   }));
-  return { ...hook, onMessage, onReset, onDetailLoaded, onFormChange };
+  return { ...hook, onMessage, onReset, onDetailLoaded, onFormChange, onCollectionChanged };
 }
 
 describe("useVehicleEditorController", () => {
@@ -59,5 +61,18 @@ describe("useVehicleEditorController", () => {
       couplingFront: "Kurzkupplung",
       couplingRear: "Kurzkupplung"
     }));
+  });
+
+  it("refreshes the selected aggregate and collection without changing the active editor mode", async () => {
+    const vehicle = vehicleFixture();
+    const refreshed = vehicleFixture({ name: "Refreshed" });
+    vi.spyOn(api, "vehicle").mockResolvedValueOnce(vehicle).mockResolvedValueOnce(refreshed);
+    const { result, onCollectionChanged, onDetailLoaded } = renderController();
+    act(() => result.current.commands.openEdit(vehicle, "uploads"));
+    await waitFor(() => expect(result.current.state.modalOpen).toBe(true));
+    await act(() => result.current.commands.refreshSelectedVehicle());
+    expect(result.current.state).toMatchObject({ selected: refreshed, mode: "edit", activeTab: "uploads" });
+    expect(onDetailLoaded).toHaveBeenLastCalledWith(refreshed);
+    expect(onCollectionChanged).toHaveBeenCalledOnce();
   });
 });

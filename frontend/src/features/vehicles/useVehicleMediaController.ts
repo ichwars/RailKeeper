@@ -1,3 +1,4 @@
+import { useVehicleImageDraftController } from "./useVehicleImageDraftController";
 import { type DragEvent, useRef, useState } from "react";
 
 import { api, type Vehicle, type VehicleAttachment } from "../../shared/api";
@@ -6,8 +7,7 @@ import {
   attachmentsToEditState,
   type AttachmentEditState,
   type PendingArticleImage,
-  uploadedImageToPending,
-  vehicleImagesToPending
+  uploadedImageToPending
 } from "./vehicleTransforms";
 
 type UseVehicleMediaControllerOptions = {
@@ -29,9 +29,12 @@ export function useVehicleMediaController({
   refreshSelectedVehicle,
   onImageUploadComplete
 }: UseVehicleMediaControllerOptions) {
+  const imageDraft = useVehicleImageDraftController();
+  const { pendingImages, previewImage } = imageDraft.state;
+  const { setPendingImages, setPreviewImage } = imageDraft.setters;
+  const { addImages, setPrimaryPendingImage, updatePendingImageTitle,
+    updatePendingImageMaintenance, movePendingImage } = imageDraft.commands;
   const [attachmentDeleteCandidate, setAttachmentDeleteCandidate] = useState<VehicleAttachment | null>(null);
-  const [pendingImages, setPendingImages] = useState<PendingArticleImage[]>([]);
-  const [previewImage, setPreviewImage] = useState<PendingArticleImage | null>(null);
   const [attachmentEdits, setAttachmentEdits] = useState<AttachmentEditState>({});
   const [imageUploadMaintenanceId, setImageUploadMaintenanceId] = useState("");
   const [attachmentUploadCategory, setAttachmentUploadCategory] = useState("");
@@ -41,55 +44,18 @@ export function useVehicleMediaController({
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
 
   const reset = (clearPreview = false) => {
-    setPendingImages([]);
+    imageDraft.commands.reset(clearPreview);
     setAttachmentEdits({});
     setImageUploadMaintenanceId("");
     setAttachmentUploadCategory("");
     setAttachmentUploadDescription("");
     setAttachmentDragActive(false);
     setAttachmentDeleteCandidate(null);
-    if (clearPreview) setPreviewImage(null);
   };
 
   const loadDetail = (detail: Vehicle) => {
-    setPendingImages(vehicleImagesToPending(detail));
+    imageDraft.commands.loadDetail(detail);
     setAttachmentEdits(attachmentsToEditState(detail.attachments));
-  };
-
-  const addImages = (images: PendingArticleImage[]) => {
-    setPendingImages((current) => {
-      const existing = new Set(current.map((image) => image.url));
-      const next = [...current, ...images.filter((image) => !existing.has(image.url))];
-      if (!next.some((image) => image.isPrimary) && next.length > 0) {
-        next[0] = { ...next[0], isPrimary: true };
-      }
-      return next;
-    });
-  };
-
-  const setPrimaryPendingImage = (id: string) => {
-    setPendingImages((current) => current.map((image) => ({ ...image, isPrimary: image.id === id })));
-  };
-
-  const updatePendingImageTitle = (id: string, title: string) => {
-    setPendingImages((current) => current.map((image) => (image.id === id ? { ...image, title } : image)));
-  };
-
-  const updatePendingImageMaintenance = (id: string, maintenanceId: string) => {
-    setPendingImages((current) => current.map((image) => (
-      image.id === id ? { ...image, maintenanceId } : image
-    )));
-  };
-
-  const movePendingImage = (id: string, direction: -1 | 1) => {
-    setPendingImages((current) => {
-      const index = current.findIndex((image) => image.id === id);
-      const target = index + direction;
-      if (index < 0 || target < 0 || target >= current.length) return current;
-      const next = [...current];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
   };
 
   const removePendingImage = (image: PendingArticleImage) => {
@@ -98,15 +64,7 @@ export function useVehicleMediaController({
       return;
     }
 
-    const removeFromState = () => {
-      setPendingImages((current) => {
-        const next = current.filter((entry) => entry.id !== image.id);
-        if (next.length > 0 && !next.some((entry) => entry.isPrimary)) {
-          next[0] = { ...next[0], isPrimary: true };
-        }
-        return next;
-      });
-    };
+    const removeFromState = () => imageDraft.commands.removeFromState(image.id);
 
     if (selected && image.persisted) {
       setSaving(true);

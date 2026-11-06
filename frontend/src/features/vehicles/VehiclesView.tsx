@@ -1,43 +1,33 @@
-import { useCallback, useEffect, useState } from "react";
-import {
-  api,
-  CreateVehicleRequest,
-  Vehicle
-} from "../../shared/api";
+import { useVehicleCollectionController } from "./useVehicleCollectionController";
+import { useVehicleSetController } from "./useVehicleSetController";
+import { useEffect, useState } from "react";
+import { Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { ArticleSearchDialog } from "../../shared/articleSearch/ArticleSearchDialog";
 import { BarcodeSearchDialog } from "../../shared/articleSearch/BarcodeSearchDialog";
+import { currentArticleValue, vehicleArticleSearchGroups, type ArticleFieldKey } from "./articleSearch";
 import {
-  currentArticleValue,
-  vehicleArticleSearchGroups,
-  type ArticleFieldKey
-} from "./articleSearch";
-import { DeleteAttachmentDialog, DeleteVehicleDialog, ExhibitionAssignmentDialog, ImagePreviewDialog, QrDialog, ReportDialog } from "./VehicleDialogs";
+  DeleteAttachmentDialog,
+  DeleteVehicleDialog,
+  ExhibitionAssignmentDialog,
+  ImagePreviewDialog,
+  QrDialog,
+  ReportDialog
+} from "./VehicleDialogs";
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
 import { VehicleSetEditorDialog } from "./VehicleSetEditorDialog";
 import { VehicleSetSummaryDialog } from "./VehicleSetSummaryDialog";
-import { vehicleSetDuplicatePrefill, type VehicleCreatePrefill } from "./vehicleSetDuplicate";
-import {
-  vehicleSetInputFromForm,
-  vehicleSetMembersFromForm
-} from "./VehicleCreateWizard";
-import { clearVehicleCreateDraft, type VehicleSetMemberDraft } from "./vehicleCreateWizardState";
+
 import { maintenanceIsDue } from "./vehicleMaintenance";
+
 import {
-  PendingArticleImage,
-  previewImageUrl,
-  primaryImage,
-  vehicleToForm
-} from "./vehicleTransforms";
-import {
-  emptyOptions,
-  fieldValue,
   hasArticleSearchCriteria,
   hasQrPayloadData,
   gattungenForCategory,
   missingVehicleModelFieldLabels,
   inferFunctionTypeFromSymbol,
+
 } from "./vehicleViewModel";
 import { useVehicleInventoryController } from "./useVehicleInventoryController";
 import { useVehicleColumnPreferences } from "./useVehicleColumnPreferences";
@@ -54,20 +44,13 @@ import { useVehicleFunctionsController } from "./useVehicleFunctionsController";
 import { useVehicleECoSDraftController } from "./useVehicleECoSDraftController";
 import { createVehicleMutationCommands } from "./vehicleMutationCommands";
 import { createVehicleFilterDefinitions, createVehicleInventoryRenderers } from "./vehicleInventoryRenderers";
-import type { MasterDataOptions } from "./vehicleViewModel";
 
 export function VehiclesView({ username, roles = ["Editor"] }: { username: string; roles?: string[] }) {
   const { language, t } = useI18n();
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [options, setOptions] = useState<MasterDataOptions>(emptyOptions);
-  const [query, setQuery] = useState("");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { vehicles, setVehicles, options, query, setQuery, message, setMessage, loading, load } =
+    useVehicleCollectionController();
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
   const [quickMenuVehicleID, setQuickMenuVehicleID] = useState("");
-	const [selectedVehicleSetID, setSelectedVehicleSetID] = useState("");
-	const [vehicleSetMode, setVehicleSetMode] = useState<"view" | "edit" | null>(null);
-	const [createPrefill, setCreatePrefill] = useState<VehicleCreatePrefill | null>(null);
 	const canEditVehicleSets = roles.includes("Admin") || roles.includes("Editor");
 
   const {
@@ -102,10 +85,12 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       closeModal,
       openDetail,
       openEdit,
-      toggleSection
+      toggleSection,
+      refreshSelectedVehicle
     }
   } = useVehicleEditorController({
     options,
+    onCollectionChanged: load,
     onMessage: setMessage,
     onFormChange: (nextForm) => syncECoSUnclearFields(nextForm),
     onReset: (reason) => {
@@ -466,16 +451,6 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 		toggleVehicleSelection,
 		toggleVehicleSetSelection
   } = useVehicleInventoryController(vehicles, columnPreferences.columns);
-  const load = useCallback(() => {
-    setLoading(true);
-    setMessage("");
-    api
-      .vehicles(query)
-      .then(setVehicles)
-      .catch((error: Error) => setMessage(error.message))
-      .finally(() => setLoading(false));
-  }, [query]);
-
   const {
     qr: {
       state: { open: qrDialogOpen, svg: qrSvg, error: qrError },
@@ -534,46 +509,6 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     onMessage: setMessage,
     t
   });
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useEffect(() => {
-    const reloadVisible = () => {
-      if (!document.hidden) {
-        load();
-      }
-    };
-    window.addEventListener("focus", reloadVisible);
-    window.addEventListener("online", reloadVisible);
-    document.addEventListener("visibilitychange", reloadVisible);
-    return () => {
-      window.removeEventListener("focus", reloadVisible);
-      window.removeEventListener("online", reloadVisible);
-      document.removeEventListener("visibilitychange", reloadVisible);
-    };
-  }, [load]);
-
-  useEffect(() => {
-    Promise.all([
-      api.masterDataAll(),
-      api.masterDataRelations("vehicle_category", "vehicle_gattung")
-    ])
-      .then(([entriesByType, categoryRelations]) => {
-        setOptions({
-          manufacturers: entriesByType.manufacturer || [],
-          gauges: entriesByType.gauge || [],
-          epochs: entriesByType.epoch || [],
-          railwayCompanies: entriesByType.railway_company || [],
-          categories: entriesByType.vehicle_category || [],
-          gattungen: entriesByType.vehicle_gattung || [],
-          symbols: entriesByType.symbols || [],
-          categoryRelations
-        });
-      })
-      .catch((error: Error) => setMessage(error.message));
-  }, []);
 
   const {
     state: { draft: ecosDraft, unclearFields: ecosUnclearFields },
@@ -658,16 +593,6 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
   });
   const filteredGattungen = gattungenForCategory(options, form.category);
 
-  const refreshSelectedVehicle = (vehicleID = selected?.id) => {
-    if (!vehicleID) return Promise.resolve();
-    return api
-      .vehicle(vehicleID)
-      .then((detail) => {
-        setSelectedDetail(detail);
-        load();
-      })
-      .catch((error: Error) => setMessage(error.message));
-  };
   const { submit, confirmDelete } = createVehicleMutationCommands({
     draftOwner: username,
     editor: {
@@ -709,64 +634,14 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     onMessage: setMessage,
     t
   });
-  const submitVehicleSet = async (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>) => {
-    setSaving(true);
-    setMessage("");
-    try {
-      const created = await api.createVehicleSet({
-        set: vehicleSetInputFromForm(form),
-        members: vehicleSetMembersFromForm(form, members, pendingArticleImages, imageOwners)
-      });
-      clearVehicleCreateDraft(username);
-      const firstMember = created.members[0];
-      if (firstMember) {
-        setSelectedDetail(firstMember);
-        setMode("edit");
-        setActiveTab("model");
-      } else {
-        closeModal();
-      }
-      await load();
-			setCreatePrefill(null);
-      setMessage(t("vehicles.wizard.created", { count: created.members.length }));
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : t("vehicles.wizard.createFailed"));
-    } finally {
-      setSaving(false);
-    }
-  };
-	const closeVehicleSetDialog = () => {
-		setSelectedVehicleSetID("");
-		setVehicleSetMode(null);
-	};
-	const openVehicleSet = (setID: string, nextMode: "view" | "edit") => {
-		setSelectedVehicleSetID(setID);
-		setVehicleSetMode(nextMode);
-	};
-	const duplicateVehicleSet = (prefill: VehicleCreatePrefill) => {
-		closeVehicleSetDialog();
-		setCreatePrefill(prefill);
-		openCreate(prefill.shared);
-	};
-	const closeVehicleCreateDialog = () => {
-		setCreatePrefill(null);
-		closeModal();
-	};
-	const duplicateVehicleSetByID = async (setID: string) => {
-		try {
-			const vehicleSet = await api.vehicleSet(setID);
-			duplicateVehicleSet(vehicleSetDuplicatePrefill(vehicleSet));
-		} catch (error) {
-			setMessage(error instanceof Error ? error.message : t("vehicles.set.loadFailed"));
-		}
-	};
-	const handleVehicleSetUpdated = async () => {
-		await load();
-		setVehicleSetMode("view");
-	};
-	const handleVehicleSetImageChanged = async () => {
-		await load();
-	};
+  const {
+    selectedVehicleSetID, vehicleSetMode, createPrefill, setCreatePrefill,
+    submitVehicleSet, closeVehicleSetDialog, openVehicleSet, duplicateVehicleSet,
+    closeVehicleCreateDialog, duplicateVehicleSetByID, handleVehicleSetUpdated, handleVehicleSetImageChanged, openSetMember
+  } = useVehicleSetController({
+    username, form, pendingArticleImages, setSaving, setSelectedDetail, setMode,
+    setActiveTab, closeModal, openCreate, openDetail, vehicles, load, onMessage: setMessage, t
+  });
   const { vehicleQuickMenu, selectOptions } = createVehicleInventoryRenderers({
     sort,
     quickMenuVehicleID,
@@ -1094,15 +969,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 				onUpdated={() => undefined}
 				onEdit={(setID) => openVehicleSet(setID, "edit")}
 				onDuplicate={duplicateVehicleSet}
-				onOpenVehicle={async (vehicleID) => {
-					try {
-						const vehicle = vehicles.find((entry) => entry.id === vehicleID) || await api.vehicle(vehicleID);
-						closeVehicleSetDialog();
-						openDetail(vehicle);
-					} catch (error) {
-						setMessage(error instanceof Error ? error.message : t("vehicles.set.loadFailed"));
-					}
-				}}
+				onOpenVehicle={openSetMember}
 			/>
 		)}
 		{vehicleSetMode === "edit" && selectedVehicleSetID && canEditVehicleSets && (

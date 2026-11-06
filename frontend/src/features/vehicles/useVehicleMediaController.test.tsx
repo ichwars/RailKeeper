@@ -114,3 +114,42 @@ describe("useVehicleMediaController", () => {
     expect(result.current.state.attachmentEdits).toEqual({});
   });
 });
+
+function renderDraftBoundaryController() {
+  const options = {
+    selected: vehicleFixture(), readonly: false, saving: false, setSaving: vi.fn(), onMessage: vi.fn(),
+    refreshSelectedVehicle: vi.fn().mockResolvedValue(undefined), onImageUploadComplete: vi.fn()
+  };
+  return { ...renderHook(() => useVehicleMediaController(options)), options };
+}
+
+describe("vehicle media draft and persistence boundary", () => {
+  it("edits and removes a new image only in the draft", () => {
+    const remove = vi.spyOn(api, "deleteVehicleImage");
+    const { result } = renderDraftBoundaryController();
+    const image = { id: "new", url: "https://example.test/new.png", source: "Reference", title: "New" };
+    act(() => result.current.commands.addImages([image]));
+    act(() => result.current.commands.updatePendingImageTitle(image.id, "Draft title"));
+    expect(result.current.state.pendingImages[0]).toMatchObject({ title: "Draft title", isPrimary: true });
+    act(() => result.current.commands.removePendingImage(result.current.state.pendingImages[0]));
+    expect(result.current.state.pendingImages).toEqual([]);
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it("keeps maintenance-linked images and writes persisted deletions immediately after the link is cleared", async () => {
+    vi.spyOn(api, "deleteVehicleImage").mockResolvedValue(undefined);
+    const { result, options } = renderDraftBoundaryController();
+    const image = {
+      id: "stored", url: "/local.png", title: "Stored", source: "", persisted: true, maintenanceId: "maintenance"
+    };
+    act(() => result.current.commands.addImages([image]));
+    act(() => result.current.commands.removePendingImage(image));
+    expect(api.deleteVehicleImage).not.toHaveBeenCalled();
+    expect(result.current.state.pendingImages).toHaveLength(1);
+    act(() => result.current.commands.updatePendingImageMaintenance(image.id, ""));
+    act(() => result.current.commands.removePendingImage(result.current.state.pendingImages[0]));
+    await waitFor(() => expect(options.refreshSelectedVehicle).toHaveBeenCalledWith(options.selected.id));
+    expect(api.deleteVehicleImage).toHaveBeenCalledExactlyOnceWith(options.selected.id, image.id);
+    expect(result.current.state.pendingImages).toEqual([]);
+  });
+});

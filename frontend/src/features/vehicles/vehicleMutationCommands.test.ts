@@ -74,6 +74,58 @@ describe("createVehicleMutationCommands", () => {
     expect(options.editor.setSaving).toHaveBeenLastCalledWith(false);
   });
 
+  it("keeps the created vehicle selected when a later image import fails and retries as an update", async () => {
+    const created = vehicleFixture({ id: "created-once" });
+    const options = {
+      ...commandOptions(),
+      media: { pendingImages: [{ id: "remote", url: "https://example.test/image.png", source: "Reference", title: "Reference" }] }
+    };
+    vi.spyOn(api, "createVehicle").mockResolvedValue(created);
+    vi.spyOn(api, "updateVehicle").mockResolvedValue(created);
+    vi.spyOn(api, "vehicle").mockResolvedValue(created);
+    vi.spyOn(api, "importVehicleImageFromUrl").mockRejectedValueOnce(new Error("Import unavailable"))
+      .mockResolvedValueOnce({ id: "image", vehicleId: created.id, url: "/local.png", isPrimary: false, sortOrder: 0, createdAt: "", updatedAt: "" });
+
+    await createVehicleMutationCommands(options).submit(submitEvent());
+
+    expect(options.editor.setSelectedDetail).toHaveBeenCalledWith(created);
+    expect(options.editor.setMode).toHaveBeenCalledWith("edit");
+    expect(options.editor.setSelectedDetail.mock.invocationCallOrder[0])
+      .toBeLessThan(vi.mocked(api.importVehicleImageFromUrl).mock.invocationCallOrder[0]);
+    expect(options.onMessage).toHaveBeenLastCalledWith("Import unavailable");
+    expect(options.editor.close).not.toHaveBeenCalled();
+    await createVehicleMutationCommands({
+      ...options, editor: { ...options.editor, selected: created, mode: "edit" }
+    }).submit(submitEvent());
+
+    expect(api.createVehicle).toHaveBeenCalledOnce();
+    expect(api.updateVehicle).toHaveBeenCalledOnce();
+    expect(options.reloadVehicles).toHaveBeenCalledOnce();
+  });
+
+  it("keeps persisted image identity and source in the core request while importing only new remote images", async () => {
+    const created = vehicleFixture({ id: "images" });
+    const options = {
+      ...commandOptions(),
+      media: { pendingImages: [
+        { id: "existing", url: "https://example.test/existing.png", source: "Original source", title: "Original", persisted: true },
+        { id: "remote", url: "https://example.test/new.png", source: "New source", title: "New", persisted: false }
+      ] }
+    };
+    vi.spyOn(api, "createVehicle").mockResolvedValue(created);
+    vi.spyOn(api, "vehicle").mockResolvedValue(created);
+    vi.spyOn(api, "importVehicleImageFromUrl").mockResolvedValue({
+      id: "new", vehicleId: created.id, url: "/new.png", isPrimary: false, sortOrder: 1, createdAt: "", updatedAt: ""
+    });
+    await createVehicleMutationCommands(options).submit(submitEvent());
+    expect(api.createVehicle).toHaveBeenCalledWith(expect.objectContaining({ images: [
+      expect.objectContaining({ id: "existing", url: "https://example.test/existing.png", sourceUrl: "Original source" })
+    ] }));
+    expect(api.importVehicleImageFromUrl).toHaveBeenCalledExactlyOnceWith(created.id, expect.objectContaining({
+      url: "https://example.test/new.png", sourceUrl: "New source", sortOrder: 1
+    }));
+  });
+
   it("stores an ECoS mapping and returns to Digital Centers", async () => {
     const options = commandOptions();
     const created = vehicleFixture({ id: "created" });
