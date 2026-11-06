@@ -1,4 +1,9 @@
 export const importReviewEN: Record<string, string> = {
+  "importReview.article.changed": "Selected target fields changed after this comparison. Those fields were deselected. Review their current values and select them again if needed; nothing was adopted.",
+  "importReview.article.fields": "{count} fields",
+  "importReview.article.score": "Score {score}",
+  "importReview.article.table": "Comparison: {title}, {group}",
+  "importReview.article.scroll": "Scroll the comparison table sideways to read all values.",
   "importReview.scope": "Source, target and effect",
   "importReview.source": "Source",
   "importReview.unknownSource": "Unknown source",

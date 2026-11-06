@@ -454,6 +454,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       restoreDraft: restoreArticleDraft
     }
   } = useArticleSearchController({
+    targetKey: modalOpen ? `${mode}:${selected?.id || "new"}` : "closed",
     form,
     pendingImageCount: pendingArticleImages.length,
     replaceForm: setForm,

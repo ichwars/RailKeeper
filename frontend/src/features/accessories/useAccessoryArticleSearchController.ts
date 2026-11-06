@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 
 import {
   api,
@@ -24,6 +24,8 @@ import {
   isSelectableAccessorySearchValue
 } from "./accessoryArticleSearch";
 import type { ArticleEditorForm } from "./articleEditorModel";
+import { useI18n } from "../../shared/i18n";
+import { reviewedResultIndex, useArticleReviewGuard } from "../../shared/articleSearch/useArticleReviewGuard";
 
 export type PendingAccessoryArticleImage = ArticleSearchImage & {
   id: string;
@@ -31,6 +33,7 @@ export type PendingAccessoryArticleImage = ArticleSearchImage & {
 };
 
 type UseAccessoryArticleSearchControllerOptions = {
+  targetKey?: string;
   form: ArticleEditorForm;
   readOnly: boolean;
   pendingImageCount: number;
@@ -50,6 +53,7 @@ function isSafeRemoteImage(image: ArticleSearchImage) {
 }
 
 export function useAccessoryArticleSearchController({
+  targetKey = "accessory-draft",
   form,
   readOnly,
   pendingImageCount,
@@ -58,6 +62,7 @@ export function useAccessoryArticleSearchController({
   updateForm,
   addImages
 }: UseAccessoryArticleSearchControllerOptions) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<ArticleSearchResponse | null>(null);
@@ -66,12 +71,23 @@ export function useAccessoryArticleSearchController({
   const [barcodeValue, setBarcodeValue] = useState("");
   const [selectedFields, setSelectedFields] = useState<Record<string, boolean>>({});
   const [selectedImages, setSelectedImages] = useState<Record<string, boolean>>({});
+  const latest = useRef({ form, selectedFields, selectedImages, pendingImageCount, updateForm, addImages,
+    readOnly, manufacturers, gauges });
+  latest.current = { form, selectedFields, selectedImages, pendingImageCount, updateForm, addImages,
+    readOnly, manufacturers, gauges };
+  const guard = useArticleReviewGuard(`${targetKey}:${readOnly}:${form.articleType}`, () => {
+    setOpen(false); setLoading(false); setResponse(null); setError("");
+    setSelectedFields({}); setSelectedImages({}); setBarcodeOpen(false);
+  });
 
   const canSelectField = (key: string, value: string) =>
     isSelectableAccessorySearchValue(key, value, manufacturers, gauges, form.articleType);
 
   const run = (searchForm = form, searchInput?: ArticleSearchInput) => {
     if (readOnly) return;
+    const request = guard.begin();
+    if (request === null) return;
+    setLoading(false); setResponse(null); setSelectedFields({}); setSelectedImages({});
     if (!articleSearchEnabled()) {
       setError("Die Artikeldaten-Websuche ist in den Einstellungen deaktiviert.");
       setOpen(true);
@@ -91,18 +107,20 @@ export function useAccessoryArticleSearchController({
     setSelectedFields({});
     setSelectedImages({});
     void api.articleSearch(input).then((nextResponse) => {
+      if (!guard.complete(request, nextResponse)) return;
       const initialSelection: Record<string, boolean> = {};
       nextResponse.results.forEach((result, index) => {
         Object.entries(result.fields).forEach(([key, field]) => {
           if (!canSelectField(key, field.value)) return;
+          guard.remember(articleSelectionKey(result, key, index), currentAccessorySearchValue(searchForm, key));
           initialSelection[articleSelectionKey(result, key, index)] =
             currentAccessorySearchValue(searchForm, key) === "";
         });
       });
       setResponse(nextResponse);
       setSelectedFields(initialSelection);
-    }).catch((reason: Error) => setError(reason.message))
-      .finally(() => setLoading(false));
+    }).catch((reason: Error) => { if (guard.active(request)) setError(reason.message); })
+      .finally(() => { if (guard.active(request)) setLoading(false); });
   };
 
   const openBarcode = () => {
@@ -126,8 +144,10 @@ export function useAccessoryArticleSearchController({
   };
 
   const toggleField = (result: ArticleSearchResult, index: number, key: string, checked: boolean) => {
+    if (!guard.reviewing(response) || reviewedResultIndex(response, result) !== index) return;
     const value = result.fields[key]?.value || "";
     if (!canSelectField(key, value)) return;
+    if (checked) guard.remember(articleSelectionKey(result, key, index), currentAccessorySearchValue(form, key));
     setSelectedFields((current) => ({ ...current, [articleSelectionKey(result, key, index)]: checked }));
   };
 
@@ -137,31 +157,41 @@ export function useAccessoryArticleSearchController({
     image: ArticleSearchImage,
     checked: boolean
   ) => {
+    if (!guard.reviewing(response) || reviewedResultIndex(response, result) !== index ||
+      !result.images?.some(candidate => candidate.url === image.url)) return;
     if (!isSafeRemoteImage(image)) return;
     setSelectedImages((current) => ({ ...current, [imageSelectionKey(result, image, index)]: checked }));
   };
 
   const applyResult = (result: ArticleSearchResult) => {
-    if (readOnly) return;
-    const foundIndex = response?.results.findIndex((entry) => entry.url === result.url) ?? 0;
-    const resultIndex = foundIndex >= 0 ? foundIndex : 0;
+    const now = latest.current;
+    if (now.readOnly) return;
+    const resultIndex = reviewedResultIndex(response, result);
+    if (!guard.reviewing(response) || resultIndex < 0) return;
+    const selected = Object.keys(result.fields).filter(key => now.selectedFields[articleSelectionKey(result, key, resultIndex)]);
+    const changed = guard.changed(selected.map(key => [articleSelectionKey(result, key, resultIndex), currentAccessorySearchValue(now.form, key)]));
+    if (changed.length) {
+      setSelectedFields(current => Object.fromEntries(Object.entries(current).map(([key, checked]) => [key, changed.includes(key) ? false : checked])));
+      setError(t("importReview.article.changed")); return;
+    }
+    if (!guard.consume(response)) return;
     const patch = applyAccessorySearchResult({
-      form,
+      form: now.form,
       result,
       resultIndex,
-      selectedFields,
-      manufacturers,
-      gauges
+      selectedFields: now.selectedFields,
+      manufacturers: now.manufacturers,
+      gauges: now.gauges
     });
     const images = (result.images || []).filter((image) =>
-      isSafeRemoteImage(image) && selectedImages[imageSelectionKey(result, image, resultIndex)])
+      isSafeRemoteImage(image) && now.selectedImages[imageSelectionKey(result, image, resultIndex)])
       .map((image, index) => ({
         ...image,
         id: `${result.url}-${image.url}`,
-        isPrimary: pendingImageCount === 0 && index === 0
+        isPrimary: now.pendingImageCount === 0 && index === 0
       }));
-    if (images.length > 0) addImages(images);
-    updateForm(patch);
+    if (images.length > 0) now.addImages(images);
+    now.updateForm(patch);
     setOpen(false);
   };
 
@@ -177,7 +207,8 @@ export function useAccessoryArticleSearchController({
       selectedFields,
       selectedImages
     },
-    setters: { setOpen, setBarcodeOpen, setBarcodeValue },
+    setters: { setOpen: (value: boolean) => { if (!guard.available()) return;
+      if (!value) { guard.invalidate(); setLoading(false); } setOpen(value); }, setBarcodeOpen, setBarcodeValue },
     commands: { run, openBarcode, submitBarcode, toggleField, toggleImage, applyResult, canSelectField }
   };
 }

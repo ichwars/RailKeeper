@@ -8,6 +8,7 @@ import { referenceActor } from "./browser-actor.mjs";
 import { assertCVImportGuards } from "./cv-import-guards.mjs";
 import { assertTransferImportRecovery } from "./transfer-import-recovery.mjs";
 import { assertStationAdoptionGuards } from "./station-adoption-guards.mjs";
+import { assertArticleReviewGuards } from "./article-review-guards.mjs";
 
 let inputText = "";
 for await (const part of process.stdin) inputText += part;
@@ -157,6 +158,7 @@ try {
       checks.push(...await assertMediaActionsWorkflow(page, input, de, reference));
       checks.push(...await assertTransferImportRecovery(page, input, de, reference));
       checks.push(...await assertStationAdoptionGuards(page, input, de, reference));
+      checks.push(...await assertArticleReviewGuards(page, input, de, reference));
     } finally { await reference.actor.dispose(); }
     assert.deepEqual(errors, []);
     await context.close();
