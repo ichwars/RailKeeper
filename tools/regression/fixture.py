@@ -105,19 +105,24 @@ def observations(client, fixture):
                  "/api/v1/accessory-products/" + fixture["productId"] + "/stock",
                  "/api/v1/accessory-products/" + fixture["productId"] + "/usage-history",
                  "/api/v1/exhibition-lists/" + fixture["eventId"] + "/workspace"]
-    return {path: cv_comparison_projection(client.request("GET", path)) for path in endpoints}
+    return {path: record_comparison_projection(client.request("GET", path)) for path in endpoints}
 
 
-def cv_comparison_projection(value):
-    """Older binaries lack the computed CV revision. Compare every persisted field unchanged.
+def record_comparison_projection(value):
+    """Ignore only new computed vehicle/media/CV revisions in old-to-new API comparisons.
 
-    The revision itself is checked by the new CV transaction/HTTP conflict tests. This projection
-    removes only that added read-only field from CV records, never revisions of other entities.
+    All stored fields and other entity revisions remain compared. Raw DB/file manifests have no
+    projection; transaction/HTTP tests separately verify these content-derived revision guards.
     """
     if isinstance(value, list):
-        return [cv_comparison_projection(item) for item in value]
+        return [record_comparison_projection(item) for item in value]
     if isinstance(value, dict):
         cv = {"id", "vehicleId", "cvNumber", "value"}.issubset(value)
-        return {key: cv_comparison_projection(item) for key, item in value.items()
-                if not (cv and key == "revision")}
+        vehicle = {"id", "inventoryNumber", "manufacturer", "name", "gauge", "qrCodeEnabled"}.issubset(value)
+        image = {"id", "vehicleId", "url", "isPrimary", "sortOrder"}.issubset(value)
+        attachment = {"id", "vehicleId", "fileName", "originalName", "sizeBytes"}.issubset(value)
+        computed = {"revision"} if cv or image or attachment else set()
+        if vehicle:
+            computed.update({"revision", "imagesRevision"})
+        return {key: record_comparison_projection(item) for key, item in value.items() if key not in computed}
     return value

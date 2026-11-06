@@ -1772,6 +1772,14 @@ components:
       required: [id, inventoryNumber, manufacturer, name, gauge, digital, dtDecoder, exhibitionReady, exhibition, abcBrakes,
         couplingSame, driveEnabled, headlightsEnabled, lightingEnabled, soundGeneratorEnabled, smokeGeneratorEnabled, qrCodeEnabled, createdAt, updatedAt]
       properties:
+        revision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          readOnly: true
+        imagesRevision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          readOnly: true
         ecosDecoderProfile:
           $ref: "#/components/schemas/ECoSDecoderProfileEvidence"
         id:
@@ -1959,6 +1967,14 @@ components:
       type: object
       required: [manufacturer, name, gauge]
       properties:
+        expectedRevision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          writeOnly: true
+        expectedImagesRevision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          writeOnly: true
         inventoryNumber:
           type: string
         manufacturer:
@@ -2363,6 +2379,10 @@ components:
       type: object
       required: [id, vehicleId, url, isPrimary, sortOrder, createdAt]
       properties:
+        revision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          readOnly: true
         id:
           type: string
         vehicleId:
@@ -2405,6 +2425,10 @@ components:
       type: object
       required: [id, vehicleId, fileName, originalName, sizeBytes, createdAt, updatedAt]
       properties:
+        revision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          readOnly: true
         id:
           type: string
         vehicleId:
@@ -2451,6 +2475,10 @@ components:
     VehicleAttachmentUpdateRequest:
       type: object
       properties:
+        expectedRevision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          writeOnly: true
         maintenanceId: {type: string}
         description:
           type: string
@@ -8416,6 +8444,11 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateVehicleRequest"
       responses:
+        "409":
+          description: The confirmed revision changed; no requested changes were stored.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "200":
           description: Vehicle updated
           content:
@@ -8515,6 +8548,11 @@ paths:
             schema:
               $ref: "#/components/schemas/VehicleAttachmentUpdateRequest"
       responses:
+        "409":
+          description: The confirmed revision changed; no requested changes were stored.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "200":
           description: Attachment updated
           content:
@@ -8530,6 +8568,11 @@ paths:
     delete:
       tags: [Vehicles]
       parameters:
+        - name: expectedRevision
+          in: query
+          required: false
+          description: Optional revision of the confirmed media record; omitted by legacy clients.
+          schema: {type: string, pattern: "^[0-9a-f]{64}$"}
         - name: id
           in: path
           required: true
@@ -8541,6 +8584,11 @@ paths:
           schema:
             type: string
       responses:
+        "409":
+          description: The confirmed revision changed; no requested changes were stored.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "204":
           description: Attachment deleted
         "404":
@@ -10813,6 +10861,11 @@ paths:
       tags: [Vehicles]
       summary: Delete a vehicle image
       parameters:
+        - name: expectedRevision
+          in: query
+          required: false
+          description: Optional revision of the confirmed media record; omitted by legacy clients.
+          schema: {type: string, pattern: "^[0-9a-f]{64}$"}
         - name: id
           in: path
           required: true
@@ -10824,6 +10877,11 @@ paths:
           schema:
             type: string
       responses:
+        "409":
+          description: The confirmed revision changed; no requested changes were stored.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "204":
           description: Image deleted
         "403":

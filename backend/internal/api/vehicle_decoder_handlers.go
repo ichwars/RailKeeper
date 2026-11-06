@@ -8,7 +8,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"os"
 	"time"
 
 	"railkeeper/backend/internal/application"
@@ -216,9 +215,7 @@ func (a *App) deleteVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusInternalServerError, "cv_file_delete_failed", "CV-Datei konnte nicht gelöscht werden.")
 		return
 	}
-	if fullPath, err := confinedDataPath(a.dataDir, file.StoragePath); err == nil {
-		_ = os.Remove(fullPath)
-	}
+	a.removeVehicleMediaFileIfUnreferenced(r.Context(), file.StoragePath)
 	a.deleteFileBlobIfUnreferenced(r.Context(), file.BlobID)
 	w.WriteHeader(http.StatusNoContent)
 }

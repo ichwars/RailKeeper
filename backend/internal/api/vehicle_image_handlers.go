@@ -220,8 +220,21 @@ func (a *App) importVehicleImageFromURL(w http.ResponseWriter, r *http.Request) 
 }
 
 func (a *App) deleteVehicleImage(w http.ResponseWriter, r *http.Request) {
-	image, err := a.vehicleService.DeleteImage(r.Context(), r.PathValue("id"), r.PathValue("imageID"))
+	var expected []string
+	if r.URL.Query().Has("expectedRevision") {
+		expected = []string{r.URL.Query().Get("expectedRevision")}
+	}
+	image, err := a.vehicleService.DeleteImage(r.Context(), r.PathValue("id"), r.PathValue("imageID"), expected...)
 	if err != nil {
+		if errors.Is(err, application.ErrVehicleImageConflict) {
+			respondProblem(w, http.StatusConflict, "image_conflict", "Media changed. Compare the current record before confirming deletion again.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "image_invalid", "Invalid expected revision.")
+			return
+		}
+
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "image_not_found", "Image not found.")
 			return
@@ -234,18 +247,18 @@ func (a *App) deleteVehicleImage(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusInternalServerError, "image_delete_failed", "Bild konnte nicht gelöscht werden.")
 		return
 	}
-	a.removeVehicleImageFileIfUnreferenced(r.Context(), image.StoragePath)
-	a.removeVehicleImageFileIfUnreferenced(r.Context(), image.ThumbnailPath)
+	a.removeVehicleMediaFileIfUnreferenced(r.Context(), image.StoragePath)
+	a.removeVehicleMediaFileIfUnreferenced(r.Context(), image.ThumbnailPath)
 	a.deleteFileBlobIfUnreferenced(r.Context(), image.BlobID)
 	a.deleteFileBlobIfUnreferenced(r.Context(), image.ThumbnailBlobID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (a *App) removeVehicleImageFileIfUnreferenced(ctx context.Context, storagePath string) {
+func (a *App) removeVehicleMediaFileIfUnreferenced(ctx context.Context, storagePath string) {
 	if storagePath == "" {
 		return
 	}
-	references, err := a.vehicleService.ImageFileReferenceCount(ctx, storagePath)
+	references, err := a.vehicleService.MediaFileReferenceCount(ctx, storagePath)
 	if err != nil {
 		a.logger.Warn("image file reference check failed", "path", storagePath, "error", err)
 		return
