@@ -1,31 +1,17 @@
-﻿import { FormEvent, useEffect, useMemo, useState } from "react";
+﻿import { useSettingsPreferences } from "./useSettingsPreferences";
+import { useSettingsGeneral } from "./useSettingsGeneral";
+import { SettingsProfileCard } from "./SettingsProfileCard";
+import { SettingsInventoryCard } from "./SettingsInventoryCard";
+import { SettingsArticleSearchCard } from "./SettingsArticleSearchCard";
+import { SettingsUpdatesCard } from "./SettingsUpdatesCard";
+import { SettingsAppearanceTab } from "./SettingsAppearanceTab";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import {
-  ChevronDown,
-  ChevronUp,
-  Database,
-  Eye,
-  EyeOff,
-  ExternalLink,
-  History,
-  KeyRound,
-  Mail,
-  Pencil,
-  Plus,
-  RefreshCw,
-  Shield,
-  Trash2,
-  Upload,
-  UserCog,
-  Users,
-  X
-} from "lucide-react";
-import type { AppView } from "../../app/App";
-import { availableStartView } from "../../app/navigationAvailability";
+import { ChevronDown, ChevronUp, ExternalLink, RefreshCw, Trash2, Upload, X } from "lucide-react";
+
 import {
   api,
   AuditLogEntry,
-  InventoryNumberScheme,
   MasterDataEntry,
   MasterDataInput,
   Role,
@@ -33,13 +19,11 @@ import {
   SessionRecord,
   SMTPSettings,
   SMTPSettingsInput,
-  SystemPrinters,
   TwoFactorStatus,
-  UserAccount,
-  VersionInfo
+  UserAccount
 } from "../../shared/api";
-import { Language, useI18n } from "../../shared/i18n";
-import { applyStoredThemeOptions, applyThemePreference, readThemePreference, themePreferenceKey, ThemePreference } from "../../shared/theme";
+import { useI18n } from "../../shared/i18n";
+
 import { SettingsAuthTab } from "./SettingsAuthTab";
 import { SettingsDigitalTab } from "./SettingsDigitalTab";
 import { ArticleManagementSettings } from "./ArticleManagementSettings";
@@ -67,13 +51,9 @@ import { SettingsStorageCard } from "./SettingsStorageCard";
 import { SettingsTransferTab } from "./SettingsTransferTab";
 import { useSettingsStorage } from "./useSettingsStorage";
 import { useSettingsTransfer } from "./useSettingsTransfer";
-import { WindowsUpdateDownload } from "./WindowsUpdateDownload";
 
 import {
   applyVisibleMetadata,
-  articleSearchSettingKey,
-  articleSearchSourceOptions,
-  articleSearchSourcesSettingKey,
   auditActor,
   auditTarget,
   cv8BinaryText,
@@ -81,8 +61,6 @@ import {
   cv8DecimalText,
   cv8HexText,
   cv8NameText,
-  defaultArticleSearchSources,
-  defaultSidebarOrder,
   emptyForm,
   emptyPasswordForm,
   emptyUserForm,
@@ -90,7 +68,6 @@ import {
   externalLink,
   formatDateTime,
   loadableMasterDataTypes,
-  localSettingKeys,
   manufacturerAliasesText,
   manufacturerNeedsWebsiteReview,
   manufacturerSearchDomainsText,
@@ -99,30 +76,12 @@ import {
   masterDataTypes,
   metadataString,
   nominalScalesText,
-  normalizeSidebarPrefs,
   normalizeCV8Binary,
   normalizeCV8Decimal,
   normalizeCV8Hex,
-  readArticleSearchSources,
-  readLocalBool,
-  readLocalSetting,
-  readSidebarPrefs,
-  settingsTabs,
-  sidebarOrderChangedEvent,
-  sidebarPrefsKey
+  settingsTabs
 } from "./settingsModel";
 import type { FormState, PasswordFormState, SettingsConfirmDialog, SettingsTab, UserFormState } from "./settingsModel";
-import { AppSelect } from "../../shared/ui/AppSelect";
-
-const updateStatusChangedEvent = "railkeeper-update-status-changed";
-
-const emptyInventorySchemeDraft = {
-  category: "",
-  prefix: "RK",
-  nextNumber: 1,
-  padding: 6,
-  active: true
-};
 
 type MasterDataSortDirection = "asc" | "desc";
 
@@ -190,36 +149,10 @@ export function SettingsView({ username }: { username: string }) {
   const [masterDataBatchBusy, setMasterDataBatchBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [masterDataSort, setMasterDataSort] = useState<MasterDataSortState>({ key: "name", direction: "asc" });
-  const [articleSearchEnabled, setArticleSearchEnabled] = useState(
-    () => window.localStorage.getItem(articleSearchSettingKey) !== "false"
-  );
-  const [articleSearchSources, setArticleSearchSources] = useState<string[]>(readArticleSearchSources);
-  const [design, setDesign] = useState<ThemePreference>(readThemePreference);
-  const [inventorySchemes, setInventorySchemes] = useState<InventoryNumberScheme[]>([]);
-  const [inventorySchemesLoading, setInventorySchemesLoading] = useState(false);
-  const [inventorySchemesMessage, setInventorySchemesMessage] = useState("");
-  const [newInventoryScheme, setNewInventoryScheme] = useState(emptyInventorySchemeDraft);
-  const [defaultView, setDefaultView] = useState(() =>
-    availableStartView(readLocalSetting(localSettingKeys.defaultView, "overview"))
-  );
-  const [sidebarOrder, setSidebarOrder] = useState<AppView[]>(() => readSidebarPrefs(username).order);
-  const [sidebarHidden, setSidebarHidden] = useState<AppView[]>(() => readSidebarPrefs(username).hidden);
-  const [dateFormat, setDateFormat] = useState(() => readLocalSetting(localSettingKeys.dateFormat, "system"));
-  const [timeFormat, setTimeFormat] = useState(() => readLocalSetting(localSettingKeys.timeFormat, "system"));
-  const [defaultPrinter, setDefaultPrinter] = useState(() => readLocalSetting(localSettingKeys.defaultPrinter, "system-dialog"));
-  const [betaUpdates, setBetaUpdates] = useState(() => readLocalBool(localSettingKeys.betaUpdates, false));
-  const [darkBackground, setDarkBackground] = useState(() => readLocalSetting(localSettingKeys.darkBackground, "neutral"));
-  const [darkAccent, setDarkAccent] = useState(() => readLocalSetting(localSettingKeys.darkAccent, "green"));
-  const [darkStyle, setDarkStyle] = useState(() => readLocalSetting(localSettingKeys.darkStyle, "classic"));
-  const [lightBackground, setLightBackground] = useState(() => readLocalSetting(localSettingKeys.lightBackground, "neutral"));
-  const [lightAccent, setLightAccent] = useState(() => readLocalSetting(localSettingKeys.lightAccent, "green"));
-  const [lightStyle, setLightStyle] = useState(() => readLocalSetting(localSettingKeys.lightStyle, "classic"));
-  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
-  const [versionMessage, setVersionMessage] = useState("");
-  const [versionLoading, setVersionLoading] = useState(false);
   const storage = useSettingsStorage();
   const { storageUsage, storageLoading, loadStorageUsage } = storage;
-  const [systemPrinters, setSystemPrinters] = useState<SystemPrinters | null>(null);
+  const preferences = useSettingsPreferences(username);
+  const general = useSettingsGeneral(activeSettingsTab, preferences, loadStorageUsage);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
   const [authMessage, setAuthMessage] = useState("");
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
@@ -308,27 +241,6 @@ export function SettingsView({ username }: { username: string }) {
     const description = t(`settings.role.${role}`);
     return description === `settings.role.${role}` ? t("settings.roles.custom") : description;
   };
-  const inventoryCategoryLabel = (category: string) => {
-    const label = t(`settings.category.${category}`);
-    return label === `settings.category.${category}` ? category : label;
-  };
-  const versionStatusLabel = (info: VersionInfo) => {
-    if (info.updateAvailable) return t("settings.updates.status.updateAvailable");
-    if (info.status === "current") return betaUpdates ? t("settings.updates.status.currentBeta") : t("settings.updates.status.current");
-    if (info.status === "no_release") return t("settings.updates.status.noRelease");
-    if (info.status === "unavailable") return t("settings.updates.status.offline");
-    return t("settings.updates.status.local");
-  };
-  const localizedStatusMessage = (message: string) => {
-    if (message.includes("Windows-Systemdrucker")) return t("settings.printer.messageLoaded");
-    if (message.includes("Keine Release-Information")) return t("settings.updates.message.noRelease");
-    if (message.includes("RailKeeper ist aktuell")) return t("settings.updates.message.current");
-    return message;
-  };
-  const updateVersionLabel = (version?: string) => version?.replace(/^v/i, "") || t("settings.unknown");
-  const updateCheckedAtLabel = versionInfo?.checkedAt && versionInfo.status !== "local"
-    ? t("settings.updates.checkedAt", { date: formatDateTime(versionInfo.checkedAt) })
-    : t("settings.updates.notChecked");
   const activeDataLabel = masterLabel(activeDataType.type);
   const activeDataDescription = masterDescription(activeDataType.type);
   const items = itemsByType[activeType] || [];
@@ -357,87 +269,6 @@ export function SettingsView({ username }: { username: string }) {
     setMessage("");
     setMasterDataSort({ key: "name", direction: "asc" });
   }, [activeType]);
-
-  useEffect(() => {
-    if (activeSettingsTab !== "general" || inventorySchemes.length > 0 || inventorySchemesLoading) return;
-    loadInventorySchemes();
-  }, [activeSettingsTab, inventorySchemes.length, inventorySchemesLoading]);
-
-  useEffect(() => {
-    const prefs = readSidebarPrefs(username);
-    setSidebarOrder(prefs.order);
-    setSidebarHidden(prefs.hidden);
-  }, [username]);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .profileSettings()
-      .then(({ settings }) => {
-        if (cancelled) return;
-        const store = (key: string, setter?: (value: string) => void) => {
-          const value = settings[key];
-          if (value === undefined) return;
-          window.localStorage.setItem(key, value);
-          setter?.(value);
-        };
-        store(localSettingKeys.defaultView, (value) => setDefaultView(availableStartView(value)));
-        store(localSettingKeys.dateFormat, setDateFormat);
-        store(localSettingKeys.timeFormat, setTimeFormat);
-        store(localSettingKeys.defaultPrinter, setDefaultPrinter);
-        store(localSettingKeys.betaUpdates, (value) => setBetaUpdates(value === "true"));
-        store(themePreferenceKey, (value) => {
-          if (value === "system" || value === "light" || value === "dark") {
-            setDesign(value);
-            applyThemePreference(value);
-          }
-        });
-        store(localSettingKeys.darkBackground, setDarkBackground);
-        store(localSettingKeys.darkAccent, setDarkAccent);
-        store(localSettingKeys.darkStyle, setDarkStyle);
-        store(localSettingKeys.lightBackground, setLightBackground);
-        store(localSettingKeys.lightAccent, setLightAccent);
-        store(localSettingKeys.lightStyle, setLightStyle);
-        applyStoredThemeOptions();
-        store(articleSearchSettingKey, (value) => setArticleSearchEnabled(value !== "false"));
-        const sourceValue = settings[articleSearchSourcesSettingKey];
-        if (sourceValue) {
-          try {
-            const sources = JSON.parse(sourceValue) as string[];
-            if (Array.isArray(sources)) {
-              window.localStorage.setItem(articleSearchSourcesSettingKey, sourceValue);
-              setArticleSearchSources(sources);
-            }
-          } catch {
-            // Ignore malformed profile settings and keep the local fallback.
-          }
-        }
-        const sidebarValue = settings[sidebarPrefsKey(username)];
-        if (sidebarValue) {
-          try {
-            const prefs = JSON.parse(sidebarValue) as { order?: AppView[]; hidden?: AppView[] };
-            const normalized = normalizeSidebarPrefs(prefs);
-            window.localStorage.setItem(sidebarPrefsKey(username), JSON.stringify(normalized));
-            setSidebarOrder(normalized.order);
-            setSidebarHidden(normalized.hidden);
-            window.dispatchEvent(new Event(sidebarOrderChangedEvent));
-          } catch {
-            // Ignore malformed profile settings and keep the local fallback.
-          }
-        }
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [username]);
-
-  useEffect(() => {
-    if (activeSettingsTab !== "general") return;
-    loadVersionInfo();
-    loadStorageUsage();
-    loadSystemPrinters();
-  }, [activeSettingsTab]);
 
   useEffect(() => {
     if (activeSettingsTab !== "data" || storageUsage || storageLoading) return;
@@ -546,114 +377,6 @@ export function SettingsView({ username }: { username: string }) {
     };
     reader.onerror = () => setMessage("Symbolbild konnte nicht gelesen werden.");
     reader.readAsDataURL(file);
-  };
-
-  const saveProfileSetting = (key: string, value: string) => {
-    void api.updateProfileSettings({ [key]: value }).catch(() => undefined);
-  };
-
-  const setLocalSetting = (key: string, value: string, setter: (value: string) => void) => {
-    setter(value);
-    window.localStorage.setItem(key, value);
-    saveProfileSetting(key, value);
-    if (key.startsWith("railkeeper.settings.dark") || key.startsWith("railkeeper.settings.light")) {
-      applyStoredThemeOptions();
-    }
-  };
-
-  const setLocalBool = (key: string, value: boolean, setter: (value: boolean) => void) => {
-    setter(value);
-    window.localStorage.setItem(key, String(value));
-    saveProfileSetting(key, String(value));
-  };
-
-  const saveSidebarPrefs = (nextOrder: AppView[], nextHidden: AppView[]) => {
-    setSidebarOrder(nextOrder);
-    setSidebarHidden(nextHidden);
-    const value = JSON.stringify({ order: nextOrder, hidden: nextHidden });
-    window.localStorage.setItem(sidebarPrefsKey(username), value);
-    saveProfileSetting(sidebarPrefsKey(username), value);
-    window.dispatchEvent(new Event(sidebarOrderChangedEvent));
-  };
-
-  const saveSidebarOrder = (nextOrder: AppView[]) => {
-    saveSidebarPrefs(nextOrder, sidebarHidden);
-  };
-
-  const moveSidebarItem = (view: AppView, direction: -1 | 1) => {
-    const index = sidebarOrder.indexOf(view);
-    const nextIndex = index + direction;
-    if (index < 0 || nextIndex < 0 || nextIndex >= sidebarOrder.length) return;
-    const nextOrder = [...sidebarOrder];
-    [nextOrder[index], nextOrder[nextIndex]] = [nextOrder[nextIndex], nextOrder[index]];
-    saveSidebarOrder(nextOrder);
-  };
-
-  const resetSidebarOrder = () => {
-    saveSidebarPrefs(defaultSidebarOrder, []);
-  };
-
-  const toggleSidebarVisibility = (view: AppView) => {
-    if (view === "settings") return;
-    const nextHidden = sidebarHidden.includes(view)
-      ? sidebarHidden.filter((item) => item !== view)
-      : [...sidebarHidden, view];
-    saveSidebarPrefs(sidebarOrder, nextHidden);
-  };
-
-  const updateArticleSearchEnabled = (enabled: boolean) => {
-    setArticleSearchEnabled(enabled);
-    window.localStorage.setItem(articleSearchSettingKey, String(enabled));
-    saveProfileSetting(articleSearchSettingKey, String(enabled));
-  };
-  const updateArticleSearchSource = (source: string, enabled: boolean) => {
-    setArticleSearchSources((current) => {
-      const next = enabled ? [...new Set([...current, source])] : current.filter((item) => item !== source);
-      const normalized = next.length > 0 ? next : ["web"];
-      const value = JSON.stringify(normalized);
-      window.localStorage.setItem(articleSearchSourcesSettingKey, value);
-      saveProfileSetting(articleSearchSourcesSettingKey, value);
-      return normalized;
-    });
-  };
-
-  const updateDesign = (preference: ThemePreference) => {
-    setDesign(preference);
-    applyThemePreference(preference);
-    saveProfileSetting(themePreferenceKey, preference);
-  };
-
-  const loadVersionInfo = (forceCheck = false, includeBeta = betaUpdates) => {
-    setVersionLoading(true);
-    setVersionMessage("");
-    api
-      .version(forceCheck, includeBeta)
-      .then((info) => {
-        setVersionInfo(info);
-        setVersionMessage(info.message || t("settings.updates.message.reachable", { version: info.version || t("settings.unknown") }));
-        window.dispatchEvent(new CustomEvent(updateStatusChangedEvent, { detail: { forceCheck } }));
-      })
-      .catch((error: Error) => setVersionMessage(error.message))
-      .finally(() => setVersionLoading(false));
-  };
-
-  const updateBetaUpdates = (enabled: boolean) => {
-    setLocalBool(localSettingKeys.betaUpdates, enabled, setBetaUpdates);
-  };
-
-  const loadSystemPrinters = () => {
-    api
-      .systemPrinters()
-      .then((result) => {
-        setSystemPrinters(result);
-        if (defaultPrinter === "system-dialog" && result.defaultPrinter) {
-          const value = `printer:${result.defaultPrinter}`;
-          setDefaultPrinter(value);
-          window.localStorage.setItem(localSettingKeys.defaultPrinter, value);
-          saveProfileSetting(localSettingKeys.defaultPrinter, value);
-        }
-      })
-      .catch(() => undefined);
   };
 
   const loadCurrentSession = () => {
@@ -984,59 +707,6 @@ export function SettingsView({ username }: { username: string }) {
           .catch((error: Error) => setAuthMessage(error.message));
       }
     });
-  };
-
-  const loadInventorySchemes = () => {
-    setInventorySchemesLoading(true);
-    setInventorySchemesMessage("");
-    api
-      .inventoryNumberSchemes()
-      .then(setInventorySchemes)
-      .catch((error: Error) => setInventorySchemesMessage(error.message))
-      .finally(() => setInventorySchemesLoading(false));
-  };
-
-  const updateInventoryScheme = (category: string, patch: Partial<InventoryNumberScheme>) => {
-    setInventorySchemes((current) =>
-      current.map((scheme) => (scheme.category === category ? { ...scheme, ...patch } : scheme))
-    );
-  };
-
-  const updateNewInventoryScheme = (patch: Partial<typeof emptyInventorySchemeDraft>) => {
-    setNewInventoryScheme((current) => ({ ...current, ...patch }));
-  };
-
-  const inventorySchemePreview = (prefix: string, nextNumber: number, padding: number) =>
-    `${prefix.trim() || "RK"}-${String(Math.max(1, Number(nextNumber) || 1)).padStart(Math.max(1, Number(padding) || 6), "0")}`;
-
-  const createInventoryScheme = () => {
-    setInventorySchemesMessage("");
-    api
-      .createInventoryNumberScheme({
-        category: newInventoryScheme.category,
-        prefix: newInventoryScheme.prefix,
-        nextNumber: Number(newInventoryScheme.nextNumber) || 1,
-        padding: Number(newInventoryScheme.padding) || 6,
-        active: newInventoryScheme.active
-      })
-      .then((created) => {
-        setInventorySchemes((current) => [...current, created]);
-        setNewInventoryScheme(emptyInventorySchemeDraft);
-      })
-      .catch((error: Error) => setInventorySchemesMessage(error.message));
-  };
-
-  const saveInventoryScheme = (scheme: InventoryNumberScheme) => {
-    setInventorySchemesMessage("");
-    api
-      .updateInventoryNumberScheme(scheme.category, {
-        prefix: scheme.prefix,
-        nextNumber: Number(scheme.nextNumber) || 1,
-        padding: Number(scheme.padding) || 6,
-        active: scheme.active
-      })
-      .then((updated) => updateInventoryScheme(updated.category, updated))
-      .catch((error: Error) => setInventorySchemesMessage(error.message));
   };
 
   const startCreate = () => {
@@ -1377,279 +1047,12 @@ export function SettingsView({ username }: { username: string }) {
       {activeSettingsTab === "general" && (
         <section className="settings-dashboard-grid">
           <div className="settings-card-stack">
-            <section className="panel settings-card settings-tool-card">
-              <div className="settings-field-grid">
-                <label>
-                  {t("settings.language")}
-                  <AppSelect value={language} onChange={(event) => setLanguage(event.target.value as Language)}>
-                    <option value="de">{t("settings.language.de")}</option>
-                    <option value="en">{t("settings.language.en")}</option>
-                  </AppSelect>
-                </label>
-                <label>
-                  {t("settings.defaultView")}
-                  <AppSelect
-                    value={defaultView}
-                    onChange={(event) => setLocalSetting(
-                      localSettingKeys.defaultView,
-                      event.target.value,
-                      (value) => setDefaultView(availableStartView(value))
-                    )}
-                  >
-                    <option value="overview">{t("nav.overview")}</option>
-                    <option value="vehicles">{t("nav.vehicles")}</option>
-                    <option value="accessories">{t("nav.accessories")}</option>
-                    <option value="exhibition">{t("nav.exhibition")}</option>
-                    <option value="importExport">{t("nav.importExport")}</option>
-                    <option value="settings">{t("nav.settings")}</option>
-                  </AppSelect>
-                </label>
-                <label>
-                  {t("settings.dateFormat")}
-                  <AppSelect value={dateFormat} onChange={(event) => setLocalSetting(localSettingKeys.dateFormat, event.target.value, setDateFormat)}>
-                    <option value="system">{t("settings.option.systemDefault")}</option>
-                    <option value="de">{t("settings.option.dateDe")}</option>
-                    <option value="iso">{t("settings.option.dateIso")}</option>
-                  </AppSelect>
-                </label>
-                <label>
-                  {t("settings.timeFormat")}
-                  <AppSelect value={timeFormat} onChange={(event) => setLocalSetting(localSettingKeys.timeFormat, event.target.value, setTimeFormat)}>
-                    <option value="system">{t("settings.option.systemDefault")}</option>
-                    <option value="24h">{t("settings.option.hours24")}</option>
-                    <option value="12h">{t("settings.option.hours12")}</option>
-                  </AppSelect>
-                </label>
-                <label className="settings-field-wide">
-                  {t("settings.defaultPrinter")}
-                  <AppSelect value={defaultPrinter} onChange={(event) => setLocalSetting(localSettingKeys.defaultPrinter, event.target.value, setDefaultPrinter)}>
-                    <option value="system-dialog">{t("settings.printer.system")}</option>
-                    {(systemPrinters?.printers || []).map((printer) => (
-                      <option key={printer.id} value={`printer:${printer.name}`}>
-                        {printer.name}{printer.isDefault ? ` (${t("settings.defaultPrinter.default")})` : ""}
-                      </option>
-                    ))}
-                    <option value="ask">{t("settings.printer.ask")}</option>
-                    <option value="pdf">{t("settings.printer.pdf")}</option>
-                  </AppSelect>
-                </label>
-              </div>
-              <section className="sidebar-order-box" aria-label={t("settings.sidebarOrder.title")}>
-                <div>
-                  <h3>{t("settings.sidebarOrder.title")}</h3>
-                  <p>{t("settings.sidebarOrder.subtitle")}</p>
-                </div>
-                <div className="sidebar-order-list">
-                  {sidebarOrder.map((view, index) => (
-                    <div key={view} className={sidebarHidden.includes(view) ? "muted-row" : ""}>
-                      <span>{index + 1}</span>
-                      <strong>{t(`nav.${view}`)}</strong>
-                      <button
-                        type="button"
-                        className="icon-button"
-                        onClick={() => toggleSidebarVisibility(view)}
-                        disabled={view === "settings"}
-                        aria-label={sidebarHidden.includes(view) ? t("settings.sidebarOrder.show", { label: t(`nav.${view}`) }) : t("settings.sidebarOrder.hide", { label: t(`nav.${view}`) })}
-                        title={view === "settings" ? t("settings.sidebarOrder.alwaysActive") : sidebarHidden.includes(view) ? t("settings.sidebarOrder.showShort") : t("settings.sidebarOrder.hideShort")}
-                      >
-                        {sidebarHidden.includes(view) ? <EyeOff size={15} /> : <Eye size={15} />}
-                      </button>
-                      <button type="button" className="icon-button" onClick={() => moveSidebarItem(view, -1)} disabled={index === 0} aria-label={t("overview.widget.forward", { label: t(`nav.${view}`) })} title={t("overview.moveForward")}>
-                        <ChevronUp size={15} />
-                      </button>
-                      <button type="button" className="icon-button" onClick={() => moveSidebarItem(view, 1)} disabled={index === sidebarOrder.length - 1} aria-label={t("overview.widget.backward", { label: t(`nav.${view}`) })} title={t("overview.moveBackward")}>
-                        <ChevronDown size={15} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <button type="button" className="secondary-button compact-action" onClick={resetSidebarOrder}>
-                  {t("settings.sidebarOrder.reset")}
-                </button>
-              </section>
-            </section>
-
-            <section className="panel settings-card settings-tool-card">
-              <div className="settings-section-head">
-                <div>
-                  <h2>{t("settings.inventoryNumbers.title")}</h2>
-                  <p>{t("settings.inventoryNumbers.subtitle")}</p>
-                </div>
-                <button type="button" className="icon-button" onClick={loadInventorySchemes} aria-label={t("settings.inventoryNumbers.refresh")} title={t("settings.inventoryNumbers.refresh")} disabled={inventorySchemesLoading}>
-                  <RefreshCw size={16} />
-                </button>
-              </div>
-
-              <div className="table-wrap settings-inline-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>{t("settings.inventoryNumbers.category")}</th>
-                      <th>{t("settings.inventoryNumbers.prefix")}</th>
-                      <th>{t("settings.inventoryNumbers.next")}</th>
-                      <th>{t("settings.inventoryNumbers.padding")}</th>
-                      <th>{t("common.active")}</th>
-                      <th>{t("settings.inventoryNumbers.preview")}</th>
-                      <th>{t("exhibition.actions")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="inventory-scheme-create-row">
-                      <td>
-                        <input
-                          value={newInventoryScheme.category}
-                          onChange={(event) => updateNewInventoryScheme({ category: event.target.value })}
-                          placeholder={t("settings.inventoryNumbers.newCategory")}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          value={newInventoryScheme.prefix}
-                          onChange={(event) => updateNewInventoryScheme({ prefix: event.target.value })}
-                          placeholder={t("settings.inventoryNumbers.newPrefix")}
-                        />
-                      </td>
-                      <td>
-                        <input type="number" min={1} value={newInventoryScheme.nextNumber} onChange={(event) => updateNewInventoryScheme({ nextNumber: Number(event.target.value) })} />
-                      </td>
-                      <td>
-                        <input type="number" min={1} max={12} value={newInventoryScheme.padding} onChange={(event) => updateNewInventoryScheme({ padding: Number(event.target.value) })} />
-                      </td>
-                      <td>
-                        <label className="switch-field" aria-label={t("settings.inventoryNumbers.newActiveAria")}>
-                          <input type="checkbox" checked={newInventoryScheme.active} onChange={(event) => updateNewInventoryScheme({ active: event.target.checked })} />
-                          <span />
-                        </label>
-                      </td>
-                      <td><code>{inventorySchemePreview(newInventoryScheme.prefix, newInventoryScheme.nextNumber, newInventoryScheme.padding)}</code></td>
-                      <td>
-                        <button type="button" className="secondary-button compact-action" onClick={createInventoryScheme} disabled={!newInventoryScheme.category.trim() || !newInventoryScheme.prefix.trim()}>
-                          <Plus size={15} />
-                          {t("settings.inventoryNumbers.create")}
-                        </button>
-                      </td>
-                    </tr>
-                    {inventorySchemesLoading && inventorySchemes.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="loading-cell">{t("settings.inventoryNumbers.loading")}</td>
-                      </tr>
-                    ) : inventorySchemes.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="loading-cell">{t("settings.inventoryNumbers.empty")}</td>
-                      </tr>
-                    ) : (
-                      inventorySchemes.map((scheme) => (
-                        <tr key={scheme.id}>
-                          <td><strong>{inventoryCategoryLabel(scheme.category)}</strong></td>
-                          <td>
-                            <input value={scheme.prefix} onChange={(event) => updateInventoryScheme(scheme.category, { prefix: event.target.value })} />
-                          </td>
-                          <td>
-                            <input type="number" min={1} value={scheme.nextNumber} onChange={(event) => updateInventoryScheme(scheme.category, { nextNumber: Number(event.target.value) })} />
-                          </td>
-                          <td>
-                            <input type="number" min={1} max={12} value={scheme.padding} onChange={(event) => updateInventoryScheme(scheme.category, { padding: Number(event.target.value) })} />
-                          </td>
-                          <td>
-                            <label className="switch-field" aria-label={t("settings.inventoryNumbers.activeAria", { category: inventoryCategoryLabel(scheme.category) })}>
-                              <input type="checkbox" checked={scheme.active} onChange={(event) => updateInventoryScheme(scheme.category, { active: event.target.checked })} />
-                              <span />
-                            </label>
-                          </td>
-                          <td><code>{scheme.preview}</code></td>
-                          <td>
-                            <button type="button" className="secondary-button compact-action" onClick={() => saveInventoryScheme(scheme)}>
-                              {t("vehicles.save")}
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {inventorySchemesMessage && <p className="form-message">{inventorySchemesMessage}</p>}
-            </section>
+            <SettingsProfileCard preferences={preferences} />
+            <SettingsInventoryCard general={general} />
           </div>
-
           <aside className="settings-card-stack">
-            <section className="panel settings-card settings-tool-card">
-              <div className="settings-card-title">
-                <Database size={17} />
-                <h2>{t("settings.articleSearch.title")}</h2>
-              </div>
-              <label className="settings-toggle-row">
-                <span>
-                  <strong>{t("settings.articleSearch.active")}</strong>
-                  <small>{t("settings.articleSearch.help")}</small>
-                </span>
-                <span className="switch-field">
-                  <input type="checkbox" checked={articleSearchEnabled} onChange={(event) => updateArticleSearchEnabled(event.target.checked)} />
-                  <span />
-                </span>
-              </label>
-              <div className="article-source-grid" aria-label={t("settings.articleSearch.sources")}>
-                {articleSearchSourceOptions.map((option) => (
-                  <label key={option.id} className="article-source-option">
-                    <input
-                      type="checkbox"
-                      checked={articleSearchSources.includes(option.id)}
-                      onChange={(event) => updateArticleSearchSource(option.id, event.target.checked)}
-                      disabled={!articleSearchEnabled}
-                    />
-                    <span>
-                      <strong>{t(option.labelKey)}</strong>
-                      <small>{t(option.helpKey)}</small>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </section>
-
-            <section className="panel settings-card settings-tool-card">
-              <div className="settings-card-title">
-                <RefreshCw size={17} />
-                <h2>{t("settings.updates.title")}</h2>
-              </div>
-              <label className="settings-toggle-row">
-                <span>
-                  <strong>{t("settings.updates.beta")}</strong>
-                  <small>{t("settings.updates.betaHelp")}</small>
-                </span>
-                <span className="switch-field">
-                  <input type="checkbox" checked={betaUpdates} onChange={(event) => updateBetaUpdates(event.target.checked)} />
-                  <span />
-                </span>
-              </label>
-              <div className="settings-action-row">
-                <p>
-                  {t("settings.updates.currentVersion")}: <strong>{updateVersionLabel(versionInfo?.version)}</strong>
-                  {versionInfo?.latestVersion && <> · {t("settings.updates.latestVersion")}: <strong>{updateVersionLabel(versionInfo.latestVersion)}</strong></>}
-                  <br />
-                  <small>{updateCheckedAtLabel}</small>
-                </p>
-                {versionInfo?.status && (
-                  <span className={`settings-pill ${versionInfo.updateAvailable ? "active" : ["unavailable", "no_release"].includes(versionInfo.status) ? "muted" : ""}`}>
-                    {versionStatusLabel(versionInfo)}
-                  </span>
-                )}
-                <button type="button" className="secondary-button" onClick={() => loadVersionInfo(true)} disabled={versionLoading}>
-                  <RefreshCw size={17} />
-                  {versionLoading ? t("settings.updates.checking") : t("settings.updates.checkNow")}
-                </button>
-              </div>
-              {versionInfo && <WindowsUpdateDownload info={versionInfo} />}
-              {versionInfo?.updateAvailable && (
-                <div className="update-decision-panel">
-                  <div>
-                    <strong>{t("settings.updates.decisionTitle", { version: versionInfo.latestVersion || "" })}</strong>
-                  </div>
-                  {versionInfo.releaseNotes && <pre>{versionInfo.releaseNotes}</pre>}
-                </div>
-              )}
-              {versionMessage && <p className="form-message">{localizedStatusMessage(versionMessage)}</p>}
-            </section>
-
+            <SettingsArticleSearchCard preferences={preferences} />
+            <SettingsUpdatesCard preferences={preferences} general={general} />
             <SettingsStorageCard storage={storage} canManageUsers={canManageUsers} />
           </aside>
         </section>
@@ -1903,95 +1306,7 @@ export function SettingsView({ username }: { username: string }) {
         <SettingsDigitalTab canManageUsers={canManageUsers} formatDateTime={formatDateTime} username={username} />
       )}
 
-      {activeSettingsTab === "appearance" && (
-        <section className="panel settings-card settings-tool-card">
-          <div className="appearance-mode-row" role="radiogroup" aria-label={t("settings.appearance.mode")}>
-            <label className={design === "system" ? "appearance-option active" : "appearance-option"}>
-              <input type="radio" name="theme" value="system" checked={design === "system"} onChange={() => updateDesign("system")} />
-              <span>
-                <strong>{t("settings.appearance.system")}</strong>
-                <small>{t("settings.appearance.systemHelp")}</small>
-              </span>
-            </label>
-            <label className={design === "light" ? "appearance-option active" : "appearance-option"}>
-              <input type="radio" name="theme" value="light" checked={design === "light"} onChange={() => updateDesign("light")} />
-              <span>
-                <strong>{t("settings.appearance.light")}</strong>
-                <small>{t("settings.appearance.lightHelp")}</small>
-              </span>
-            </label>
-            <label className={design === "dark" ? "appearance-option active" : "appearance-option"}>
-              <input type="radio" name="theme" value="dark" checked={design === "dark"} onChange={() => updateDesign("dark")} />
-              <span>
-                <strong>{t("settings.appearance.dark")}</strong>
-                <small>{t("settings.appearance.darkHelp")}</small>
-              </span>
-            </label>
-          </div>
-
-          <div className="appearance-config-grid">
-            <section className="appearance-config-card">
-              <h3>{t("settings.appearance.darkMode")} <span className="settings-pill active">{t("settings.appearance.active")}</span></h3>
-              <div className="settings-field-grid compact">
-                <label>
-                  {t("settings.appearance.background")}
-                  <AppSelect value={darkBackground} onChange={(event) => setLocalSetting(localSettingKeys.darkBackground, event.target.value, setDarkBackground)}>
-                    <option value="neutral">Neutral</option>
-                    <option value="warm">Warm</option>
-                    <option value="cool">Kühl</option>
-                    <option value="oled">OLED Schwarz</option>
-                  </AppSelect>
-                </label>
-                <label>
-                  {t("settings.appearance.accent")}
-                  <AppSelect value={darkAccent} onChange={(event) => setLocalSetting(localSettingKeys.darkAccent, event.target.value, setDarkAccent)}>
-                    <option value="green">Grün</option>
-                    <option value="blue">Blau</option>
-                    <option value="gold">Gold</option>
-                  </AppSelect>
-                </label>
-                <label>
-                  {t("settings.appearance.style")}
-                  <AppSelect value={darkStyle} onChange={(event) => setLocalSetting(localSettingKeys.darkStyle, event.target.value, setDarkStyle)}>
-                    <option value="classic">Klassisch</option>
-                    <option value="compact">Kompakt</option>
-                    <option value="contrast">Kontrast</option>
-                  </AppSelect>
-                </label>
-              </div>
-            </section>
-            <section className="appearance-config-card">
-              <h3>{t("settings.appearance.lightMode")}</h3>
-              <div className="settings-field-grid compact">
-                <label>
-                  {t("settings.appearance.background")}
-                  <AppSelect value={lightBackground} onChange={(event) => setLocalSetting(localSettingKeys.lightBackground, event.target.value, setLightBackground)}>
-                    <option value="neutral">Neutral</option>
-                    <option value="warm">Warm</option>
-                    <option value="cool">Kühl</option>
-                  </AppSelect>
-                </label>
-                <label>
-                  {t("settings.appearance.accent")}
-                  <AppSelect value={lightAccent} onChange={(event) => setLocalSetting(localSettingKeys.lightAccent, event.target.value, setLightAccent)}>
-                    <option value="green">Grün</option>
-                    <option value="blue">Blau</option>
-                    <option value="gold">Gold</option>
-                  </AppSelect>
-                </label>
-                <label>
-                  {t("settings.appearance.style")}
-                  <AppSelect value={lightStyle} onChange={(event) => setLocalSetting(localSettingKeys.lightStyle, event.target.value, setLightStyle)}>
-                    <option value="classic">Klassisch</option>
-                    <option value="compact">Kompakt</option>
-                    <option value="contrast">Kontrast</option>
-                  </AppSelect>
-                </label>
-              </div>
-            </section>
-          </div>
-        </section>
-      )}
+      {activeSettingsTab === "appearance" && <SettingsAppearanceTab preferences={preferences} />}
 
       {activeSettingsTab === "auth" && (
         <SettingsAuthTab
