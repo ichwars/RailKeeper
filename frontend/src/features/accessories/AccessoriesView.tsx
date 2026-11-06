@@ -55,6 +55,7 @@ export function AccessoriesView({
   const editor = useArticleEditorController({ roles, onSaved: overview.reload });
   const coreMasterData = useArticleCoreMasterData(editor.isOpen);
   const articleSearch = useAccessoryArticleSearchController({
+    targetKey: editor.isOpen ? `${editor.mode}:${editor.article?.id || "new"}` : "closed",
     form: editor.form,
     readOnly: editor.isFormReadOnly,
     pendingImageCount: editor.pendingArticleImages.length,

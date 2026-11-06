@@ -64,3 +64,20 @@ the SQL conflict branch, and the returned mapping comes from that statement. A c
 cannot silently move the source to another vehicle. Existing explicit same-vehicle rebind behavior
 and the separate station CV adoption remain. No device write, new persistence or backup format is
 introduced; mappings already participate in application backups.
+
+## Article suggestion scope
+
+Vehicle and accessory search controllers bind pending responses to their current editor target and
+request generation. Closing, changing targets or starting another search invalidates older replies;
+they cannot finish the current loading state or populate another draft. Search remains synchronous
+with its existing single loading state and specialized eligibility rules.
+
+Field confirmation pins the draft snapshot used to initialise its selection or observed at an explicit
+checkbox selection. If selected target fields change, the complete adoption is rejected, those fields are
+deselected and the dialog asks for review against their current values. No fields or images are
+applied until another confirmation. Each result keeps its actual selection index even when URLs
+repeat, and one confirmation is consumed once. Saving the record remains a separate guarded action.
+
+Field checkboxes have explicit names. The bounded comparison table wraps complete values; on narrow
+screens it scrolls separately with a visible hint and keyboard access. Its primary adoption action
+uses theme tokens with text contrast of at least 4.5:1 and mobile selection targets of at least 44 px.
