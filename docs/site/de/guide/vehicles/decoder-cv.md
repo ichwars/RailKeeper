@@ -4,7 +4,7 @@ description: Decoder, Funktionen und CV-Daten.
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-06
 ---
 
 # Decoder, Funktionen und CV-Daten
@@ -31,9 +31,10 @@ Wähle den Ablauf, den du gerade brauchst. Die praktischen Anleitungen verwenden
 4. **Änderungen speichern**: Sichere den Fahrzeug- und Funktionsentwurf gemeinsam.
 5. Öffne das Fahrzeug erneut und prüfe Ergebnis und Herkunft.
 
-CV-Importe und Dateiaktionen speichern eigene Daten und können das Fahrzeug neu laden.
-Speichere oder verwirf andere Entwürfe vorher bewusst. **Abbrechen** setzt einen bereits
-abgeschlossenen CV-Import nicht zurück.
+Manuelle CV-Änderungen werden zunächst **im CV-Entwurf vorgemerkt** und mit **CV-Entwurf speichern**
+gemeinsam übernommen. CV-Importe und Dateiaktionen speichern eigene Daten. Offene Fahrzeug-, Funktions-
+und CV-Entwürfe bleiben beim anschließenden Aktualisieren erhalten. **Abbrechen** setzt einen bereits
+abgeschlossenen Import oder gespeicherten CV-Entwurf nicht zurück.
 
 ## Wenn eine Angabe unbekannt bleibt
 

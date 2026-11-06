@@ -190,7 +190,7 @@ describe("VehicleCVTab", () => {
     expect(screen.getByRole("button", { name: "CV-Liste importieren" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Alle CV-Werte" }));
     fireEvent.click(screen.getByText("Einzelnen CV-Wert hinzufügen oder bearbeiten"));
-    expect(screen.getByRole("button", { name: "CV hinzufügen" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Im CV-Entwurf vormerken" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Decoderdatei hochladen" })).toBeDisabled();
   });
 });

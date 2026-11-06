@@ -17,7 +17,7 @@ and CSRF checks.
 | Attachment metadata | The attachment's save action | Independent metadata change. Typing into its fields alone does not save, and the vehicle's bottom save does not submit it. |
 | Attachment deletion | Explicit delete confirmation | Independent deletion; canceling the confirmation changes nothing. |
 | Maintenance and spare parts | Their own save/delete/import actions | Independent workshop records. In-progress workshop forms survive other aggregate refreshes. |
-| Manual CV values | The individual save/delete action | Current CV/profile/index identity and provenance rules apply. Unsubmitted manual form input survives other aggregate refreshes. |
+| Manual CV values | Save CV draft | Adding, editing and removing values stages up to 500 explicit changes. The separate CV save commits them atomically with revision/source/identity guards; cancel or discard drops the pending changes. Unsubmitted form input and the vehicle/function draft survive the CV save. |
 | CV value/file imports | Reviewed adoption/upload action | Confirmed imports/files are independent records. File-preview preparation and selection alone do not write CV values. |
 | Web-document adoption | Confirmed document import | Independent attachments, separate from the vehicle draft. |
 | Local command-station adoption | After vehicle save | Mapping and CV adoption follow the acknowledged core save. These operations change RailKeeper records, not physical devices. |
@@ -59,3 +59,6 @@ against the **target** binary/image after a synthetic cross-installation restore
 keeps core, function, image, attachment and CV-form drafts open while uploading an attachment, checks their
 retention, cancels, then verifies through the real API that only the confirmed upload was stored. It also
 reopens the editor and inspects the save guidance at all supported widths in both themes.
+`cv-draft.mjs` additionally tests manual staging/cancel, an actual concurrent writer, rollback of an
+earlier valid row when a later row conflicts, explicit rebase, saved history/provenance, busy controls
+and retained vehicle/function drafts. CV interpretation continues to use stored values until commit.

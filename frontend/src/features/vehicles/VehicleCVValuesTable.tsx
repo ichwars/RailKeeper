@@ -11,14 +11,17 @@ import { CVPageControls, cvIndexLabel, cvPageSize } from "./CVPageControls";
 import { formatDateTime } from "./vehicleFormat";
 import { isECoSReading } from "../../shared/decoderLibrary";
 
-export function VehicleCVValuesTable({ values, decoderType = "", readonly, saving, edit, remove, onExplain }: {
+export function VehicleCVValuesTable({ values, analysisValues = values, pendingIDs = [], decoderType = "", readonly, saving, edit, remove, onExplain }: {
   values: VehicleCVValue[]; readonly: boolean; saving: boolean;
   decoderType?: string;
+  pendingIDs?: string[];
+  analysisValues?: VehicleCVValue[];
   edit: (value: VehicleCVValue) => void; remove: (value: VehicleCVValue) => void;
   onExplain?: (value: VehicleCVValue) => void;
 }) {
   const { language, t } = useI18n();
   const library = useDecoderLibrary();
+  const pending = new Set(pendingIDs);
   const hints = useManufacturerCVHints();
   const [profile, setProfile] = useState("*");
   const [index, setIndex] = useState("*");
@@ -27,7 +30,7 @@ export function VehicleCVValuesTable({ values, decoderType = "", readonly, savin
   const [requestedPage, setPage] = useState(0);
   const profiles = Array.from(new Set(values.map((value) => value.decoderProfile || "")));
   const profileValues = values.filter((value) => profile === "*" || (value.decoderProfile || "") === profile);
-  const analyses = new Map(profiles.map(profile => [profile, decoderAnalysis(values, profile, library.profiles, library.inventory ?? null, decoderType)]));
+  const analyses = new Map(profiles.map(profile => [profile, decoderAnalysis(analysisValues, profile, library.profiles, library.inventory ?? null, decoderType)]));
   const information = new Map<VehicleCVValue, ReturnType<typeof cvValueInfo>>();
   const info = (value: VehicleCVValue) => {
     const cached = information.get(value);
@@ -68,13 +71,14 @@ export function VehicleCVValuesTable({ values, decoderType = "", readonly, savin
         <th>{t("vehicles.cv.index")}</th><th>{t("vehicle.field.decoderProfile")}</th><th>{t("vehicles.actions")}</th>
       </tr></thead><tbody>
         {filtered.slice(page * cvPageSize, (page + 1) * cvPageSize).map((value) => <Fragment key={value.id}>
-          <tr><td>CV {value.cvNumber}</td>
+          <tr className={pending.has(value.id) ? "cv-draft-pending" : undefined}>
+            <td>CV {value.cvNumber}{pending.has(value.id) && <small className="cv-draft-label">{t("vehicles.cv.draft.pending")}</small>}</td>
             <td>{meaning(value)}{info(value).manufacturerHint && <small> · {t("decoderLibrary.hintTitle")}</small>}
               {value.category && <small> · {value.category}</small>}
               {value.protocol && <small> · {value.protocol}</small>}</td>
             <td>{value.value}</td><td>{pageLabel(value)}</td><td>{value.decoderProfile || "-"}</td>
             <td><div className="table-actions">
-              {onExplain && <button type="button" className="icon-button" aria-haspopup="dialog" onClick={() => onExplain(value)}
+              {onExplain && !pending.has(value.id) && <button type="button" className="icon-button" aria-haspopup="dialog" onClick={() => onExplain(value)}
                 aria-label={t("vehicles.decoder.explainValue", { number: value.cvNumber })}><CircleHelp size={15} /></button>}
               <button type="button" className="icon-button" onClick={() => edit(value)} disabled={readonly || saving} aria-label={t("vehicles.cv.edit")} title={t("vehicles.cv.edit")}><Pencil size={15} /></button>
               <button type="button" className="icon-button danger" onClick={() => remove(value)} disabled={readonly || saving} aria-label={t("vehicles.cv.delete")} title={t("vehicles.cv.delete")}><Trash2 size={15} /></button>

@@ -268,6 +268,8 @@ export type VehicleCVValueHistory = components["schemas"]["VehicleCVValueHistory
 
 export type VehicleCVValueInput = components["schemas"]["VehicleCVValueInput"];
 
+export type VehicleCVChange = components["schemas"]["VehicleCVChange"];
+
 export type VehicleCVFile = components["schemas"]["VehicleCVFile"];
 
 export type VehicleCVFilePreview = components["schemas"]["VehicleCVFilePreview"];
@@ -1313,6 +1315,10 @@ export const api = {
   importVehicleCVValues: (vehicleId: string, values: VehicleCVValueInput[]) =>
     request<{ imported: number }>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/import`, {
       method: "POST", body: JSON.stringify({ values })
+    }, { timeoutMs: 30000 }),
+  applyVehicleCVChanges: (vehicleId: string, changes: VehicleCVChange[]) =>
+    request<{ changed: number }>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/changes`, {
+      method: "POST", body: JSON.stringify({ changes })
     }, { timeoutMs: 30000 }),
   createVehicleCVValue: (vehicleId: string, input: VehicleCVValueInput) =>
     request<VehicleCVValue>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values`, {

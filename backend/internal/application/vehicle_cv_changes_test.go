@@ -195,3 +195,49 @@ func TestCVDraftRevisionDetectsMetadataChangesWithTheSameClock(t *testing.T) {
 		t.Fatalf("same-clock overwrite accepted: %v", err)
 	}
 }
+
+func TestCVDraftDeletionAndHistoryRollBackWithALaterConflict(t *testing.T) {
+	s := application.NewVehicleService(testDB(t))
+	v, err := s.Create(t.Context(), application.CreateVehicleInput{Manufacturer: "Test", Name: "CV delete draft", Gauge: "TT", Category: "Lokomotive", Gattung: "Diesellok"}, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err := s.CreateCVValue(t.Context(), v.ID, application.VehicleCVValueInput{CVNumber: 1, Value: 3})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err = s.UpdateCVValue(t.Context(), v.ID, a.ID, application.VehicleCVValueInput{CVNumber: 1, Value: 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := s.CreateCVValue(t.Context(), v.ID, application.VehicleCVValueInput{CVNumber: 2, Value: 5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := s.ListCVValues(t.Context(), v.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := application.VehicleCVChangesInput{Changes: []application.VehicleCVChange{
+		{ID: a.ID, ExpectedRevision: a.Revision, Delete: true},
+		{ID: b.ID, ExpectedRevision: strings.Repeat("0", 64), Value: &application.VehicleCVValueInput{CVNumber: 2, Value: 6}},
+	}}
+	if _, err := s.ApplyCVChanges(t.Context(), v.ID, input); !errors.Is(err, application.ErrVehicleCVConflict) {
+		t.Fatalf("delete rollback: %v", err)
+	}
+	after, err := s.ListCVValues(t.Context(), v.ID)
+	if err != nil || !reflect.DeepEqual(before, after) {
+		t.Fatalf("deleted CV/history did not roll back: %v", err)
+	}
+	input.Changes[1].ExpectedRevision = b.Revision
+	if count, err := s.ApplyCVChanges(t.Context(), v.ID, input); err != nil || count != 2 {
+		t.Fatalf("confirmed deletion: %d %v", count, err)
+	}
+	if _, err := s.GetCVValue(t.Context(), v.ID, a.ID); !errors.Is(err, application.ErrVehicleNotFound) {
+		t.Fatalf("confirmed deletion missing: %v", err)
+	}
+	remaining, err := s.GetCVValue(t.Context(), v.ID, b.ID)
+	if err != nil || remaining.Value != 6 || len(remaining.History) != 1 {
+		t.Fatalf("other confirmed change: %+v %v", remaining, err)
+	}
+}
