@@ -14,6 +14,7 @@ import { adoptVehicleImportDraft } from "./vehicleImportAdoption";
 import { importPendingVehicleImages, partitionVehicleImages } from "./vehicleImagePersistence";
 import { clearVehicleCreateDraft } from "./vehicleCreateWizardState";
 import { invalidFunctionChanges } from "./functionDraft";
+import { CVImportGuardError } from "./cvImportGuard";
 import type { PendingArticleImage } from "./vehicleTransforms";
 import type { ECoSVehicleDraftPayload, ModalMode, ModalTab } from "./vehicleViewModel";
 
@@ -171,6 +172,14 @@ export function createVehicleMutationCommands({
         onMessage(t("vehicles.spareParts.importedCount", { count: sparePartsToImport.length }));
       }
     } catch (error) {
+      if (error instanceof CVImportGuardError) {
+        onMessage(t(`vehicles.cv.importGuard.${error.code}`)); return;
+      }
+      if (error instanceof ApiError && ["cv_value_conflict", "cv_import_unknown", "cv_import_invalid"].includes(error.code)) {
+        onMessage(t(error.code === "cv_value_conflict" ? "vehicles.cv.importGuard.stale"
+          : error.code === "cv_import_unknown" ? "vehicles.cv.importGuard.unknown" : "importReview.cv.invalid"));
+        return;
+      }
       if (error instanceof ApiError && error.code === "external_mapping_conflict") {
         reloadVehicles();
         onMessage(t("vehicles.ecosDraft.mappingConflict"));

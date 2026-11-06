@@ -81,3 +81,10 @@ repeat, and one confirmation is consumed once. Saving the record remains a separ
 Field checkboxes have explicit names. The bounded comparison table wraps complete values; on narrow
 screens it scrolls separately with a visible hint and keyboard access. Its primary adoption action
 uses theme tokens with text contrast of at least 4.5:1 and mobile selection targets of at least 44 px.
+
+Legacy station drafts without a persisted Digital Centers session retain their existing source
+selection. Their CV compatibility path compares current identities at confirmation and uses one
+revision-guarded import transaction instead of per-row requests. Identical results are skipped, so a
+lost reply followed by a comparison cannot repeat the same stored values. Invalid selections fail
+before any CV write; an uncertain or rejected batch does not acknowledge or discard its source draft.
+Current persisted ECoS sessions continue to use the separate protected add-missing-values workflow.
