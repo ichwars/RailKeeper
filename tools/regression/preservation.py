@@ -82,29 +82,31 @@ def backup_manifest(document):
     }
 
 
-def expected_backup_upgrade(document, target_version):
+def expected_backup_upgrade(document, target_version, catalog_backfill=None):
     """Describe the checked additive 24 -> 25 schema step; never ignore actual rows."""
     expected = copy.deepcopy(document)
-    if document["version"] == target_version:
-        return expected
-    if (document["version"], target_version) != (24, 25):
-        raise AssertionError("No checked reference rule for this backup-format upgrade")
-    expected["version"] = 25
-    for table in ("catalog_articles", "catalog_article_revisions", "vehicle_article_links", "vehicle_set_article_links"):
-        if expected["tables"].get(table):
-            raise AssertionError("Legacy backup unexpectedly contains catalog data")
-        expected["tables"][table] = []
+    if document["version"] != target_version:
+        if (document["version"], target_version) != (24, 25):
+            raise AssertionError("No checked reference rule for this backup-format upgrade")
+        expected["version"] = 25
+        for table in ("catalog_articles", "catalog_article_revisions", "vehicle_article_links", "vehicle_set_article_links"):
+            if expected["tables"].get(table):
+                raise AssertionError("Legacy backup unexpectedly contains catalog data")
+            expected["tables"][table] = []
+    if catalog_backfill is not None:
+        from catalog import expected_catalog_backfill
+        expected = expected_catalog_backfill(expected, catalog_backfill)
     return expected
 
 
-def expected_fresh_restore(document, local_backup, local_user_ids):
+def expected_fresh_restore(document, local_backup, local_user_ids, catalog_backfill=None):
     """Apply the checked schema upgrade and two existing cross-installation policies.
 
     BackupService retains the target's bundled workshop symbols and clears a
     transfer-profile creator if that installation does not contain that user.
     All remaining fields, including timestamps and IDs, must match exactly.
     """
-    expected = expected_backup_upgrade(document, local_backup["version"])
+    expected = expected_backup_upgrade(document, local_backup["version"], catalog_backfill)
     symbols = {}
     for row in local_backup["tables"]["master_data_entries"]:
         if (row["type"] == "symbols" and row["origin"] == "bundled"

@@ -76,6 +76,9 @@ func catalogBackupFixture(t *testing.T) (*application.BackupService, *applicatio
 	if _, err := db.Exec(`UPDATE catalog_article_revisions SET note='Mutated' WHERE id='revision-1'`); err == nil {
 		t.Fatal("revision was mutable")
 	}
+	if _, err := service.BackfillLegacyCatalog(t.Context(), ""); err != nil {
+		t.Fatal(err)
+	}
 	backup := application.NewBackupService(db, dir)
 	doc, err := backup.Export(t.Context())
 	if err != nil {
@@ -173,7 +176,7 @@ func TestVehicleCatalogBackupPreflightRejectsIncompleteRelationshipsBeforeAnyRes
 	}
 }
 
-func TestVehicleCatalogBackupAcceptsVersion24WithoutCatalogAndRetainsLegacyInventory(t *testing.T) {
+func TestVehicleCatalogBackupAcceptsVersion24AndBackfillsWithoutChangingLegacyInventory(t *testing.T) {
 	service, doc := catalogBackupFixture(t)
 	doc.Version = 24
 	for _, table := range []string{"catalog_articles", "catalog_article_revisions", "vehicle_article_links", "vehicle_set_article_links"} {
@@ -195,9 +198,7 @@ func TestVehicleCatalogBackupAcceptsVersion24WithoutCatalogAndRetainsLegacyInven
 			t.Fatalf("legacy %s changed", table)
 		}
 	}
-	for _, table := range []string{"catalog_articles", "catalog_article_revisions", "vehicle_article_links", "vehicle_set_article_links"} {
-		if len(after.Tables[table]) != 0 {
-			t.Fatalf("legacy restore invented %s", table)
-		}
+	if len(after.Tables["vehicle_article_links"]) != 3 || len(after.Tables["vehicle_set_article_links"]) != 1 {
+		t.Fatal("legacy restore did not completely represent existing vehicles and sets")
 	}
 }

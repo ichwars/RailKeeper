@@ -132,7 +132,13 @@ def run(args):
             "category": "Wagen", "gattung": "Reisezugwagen"}, 201)
         restore(client, backup)
         client.request("GET", "/api/v1/vehicles/" + marker["id"], expected=404)
-        assert_same(baseline, backup_manifest(client.request("GET", "/api/v1/backup/export")), "In-place restore")
+        restored_backup = client.request("GET", "/api/v1/backup/export")
+        if args.catalog_backfill and (previous_backend / "migrations/0074_vehicle_catalog_legacy.sql").is_file():
+            assert_same(backup_manifest(expected_backup_upgrade(backup, restored_backup["version"], restored_backup)),
+                        backup_manifest(restored_backup), "In-place restore with legacy catalog backfill")
+            backup, baseline = restored_backup, backup_manifest(restored_backup)
+        else:
+            assert_same(baseline, backup_manifest(restored_backup), "In-place restore")
         assert_same(observed, observations(client, fixture), "In-place API observations")
         passed("app-restore-replaces-post-backup-marker-and-preserves-reference")
 
@@ -144,15 +150,16 @@ def run(args):
             if settings["settings"].get("railkeeper.settings.defaultView") != "overview":
                 raise AssertionError("Target-local user preference was not persisted")
             before = installation_manifest(target.data_dir)["tables"]
-            expected = backup_manifest(expected_fresh_restore(
-                backup, target.client.request("GET", "/api/v1/backup/export"),
-                {user["id"] for user in target.client.request("GET", "/api/v1/users")},
-            ))
+            local_backup = target.client.request("GET", "/api/v1/backup/export")
+            local_users = {user["id"] for user in target.client.request("GET", "/api/v1/users")}
             restore(target.client, backup)
+            restored_backup = target.client.request("GET", "/api/v1/backup/export")
+            expected = backup_manifest(expected_fresh_restore(backup, local_backup, local_users,
+                restored_backup if args.catalog_backfill else None))
             after = installation_manifest(target.data_dir)["tables"]
             for table in ("users", "roles", "user_roles", "app_settings", "user_settings"):
                 assert_same(before[table], after[table], "Local installation " + table)
-            assert_same(expected, backup_manifest(target.client.request("GET", "/api/v1/backup/export")), "Fresh app restore")
+            assert_same(expected, backup_manifest(restored_backup), "Fresh app restore")
             assert_same(observed, observations(target.client, fixture), "Fresh restore API observations")
             verify_media(target.client, fixture)
             target.client.login(recovery)
@@ -214,7 +221,7 @@ def run(args):
             assert_same(original["tables"][name], startup_tables[name], "Installation startup " + name)
         target.client.login(credentials)
         upgraded = target.client.request("GET", "/api/v1/backup/export")
-        assert_same(backup_manifest(expected_backup_upgrade(backup, upgraded["version"])),
+        assert_same(backup_manifest(expected_backup_upgrade(backup, upgraded["version"], upgraded if args.catalog_backfill else None)),
                     backup_manifest(upgraded), "Installation startup")
         assert_same(observed, observations(target.client, fixture), "Installation API observations")
         verify_media(target.client, fixture)
@@ -244,6 +251,7 @@ if __name__ == "__main__":
     parser.add_argument("--previous-backend", type=Path)
     parser.add_argument("--output", type=Path, required=True, help="New directory; existing paths are refused")
     parser.add_argument("--browser", action="store_true")
+    parser.add_argument("--catalog-backfill", action="store_true", help="Verify the separately checked legacy catalog backfill")
     parser.add_argument("--image", help="Optional existing image on a rootless local Docker test daemon")
     arguments = parser.parse_args()
     for field in ("binary", "backend", "static_dir", "previous_binary", "previous_backend"):
