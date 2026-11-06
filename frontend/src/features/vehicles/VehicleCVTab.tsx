@@ -7,6 +7,7 @@ import { VehicleCVExplained } from "./VehicleCVExplained";
 import { RailComPlusPreview } from "./RailComPlusPreview";
 import { CVImportRowsTable } from "./CVImportRowsTable";
 import { VehicleCVValuesTable } from "./VehicleCVValuesTable";
+import { VehicleCVDraftReview, type ManualCVDraftState } from "./VehicleCVDraftReview";
 import { api, Vehicle, VehicleCVFile, VehicleCVValue, VehicleCVValueInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { CVFileUploadPreview, CVImportPreview, cvCategories, cvProtocols } from "./cvImport";
@@ -37,6 +38,11 @@ export function VehicleCVTab({
   cvImportStats,
   cvForm,
   editingCVID,
+  manualDraft,
+  applyManualDraft = () => undefined,
+  discardManualDraft = () => undefined,
+  discardManualChange = () => undefined,
+  rebaseManualChange = () => undefined,
   cvFileProfile,
   cvFileDescription,
   cvFileUploadPreview,
@@ -74,6 +80,11 @@ export function VehicleCVTab({
   cvImportStats: { imported?: number; selected: number; new: number; changed: number; same: number; invalid: number };
   cvForm: VehicleCVValueInput;
   editingCVID: string | null;
+  manualDraft?: ManualCVDraftState;
+  applyManualDraft?: () => void;
+  discardManualDraft?: () => void;
+  discardManualChange?: (id: string) => void;
+  rebaseManualChange?: (id: string) => void;
   decoderProfileOptions: string[];
   storedDecoderProfiles: string[];
   cvFileProfile: string;
@@ -192,6 +203,12 @@ export function VehicleCVTab({
 
     <DecoderProfileStrip state={decoder} />
     <ManufacturerCVStatus />
+    {Boolean(manualDraft?.lastSavedCount) && <p className="cv-draft-result" role="status">
+      {t("vehicles.cv.draft.saved", { count: manualDraft?.lastSavedCount || 0 })}
+    </p>}
+    {selected && manualDraft && manualDraft.changes.length > 0 && <VehicleCVDraftReview draft={manualDraft}
+      stored={selected.cvValues || []} files={selected.cvFiles || []} disabled={readonly || saving}
+      save={applyManualDraft} discard={discardManualDraft} discardChange={discardManualChange} rebase={rebaseManualChange} />}
     <nav className="cv-subtabs" aria-label={t("vehicles.decoder.cvViews")}>
       {(["explained", "raw", "files"] as const).map((tab) => { const Icon = viewIcons[tab]; return <button type="button" key={tab}
         className={activeView === tab ? "active" : ""} aria-pressed={activeView === tab} onClick={() => setView(tab)}>
@@ -267,12 +284,15 @@ export function VehicleCVTab({
                           )}
                           <button type="button" className="primary-button" onClick={saveCVValue} disabled={readonly || saving}>
                             <Save size={15} aria-hidden="true" />
-                            {editingCVID ? t("vehicles.cv.saveCv") : t("vehicles.cv.addCv")}
+                            {t("vehicles.cv.draft.stage")}
                           </button>
                         </div>
 
       </details>}
-      <VehicleCVValuesTable values={values} decoderType={selected?.decoderType} readonly={readonly || !selected} saving={saving} edit={editCVValue} remove={deleteCVValue} onExplain={value => setDetailId(value.id)} />
+      <VehicleCVValuesTable values={selected && manualDraft ? manualDraft.values : values}
+        analysisValues={values}
+        pendingIDs={manualDraft?.changes.map(change => change.id)} decoderType={selected?.decoderType}
+        readonly={readonly || !selected} saving={saving} edit={editCVValue} remove={deleteCVValue} onExplain={value => setDetailId(value.id)} />
     </section>}
     <div hidden={activeView !== "files"} className="cv-files-view">
       <div className="cv-section-heading"><div><h3>{t("vehicles.decoder.view.files")}</h3><p>{t("vehicles.decoder.filesIntro")}</p></div></div>

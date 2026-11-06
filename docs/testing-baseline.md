@@ -86,6 +86,10 @@ The runner exercises:
    With `--browser`, the target binary/image also exercises a confirmed upload while core/function/image/
    attachment/CV-form drafts are open. It verifies that refresh preserves the drafts, cancel discards them,
    and only the independently confirmed upload reaches storage, in both languages and themes.
+   Manual CV browser cases then stage/cancel without a write, exercise an actual second-session edit,
+   verify complete rollback on a later stale row, explicitly resolve it and confirm the whole selection.
+   Unselected CVs, provenance, history and the unsaved vehicle/function drafts remain checked; CV controls
+   are also checked for mobile bounds, target size, keyboard focus and a pending request.
 7. Stopping the source, copying its complete data directory and the test launcher's external upload-limit
    configuration, verifying all tables/files, restoring into another directory, restarting with that
    configuration, logging in with the original account and rechecking collection/valuation/artifact downloads.

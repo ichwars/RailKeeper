@@ -308,6 +308,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     state: {
       form: cvForm,
       editingId: editingCVID,
+      manualDraft: manualCVDraft,
       importPreview: cvImportPreview,
       summary: cvSummary,
       importStats: cvImportStats,
@@ -322,6 +323,10 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       edit: editCVValue,
       save: saveCVValue,
       remove: deleteCVValue,
+      applyManualDraft,
+      discardManualDraft,
+      discardManualChange,
+      rebaseManualChange,
       exportValues: exportCVValues,
       importValues: importCVValues,
       toggleImportRow: toggleCVImportRow,
@@ -335,7 +340,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     decoderNumber: form.digitalDecoderNumber || form.dtDecoderNumber || "",
     setSaving,
     onMessage: setMessage,
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "cv")
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "cv"),
+    reloadSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
   });
 
   const {
@@ -876,6 +882,11 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
               cvImportStats,
               cvForm,
               editingCVID,
+              manualDraft: manualCVDraft,
+              applyManualDraft,
+              discardManualDraft,
+              discardManualChange,
+              rebaseManualChange,
               decoderProfileOptions,
               storedDecoderProfiles,
               cvFileProfile,

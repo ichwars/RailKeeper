@@ -56,6 +56,7 @@ export function functionFixture(overrides: Partial<VehicleFunction> = {}): Vehic
 export function cvValueFixture(overrides: Partial<VehicleCVValue> = {}): VehicleCVValue {
   return {
     id: "cv-1",
+    revision: "c".repeat(64),
     vehicleId: "vehicle-1",
     cvNumber: 1,
     value: 3,

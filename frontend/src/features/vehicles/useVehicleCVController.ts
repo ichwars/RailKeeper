@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 
 import {
-  api,
+  api, ApiError,
   type Vehicle,
   type VehicleCVValue,
   type VehicleCVValueInput
@@ -9,13 +9,16 @@ import {
 import {
   buildCVImportPreview,
   commonDecoderProfiles,
-  cvValueKey,
   isValidCVValueInput,
   type CVImportPreview
 } from "./cvImport";
 import { readCVImportFile } from "./cvFileImport";
 import { useI18n } from "../../shared/i18n";
 import { emptyCVForm } from "./vehicleViewModel";
+import {
+  cvDraftCollision, cvDraftConflicts, cvDraftCurrent, cvDraftInput, cvDraftRequest, cvDraftValues, maxManualCVChanges,
+  rebaseCVChange, stageCVDeletion, stageCVInput, type CVDraftChange
+} from "./cvDraft";
 
 type UseVehicleCVControllerOptions = {
   selected: Vehicle | null;
@@ -23,6 +26,7 @@ type UseVehicleCVControllerOptions = {
   setSaving: (saving: boolean) => void;
   onMessage: (message: string) => void;
   refreshSelectedVehicle: (vehicleId?: string) => Promise<void>;
+  reloadSelectedVehicle: (vehicleId?: string) => Promise<void>;
 };
 
 export function useVehicleCVController({
@@ -30,7 +34,8 @@ export function useVehicleCVController({
   decoderNumber,
   setSaving,
   onMessage,
-  refreshSelectedVehicle
+  refreshSelectedVehicle,
+  reloadSelectedVehicle
 }: UseVehicleCVControllerOptions) {
   const { t } = useI18n();
   const [form, setForm] = useState<VehicleCVValueInput>(emptyCVForm);
@@ -38,6 +43,13 @@ export function useVehicleCVController({
   const [lastImported, setLastImported] = useState(0);
   const [importPreview, setImportPreview] = useState<CVImportPreview | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const [manualChanges, setManualChanges] = useState<CVDraftChange[]>([]);
+  const [lastManualSave, setLastManualSave] = useState(0);
+  const draftGeneration = useRef(0), nextDraftID = useRef(0);
+  const workingCVValues = useMemo(() => cvDraftValues(selected?.cvValues || [], manualChanges, selected?.id || ""),
+    [selected, manualChanges]);
+  const manualConflicts = useMemo(() => cvDraftConflicts(manualChanges, selected?.cvValues || []),
+    [manualChanges, selected]);
 
   const storedDecoderProfiles = useMemo(() => Array.from(new Set([
     ...(selected?.cvValues || []).map((value) => value.decoderProfile)
@@ -76,24 +88,16 @@ export function useVehicleCVController({
   };
 
   const reset = () => {
+    draftGeneration.current++;
+    setManualChanges([]);
+    setLastManualSave(0);
     resetForm();
     setImportPreview(null);
     setLastImported(0);
   };
 
   const edit = (value: VehicleCVValue) => {
-    setForm({
-      cvNumber: value.cvNumber,
-      indexCV31: value.indexCV31,
-      indexCV32: value.indexCV32,
-      value: value.value,
-      description: value.description || "",
-      category: value.category || "",
-      protocol: value.protocol || "",
-      decoderProfile: value.decoderProfile || "",
-      sourceFileId: value.sourceFileId || "",
-      sourceLine: value.sourceLine, sourceExportedAt: value.sourceExportedAt
-    });
+    setForm(cvDraftInput(value));
     setEditingId(value.id);
   };
 
@@ -105,31 +109,75 @@ export function useVehicleCVController({
         ? t("vehicles.cv.indexInvalid") : "CV-Nummer muss 1-1024 und Wert 0-255 sein.");
       return;
     }
-    setSaving(true);
+    const result = stageCVInput(manualChanges, selected.cvValues || [], selected.id,
+      payload, editingId, `cv-draft-${++nextDraftID.current}`);
+    if (result.error) { onMessage(t(`vehicles.cv.draft.error.${result.error}`)); return; }
+    setManualChanges(result.changes || []);
+    setLastManualSave(0);
+    resetForm();
     onMessage("");
-    const existing = editingId
-      ? undefined
-      : (selected.cvValues || []).find((entry) => cvValueKey(entry) === cvValueKey(payload));
-    const action = editingId
-      ? api.updateVehicleCVValue(selected.id, editingId, payload)
-      : existing
-        ? api.updateVehicleCVValue(selected.id, existing.id, payload)
-        : api.createVehicleCVValue(selected.id, payload);
-    action
-      .then(() => refreshSelectedVehicle(selected.id))
-      .then(resetForm)
-      .catch((error: Error) => onMessage(error.message))
-      .finally(() => setSaving(false));
   };
 
   const remove = (value: VehicleCVValue) => {
     if (!selected) return;
+    const next = stageCVDeletion(manualChanges, value);
+    if (!next) {
+      onMessage(t(manualChanges.length >= maxManualCVChanges
+        ? "vehicles.cv.draft.error.limit" : "vehicles.cv.draft.error.revision"));
+      return;
+    }
+    setManualChanges(next);
+    setLastManualSave(0);
+    if (editingId === value.id) resetForm();
+    onMessage("");
+  };
+
+  const applyManualDraft = async () => {
+    if (!selected || !manualChanges.length) return;
+    if (manualConflicts.length) { onMessage(t("vehicles.cv.draft.conflict")); return; }
+    const generation = draftGeneration.current;
     setSaving(true);
     onMessage("");
-    api.deleteVehicleCVValue(selected.id, value.id)
-      .then(() => refreshSelectedVehicle(selected.id))
-      .catch((error: Error) => onMessage(error.message))
-      .finally(() => setSaving(false));
+    try {
+      const result = await api.applyVehicleCVChanges(selected.id, cvDraftRequest(manualChanges));
+      if (generation !== draftGeneration.current) return;
+      setManualChanges([]);
+      setLastManualSave(result.changed);
+      // The form can contain further input which was not part of the submitted selection.
+      // A committed new row no longer has its temporary draft identity; keep its open input.
+      if (manualChanges.some(change => change.id === editingId && !change.original)) setEditingId(null);
+      onMessage("");
+      await refreshSelectedVehicle(selected.id);
+    } catch (error) {
+      if (generation !== draftGeneration.current) return;
+      if (error instanceof ApiError && error.code === "cv_value_conflict") {
+        await reloadSelectedVehicle(selected.id);
+        if (generation === draftGeneration.current) onMessage(t("vehicles.cv.draft.conflict"));
+      } else if (error instanceof ApiError && error.code === "cv_changes_invalid") {
+        onMessage(t("vehicles.cv.draft.error.invalid"));
+      } else onMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      if (generation === draftGeneration.current) setSaving(false);
+    }
+  };
+
+  const discardManualDraft = () => { setManualChanges([]); resetForm(); onMessage(""); };
+  const discardManualChange = (id: string) => {
+    setManualChanges(current => current.filter(change => change.id !== id));
+    if (editingId === id) resetForm();
+  };
+  const rebaseManualChange = (id: string) => {
+    const change = manualChanges.find(value => value.id === id);
+    const current = change && cvDraftCurrent(change, selected?.cvValues || [], manualChanges);
+    if (change?.original && cvDraftCollision(change, selected?.cvValues || [], manualChanges)) {
+      onMessage(t("vehicles.cv.draft.error.occupied"));
+      return;
+    }
+    if (!current) { onMessage(t("vehicles.cv.draft.missing")); return; }
+    const next = rebaseCVChange(manualChanges, id, current);
+    if (next === manualChanges) { onMessage(t("vehicles.cv.draft.error.occupied")); return; }
+    setManualChanges(next);
+    onMessage("");
   };
 
   const exportValues = () => {
@@ -209,6 +257,7 @@ export function useVehicleCVController({
     state: {
       form,
       editingId,
+      manualDraft: { changes: manualChanges, values: workingCVValues, conflicts: manualConflicts.map(change => change.id), lastSavedCount: lastManualSave },
       importPreview,
       summary,
       importStats,
@@ -223,6 +272,10 @@ export function useVehicleCVController({
       edit,
       save,
       remove,
+      applyManualDraft,
+      discardManualDraft,
+      discardManualChange,
+      rebaseManualChange,
       exportValues,
       importValues,
       toggleImportRow,

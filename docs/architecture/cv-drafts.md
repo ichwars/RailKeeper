@@ -41,6 +41,26 @@ A repeated create-only batch cannot produce a second CV with the same identity. 
 protection, not a durable request receipt: a lost successful response can require reloading and review
 before a caller knows that its first request committed.
 
+## Manual editor
+
+The raw CV view stages additions, edits and deletions with **Stage in CV draft**. Its review compares
+stored and pending identities, values and metadata; **Save CV draft** is separate from the vehicle's
+bottom save. Discarding a draft or closing the editor does not submit it. A new-number form targeting
+an existing identity preserves unspecified metadata; clearing a field deliberately uses that row's edit
+action. The limit is 500 pending changes, with individual discard and a bounded review table.
+
+A conflict retains all pending input and reloads current data without claiming a successful save.
+**Use this CV as the new draft baseline** is an explicit decision: a three-way comparison keeps locally
+changed fields while adopting newer fields which the draft did not edit. Occupied target identities
+remain visible and require editing the pending identity or discarding that change. An externally deleted
+row remains inspectable as its original draft baseline and is never implicitly recreated. A lost
+response may leave values already stored; loading/reviewing the current state makes this visible.
+
+Confirming a batch preserves further form input which was not staged. Independent vehicle refreshes
+retain the CV draft; the CV commit retains pending vehicle/functions. Interpreted decoder values,
+function suggestions and speed curves continue to use stored CVs until the CV draft commits. A
+successful batch has a status result, while actual errors retain the editor's error presentation.
+
 ## Preservation evidence
 
 Application and HTTP tests cover index page zero vs unindexed data, two profiles, source provenance,
