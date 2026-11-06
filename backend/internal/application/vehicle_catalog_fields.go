@@ -9,6 +9,15 @@ import (
 // decoder assignments and technical modifications remain on the owned vehicle.
 type VehicleCatalogFields map[string]string
 
+func (fields *VehicleCatalogFields) UnmarshalJSON(raw []byte) error {
+	value, err := decodeVehicleCatalogFields(string(raw), false)
+	if err != nil {
+		return err
+	}
+	*fields = value
+	return nil
+}
+
 var vehicleCatalogFieldNames = []string{
 	"name", "manufacturer", "articleNumber", "articleSourceUrl", "gauge", "epoch",
 	"railwayCompany", "category", "gattung", "description", "ean", "productionPeriod", "listPrice",
