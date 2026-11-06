@@ -46,6 +46,21 @@ const submitEvent = () => ({ preventDefault: vi.fn() }) as unknown as FormEvent;
 describe("createVehicleMutationCommands", () => {
   afterEach(() => vi.restoreAllMocks());
 
+  it("keeps the creation identity on an uncertain request and reports an existing result without another acknowledgment", async () => {
+    const options = commandOptions(), id = "a".repeat(32);
+    const create = vi.spyOn(api, "createVehicle").mockRejectedValueOnce(new TypeError("Lost reply"))
+      .mockRejectedValueOnce(new ApiError("Already stored", "vehicle_creation_conflict", 409));
+    const commands = createVehicleMutationCommands(options);
+    await commands.submit(submitEvent(), id);
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.creation.unknown");
+    await commands.submit(submitEvent(), id);
+    expect(create.mock.calls.every(([input]) => input.creationId === id)).toBe(true);
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.creation.alreadyStored");
+    expect(options.editor.setSelectedDetail).not.toHaveBeenCalled();
+    expect(options.functions.acknowledgeSaved).not.toHaveBeenCalled();
+    expect(options.reloadVehicles).toHaveBeenCalledOnce();
+  });
+
   it("preserves untouched stored ordering numbers and renumbers only an explicit reordering", async () => {
     const selected = vehicleFixture({ images: [imageFixture({ id: "primary", sortOrder: 8 }),
       imageFixture({ id: "other", sortOrder: 2, isPrimary: false })] });

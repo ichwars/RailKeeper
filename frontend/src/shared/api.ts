@@ -224,6 +224,7 @@ export type VehicleSetInput = Pick<CreateVehicleRequest,
 >;
 
 export type CreateVehicleSetRequest = {
+  creationId?: string;
   set: VehicleSetInput;
   members: CreateVehicleRequest[];
 };
@@ -1151,7 +1152,7 @@ export const api = {
   vehicles: (query = "") =>
     request<Vehicle[]>(`/vehicles${query ? `?q=${encodeURIComponent(query)}` : ""}`),
   overviewValuation: () => request<OverviewValuation>("/overview/valuation"),
-  createVehicle: (input: CreateVehicleRequest & { externalMapping?: VehicleExternalMappingInput }) =>
+  createVehicle: (input: CreateVehicleRequest & { externalMapping?: VehicleExternalMappingInput; creationId?: string }) =>
     request<Vehicle>("/vehicles", {
       method: "POST",
       body: JSON.stringify(input)

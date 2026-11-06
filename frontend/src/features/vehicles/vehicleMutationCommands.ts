@@ -82,7 +82,7 @@ export function createVehicleMutationCommands({
   onMessage,
   t
 }: VehicleMutationCommandsOptions) {
-  const submit = async (event: FormEvent) => {
+  const submit = async (event: FormEvent, creationId?: string) => {
     event.preventDefault();
     editor.setSaveAttempted(true);
 
@@ -122,10 +122,12 @@ export function createVehicleMutationCommands({
 
     editor.setSaving(true);
     onMessage("");
+    let creationAcknowledged = false;
     try {
       const sparePartsToImport = spareParts.selectedInputs();
       const { images, remoteImages } = partitionVehicleImages(media.pendingImages, editor.selected);
       const payload = { ...editor.form, images,
+        ...(editor.mode === "create" && creationId ? { creationId } : {}),
         ...(editor.mode === "edit" && editor.selected ? {
           expectedRevision: editor.selected.revision, expectedImagesRevision: editor.selected.imagesRevision
         } : {}), ...(functionChanges.length ? { functionChanges } : {}),
@@ -134,6 +136,7 @@ export function createVehicleMutationCommands({
       let vehicle = editor.mode === "edit" && editor.selected
         ? await api.updateVehicle(editor.selected.id, payload)
         : await api.createVehicle(payload);
+      creationAcknowledged = true;
       if (editor.mode === "create") clearVehicleCreateDraft(draftOwner);
       functions.acknowledgeSaved(vehicle.functions, vehicle.id);
       // The core transaction succeeded. Retrying an ancillary image/import failure must not create a duplicate.
@@ -172,6 +175,13 @@ export function createVehicleMutationCommands({
         onMessage(t("vehicles.spareParts.importedCount", { count: sparePartsToImport.length }));
       }
     } catch (error) {
+      if (error instanceof ApiError && error.code === "vehicle_creation_conflict") {
+        reloadVehicles(); onMessage(t("vehicles.creation.alreadyStored")); return;
+      }
+      if (editor.mode === "create" && creationId && !creationAcknowledged &&
+        (!(error instanceof ApiError) || error.status >= 500 || [408, 499].includes(error.status))) {
+        onMessage(t("vehicles.creation.unknown")); return;
+      }
       if (error instanceof CVImportGuardError) {
         onMessage(t(`vehicles.cv.importGuard.${error.code}`)); return;
       }

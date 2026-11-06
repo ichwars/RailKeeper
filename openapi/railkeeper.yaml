@@ -1968,6 +1968,10 @@ components:
         - $ref: "#/components/schemas/CreateVehicleRequest"
       type: object
       properties:
+        creationId:
+          type: string
+          pattern: "^[0-9a-f]{32}$"
+          description: Optional stable identity for one creation intent. Becomes the vehicle ID; replay while a vehicle or set with that identity exists returns 409 without another creation. Use a fresh identity for an intentionally new draft. Omission retains legacy allocation.
         externalMapping:
           description: Optional source identity saved atomically with a new vehicle. An existing owner rejects the entire creation with 409; repeating a lost response cannot create another vehicle. Omit for ordinary vehicle creation. Never writes to a device.
           $ref: "#/components/schemas/VehicleExternalMappingInput"
@@ -2253,6 +2257,10 @@ components:
       type: object
       required: [set, members]
       properties:
+        creationId:
+          type: string
+          pattern: "^[0-9a-f]{32}$"
+          description: Optional stable creation intent identity, used as the set ID. Repeating this identity is rejected atomically before inventory allocation or members are stored. A new intentional set needs a fresh identity; omission retains legacy allocation.
         set:
           $ref: "#/components/schemas/VehicleSetInput"
         members:

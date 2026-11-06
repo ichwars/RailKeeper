@@ -240,7 +240,7 @@ try {
   $env:GOCACHE = Join-Path $repo ".cache\go-build"
   New-Item -ItemType Directory -Force -Path $env:GOCACHE | Out-Null
   if ($env:GITHUB_ACTIONS -eq "true" -and $env:OS -eq "Windows_NT") {
-    & go test ./internal/application ./internal/api -run 'Test(CVFile|ImageCreation|GuardedImageUpload|MediaDeletion|FileBlobCleanup|DataTransferConfirmRoute|VehicleMapping)' -count=1 -v
+    & go test ./internal/application ./internal/api -run 'Test(CVFile|ImageCreation|GuardedImageUpload|MediaDeletion|FileBlobCleanup|DataTransferConfirmRoute|VehicleMapping|VehicleCreationIdentity)' -count=1 -v
     if ($LASTEXITCODE -ne 0) {
       throw "Native Windows media preservation tests failed with exit code $LASTEXITCODE"
     }

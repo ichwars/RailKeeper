@@ -1,6 +1,7 @@
 import type { ArticleSearchResponse, CreateVehicleRequest } from "../../shared/api";
 import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
 import { emptyVehicle } from "./vehicleViewModel";
+import { validVehicleCreationIdentity } from "./vehicleCreationIdentity";
 
 export type VehicleCreationKind = "single" | "set";
 export type VehicleCreateStep = "basics" | "article" | "details";
@@ -13,6 +14,7 @@ export type VehicleSetMemberDraft = {
 };
 
 export type VehicleCreateWizardState = {
+  creationId?: string;
   kind: VehicleCreationKind;
   step: VehicleCreateStep;
   articleStage: VehicleCreateArticleStage;
@@ -32,6 +34,7 @@ export type VehicleCreateArticleDraft = {
 };
 
 export type VehicleCreateWizardAction =
+  | { type: "set-creation-id"; id: string }
   | { type: "replace-state"; state: VehicleCreateWizardState }
   | { type: "set-kind"; kind: VehicleCreationKind }
   | { type: "go-to-step"; step: VehicleCreateStep }
@@ -111,6 +114,7 @@ function isMemberDraft(value: unknown): value is VehicleSetMemberDraft {
 
 function isWizardState(value: unknown): value is VehicleCreateWizardState {
   if (!isRecord(value)) return false;
+  if (value.creationId !== undefined && !validVehicleCreationIdentity(value.creationId)) return false;
   if (!kinds.has(value.kind as VehicleCreationKind) || !steps.has(value.step as VehicleCreateStep)) return false;
   if (!articleStages.has(value.articleStage as VehicleCreateArticleStage) || !isVehicleForm(value.shared)) return false;
   if (!Array.isArray(value.members) || value.members.length < 2
@@ -229,6 +233,8 @@ export function vehicleCreateWizardReducer(
   action: VehicleCreateWizardAction
 ): VehicleCreateWizardState {
   switch (action.type) {
+    case "set-creation-id":
+      return validVehicleCreationIdentity(action.id) && !state.creationId ? { ...state, creationId: action.id } : state;
     case "replace-state":
       return action.state;
     case "set-kind":

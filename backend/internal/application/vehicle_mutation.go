@@ -10,7 +10,7 @@ import (
 )
 
 func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, actorUserID string) (*Vehicle, error) {
-	return s.createVehicle(ctx, input, nil, actorUserID)
+	return s.CreateWithOptions(ctx, input, VehicleCreationOptions{}, actorUserID)
 }
 
 // CreateWithExternalMapping binds the source identity in the vehicle transaction.
@@ -18,21 +18,27 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 func (s *VehicleService) CreateWithExternalMapping(
 	ctx context.Context, input CreateVehicleInput, mapping VehicleExternalMapInput, actorUserID string,
 ) (*Vehicle, error) {
-	mapping = cleanVehicleExternalMapInput(mapping)
-	if mapping.Provider == "" || mapping.ExternalID == "" {
-		return nil, ErrVehicleValidation
-	}
-	return s.createVehicle(ctx, input, &mapping, actorUserID)
+	return s.CreateWithOptions(ctx, input, VehicleCreationOptions{ExternalMapping: &mapping}, actorUserID)
 }
 
-func (s *VehicleService) createVehicle(
-	ctx context.Context, input CreateVehicleInput, mapping *VehicleExternalMapInput, actorUserID string,
+func (s *VehicleService) CreateWithOptions(
+	ctx context.Context, input CreateVehicleInput, options VehicleCreationOptions, actorUserID string,
 ) (*Vehicle, error) {
 	input, err := validateCreateVehicleInput(input)
 	if err != nil {
 		return nil, err
 	}
-	vehicleID := randomID()
+	if options.ExternalMapping != nil {
+		cleaned := cleanVehicleExternalMapInput(*options.ExternalMapping)
+		if cleaned.Provider == "" || cleaned.ExternalID == "" {
+			return nil, ErrVehicleValidation
+		}
+		options.ExternalMapping = &cleaned
+	}
+	vehicleID, err := s.creationIdentity(ctx, options.CreationID)
+	if err != nil {
+		return nil, err
+	}
 	if s.imageLocalizer != nil && len(input.Images) > 0 {
 		input.Images, err = s.imageLocalizer(ctx, vehicleID, input.Images)
 		if err != nil {
@@ -47,6 +53,11 @@ func (s *VehicleService) createVehicle(
 		return nil, fmt.Errorf("begin create vehicle: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if options.CreationID != "" {
+		if err := checkCreationIdentity(ctx, tx, vehicleID); err != nil {
+			return nil, err
+		}
+	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	vehicle, err := s.insertVehicleTx(ctx, tx, vehicleID, input, actorUserID, now)
@@ -54,8 +65,8 @@ func (s *VehicleService) createVehicle(
 		return nil, err
 	}
 	var savedMapping *VehicleExternalMap
-	if mapping != nil {
-		savedMapping, err = writeVehicleExternalMapping(ctx, tx, vehicle.ID, *mapping, now)
+	if options.ExternalMapping != nil {
+		savedMapping, err = writeVehicleExternalMapping(ctx, tx, vehicle.ID, *options.ExternalMapping, now)
 		if err != nil {
 			return nil, err
 		}

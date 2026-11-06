@@ -231,8 +231,9 @@ type VehicleSetInput struct {
 }
 
 type CreateVehicleSetInput struct {
-	Set     VehicleSetInput      `json:"set"`
-	Members []CreateVehicleInput `json:"members"`
+	CreationID string               `json:"creationId,omitempty"`
+	Set        VehicleSetInput      `json:"set"`
+	Members    []CreateVehicleInput `json:"members"`
 }
 
 type VehicleSet struct {

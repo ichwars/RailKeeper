@@ -1,4 +1,7 @@
 export const importReviewEN: Record<string, string> = {
+  "vehicles.creation.prepareFailed": "The creation could not be prepared. Your draft is retained. Check the browser and try again.",
+  "vehicles.creation.alreadyStored": "This creation is already stored. Review the refreshed inventory. Your open draft is retained; it will not be created again.",
+  "vehicles.creation.unknown": "The creation reply is uncertain. It may already be stored. Review the inventory. Retrying this draft will not create a second copy.",
   "importReview.article.changed": "Selected target fields changed after this comparison. Those fields were deselected. Review their current values and select them again if needed; nothing was adopted.",
   "importReview.article.fields": "{count} fields",
   "importReview.article.score": "Score {score}",

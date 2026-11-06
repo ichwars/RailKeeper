@@ -1,4 +1,7 @@
 export const importReviewDE: Record<string, string> = {
+  "vehicles.creation.prepareFailed": "Der Anlegevorgang konnte nicht vorbereitet werden. Der Entwurf bleibt erhalten. Bitte den Browser prüfen und erneut versuchen.",
+  "vehicles.creation.alreadyStored": "Dieser Anlegevorgang ist bereits gespeichert. Prüfe den neu geladenen Bestand. Der offene Entwurf bleibt erhalten; er wird nicht nochmals angelegt.",
+  "vehicles.creation.unknown": "Die Antwort beim Anlegen ist unklar. Der Vorgang kann bereits gespeichert sein. Prüfe den Bestand. Ein weiterer Versuch mit diesem Entwurf legt keine zweite Kopie an.",
   "importReview.article.changed": "Ausgewählte Zielfelder haben sich seit dem Vergleich geändert. Diese Felder wurden abgewählt. Prüfe die aktuellen Werte und wähle sie bei Bedarf erneut aus; es wurde nichts übernommen.",
   "importReview.article.fields": "{count} Felder",
   "importReview.article.score": "Trefferwert {score}",
