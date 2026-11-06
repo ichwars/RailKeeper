@@ -2801,6 +2801,16 @@ components:
           items:
             $ref: "#/components/schemas/ArticleSearchResult"
     VehicleCVValueInput:
+      allOf:
+        - $ref: '#/components/schemas/VehicleCVFields'
+        - type: object
+          properties:
+            expectedRevision:
+              type: string
+              pattern: '^([0-9a-f]{64})?$'
+              writeOnly: true
+              description: Optional concurrency check for legacy create/update/import. Empty requires the target identity to be absent; omitted keeps legacy behavior.
+    VehicleCVFields:
       type: object
       required: [cvNumber, value]
       description: A CV belongs to a vehicle and an exact trimmed decoder profile. Both index fields must be omitted/null for unindexed values, or supplied together for CVs 257-512. Zero is a valid index and differs from no index. Protocol is descriptive and is not part of the unique key.
@@ -2849,12 +2859,17 @@ components:
           description: Valid local calendar timestamp from the source export (YYYY-MM-DDTHH:mm:ss). No timezone is inferred. Missing provenance is preserved on updates/imports.
     VehicleCVValue:
       allOf:
-        - $ref: "#/components/schemas/VehicleCVValueInput"
+        - $ref: "#/components/schemas/VehicleCVFields"
         - type: object
           required: [id, vehicleId, createdAt, updatedAt]
           properties:
             id:
               type: string
+            revision:
+              type: string
+              pattern: '^[0-9a-f]{64}$'
+              readOnly: true
+              description: Revision of the complete persisted CV record, including its exact profile/index identity and provenance.
             vehicleId:
               type: string
             createdAt:
@@ -2865,6 +2880,26 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/VehicleCVValueHistory"
+    VehicleCVChange:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision]
+      description: Existing IDs require their original revision. A new row omits id and uses an empty revision. Delete requires an ID and no value. A value cannot move onto another stored identity; no existing row is silently replaced.
+      properties:
+        id: {type: string, maxLength: 80}
+        expectedRevision: {type: string, pattern: '^([0-9a-f]{64})?$'}
+        delete: {type: boolean}
+        value: {$ref: '#/components/schemas/VehicleCVFields'}
+    VehicleCVChangesInput:
+      type: object
+      additionalProperties: false
+      required: [changes]
+      properties:
+        changes:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: {$ref: '#/components/schemas/VehicleCVChange'}
     DecoderText:
       type: object
       required: [de, en]
@@ -3221,9 +3256,9 @@ components:
             required: [cvNumber, value]
             properties:
               sourceLine:
-                $ref: "#/components/schemas/VehicleCVValueInput/properties/sourceLine"
+                $ref: "#/components/schemas/VehicleCVFields/properties/sourceLine"
               sourceExportedAt:
-                $ref: "#/components/schemas/VehicleCVValueInput/properties/sourceExportedAt"
+                $ref: "#/components/schemas/VehicleCVFields/properties/sourceExportedAt"
               indexCV31:
                 type: [integer, 'null']
                 minimum: 0
@@ -11148,6 +11183,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VehicleCVValue"
+        "409":
+          description: Target identity already exists or expected revision does not match
   /vehicles/{id}/cv-values/import:
     post:
       tags: [Vehicles]
@@ -11190,8 +11227,48 @@ paths:
           description: Role or CSRF check failed
         "404":
           description: Vehicle not found
+        "409":
+          description: An optional expected revision is stale; no values or histories changed
         "500":
           description: Import failed and all changes rolled back
+  /vehicles/{id}/cv-values/changes:
+    post:
+      tags: [Vehicles]
+      summary: Save a bounded manual CV draft atomically
+      description: Editor or Admin and CSRF required. Maximum 500 explicit changes and 2 MiB. Exact profile, CV number and nullable index pair identify a CV. Revisions and source ownership are checked inside the transaction; a stale revision, identity collision or invalid row rolls back every value and history change. New rows are create-only, so retrying an acknowledged or unacknowledged draft cannot create duplicate identities. No physical decoder is written.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VehicleCVChangesInput'}
+      responses:
+        "200":
+          description: Every requested change was saved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [changed]
+                properties:
+                  changed: {type: integer, minimum: 1, maximum: 500}
+        "400":
+          description: Invalid draft, unknown fields, missing values/revision, foreign source, incomplete index pair or exceeded limits
+        "403":
+          description: Role or CSRF check failed
+        "404":
+          description: Vehicle not found
+        "409":
+          description: Stale or missing CV revision, or target identity already occupied; no changes saved
+        "500":
+          description: Saving failed; every change was rolled back
   /vehicles/{id}/cv-values/{cvValueID}:
     put:
       tags: [Vehicles]
@@ -11220,10 +11297,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VehicleCVValue"
+        "409":
+          description: Target identity already exists or expected revision does not match
     delete:
       tags: [Vehicles]
       summary: Delete a CV value
       parameters:
+        - name: expectedRevision
+          in: query
+          description: Optional revision guard. Omission retains the existing request behavior.
+          schema: {type: string, pattern: '^[0-9a-f]{64}$'}
         - name: id
           in: path
           required: true
@@ -11237,6 +11320,10 @@ paths:
       responses:
         "204":
           description: CV value deleted
+        "400":
+          description: Invalid expected revision
+        "409":
+          description: Expected revision is stale; the CV was not deleted
   /vehicles/{id}/cv-files:
     post:
       tags: [Vehicles]

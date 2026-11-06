@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/infrastructure/vehicledata"
 )
 
 func (s *VehicleService) ListCVValues(ctx context.Context, vehicleID string) ([]VehicleCVValue, error) {
@@ -26,198 +28,122 @@ func (s *VehicleService) CreateCVValue(ctx context.Context, vehicleID string, in
 	if vehicleID == "" || !isValidVehicleCVValueInput(input) {
 		return nil, ErrVehicleValidation
 	}
-	if _, err := s.Get(ctx, vehicleID); err != nil {
+	tx, err := beginVehicleCVWrite(ctx, s.db, vehicleID)
+	if err != nil {
 		return nil, err
 	}
-	if input.SourceFileID != "" {
-		if _, err := s.GetCVFile(ctx, vehicleID, input.SourceFileID); err != nil {
-			if errors.Is(err, ErrVehicleNotFound) {
-				return nil, ErrVehicleValidation
-			}
-			return nil, err
-		}
+	defer func() { _ = tx.Rollback() }()
+	item, err := writeVehicleCVTx(ctx, tx, vehicleID, nil, input, time.Now().UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		return nil, err
 	}
-	now := time.Now().UTC().Format(time.RFC3339)
-	item := VehicleCVValue{
-		ID:               randomID(),
-		VehicleID:        vehicleID,
-		CVNumber:         input.CVNumber,
-		IndexCV31:        input.IndexCV31,
-		IndexCV32:        input.IndexCV32,
-		Value:            input.Value,
-		Description:      input.Description,
-		Category:         input.Category,
-		Protocol:         input.Protocol,
-		DecoderProfile:   input.DecoderProfile,
-		SourceFileID:     input.SourceFileID,
-		SourceLine:       input.SourceLine,
-		SourceExportedAt: input.SourceExportedAt,
-		CreatedAt:        now,
-		UpdatedAt:        now,
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit CV create: %w", err)
 	}
-	if _, err := s.db.ExecContext(ctx, `
-INSERT INTO vehicle_cv_values(id, vehicle_id, cv_number, value, description, category, protocol, decoder_profile, source_file_id, created_at, updated_at, index_cv31, index_cv32, source_line, source_exported_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, item.ID, item.VehicleID, item.CVNumber, item.Value, item.Description, item.Category, item.Protocol, item.DecoderProfile, item.SourceFileID, item.CreatedAt, item.UpdatedAt, item.IndexCV31, item.IndexCV32, item.SourceLine, item.SourceExportedAt); err != nil {
-		return nil, fmt.Errorf("create vehicle cv value: %w", err)
-	}
-	return &item, nil
+	value := cvRecordValue(item)
+	return &value, nil
 }
 
 func (s *VehicleService) UpdateCVValue(ctx context.Context, vehicleID, cvValueID string, input VehicleCVValueInput) (*VehicleCVValue, error) {
-	vehicleID = strings.TrimSpace(vehicleID)
-	cvValueID = strings.TrimSpace(cvValueID)
+	vehicleID, cvValueID = strings.TrimSpace(vehicleID), strings.TrimSpace(cvValueID)
 	input = cleanVehicleCVValueInput(input)
 	if vehicleID == "" || cvValueID == "" || !isValidVehicleCVValueInput(input) {
 		return nil, ErrVehicleValidation
 	}
-	existing, err := s.GetCVValue(ctx, vehicleID, cvValueID)
+	tx, err := beginVehicleCVWrite(ctx, s.db, vehicleID)
 	if err != nil {
 		return nil, err
 	}
-	if input.SourceFileID != "" {
-		if _, err := s.GetCVFile(ctx, vehicleID, input.SourceFileID); err != nil {
-			if errors.Is(err, ErrVehicleNotFound) {
-				return nil, ErrVehicleValidation
-			}
-			return nil, err
-		}
-	}
-	now := time.Now().UTC().Format(time.RFC3339)
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("begin cv value update: %w", err)
-	}
 	defer func() { _ = tx.Rollback() }()
-	result, err := tx.ExecContext(ctx, `
-UPDATE vehicle_cv_values
-SET cv_number=?, value=?, description=?, category=?, protocol=?, decoder_profile=?, source_file_id=?, updated_at=?, index_cv31=?, index_cv32=?,
-    source_line=COALESCE(?, source_line), source_exported_at=CASE WHEN ?='' THEN source_exported_at ELSE ? END
-WHERE id=? AND vehicle_id=?
-`, input.CVNumber, input.Value, input.Description, input.Category, input.Protocol, input.DecoderProfile, input.SourceFileID, now, input.IndexCV31, input.IndexCV32, input.SourceLine, input.SourceExportedAt, input.SourceExportedAt, cvValueID, vehicleID)
-	if err != nil {
-		return nil, fmt.Errorf("update vehicle cv value: %w", err)
-	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return nil, fmt.Errorf("read vehicle cv value update result: %w", err)
-	}
-	if affected == 0 {
+	previous, err := vehicledata.ReadCV(ctx, tx, vehicleID, cvValueID)
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrVehicleNotFound
 	}
-	if existing.Value != input.Value {
-		if _, err = tx.ExecContext(ctx, `
-INSERT INTO vehicle_cv_value_history(id, cv_value_id, vehicle_id, old_value, new_value, changed_at)
-VALUES(?, ?, ?, ?, ?, ?)
-`, randomID(), cvValueID, vehicleID, existing.Value, input.Value, now); err != nil {
-			return nil, fmt.Errorf("write cv value history: %w", err)
-		}
+	if err != nil {
+		return nil, fmt.Errorf("read CV before update: %w", err)
 	}
-	if err = tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit cv value update: %w", err)
+	if _, err := writeVehicleCVTx(ctx, tx, vehicleID, &previous, input, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit CV update: %w", err)
 	}
 	return s.GetCVValue(ctx, vehicleID, cvValueID)
 }
 
 func (s *VehicleService) GetCVValue(ctx context.Context, vehicleID, cvValueID string) (*VehicleCVValue, error) {
-	var item VehicleCVValue
-	err := s.db.QueryRowContext(ctx, `
-SELECT id, vehicle_id, cv_number, value, COALESCE(description, ''), COALESCE(category, ''),
-       COALESCE(protocol, ''), COALESCE(decoder_profile, ''), COALESCE(source_file_id, ''), created_at, updated_at, index_cv31, index_cv32, source_line, source_exported_at
-FROM vehicle_cv_values
-WHERE id=? AND vehicle_id=?
-`, strings.TrimSpace(cvValueID), strings.TrimSpace(vehicleID)).Scan(
-		&item.ID,
-		&item.VehicleID,
-		&item.CVNumber,
-		&item.Value,
-		&item.Description,
-		&item.Category,
-		&item.Protocol,
-		&item.DecoderProfile,
-		&item.SourceFileID,
-		&item.CreatedAt,
-		&item.UpdatedAt,
-		&item.IndexCV31,
-		&item.IndexCV32,
-		&item.SourceLine,
-		&item.SourceExportedAt,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrVehicleNotFound
-		}
-		return nil, fmt.Errorf("get vehicle cv value: %w", err)
+	record, err := vehicledata.ScanCV(s.db.QueryRowContext(ctx, vehicledata.CVSelect+` WHERE id=? AND vehicle_id=?`,
+		strings.TrimSpace(cvValueID), strings.TrimSpace(vehicleID)))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrVehicleNotFound
 	}
-	history, err := s.loadVehicleCVValueHistory(ctx, item.ID)
+	if err != nil {
+		return nil, fmt.Errorf("get CV value: %w", err)
+	}
+	item := cvRecordValue(record)
+	item.History, err = s.loadVehicleCVValueHistory(ctx, item.ID)
 	if err != nil {
 		return nil, err
 	}
-	item.History = history
 	return &item, nil
 }
 
-func (s *VehicleService) DeleteCVValue(ctx context.Context, vehicleID, cvValueID string) (*VehicleCVValue, error) {
-	item, err := s.GetCVValue(ctx, vehicleID, cvValueID)
+func (s *VehicleService) DeleteCVValue(ctx context.Context, vehicleID, cvValueID string, expectedRevision ...string) (*VehicleCVValue, error) {
+	if len(expectedRevision) > 1 {
+		return nil, ErrVehicleValidation
+	}
+	vehicleID, cvValueID = strings.TrimSpace(vehicleID), strings.TrimSpace(cvValueID)
+	tx, err := beginVehicleCVWrite(ctx, s.db, vehicleID)
 	if err != nil {
 		return nil, err
 	}
-	result, err := s.db.ExecContext(ctx, `DELETE FROM vehicle_cv_values WHERE id=? AND vehicle_id=?`, strings.TrimSpace(cvValueID), strings.TrimSpace(vehicleID))
-	if err != nil {
-		return nil, fmt.Errorf("delete vehicle cv value: %w", err)
-	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return nil, fmt.Errorf("read vehicle cv value delete result: %w", err)
-	}
-	if affected == 0 {
+	defer func() { _ = tx.Rollback() }()
+	record, err := vehicledata.ReadCV(ctx, tx, vehicleID, cvValueID)
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrVehicleNotFound
 	}
-	return item, nil
+	if err != nil {
+		return nil, fmt.Errorf("read CV before delete: %w", err)
+	}
+	if len(expectedRevision) == 1 {
+		if err := checkCVRevision(&record, &expectedRevision[0]); err != nil {
+			return nil, err
+		}
+	}
+	item := cvRecordValue(record)
+	item.History, err = loadVehicleCVHistory(ctx, tx, item.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err := vehicledata.DeleteCV(ctx, tx, vehicleID, cvValueID); err != nil {
+		return nil, fmt.Errorf("delete CV: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit CV delete: %w", err)
+	}
+	return &item, nil
 }
 
 func (s *VehicleService) loadVehicleCVValues(ctx context.Context, vehicleID string) ([]VehicleCVValue, error) {
-	rows, err := s.db.QueryContext(ctx, `
-SELECT id, vehicle_id, cv_number, value, COALESCE(description, ''), COALESCE(category, ''),
-       COALESCE(protocol, ''), COALESCE(decoder_profile, ''), COALESCE(source_file_id, ''), created_at, updated_at, index_cv31, index_cv32, source_line, source_exported_at
-FROM vehicle_cv_values
-WHERE vehicle_id=?
-ORDER BY decoder_profile ASC, index_cv31 ASC, index_cv32 ASC, cv_number ASC
-`, strings.TrimSpace(vehicleID))
+	rows, err := s.db.QueryContext(ctx, vehicledata.CVSelect+`
+WHERE vehicle_id=? ORDER BY decoder_profile ASC, index_cv31 ASC, index_cv32 ASC, cv_number ASC`, strings.TrimSpace(vehicleID))
 	if err != nil {
-		return nil, fmt.Errorf("list vehicle cv values: %w", err)
+		return nil, fmt.Errorf("list CV values: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-
 	out := []VehicleCVValue{}
 	for rows.Next() {
-		var item VehicleCVValue
-		if err := rows.Scan(
-			&item.ID,
-			&item.VehicleID,
-			&item.CVNumber,
-			&item.Value,
-			&item.Description,
-			&item.Category,
-			&item.Protocol,
-			&item.DecoderProfile,
-			&item.SourceFileID,
-			&item.CreatedAt,
-			&item.UpdatedAt,
-			&item.IndexCV31,
-			&item.IndexCV32,
-			&item.SourceLine,
-			&item.SourceExportedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scan vehicle cv value: %w", err)
+		item, err := vehicledata.ScanCV(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan CV value: %w", err)
 		}
-		out = append(out, item)
+		out = append(out, cvRecordValue(item))
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate vehicle cv values: %w", err)
+		return nil, fmt.Errorf("iterate CV values: %w", err)
 	}
 	if err := rows.Close(); err != nil {
-		return nil, fmt.Errorf("close vehicle cv values: %w", err)
+		return nil, fmt.Errorf("close CV values: %w", err)
 	}
 	if err := s.loadCVHistories(ctx, vehicleID, out); err != nil {
 		return nil, err
@@ -226,7 +152,13 @@ ORDER BY decoder_profile ASC, index_cv31 ASC, index_cv32 ASC, cv_number ASC
 }
 
 func (s *VehicleService) loadVehicleCVValueHistory(ctx context.Context, cvValueID string) ([]VehicleCVValueHistory, error) {
-	rows, err := s.db.QueryContext(ctx, `
+	return loadVehicleCVHistory(ctx, s.db, cvValueID)
+}
+
+func loadVehicleCVHistory(ctx context.Context, query interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}, cvValueID string) ([]VehicleCVValueHistory, error) {
+	rows, err := query.QueryContext(ctx, `
 SELECT id, cv_value_id, vehicle_id, old_value, new_value, changed_at
 FROM vehicle_cv_value_history
 WHERE cv_value_id=?

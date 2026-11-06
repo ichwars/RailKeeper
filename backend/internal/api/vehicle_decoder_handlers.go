@@ -37,6 +37,8 @@ func (a *App) createVehicleCVValue(w http.ResponseWriter, r *http.Request) {
 	value, err := a.vehicleService.CreateCVValue(r.Context(), r.PathValue("id"), input)
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleCVConflict):
+			respondProblem(w, http.StatusConflict, "cv_value_conflict", "CV data changed or the target identity already exists.")
 		case errors.Is(err, application.ErrVehicleValidation):
 			respondProblem(w, http.StatusBadRequest, "cv_value_invalid", "CV-Nummer muss 1-1024 und Wert 0-255 sein.")
 		case errors.Is(err, application.ErrVehicleNotFound):
@@ -59,6 +61,8 @@ func (a *App) updateVehicleCVValue(w http.ResponseWriter, r *http.Request) {
 	value, err := a.vehicleService.UpdateCVValue(r.Context(), r.PathValue("id"), r.PathValue("cvValueID"), input)
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleCVConflict):
+			respondProblem(w, http.StatusConflict, "cv_value_conflict", "CV data changed or the target identity already exists.")
 		case errors.Is(err, application.ErrVehicleValidation):
 			respondProblem(w, http.StatusBadRequest, "cv_value_invalid", "CV-Nummer muss 1-1024 und Wert 0-255 sein.")
 		case errors.Is(err, application.ErrVehicleNotFound):
@@ -73,7 +77,19 @@ func (a *App) updateVehicleCVValue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) deleteVehicleCVValue(w http.ResponseWriter, r *http.Request) {
-	if _, err := a.vehicleService.DeleteCVValue(r.Context(), r.PathValue("id"), r.PathValue("cvValueID")); err != nil {
+	var expected []string
+	if r.URL.Query().Has("expectedRevision") {
+		expected = []string{r.URL.Query().Get("expectedRevision")}
+	}
+	if _, err := a.vehicleService.DeleteCVValue(r.Context(), r.PathValue("id"), r.PathValue("cvValueID"), expected...); err != nil {
+		if errors.Is(err, application.ErrVehicleCVConflict) {
+			respondProblem(w, http.StatusConflict, "cv_value_conflict", "CV data changed. The CV was not deleted.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "cv_value_invalid", "Invalid expected revision.")
+			return
+		}
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "cv_value_not_found", "CV value not found.")
 			return
