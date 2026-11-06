@@ -123,7 +123,7 @@ export function createVehicleMutationCommands({
     onMessage("");
     try {
       const sparePartsToImport = spareParts.selectedInputs();
-      const { images, remoteImages } = partitionVehicleImages(media.pendingImages);
+      const { images, remoteImages } = partitionVehicleImages(media.pendingImages, editor.selected);
       const payload = { ...editor.form, images,
         ...(editor.mode === "edit" && editor.selected ? {
           expectedRevision: editor.selected.revision, expectedImagesRevision: editor.selected.imagesRevision
@@ -169,6 +169,10 @@ export function createVehicleMutationCommands({
         onMessage(t("vehicles.spareParts.importedCount", { count: sparePartsToImport.length }));
       }
     } catch (error) {
+      if (error instanceof ApiError && error.code === "image_revision_missing") {
+        onMessage(t("vehicles.mediaConflict.missingRevision"));
+        return;
+      }
       if (error instanceof ApiError && ["vehicle_conflict", "vehicle_image_conflict"].includes(error.code)) {
         if (editor.selected) await editor.reloadSelectedVehicle?.(editor.selected.id);
         onMessage(t("vehicles.mediaConflict.changed"));

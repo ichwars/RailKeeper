@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { api, ApiError, type VehicleAttachment } from "../../shared/api";
-import { imageFixture, vehicleFixture } from "../../test/fixtures/vehicles";
+import { createdImageFixture, imageFixture, vehicleFixture } from "../../test/fixtures/vehicles";
 import { useVehicleMediaController } from "./useVehicleMediaController";
 
 function fileList(...files: File[]) {
@@ -98,7 +98,7 @@ describe("useVehicleMediaController", () => {
   });
 
   it("uploads an image and refreshes the selected vehicle", async () => {
-    vi.spyOn(api, "uploadVehicleImage").mockResolvedValue(imageFixture({ id: "image-uploaded" }));
+    vi.spyOn(api, "uploadVehicleImage").mockResolvedValue(createdImageFixture({ id: "image-uploaded" }));
     const { result, setSaving, refreshSelectedVehicle, onImageUploadComplete } = renderController();
     const file = new File(["image"], "lok.png", { type: "image/png" });
 
