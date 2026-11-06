@@ -75,6 +75,8 @@ The runner exercises:
 1. Real API creation of the reference; authentication, all four roles and CSRF boundaries.
 2. Optional actual browser login, all seven main workspaces, edit/cancel/save/reopen in DE/EN, and
    inventory rendering at 2580/1440/820/390 px in light/dark themes without page-wide overflow.
+   A full export before/after editing also verifies that unrelated data is untouched. Only edit clocks
+   of the edited vehicle and its submitted images may change; image provenance remains exact.
 3. App export, compatibility preflight and byte-exact image/attachment downloads.
 4. Rejection of a future backup without changing application data.
 5. In-place app restore that removes a post-backup marker and restores the complete saved collection.

@@ -100,12 +100,13 @@ export function previewImageUrl(image?: { url: string; thumbnailUrl?: string }) 
 }
 
 export function vehicleImageToPending(image: VehicleImageRecord): PendingArticleImage {
+  const localDownloadUrl = `/api/v1/vehicles/${image.vehicleId}/images/${image.id}/file`;
   return {
     id: image.id || image.url,
     url: image.url,
     thumbnailUrl: image.thumbnailUrl,
     title: image.title || "",
-    source: image.sourceUrl || image.url,
+    source: image.sourceUrl || (image.url === localDownloadUrl ? "" : image.url),
     isPrimary: image.isPrimary,
     persisted: true,
     mimeType: image.mimeType || "",

@@ -5,7 +5,9 @@ import unittest
 from contextlib import closing
 from pathlib import Path
 
-from preservation import assert_same, backup_manifest, database_manifest, expected_fresh_restore, file_manifest
+from preservation import (
+    assert_same, backup_manifest, database_manifest, expected_fresh_restore, file_manifest, vehicle_edit_manifest,
+)
 
 
 class PreservationTests(unittest.TestCase):
@@ -88,6 +90,20 @@ class PreservationTests(unittest.TestCase):
         self.assertIsNone(expected["profiles"][0]["created_by_user_id"])
         self.assertEqual(source["profiles"][0]["created_by_user_id"], "source-user")
         self.assertEqual(source["tables"]["master_data_entries"][0]["updated_at"], "source")
+
+    def test_vehicle_edit_allows_only_its_own_edit_clocks(self):
+        doc = {"format": "railkeeper-backup", "version": 24, "files": [], "profiles": [],
+               "tables": {"vehicles": [{"id": "a", "updated_at": "old"}, {"id": "b", "updated_at": "old"}],
+                          "vehicle_images": [{"id": "image", "vehicle_id": "a", "source_url": "", "updated_at": "old"}]}}
+        changed = copy.deepcopy(doc)
+        changed["tables"]["vehicles"][0]["updated_at"] = "new"
+        changed["tables"]["vehicle_images"][0]["updated_at"] = "new"
+        self.assertEqual(vehicle_edit_manifest(doc, "a"), vehicle_edit_manifest(changed, "a"))
+        changed["tables"]["vehicle_images"][0]["source_url"] = "invented"
+        self.assertNotEqual(vehicle_edit_manifest(doc, "a"), vehicle_edit_manifest(changed, "a"))
+        changed = copy.deepcopy(doc)
+        changed["tables"]["vehicles"][1]["updated_at"] = "new"
+        self.assertNotEqual(vehicle_edit_manifest(doc, "a"), vehicle_edit_manifest(changed, "a"))
 
 
 if __name__ == "__main__":

@@ -102,3 +102,13 @@ def expected_fresh_restore(document, local_backup, local_user_ids):
         if row.get("created_by_user_id") not in local_user_ids:
             row["created_by_user_id"] = None
     return expected
+
+
+def vehicle_edit_manifest(document, vehicle_id):
+    """A name edit may refresh only this vehicle's and submitted images' edit clocks."""
+    expected = copy.deepcopy(document)
+    for table, identity in (("vehicles", "id"), ("vehicle_images", "vehicle_id")):
+        for row in expected["tables"].get(table, []):
+            if row[identity] == vehicle_id:
+                row.pop("updated_at", None)
+    return backup_manifest(expected)

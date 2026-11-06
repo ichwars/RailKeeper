@@ -17,7 +17,9 @@ from pathlib import Path
 from client import Client, setup
 from fixture import observations, seed
 from matrix import inventory
-from preservation import assert_same, backup_manifest, digest, expected_fresh_restore, installation_manifest
+from preservation import (
+    assert_same, backup_manifest, digest, expected_fresh_restore, installation_manifest, vehicle_edit_manifest,
+)
 from runtime import Runtime
 
 
@@ -103,7 +105,9 @@ def run(args):
         fixture = seed(client)
         role_checks(client, fixture)
         passed("reference-fixture-and-role-csrf-boundaries")
+        before_browser = None
         if args.browser:
+            before_browser = client.request("GET", "/api/v1/backup/export")
             result = subprocess.run(["node", str(Path(__file__).with_name("browser.mjs"))],
                                     input=json.dumps({"base": client.base, "credentials": credentials,
                                                       "fixture": fixture, "output": str(root / "browser")}),
@@ -116,6 +120,16 @@ def run(args):
         if settings["settings"].get("railkeeper.settings.defaultView") != "vehicles":
             raise AssertionError("Reference user preference was not persisted")
         backup = client.request("GET", "/api/v1/backup/export")
+        if before_browser is not None:
+            for name, document in (("before", before_browser), ("after", backup)):
+                (root / f"browser-{name}-export.json").write_text(json.dumps(document), encoding="utf-8")
+            before_edit = vehicle_edit_manifest(before_browser, fixture["vehicleId"])
+            after_edit = vehicle_edit_manifest(backup, fixture["vehicleId"])
+            assert_same(before_edit["tables"], after_edit["tables"], "Unrelated table data after browser edit")
+            assert_same({key: value for key, value in before_edit.items() if key != "tables"},
+                        {key: value for key, value in after_edit.items() if key != "tables"},
+                        "Unrelated backup data after browser edit")
+            passed("browser-edit-preserves-all-other-reference-data")
         baseline = backup_manifest(backup)
         observed = observations(client, fixture)
         verify_media(client, fixture)
