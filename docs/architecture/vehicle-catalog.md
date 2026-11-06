@@ -32,6 +32,13 @@ Legacy fields remain authoritative throughout this phase. Switching to `catalog`
 writers and their transactional legacy projection and is a separate step. Missing future API fields
 must preserve the association.
 
+Administrators can read `GET /api/v1/catalog/legacy-backfill` for the complete assignment/difference
+report. A GET never fills missing relationships. `POST` on the same route explicitly completes
+missing relationships and requires the existing CSRF protection. Viewer, Editor and Messe roles
+cannot use either operation. Repeating a completed POST adds neither catalog rows nor another
+backfill audit event. The API reports unlinked entities and drift without silently correcting them;
+generated transport types and the frontend adapter use the same contract.
+
 `tools/regression/verify_upgrade.py` rehearses the schema on a separate copy of a marked synthetic
 cold reference backup. It compares every existing table and stored file, permits only the four new
 empty tables and appended migration-ledger rows, and checks the automatic SQLite snapshot against

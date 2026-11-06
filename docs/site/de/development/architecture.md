@@ -4,7 +4,7 @@ description: Architektur und Beiträge.
 audience: developer
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-06
 ---
 
 # Architektur und Beiträge
@@ -29,6 +29,19 @@ Die [Architekturreferenz](https://github.com/ichwars/RailKeeper/blob/main/docs/a
 Installiere die in `backend/go.mod` und den CI-Dateien angegebene Go-/Node-Version. Installiere Frontend-Abhängigkeiten mit `npm ci`, baue mit `npm run build` und starte das Backend aus `backend` mit `go run ./cmd/railkeeper`. Verwende einen eigenen Datenordner für Tests.
 
 Vor einem Pull Request: Go formatieren, `go test ./...` im Backend und `npm run build` im Frontend ausführen. Für betroffene Abläufe gezielte Tests ergänzen. Dokumentationsänderungen benötigen beide Sprachen und `npm run check` unter `docs`.
+
+## Artikelzuordnung prüfen
+
+Admins können über `GET /api/v1/catalog/legacy-backfill` den Zuordnungs- und Abweichungsbericht
+lesen. Er nennt fehlende Beziehungen, Artikelrevisionen und individuelle Abweichungen. Der Abruf
+ändert keine Zuordnung. Ein ausdrücklich gesendetes `POST` auf dieselbe Route ergänzt nur fehlende
+Beziehungen und benötigt den bestehenden CSRF-Schutz. Wiederholungen erzeugen keine zusätzlichen
+Katalogdatensätze oder Befüllungs-Auditeinträge. Bestehende Abweichungen werden nicht automatisch
+korrigiert; während dieser Übergangsphase bleiben die bisherigen Fahrzeug-/Setfelder maßgeblich.
+
+Die [Artikelmodell-Referenz](https://github.com/ichwars/RailKeeper/blob/main/docs/architecture/vehicle-catalog.md)
+beschreibt Feldzuordnung, Sicherung und Erhaltungsnachweise. Viewer, Editor und Messe haben keinen
+Zugriff auf diese administrativen Prüfoperationen.
 
 ## Grenzen erhalten
 

@@ -3369,6 +3369,36 @@ components:
               type: integer
             dataUrl:
               type: string
+    VehicleCatalogAssignment:
+      type: object
+      required: [targetType, targetId, name, authority, overrideFields, differentFields]
+      properties:
+        targetType: {type: string, enum: [vehicle, set]}
+        targetId: {type: string}
+        name: {type: string}
+        setId: {type: string}
+        articleId: {type: string}
+        revisionId: {type: string}
+        authority: {type: string, enum: [unlinked, legacy, catalog]}
+        overrideFields:
+          type: array
+          items: {type: string}
+        differentFields:
+          type: array
+          description: Fields whose pinned catalog representation differs from authoritative legacy values; never silently corrected by backfill.
+          items: {type: string}
+    VehicleCatalogBackfillReport:
+      type: object
+      required: [vehicles, sets, linkedVehicles, linkedSets, differentRepresentations, assignments]
+      properties:
+        vehicles: {type: integer, minimum: 0}
+        sets: {type: integer, minimum: 0}
+        linkedVehicles: {type: integer, minimum: 0}
+        linkedSets: {type: integer, minimum: 0}
+        differentRepresentations: {type: integer, minimum: 0}
+        assignments:
+          type: array
+          items: {$ref: '#/components/schemas/VehicleCatalogAssignment'}
     BackupImportResult:
       type: object
       required: [restoredTables, restoredRows, restoredFiles]
@@ -9553,6 +9583,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /catalog/legacy-backfill:
+    get:
+      summary: Report catalog assignments without changing inventory
+      description: Admin only. Shows unlinked entities, pinned revisions, individual overrides and differences. Legacy fields remain authoritative during backfill.
+      responses:
+        "200":
+          description: Current mapping and difference report
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VehicleCatalogBackfillReport'}
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Problem'}
+    post:
+      summary: Complete missing legacy catalog assignments atomically
+      description: Admin and CSRF required. Reuses known set membership; identical manufacturer/article numbers never merge independent vehicles. Existing links, revisions and legacy inventory fields remain unchanged. Repeating a completed backfill adds no rows or audit events.
+      responses:
+        "200":
+          description: Completed mapping and difference report
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VehicleCatalogBackfillReport'}
+        "403":
+          description: Admin role and CSRF token required
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Problem'}
   /backup/export:
     get:
       tags: [Backup]
