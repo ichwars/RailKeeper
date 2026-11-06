@@ -15,6 +15,28 @@ responsibility.
 `openapi/railkeeper.yaml` is the public contract. The frontend currently uses a small hand-written adapter
 in `frontend/src/shared/api.ts`; generated types can replace it later once the API stops changing rapidly.
 
+## Vehicle editing and persistence
+
+`VehiclesView` composes the existing inventory and editor components. Collection loading, filtering input
+and master-data reads live in `useVehicleCollectionController`; the existing editor controller owns form
+and selection state and refreshes the selected aggregate. `useVehicleSetController` owns set dialog state,
+duplication prefills and creation. Existing function, maintenance, decoder-file and document controllers
+retain their request boundaries.
+
+Image draft state lives in `useVehicleImageDraftController` and makes no API calls. The existing media
+controller still performs immediate uploads and persisted deletions. `vehicleImagePersistence` partitions
+new remote images from the core save payload; `vehicleImportAdoption` handles local mapping/CV adoption
+and return navigation. The core save acknowledges and selects the saved vehicle before ancillary imports,
+so retrying a failed image import uses the saved vehicle. These boundaries do not turn a draft operation
+into an immediate write or change existing save/cancel behavior. They add no physical device writes.
+
+Vehicle create/update use cases retain validation, inventory-number allocation, the transaction boundary,
+audit/history writes, media reconciliation and optimistic function conflicts. The focused
+`infrastructure/vehicledata` package executes core-row and image-metadata SQL against caller-owned
+transactions. It never begins or commits a transaction and imports no application models, avoiding a
+cycle with legacy infrastructure adapters that still depend on application types. The application maps
+its existing vehicle model to a typed storage record; public response types and stored values are unchanged.
+
 ## Frontend settings
 
 `SettingsView` composes the existing settings areas and coordinates shared confirmations. Its controllers

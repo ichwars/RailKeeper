@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/infrastructure/vehicledata"
 )
 
 func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, actorUserID string) (*Vehicle, error) {
@@ -175,28 +177,11 @@ func (s *VehicleService) Update(ctx context.Context, id string, input CreateVehi
 		}
 	}
 
-	result, err := tx.ExecContext(ctx, `
-UPDATE vehicles
-SET inventory_number=?, manufacturer=?, article_number=?, article_source_url=?, name=?, gauge=?, epoch=?, railway_company=?, category=?, gattung=?,
-    description=?, series=?, vehicle_number=?, maximum_speed_kmh=?, home_base=?,
-    digital=?, digital_decoder_number=?, dt_decoder=?, dt_decoder_number=?, decoder_type=?,
-    exhibition_ready=?, exhibition=?, abc_brakes=?, ean=?, production_period=?, list_price=?,
-    acquisition_type=?, acquired_from=?, purchase_price=?, purchase_date=?, storage_location=?, storage_details=?, condition=?, condition_details=?, packaging=?,
-    length_mm=?, weight_g=?, color=?, lettering=?, load=?, interior=?, axles=?, axle_count=?, traction_tire_count=?, wheelset=?,
-    coupling_same=?, coupling_front=?, coupling_rear=?, power_pickup=?, adapter=?,
-    drive_enabled=?, drive_description=?, headlights_enabled=?, headlights_description=?, lighting_enabled=?, lighting_description=?,
-    sound_generator_enabled=?, sound_generator_description=?, smoke_generator_enabled=?, smoke_generator_description=?,
-    additional_info=?, qr_code_enabled=?, updated_at=?
-WHERE id=?
-`, vehicle.InventoryNumber, vehicle.Manufacturer, vehicle.ArticleNumber, vehicle.ArticleSourceURL, vehicle.Name, vehicle.Gauge, vehicle.Epoch, vehicle.RailwayCompany, vehicle.Category, vehicle.Gattung, vehicle.Description, vehicle.Series, vehicle.VehicleNumber, nullableInt(vehicle.MaximumSpeedKmh), vehicle.HomeBase, boolToInt(vehicle.Digital), vehicle.DigitalDecoderNumber, boolToInt(vehicle.DTDecoder), vehicle.DTDecoderNumber, vehicle.DecoderType, boolToInt(vehicle.ExhibitionReady), boolToInt(vehicle.Exhibition), boolToInt(vehicle.ABCBrakes), vehicle.EAN, vehicle.ProductionPeriod, vehicle.ListPrice, vehicle.AcquisitionType, vehicle.AcquiredFrom, vehicle.PurchasePrice, vehicle.PurchaseDate, vehicle.StorageLocation, vehicle.StorageDetails, vehicle.Condition, vehicle.ConditionDetails, vehicle.Packaging, vehicle.LengthMM, vehicle.WeightG, vehicle.Color, vehicle.Lettering, vehicle.Load, vehicle.Interior, vehicle.Axles, vehicle.AxleCount, vehicle.TractionTireCount, vehicle.Wheelset, boolToInt(vehicle.CouplingSame), vehicle.CouplingFront, vehicle.CouplingRear, vehicle.PowerPickup, vehicle.Adapter, boolToInt(vehicle.DriveEnabled), vehicle.DriveDescription, boolToInt(vehicle.HeadlightsEnabled), vehicle.HeadlightsDescription, boolToInt(vehicle.LightingEnabled), vehicle.LightingDescription, boolToInt(vehicle.SoundGeneratorEnabled), vehicle.SoundGeneratorDescription, boolToInt(vehicle.SmokeGeneratorEnabled), vehicle.SmokeGeneratorDescription, vehicle.AdditionalInfo, boolToInt(vehicle.QRCodeEnabled), vehicle.UpdatedAt, vehicle.ID)
+	affected, err := vehicledata.Update(ctx, tx, vehicleWriteRecord(vehicle))
 	if err != nil {
-		return nil, fmt.Errorf("update vehicle: %w", err)
+		return nil, err
 	}
 
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return nil, fmt.Errorf("read update result: %w", err)
-	}
 	if affected == 0 {
 		_ = tx.Rollback()
 		return nil, ErrVehicleNotFound

@@ -9,7 +9,8 @@ import {
   type VehicleFunctionChange,
   type VehicleSparePartInput
 } from "../../shared/api";
-import { cvValueKey } from "./cvImport";
+import { adoptVehicleImportDraft } from "./vehicleImportAdoption";
+import { importPendingVehicleImages, partitionVehicleImages } from "./vehicleImagePersistence";
 import { clearVehicleCreateDraft } from "./vehicleCreateWizardState";
 import { invalidFunctionChanges } from "./functionDraft";
 import type { PendingArticleImage } from "./vehicleTransforms";
@@ -74,8 +75,6 @@ export function createVehicleMutationCommands({
   onMessage,
   t
 }: VehicleMutationCommandsOptions) {
-  const isRemotePendingImage = (image: PendingArticleImage) => !image.persisted && /^https?:\/\//i.test(image.url);
-
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     editor.setSaveAttempted(true);
@@ -103,16 +102,7 @@ export function createVehicleMutationCommands({
     onMessage("");
     try {
       const sparePartsToImport = spareParts.selectedInputs();
-      const remoteImages = media.pendingImages.filter(isRemotePendingImage);
-      const images = media.pendingImages.filter((image) => !isRemotePendingImage(image)).map((image, index) => ({
-        id: image.persisted ? image.id : undefined,
-        url: image.url,
-        title: image.title,
-        sourceUrl: image.source,
-        maintenanceId: image.maintenanceId || "",
-        isPrimary: Boolean(image.isPrimary),
-        sortOrder: index
-      }));
+      const { images, remoteImages } = partitionVehicleImages(media.pendingImages);
       const payload = { ...editor.form, images, ...(functionChanges.length ? { functionChanges } : {}) };
       let vehicle = editor.mode === "edit" && editor.selected
         ? await api.updateVehicle(editor.selected.id, payload)
@@ -123,17 +113,7 @@ export function createVehicleMutationCommands({
       editor.setSelectedDetail(vehicle);
       editor.setMode("edit");
 
-      for (const [imageIndex, image] of remoteImages.entries()) {
-        await api.importVehicleImageFromUrl(vehicle.id, {
-          url: image.url,
-          title: image.title || "",
-          sourceUrl: image.source || image.url,
-          maintenanceId: image.maintenanceId || "",
-          isPrimary: Boolean(image.isPrimary),
-          sortOrder: images.length + imageIndex
-        });
-      }
-      if (remoteImages.length > 0) vehicle = await api.vehicle(vehicle.id);
+      vehicle = await importPendingVehicleImages(vehicle, remoteImages, images.length);
 
       for (const part of sparePartsToImport) {
         await api.createVehicleSparePart(vehicle.id, part);
@@ -144,31 +124,15 @@ export function createVehicleMutationCommands({
       }
 
       if (ecos.draft && (editor.mode === "create" || editor.mode === "edit")) {
-        const savedDraft = ecos.draft;
-        await api.upsertVehicleExternalMapping(vehicle.id, savedDraft.externalMapping);
-        if (savedDraft.source === "ecos" && savedDraft.returnToDigitalCenters && savedDraft.cvValues.length) {
-          await api.importDigitalCenterCVs(savedDraft.returnToDigitalCenters.sessionId,
-            savedDraft.sourceWorkItemId || "", vehicle.id);
-        } else {
-          const detailBeforeECoSValues = await api.vehicle(vehicle.id);
-          for (const cvValue of savedDraft.cvValues) {
-            const existing = (detailBeforeECoSValues.cvValues || []).find((entry) => (
-              cvValueKey(entry) === cvValueKey(cvValue)
-            ));
-            if (existing) await api.updateVehicleCVValue(vehicle.id, existing.id, cvValue);
-            else await api.createVehicleCVValue(vehicle.id, cvValue);
-          }
-        }
-        ecos.markSaved(savedDraft, vehicle.id);
-        vehicle = await api.vehicle(vehicle.id);
-        const returnsToSource = Boolean(savedDraft.returnToEcos || savedDraft.returnToDigitalCenters);
-        ecos.clear();
-        if (returnsToSource) {
-          reloadVehicles();
-          editor.close();
-          ecos.returnToSession(savedDraft);
-          return;
-        }
+        const result = await adoptVehicleImportDraft(vehicle, ecos.draft, {
+          markSaved: ecos.markSaved,
+          clear: ecos.clear,
+          returnToSession: ecos.returnToSession,
+          reloadVehicles,
+          closeEditor: editor.close
+        });
+        vehicle = result.vehicle;
+        if (result.returnedToSource) return;
       }
 
       vehicle = await api.vehicle(vehicle.id);
