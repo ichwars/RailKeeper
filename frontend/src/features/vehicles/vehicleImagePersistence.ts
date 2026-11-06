@@ -1,4 +1,4 @@
-import { api, type Vehicle } from "../../shared/api";
+import { api, type Vehicle, type VehicleImage } from "../../shared/api";
 import type { PendingArticleImage } from "./vehicleTransforms";
 
 const isRemotePendingImage = (image: PendingArticleImage) => !image.persisted && /^https?:\/\//i.test(image.url);
@@ -17,9 +17,12 @@ export function partitionVehicleImages(pendingImages: PendingArticleImage[]) {
   return { images, remoteImages };
 }
 
-export async function importPendingVehicleImages(vehicle: Vehicle, remoteImages: PendingArticleImage[], offset: number) {
+export async function importPendingVehicleImages(
+  vehicle: Vehicle, remoteImages: PendingArticleImage[], offset: number,
+  onImported?: (pending: PendingArticleImage, stored: VehicleImage) => void
+) {
   for (const [imageIndex, image] of remoteImages.entries()) {
-    await api.importVehicleImageFromUrl(vehicle.id, {
+    const stored = await api.importVehicleImageFromUrl(vehicle.id, {
       url: image.url,
       title: image.title || "",
       sourceUrl: image.source || image.url,
@@ -27,6 +30,7 @@ export async function importPendingVehicleImages(vehicle: Vehicle, remoteImages:
       isPrimary: Boolean(image.isPrimary),
       sortOrder: offset + imageIndex
     });
+    onImported?.(image, stored);
   }
   if (remoteImages.length > 0) vehicle = await api.vehicle(vehicle.id);
 

@@ -7,6 +7,7 @@ import {
   type Vehicle,
   type VehicleFunction,
   type VehicleFunctionChange,
+  type VehicleImage,
   type VehicleSparePartInput
 } from "../../shared/api";
 import { adoptVehicleImportDraft } from "./vehicleImportAdoption";
@@ -26,6 +27,8 @@ type VehicleMutationCommandsOptions = {
     mode: ModalMode;
     setSaving: (saving: boolean) => void;
     setSelectedDetail: (vehicle: Vehicle) => void;
+    acknowledgeCoreSaved?: (vehicle: Vehicle) => void;
+    hasRefreshConflicts?: boolean;
     setMode: (mode: ModalMode) => void;
     setSaveAttempted: (attempted: boolean) => void;
     setActiveTab: (tab: ModalTab) => void;
@@ -37,6 +40,7 @@ type VehicleMutationCommandsOptions = {
   };
   media: {
     pendingImages: PendingArticleImage[];
+    acknowledgeImportedImage?: (pending: PendingArticleImage, stored: VehicleImage) => void;
   };
   spareParts: {
     selectedInputs: () => VehicleSparePartInput[];
@@ -79,6 +83,11 @@ export function createVehicleMutationCommands({
     event.preventDefault();
     editor.setSaveAttempted(true);
 
+    if (editor.hasRefreshConflicts) {
+      onMessage(t("vehicles.saveState.resolveConflicts"));
+      return;
+    }
+
     if (validation.missingRequiredLabels.length > 0) {
       editor.setActiveTab("model");
       editor.openModelSection();
@@ -110,10 +119,10 @@ export function createVehicleMutationCommands({
       if (editor.mode === "create") clearVehicleCreateDraft(draftOwner);
       functions.acknowledgeSaved(vehicle.functions, vehicle.id);
       // The core transaction succeeded. Retrying an ancillary image/import failure must not create a duplicate.
-      editor.setSelectedDetail(vehicle);
+      (editor.acknowledgeCoreSaved || editor.setSelectedDetail)(vehicle);
       editor.setMode("edit");
 
-      vehicle = await importPendingVehicleImages(vehicle, remoteImages, images.length);
+      vehicle = await importPendingVehicleImages(vehicle, remoteImages, images.length, media.acknowledgeImportedImage);
 
       for (const part of sparePartsToImport) {
         await api.createVehicleSparePart(vehicle.id, part);
