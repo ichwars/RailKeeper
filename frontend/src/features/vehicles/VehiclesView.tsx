@@ -1057,6 +1057,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 		)}
       {articleSearchOpen && mode !== "create" && (
         <ArticleSearchDialog
+          reviewTarget={t("importReview.target.vehicleDraft")}
           fieldGroups={vehicleArticleSearchGroups(t)}
           currentValue={(key) => currentArticleValue(form, key as ArticleFieldKey)}
           loading={articleSearchLoading}

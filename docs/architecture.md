@@ -41,7 +41,8 @@ duplication prefills and creation. Existing function, maintenance, decoder-file 
 retain their request boundaries.
 
 Image draft state lives in `useVehicleImageDraftController` and makes no API calls. The existing media
-controller still performs immediate uploads and persisted deletions. `vehicleImagePersistence` partitions
+controller prepares independent confirmed file actions through `useVehicleUploads` and
+`useVehicleMediaDeletion`. `vehicleImagePersistence` partitions
 new remote images from the core save payload; `vehicleImportAdoption` handles local mapping/CV adoption
 and return navigation. The core save acknowledges and selects the saved vehicle before ancillary imports,
 so retrying a failed image import uses the saved vehicle. Each successful remote image is acknowledged
@@ -68,6 +69,9 @@ identity checks and computed row revisions. Existing single-value and import rou
 their existing requests remain valid. The database schema and backup format are unchanged.
 
 ## Frontend settings
+
+Import previews use shared [source, target, effect and comparison vocabulary](architecture/import-review.md)
+while keeping their specialized parsers and confirmed write boundaries.
 
 `SettingsView` composes the existing settings areas and coordinates shared confirmations. Its controllers
 stay mounted across tabs so navigation does not discard pending form state. Existing load points, save

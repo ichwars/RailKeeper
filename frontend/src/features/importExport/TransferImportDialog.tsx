@@ -4,6 +4,8 @@ import { createPortal } from "react-dom";
 
 import { ApiError } from "../../shared/api";
 import type { Language } from "../../shared/i18n";
+import { translate } from "../../shared/i18n";
+import { ImportReviewContext } from "../../shared/ImportReview";
 import { AppCheckbox } from "../../shared/ui/AppCheckbox";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
@@ -441,6 +443,8 @@ export function TransferImportDialog({
                 <span className="warning"><strong>{preview.warningRecords}</strong>{copy.warnings}</span>
                 <span className="danger"><strong>{preview.errorRecords}</strong>{copy.errors}</span>
               </div>
+              <ImportReviewContext language={language} source={preview.job.sourceName || file?.name || translate(language, "importReview.unknownSource")}
+                target={translate(language, "importReview.target.inventory")} effect={translate(language, "importReview.effect.transfer")} />
               <TransferReviewTable busy={busy} issues={preview.issues} language={language} onResolve={resolve}
                 records={preview.records} />
               <TransferSetReview busy={busy} issues={preview.issues} language={language} onResolve={resolve}

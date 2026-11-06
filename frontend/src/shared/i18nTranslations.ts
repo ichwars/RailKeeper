@@ -1,4 +1,6 @@
 import { vehicleMediaDE } from "./i18n/vehicle-media.de";
+import { importReviewDE } from "./i18n/import-review.de";
+import { importReviewEN } from "./i18n/import-review.en";
 import { vehicleMediaEN } from "./i18n/vehicle-media.en";
 import { ecosFunctionsDE } from "./i18n/ecos-functions.de";
 import { ecosFunctionsEN } from "./i18n/ecos-functions.en";
@@ -28,6 +30,6 @@ import { rocoDETranslations } from "./i18n/roco.de";
 import { rocoENTranslations } from "./i18n/roco.en";
 
 export const translations: Record<Language, Record<string, string>> = {
-  de: { ...vehicleMediaDE, ...ecosFunctionsDE, ...locomotiveImageDETranslations, ...deTranslations, ...decoderDETranslations, ...libraryDETranslations, ...railcomDETranslations, ...kuehnDETranslations, ...uhlenbrockDETranslations, ...rocoDETranslations, ...pikoDETranslations },
-  en: { ...vehicleMediaEN, ...ecosFunctionsEN, ...locomotiveImageENTranslations, ...enTranslations, ...decoderENTranslations, ...libraryENTranslations, ...railcomENTranslations, ...kuehnENTranslations, ...uhlenbrockENTranslations, ...rocoENTranslations, ...pikoENTranslations }
+  de: { ...importReviewDE, ...vehicleMediaDE, ...ecosFunctionsDE, ...locomotiveImageDETranslations, ...deTranslations, ...decoderDETranslations, ...libraryDETranslations, ...railcomDETranslations, ...kuehnDETranslations, ...uhlenbrockDETranslations, ...rocoDETranslations, ...pikoDETranslations },
+  en: { ...importReviewEN, ...vehicleMediaEN, ...ecosFunctionsEN, ...locomotiveImageENTranslations, ...enTranslations, ...decoderENTranslations, ...libraryENTranslations, ...railcomENTranslations, ...kuehnENTranslations, ...uhlenbrockENTranslations, ...rocoENTranslations, ...pikoENTranslations }
 };

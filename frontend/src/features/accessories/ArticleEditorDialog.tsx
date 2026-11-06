@@ -406,6 +406,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
       </footer>
     </section>
     {props.articleSearch?.state.open ? <ArticleSearchDialog
+      reviewTarget={t("importReview.target.accessoryDraft")}
       fieldGroups={accessorySearchFieldGroups(t, props.form.articleType)}
       currentValue={(key) => currentAccessorySearchValue(props.form, key)}
       loading={props.articleSearch.state.loading}

@@ -7,6 +7,7 @@ import {
   type ArticleSearchResult
 } from "../api";
 import { useI18n } from "../i18n";
+import { ImportReviewContext, ImportReviewStatus } from "../ImportReview";
 import { useModalDialogLayer } from "../ui/useModalDialogLayer";
 import {
   articleFieldStatus,
@@ -20,6 +21,7 @@ import {
 function previewImageUrl(image?: { url: string; thumbnailUrl?: string }) {
   return image?.thumbnailUrl || image?.url || "";
 }
+const reviewStates = { empty: "new", same: "same", conflict: "changed" } as const;
 
 export function ArticleSearchDialog({
   fieldGroups,
@@ -29,6 +31,7 @@ export function ArticleSearchDialog({
   error,
   selectedFields,
   selectedImages,
+  reviewTarget,
   canSelectField,
   onApply,
   onClose,
@@ -42,6 +45,7 @@ export function ArticleSearchDialog({
   error: string;
   selectedFields: Record<string, boolean>;
   selectedImages: Record<string, boolean>;
+  reviewTarget?: string;
   canSelectField?: (key: string, value: string) => boolean;
   onApply: (result: ArticleSearchResult) => void;
   onClose: () => void;
@@ -130,6 +134,10 @@ export function ArticleSearchDialog({
             const resultImage = visibleImages[0];
             return (
               <article key={resultKey} className="article-result-card article-result-table-card">
+                <ImportReviewContext source={result.url} target={reviewTarget || t("importReview.target.recordDraft")}
+                  effect={t("importReview.effect.article")} total={selectableKeys.length}
+                  selected={selectableKeys.filter(key => selectedFields[articleSelectionKey(result, key, index)] &&
+                    (canSelectField?.(key, result.fields[key].value) ?? true)).length} />
                 <header>
                   {resultImage && (
                     <img className="article-result-thumb" src={previewImageUrl(resultImage)} alt="" onError={() => markImageFailed(resultImage.url)} />
@@ -235,7 +243,8 @@ export function ArticleSearchDialog({
                                       foundDisplay || "-"
                                     )}
                                   </td>
-                                  <td><span className={`article-status ${status}`}>{t(`vehicles.articleSearch.status.${status}`)}</span></td>
+                                  <td><ImportReviewStatus state={!selectable ? "excluded"
+                                    : result.conflicts?.includes(key) ? "unclear" : reviewStates[status]} /></td>
                                 </tr>
                               );
                             })}

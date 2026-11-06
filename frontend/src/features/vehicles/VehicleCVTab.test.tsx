@@ -88,7 +88,8 @@ describe("VehicleCVTab", () => {
       toggleCVImportRow
     });
 
-    expect(screen.getByText("decoder.csv")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Herkunft, Ziel und Wirkung" }))
+      .getByText("decoder.csv")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Ausgewählte Felder übernehmen" }));
     expect(applyCVImportPreview).toHaveBeenCalledOnce();
 
