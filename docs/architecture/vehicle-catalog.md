@@ -61,6 +61,20 @@ and never applies pending values. All fields are read in one transaction. Its co
 includes catalog identity and provenance, so changing an assignment with identical visible fields
 still invalidates the previous comparison. Ownership-only edits leave this independent token intact.
 
+Application revision commands require that comparison token and an explicit field selection. Creating
+a revision uses a client-generated 32-character lowercase hexadecimal identity, retained when retrying
+the same confirmation. A repeated identity or stale comparison causes a conflict before any write.
+An explicit independent-article choice creates a separate identity; adopting a revision is confined
+to the target's existing article. Unselected saved values become individual overrides of the chosen
+revision. Projection updates touch only selected values that actually changed, preserving unselected
+raw NULLs, ownership, member data and inventory identities. Publishing never updates another target.
+
+Before changing an unresolved legacy assignment, its complete pending representation is retained as
+another immutable revision. Thus unselected proposal values remain available even when the new active
+projection keeps the current owned values. This retention time is new and is not a known source time.
+Revision, assignment, compatibility projection and audit share one transaction. Projection or audit
+failure leaves none of them committed. Confirming an unchanged active assignment performs no write.
+
 `tools/regression/verify_upgrade.py` rehearses the schema on a separate copy of a marked synthetic
 cold reference backup. It compares every existing table and stored file, permits only the four new
 empty tables and appended migration-ledger rows, and checks the automatic SQLite snapshot against
