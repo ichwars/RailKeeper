@@ -218,6 +218,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/backup/export", routeAccessAdmin, (*App).exportBackup, nil},
 		{http.MethodGet, "/api/v1/catalog/legacy-backfill", routeAccessAdmin, (*App).vehicleCatalogBackfillReport, nil},
 		{http.MethodPost, "/api/v1/catalog/legacy-backfill", routeAccessAdmin, (*App).backfillVehicleCatalog, nil},
+		{http.MethodGet, "/api/v1/catalog/{targetType}/{id}", routeAccessViewer, (*App).vehicleCatalogContext, nil},
 		{http.MethodPost, "/api/v1/backup/validate", routeAccessAdmin, (*App).validateBackup, nil},
 		{http.MethodPost, "/api/v1/backup/restore", routeAccessAdmin, (*App).restoreBackup, nil},
 		{http.MethodGet, "/api/v1/exhibition-lists", routeAccessMesse, (*App).listExhibitionLists, nil},

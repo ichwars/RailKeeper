@@ -45,6 +45,12 @@ Die [Artikelmodell-Referenz](https://github.com/ichwars/RailKeeper/blob/main/doc
 beschreibt Feldzuordnung, Sicherung und Erhaltungsnachweise. Viewer, Editor und Messe haben keinen
 Zugriff auf diese administrativen Prüfoperationen.
 
+Die gespeicherte Artikelzuordnung eines Fahrzeugs oder Sets ist über
+`GET /api/v1/catalog/{targetType}/{id}` für Viewer, Editor und Admin lesbar (`vehicle` oder `set`).
+Aktuelle Fahrzeugangaben, festgelegte Revision und individuelle Abweichungen bleiben getrennt.
+Der Vergleichstoken erkennt auch einen Revisionswechsel mit gleichen sichtbaren Werten.
+Der Abruf übernimmt keine Vorschläge und ergänzt keine fehlenden Beziehungen.
+
 ## Grenzen erhalten
 
 Rollen und Schutzmaßnahmen werden serverseitig geprüft. Gerätedaten beginnen als lesende Vorschläge; Schreibvorgänge benötigen eine bewusst bestätigte Vorschau. CV-Werte bleiben von ihrer Bedeutung getrennt: Bibliotheksregeln erklären Rohdaten nur bei belegtem Modell-, Firmware- und Indexkontext.

@@ -3369,6 +3369,66 @@ components:
               type: integer
             dataUrl:
               type: string
+    VehicleCatalogFields:
+      type: object
+      additionalProperties: false
+      required: [name, manufacturer, articleNumber, articleSourceUrl, gauge, epoch, railwayCompany, category, gattung, description, ean, productionPeriod, listPrice]
+      properties:
+        name: {type: string}
+        manufacturer: {type: string}
+        articleNumber: {type: string}
+        articleSourceUrl: {type: string}
+        gauge: {type: string}
+        epoch: {type: string}
+        railwayCompany: {type: string}
+        category: {type: string}
+        gattung: {type: string}
+        description: {type: string}
+        ean: {type: string}
+        productionPeriod: {type: string}
+        listPrice: {type: string}
+    VehicleCatalogOverrides:
+      type: object
+      additionalProperties: false
+      properties:
+        name: {type: string}
+        manufacturer: {type: string}
+        articleNumber: {type: string}
+        articleSourceUrl: {type: string}
+        gauge: {type: string}
+        epoch: {type: string}
+        railwayCompany: {type: string}
+        category: {type: string}
+        gattung: {type: string}
+        description: {type: string}
+        ean: {type: string}
+        productionPeriod: {type: string}
+        listPrice: {type: string}
+    VehicleCatalogRevision:
+      type: object
+      required: [id, articleId, revisionNumber, fields, note, createdAt]
+      properties:
+        id: {type: string}
+        articleId: {type: string}
+        revisionNumber: {type: integer, minimum: 1}
+        fields: {$ref: '#/components/schemas/VehicleCatalogFields'}
+        note: {type: string}
+        createdAt: {type: string, format: date-time}
+    VehicleCatalogContext:
+      type: object
+      required: [targetType, targetId, currentFields, authority, overrides, revisions, revision]
+      properties:
+        targetType: {type: string, enum: [vehicle, set]}
+        targetId: {type: string}
+        currentFields: {$ref: '#/components/schemas/VehicleCatalogFields'}
+        authority: {type: string, enum: [unlinked, legacy, catalog]}
+        sourceAuthority: {type: string, enum: [legacy, catalog]}
+        pinned: {$ref: '#/components/schemas/VehicleCatalogRevision'}
+        overrides: {$ref: '#/components/schemas/VehicleCatalogOverrides'}
+        revisions:
+          type: array
+          items: {$ref: '#/components/schemas/VehicleCatalogRevision'}
+        revision: {type: string, pattern: '^[0-9a-f]{64}$'}
     VehicleCatalogAssignment:
       type: object
       required: [targetType, targetId, name, authority, overrideFields, differentFields]
@@ -9583,6 +9643,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /catalog/{targetType}/{id}:
+    parameters:
+      - name: targetType
+        in: path
+        required: true
+        schema: {type: string, enum: [vehicle, set]}
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    get:
+      summary: Read the saved catalog assignment and immutable revisions
+      description: Viewer, Editor or Admin. Reads one consistent comparison including current saved fields, pinned revision, individual overrides and unresolved proposals. Does not fill relationships or adopt values. The comparison revision also guards assignment changes with identical visible values.
+      responses:
+        "200":
+          description: Saved catalog comparison
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VehicleCatalogContext'}
+        "400":
+          description: Invalid target type
+        "403":
+          description: Inventory role required
+        "404":
+          description: Target not found
   /catalog/legacy-backfill:
     get:
       summary: Report catalog assignments without changing inventory

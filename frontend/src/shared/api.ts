@@ -199,6 +199,8 @@ export type ECoSDecoderProfileEvidence = components["schemas"]["ECoSDecoderProfi
 export type Vehicle = components["schemas"]["Vehicle"];
 export type VehicleCatalogAssignment = components["schemas"]["VehicleCatalogAssignment"];
 export type VehicleCatalogBackfillReport = components["schemas"]["VehicleCatalogBackfillReport"];
+export type VehicleCatalogContext = components["schemas"]["VehicleCatalogContext"];
+export type VehicleCatalogRevision = components["schemas"]["VehicleCatalogRevision"];
 
 export type VehicleSetInput = Pick<CreateVehicleRequest,
   | "name"
@@ -905,6 +907,8 @@ function digitalCenterSessionSuffix(sessionID?: string) {
 }
 
 export const api = {
+  catalogContext: (targetType: "vehicle" | "set", id: string) =>
+    request<VehicleCatalogContext>(`/catalog/${targetType}/${encodeURIComponent(id)}`),
   catalogBackfillReport: () => request<VehicleCatalogBackfillReport>("/catalog/legacy-backfill"),
   backfillLegacyCatalog: () => request<VehicleCatalogBackfillReport>("/catalog/legacy-backfill", { method: "POST" }),
   ...createBugReportAPI(request),
