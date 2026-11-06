@@ -54,6 +54,18 @@ try {
     const edit = () => row.getByRole("button", { name: de ? "Bearbeiten" : "Edit", exact: true }).click();
     await edit();
     let dialog = page.getByRole("dialog");
+    const localImageUrl = `/api/v1/vehicles/${input.fixture.vehicleId}/images/${input.fixture.imageId}/file`;
+    await dialog.getByRole("button", { name: "Uploads", exact: true }).click();
+    assert.equal(await dialog.getByRole("link", { name: de ? "Quelle öffnen" : "Open source", exact: true })
+      .getAttribute("href"), localImageUrl);
+    await dialog.locator("img").first().click();
+    const preview = page.locator(".image-preview-layer");
+    await preview.waitFor();
+    assert.equal(await preview.locator("a.image-title-link").getAttribute("href"), localImageUrl);
+    await preview.getByRole("button", { name: de ? "Schließen" : "Close", exact: true }).click();
+    await preview.waitFor({ state: "hidden" });
+    await dialog.getByRole("button", { name: de ? "Modell" : "Model", exact: true }).click();
+    checks.push(language + ":local-image-source-actions");
     const label = de ? /^Bezeichnung/ : /^Designation/;
     await dialog.getByRole("textbox", { name: label }).fill("UNSAVED-REFERENCE");
     await dialog.getByRole("button", { name: de ? "Abbrechen" : "Cancel", exact: true }).click();
