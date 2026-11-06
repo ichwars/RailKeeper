@@ -77,6 +77,13 @@ A deliberately new draft receives another identity and can create an identical a
 owned vehicle. An uncertain reply retains the draft and asks to inspect inventory; replay never
 silently replaces the first result or starts ancillary import actions.
 
+Asynchronous save and source-preparation responses are bound to one editor session. Closing, reopening
+even the same vehicle, changing targets or leaving the view invalidates that session. A transaction
+already confirmed on the server remains stored, but its late response cannot acknowledge another
+draft, clear its explicitly saved copy, continue image/CV/spare-part requests or change its busy state.
+Pending source drafts are consumed only once their preparation was applied; failed, cancelled or
+unmounted preparations retain their source data for a later attempt.
+
 ## Article suggestion scope
 
 Vehicle and accessory search controllers bind pending responses to their current editor target and

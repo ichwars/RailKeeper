@@ -50,6 +50,23 @@ describe("useVehicleEditorController", () => {
     expect(onMessage).toHaveBeenLastCalledWith("");
   });
 
+  it("invalidates old save scopes on close, reopening the same target and unmount", async () => {
+    const { result, unmount } = renderController(), vehicle = vehicleFixture();
+    vi.spyOn(api, "vehicle").mockResolvedValue(vehicle);
+    act(() => result.current.commands.openCreate());
+    const createScope = result.current.commands.captureScope();
+    expect(createScope()).toBe(true);
+    act(() => { result.current.setters.setSaving(true); result.current.commands.closeModal(); });
+    expect(createScope()).toBe(false); expect(result.current.state.saving).toBe(false);
+    act(() => result.current.commands.openEdit(vehicle));
+    await waitFor(() => expect(result.current.state.selected?.id).toBe(vehicle.id));
+    const firstScope = result.current.commands.captureScope();
+    act(() => result.current.commands.openEdit(vehicle));
+    expect(firstScope()).toBe(false);
+    await waitFor(() => expect(result.current.commands.captureScope()()).toBe(true));
+    const lastScope = result.current.commands.captureScope(); unmount(); expect(lastScope()).toBe(false);
+  });
+
   it("loads a vehicle into edit mode", async () => {
     const vehicle = vehicleFixture();
     vi.spyOn(api, "vehicle").mockResolvedValue(vehicle);

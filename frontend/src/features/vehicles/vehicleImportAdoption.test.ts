@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api, ApiError } from "../../shared/api";
+import { api, ApiError, type VehicleCVValue } from "../../shared/api";
 import { cvValueFixture, vehicleFixture } from "../../test/fixtures/vehicles";
 import { emptyVehicle, type ECoSVehicleDraftPayload } from "./vehicleViewModel";
 import { adoptVehicleImportDraft } from "./vehicleImportAdoption";
@@ -16,6 +16,14 @@ const callbacks = () => ({ markSaved: vi.fn(), clear: vi.fn(), returnToSession: 
 
 describe("legacy source CV adoption", () => {
   afterEach(() => vi.restoreAllMocks());
+  it("does not write or acknowledge a source when its pending comparison belongs to a closed editor", async () => {
+    let finish!: (values: VehicleCVValue[]) => void, current = true;
+    vi.spyOn(api, "vehicleCVValues").mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    const batch = vi.spyOn(api, "importVehicleCVValues"), cb = callbacks();
+    const pending = adoptVehicleImportDraft(vehicle(), draft(), { ...cb, isCurrent: () => current });
+    current = false; finish([]); await pending;
+    expect(batch).not.toHaveBeenCalled(); expect(cb.markSaved).not.toHaveBeenCalled(); expect(cb.clear).not.toHaveBeenCalled();
+  });
   it("submits one atomic guarded batch, skips identical identities and preserves all source metadata", async () => {
     const source = draft(); source.cvValues[1] = { ...source.cvValues[1], cvNumber: 257, indexCV31: 0, indexCV32: 0,
       sourceFileId: "source", sourceLine: 27, sourceExportedAt: "2026-08-20T08:00:00" };

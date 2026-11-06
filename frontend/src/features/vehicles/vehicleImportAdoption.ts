@@ -9,6 +9,7 @@ type VehicleImportCallbacks = {
   returnToSession: (draft: ECoSVehicleDraftPayload) => void;
   reloadVehicles: () => void;
   closeEditor: () => void;
+  isCurrent?: () => boolean;
 };
 
 export async function adoptVehicleImportDraft(
@@ -16,15 +17,20 @@ export async function adoptVehicleImportDraft(
   savedDraft: ECoSVehicleDraftPayload,
   callbacks: VehicleImportCallbacks
 ) {
+  const isCurrent = callbacks.isCurrent || (() => true);
+  const stopped = () => ({ vehicle, returnedToSource: false });
+  if (!isCurrent()) return stopped();
   if (!vehicle.externalMappings?.some(mapping => mapping.provider === savedDraft.externalMapping.provider
     && mapping.externalId === savedDraft.externalMapping.externalId && mapping.vehicleId === vehicle.id)) {
     await api.upsertVehicleExternalMapping(vehicle.id, savedDraft.externalMapping);
+    if (!isCurrent()) return stopped();
   }
   if (savedDraft.source === "ecos" && savedDraft.returnToDigitalCenters && savedDraft.cvValues.length) {
     await api.importDigitalCenterCVs(savedDraft.returnToDigitalCenters.sessionId,
       savedDraft.sourceWorkItemId || "", vehicle.id);
   } else if (savedDraft.cvValues.length) {
     const current = await api.vehicleCVValues(vehicle.id);
+    if (!isCurrent()) return stopped();
     const preview = buildCVImportPreview(savedDraft.sourceSummary.name, savedDraft.cvValues, current);
     if (preview.rows.some(row => row.status === "invalid")) {
       throw new ApiError("The source CV selection is invalid. Review it before importing.", "cv_import_invalid", 400);
@@ -44,8 +50,10 @@ export async function adoptVehicleImportDraft(
       }
     }
   }
+  if (!isCurrent()) return stopped();
   callbacks.markSaved(savedDraft, vehicle.id);
   vehicle = await api.vehicle(vehicle.id);
+  if (!isCurrent()) return stopped();
   const returnsToSource = Boolean(savedDraft.returnToEcos || savedDraft.returnToDigitalCenters);
   callbacks.clear();
   if (returnsToSource) {
