@@ -1734,7 +1734,7 @@
   background: var(--panel-subtle);
 }
 
-.settings-inline-table input {
+.settings-inline-table input:not([type="checkbox"]) {
   min-height: 36px;
   width: 100%;
   min-width: 92px;
@@ -1746,9 +1746,14 @@
   font: inherit;
 }
 
-.settings-inline-table input:focus {
+.settings-inline-table input:not([type="checkbox"]):focus {
   border-color: var(--accent);
   outline: 2px solid color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.settings-inline-table .switch-field input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .settings-inline-table code {

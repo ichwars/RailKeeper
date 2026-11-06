@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
+import { assertResponsiveWorkspaces } from "./responsive.mjs";
 
 let inputText = "";
 for await (const part of process.stdin) inputText += part;
@@ -103,6 +104,10 @@ try {
         assert.equal(overflow, false, `${language}/${theme}/${width}: page overflow`);
         await page.screenshot({ path: `${input.output}/${language}-${theme}-${width}.png` });
         checks.push(`${language}:${theme}:${width}`);
+        await assertResponsiveWorkspaces(page, {
+          base: input.base, width, de, screenshotPrefix: `${input.output}/${language}-${theme}-${width}`
+        });
+        checks.push(`${language}:${theme}:${width}:settings-and-uploads`);
       }
     }
     assert.deepEqual(errors, []);
