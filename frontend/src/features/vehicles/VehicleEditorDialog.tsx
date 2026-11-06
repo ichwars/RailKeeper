@@ -13,6 +13,9 @@ import { VehicleReadOnlyView } from "./VehicleReadOnlyView";
 import { VehicleSparePartsTab } from "./VehicleSparePartsTab";
 import { VehicleSpeedCurveTab } from "./VehicleSpeedCurveTab";
 import { VehicleUploadsTab } from "./VehicleUploadsTab";
+import { VehicleSaveState } from "./VehicleSaveState";
+import type { VehicleSavedAction } from "./useVehicleEditorController";
+import type { DraftRefreshConflict } from "./vehicleDraftRefresh";
 import type { ModalMode, ModalTab } from "./vehicleViewModel";
 import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
 import type { ArticleSearchController } from "./useArticleSearchController";
@@ -34,6 +37,9 @@ type VehicleEditorDialogProps = {
   activeTab: ModalTab;
   saving: boolean;
   message: string;
+  refreshConflicts?: DraftRefreshConflict[];
+  lastSavedAction?: VehicleSavedAction | null;
+  onResolveRefreshConflicts?: (choice: "draft" | "saved") => void;
   tabs: EditorTabs;
   onSubmit: FormEventHandler<HTMLFormElement>;
   onSubmitSet: (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>) => Promise<void>;
@@ -65,6 +71,9 @@ export function VehicleEditorDialog({
   activeTab,
   saving,
   message,
+  refreshConflicts = [],
+  lastSavedAction = null,
+  onResolveRefreshConflicts = () => undefined,
   tabs,
   onSubmit,
   onSubmitSet,
@@ -121,6 +130,7 @@ export function VehicleEditorDialog({
             className="icon-button"
             onClick={onClose}
             aria-label={t("vehicles.close")}
+            disabled={saving}
             title={t("vehicles.close")}
           >
             <X size={18} />
@@ -151,6 +161,8 @@ export function VehicleEditorDialog({
             </nav>
 
             <div className="modal-body" ref={bodyRef}>
+              <VehicleSaveState tab={activeTab} saved={lastSavedAction} conflicts={refreshConflicts}
+                onResolve={onResolveRefreshConflicts} />
               {activeTab === "model" && <VehicleModelTab {...tabs.model} />}
               {activeTab === "control" && <VehicleFunctionsTab {...tabs.functions} />}
               {activeTab === "speedCurve" && <VehicleSpeedCurveTab {...tabs.speedCurve} />}
@@ -162,10 +174,10 @@ export function VehicleEditorDialog({
 
             <footer className={`modal-actions${activeTab === "control" ? " function-editor-footer" : ""}`}>
               {message && <p className="form-message">{message}</p>}
-              <button type="button" className="secondary-button" onClick={onClose}>
+              <button type="button" className="secondary-button" onClick={onClose} disabled={saving}>
                 {t("vehicles.cancel")}
               </button>
-              <button className="primary-button" disabled={saving}>
+              <button className="primary-button" disabled={saving || refreshConflicts.length > 0}>
                 <Save size={16} aria-hidden="true" />
                 {saving
                   ? t("vehicles.saving")

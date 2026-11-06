@@ -59,6 +59,30 @@ describe("useVehicleMediaController", () => {
     expect(result.current.state.pendingImages[1].isPrimary).toBe(false);
   });
 
+  it("keeps local image metadata and pending remote images while refreshing a stored upload", () => {
+    const previous = vehicleFixture();
+    const { result } = renderController();
+    act(() => result.current.commands.loadDetail(previous));
+    act(() => result.current.commands.updatePendingImageTitle("image-1", "Unsaved title"));
+    act(() => result.current.commands.addImages([{
+      id: "remote", url: "https://example.test/new.png", title: "Pending", source: "", isPrimary: false
+    }]));
+    const uploaded = imageFixture({ id: "uploaded", isPrimary: false });
+    const incoming = vehicleFixture({ images: [...(previous.images || []), uploaded] });
+    act(() => result.current.commands.refreshDetail(incoming, previous));
+    expect(result.current.state.pendingImages.map(image => image.id)).toEqual(["image-1", "uploaded", "remote"]);
+    expect(result.current.state.pendingImages[0].title).toBe("Unsaved title");
+    expect(result.current.state.pendingImages[2].persisted).not.toBe(true);
+  });
+
+  it("replaces each confirmed remote image by its real stored ID before a later import can fail", () => {
+    const { result } = renderController();
+    const pending = { id: "remote", url: "https://example.test/new.png", title: "Pending", source: "" };
+    act(() => result.current.commands.addImages([pending]));
+    act(() => result.current.commands.acknowledgeImportedImage(pending, imageFixture({ id: "stored" })));
+    expect(result.current.state.pendingImages).toEqual([expect.objectContaining({ id: "stored", persisted: true })]);
+  });
+
   it("rejects blocked files before an API call", () => {
     const uploadImage = vi.spyOn(api, "uploadVehicleImage");
     const uploadAttachment = vi.spyOn(api, "uploadVehicleAttachment");

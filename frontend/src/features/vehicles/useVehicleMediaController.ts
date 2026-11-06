@@ -1,13 +1,16 @@
 import { useVehicleImageDraftController } from "./useVehicleImageDraftController";
 import { type DragEvent, useRef, useState } from "react";
 
-import { api, type Vehicle, type VehicleAttachment } from "../../shared/api";
+import { api, type Vehicle, type VehicleAttachment, type VehicleImage } from "../../shared/api";
+import { useI18n } from "../../shared/i18n";
+import { reconcileDraft, reconcileImageDraft } from "./vehicleDraftRefresh";
 import { attachmentCategoryForFile, isAllowedImageFile, isBlockedAttachmentFile } from "./vehicleFiles";
 import {
   attachmentsToEditState,
   type AttachmentEditState,
   type PendingArticleImage,
-  uploadedImageToPending
+  uploadedImageToPending,
+  vehicleImagesToPending
 } from "./vehicleTransforms";
 
 type UseVehicleMediaControllerOptions = {
@@ -29,6 +32,7 @@ export function useVehicleMediaController({
   refreshSelectedVehicle,
   onImageUploadComplete
 }: UseVehicleMediaControllerOptions) {
+  const { t } = useI18n();
   const imageDraft = useVehicleImageDraftController();
   const { pendingImages, previewImage } = imageDraft.state;
   const { setPendingImages, setPreviewImage } = imageDraft.setters;
@@ -58,9 +62,34 @@ export function useVehicleMediaController({
     setAttachmentEdits(attachmentsToEditState(detail.attachments));
   };
 
+  const refreshAttachments = (detail: Vehicle, previous: Vehicle) => {
+    const base = attachmentsToEditState(previous.attachments), incoming = attachmentsToEditState(detail.attachments);
+    setAttachmentEdits(current => ({ ...current, ...Object.fromEntries(Object.entries(incoming).map(([id, value]) => [
+      id, current[id] ? reconcileDraft(current[id], base[id] || current[id], value).value : value
+    ])) }));
+  };
+
+  const refreshDetail = (detail: Vehicle, previous: Vehicle) => {
+    setPendingImages(current => reconcileImageDraft(current, previous, detail));
+    refreshAttachments(detail, previous);
+  };
+
+  const acknowledgeCoreSaved = (detail: Vehicle, previous: Vehicle, phase: "core" | "complete") => {
+    setPendingImages(current => [
+      ...vehicleImagesToPending(detail),
+      ...(phase === "core" ? current.filter(image => !image.persisted && /^https?:\/\//i.test(image.url)) : [])
+    ]);
+    refreshAttachments(detail, previous);
+  };
+
+  const acknowledgeImportedImage = (pending: PendingArticleImage, image: VehicleImage) => {
+    setPendingImages(current => current.map(value => value.id === pending.id ? uploadedImageToPending(image)
+      : image.isPrimary && value.persisted ? { ...value, isPrimary: false } : value));
+  };
+
   const removePendingImage = (image: PendingArticleImage) => {
     if (image.maintenanceId) {
-      onMessage("Bild ist mit einer Wartung verkn?pft. Bitte zuerst die Verkn?pfung entfernen und speichern.");
+      onMessage(t("vehicles.uploads.maintenanceLinkedCannotDelete"));
       return;
     }
 
@@ -222,6 +251,9 @@ export function useVehicleMediaController({
     commands: {
       reset,
       loadDetail,
+      refreshDetail,
+      acknowledgeCoreSaved,
+      acknowledgeImportedImage,
       addImages,
       setPrimaryPendingImage,
       updatePendingImageTitle,

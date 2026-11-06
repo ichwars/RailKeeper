@@ -181,6 +181,15 @@ def run(args):
                 raise AssertionError("App restore imported installation users")
             passed("fresh-app-restore-preserves-target-login-and-all-reference-data")
 
+            if args.browser:
+                result = subprocess.run(["node", str(Path(__file__).with_name("editor-boundaries.mjs"))],
+                                        input=json.dumps({"base": target.client.base, "credentials": recovery,
+                                                          "fixture": fixture, "output": str(root / "editor-browser")}),
+                                        text=True, capture_output=True, timeout=180)
+                if result.returncode:
+                    raise AssertionError("Editor save boundaries failed: " + result.stderr[-2500:])
+                passed("target-browser-confirmed-action-preserves-drafts-and-cancel")
+
     # The source process has exited. Its main DB and WAL plus every stored file form a cold backup.
     original = installation_manifest(source_data)
     cold_backup = root / "installation-backup"

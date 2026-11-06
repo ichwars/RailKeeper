@@ -44,8 +44,16 @@ Image draft state lives in `useVehicleImageDraftController` and makes no API cal
 controller still performs immediate uploads and persisted deletions. `vehicleImagePersistence` partitions
 new remote images from the core save payload; `vehicleImportAdoption` handles local mapping/CV adoption
 and return navigation. The core save acknowledges and selects the saved vehicle before ancillary imports,
-so retrying a failed image import uses the saved vehicle. These boundaries do not turn a draft operation
-into an immediate write or change existing save/cancel behavior. They add no physical device writes.
+so retrying a failed image import uses the saved vehicle. Each successful remote image is acknowledged
+with its persisted ID before the next import, including when a later import fails.
+
+Independent actions refresh the selected aggregate without reinitializing its open drafts. Core fields
+use a three-way comparison with the previous response; concurrent edits to the same refreshed field
+remain visible until the user chooses a value. Dirty functions keep their original revision, image
+metadata and attachment edits are reconciled, and unrelated workshop/CV forms remain open. Only opening
+another editor resets all sections. Closing is blocked during a save. Bilingual guidance distinguishes
+pending drafts from actions already stored. See [vehicle save boundaries](architecture/vehicle-save-boundaries.md)
+for the individual write paths and cancellation semantics. These local actions add no physical device writes.
 
 Vehicle create/update use cases retain validation, inventory-number allocation, the transaction boundary,
 audit/history writes, media reconciliation and optimistic function conflicts. The focused

@@ -1,0 +1,44 @@
+.vehicle-save-state {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+  margin: 12px 20px 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel-subtle);
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-copy);
+}
+
+.vehicle-save-state p {
+  margin: 0;
+}
+
+.vehicle-save-result {
+  color: var(--accent-strong);
+}
+
+.vehicle-refresh-conflicts {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+  color: var(--text);
+}
+
+.vehicle-refresh-conflicts td {
+  max-width: 24rem;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.vehicle-refresh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.vehicle-refresh-actions button {
+  white-space: normal;
+}

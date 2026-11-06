@@ -2,7 +2,8 @@ import type { FormEvent } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, ApiError, type Vehicle, type VehicleFunctionChange } from "../../shared/api";
-import { vehicleFixture } from "../../test/fixtures/vehicles";
+import { imageFixture, vehicleFixture } from "../../test/fixtures/vehicles";
+import { uploadedImageToPending, type PendingArticleImage } from "./vehicleTransforms";
 import { emptyVehicle, type ECoSVehicleDraftPayload } from "./vehicleViewModel";
 import { createVehicleMutationCommands } from "./vehicleMutationCommands";
 
@@ -44,6 +45,46 @@ const submitEvent = () => ({ preventDefault: vi.fn() }) as unknown as FormEvent;
 
 describe("createVehicleMutationCommands", () => {
   afterEach(() => vi.restoreAllMocks());
+
+  it("blocks unresolved refreshed fields before any write", async () => {
+    const options = commandOptions();
+    const create = vi.spyOn(api, "createVehicle");
+    await createVehicleMutationCommands({ ...options, editor: { ...options.editor, hasRefreshConflicts: true } })
+      .submit(submitEvent());
+    expect(create).not.toHaveBeenCalled();
+    expect(options.onMessage).toHaveBeenCalledWith("vehicles.saveState.resolveConflicts");
+  });
+
+  it("retries only the remaining remote image after a partial import and retains the stored image ID", async () => {
+    const options = commandOptions(), created = vehicleFixture({ id: "created", images: [] });
+    const first = imageFixture({ id: "stored-first", vehicleId: created.id, url: "/first.png" });
+    const second = imageFixture({ id: "stored-second", vehicleId: created.id, url: "/second.png", isPrimary: false });
+    const firstPending = { id: "remote-first", url: "https://example.test/first.png", title: "First", source: "" };
+    const secondPending = { id: "remote-second", url: "https://example.test/second.png", title: "Second", source: "" };
+    let pending: PendingArticleImage[] = [firstPending, secondPending];
+    const acknowledgeImportedImage = (original: PendingArticleImage, stored: typeof first) => {
+      pending = pending.map(image => image.id === original.id ? uploadedImageToPending(stored) : image);
+    };
+    vi.spyOn(api, "createVehicle").mockResolvedValue(created);
+    const update = vi.spyOn(api, "updateVehicle").mockResolvedValue({ ...created, images: [first] });
+    const imports = vi.spyOn(api, "importVehicleImageFromUrl")
+      .mockResolvedValueOnce(first).mockRejectedValueOnce(new Error("Second download failed")).mockResolvedValueOnce(second);
+    vi.spyOn(api, "vehicle").mockResolvedValue({ ...created, images: [first, second] });
+    await createVehicleMutationCommands({ ...options, media: { pendingImages: pending, acknowledgeImportedImage } })
+      .submit(submitEvent());
+    expect(pending[0]).toMatchObject({ id: "stored-first", persisted: true });
+    await createVehicleMutationCommands({ ...options,
+      editor: { ...options.editor, mode: "edit", selected: created },
+      media: { pendingImages: pending, acknowledgeImportedImage }
+    }).submit(submitEvent());
+    expect(api.createVehicle).toHaveBeenCalledOnce();
+    expect(update).toHaveBeenCalledWith(created.id, expect.objectContaining({
+      images: [expect.objectContaining({ id: "stored-first", url: "/first.png" })]
+    }));
+    expect(imports.mock.calls.map(call => call[1].url)).toEqual([
+      "https://example.test/first.png", "https://example.test/second.png", "https://example.test/second.png"
+    ]);
+  });
 
   it("stops at required model fields before writing", async () => {
     const options = commandOptions();

@@ -282,7 +282,7 @@ export function VehicleUploadsTab({
                     <button type="button" className="icon-button" onClick={() => onMovePendingImage(image.id, 1)} disabled={readonly || imageIndex === pendingArticleImages.length - 1} aria-label={t("vehicles.uploads.moveDown")} title={t("vehicles.uploads.moveDown")}>
                       <ChevronDown size={15} />
                     </button>
-                    <button type="button" className={image.isPrimary ? "icon-button active" : "icon-button"} onClick={() => onSetPrimaryPendingImage(image.id)} aria-label={t("vehicles.uploads.markPrimary")} title={image.isPrimary ? t("vehicles.uploads.primary") : t("vehicles.uploads.markPrimary")}>
+                    <button type="button" className={image.isPrimary ? "icon-button active" : "icon-button"} onClick={() => onSetPrimaryPendingImage(image.id)} disabled={readonly || saving} aria-label={t("vehicles.uploads.markPrimary")} title={image.isPrimary ? t("vehicles.uploads.primary") : t("vehicles.uploads.markPrimary")}>
                       <Star size={15} />
                     </button>
                     <button

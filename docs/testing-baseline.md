@@ -81,6 +81,9 @@ The runner exercises:
 4. Rejection of a future backup without changing application data.
 5. In-place app restore that removes a post-backup marker and restores the complete saved collection.
 6. App restore into a second installation while retaining its own account, roles and settings.
+   With `--browser`, the target binary/image also exercises a confirmed upload while core/function/image/
+   attachment/CV-form drafts are open. It verifies that refresh preserves the drafts, cancel discards them,
+   and only the independently confirmed upload reaches storage, in both languages and themes.
 7. Stopping the source, copying its complete data directory and the test launcher's external upload-limit
    configuration, verifying all tables/files, restoring into another directory, restarting with that
    configuration, logging in with the original account and rechecking collection/valuation/artifact downloads.

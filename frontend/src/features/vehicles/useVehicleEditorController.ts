@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 
 import { api, type CreateVehicleRequest, type Vehicle } from "../../shared/api";
 import { emptyVehicle, optionValue } from "./vehicleViewModel";
 import type { MasterDataOptions, ModalMode, ModalTab } from "./vehicleViewModel";
 import { vehicleToForm } from "./vehicleTransforms";
+import {
+  coreSavedDetail, draftValue, reconcileDraft, retainRefreshConflicts, sameDraftValue, type DraftRefreshConflict
+} from "./vehicleDraftRefresh";
+
+export type VehicleSavedAction = "vehicle" | "media" | "cv" | "maintenance" | "spareParts" | "decoderFiles" | "documents";
 
 type OpenSections = {
   model: boolean;
@@ -18,6 +23,8 @@ type UseVehicleEditorControllerOptions = {
   onMessage: (message: string) => void;
   onReset: (reason: EditorResetReason) => void;
   onDetailLoaded: (detail: Vehicle) => void;
+  onDetailRefreshed: (detail: Vehicle, previous: Vehicle) => void;
+  onCoreSaved?: (detail: Vehicle, previous: Vehicle, phase: "core" | "complete") => void;
   onFormChange: (form: CreateVehicleRequest) => void;
   onCollectionChanged: () => void;
 };
@@ -33,17 +40,61 @@ export function useVehicleEditorController({
   onMessage,
   onReset,
   onDetailLoaded,
+  onDetailRefreshed,
+  onCoreSaved,
   onFormChange,
   onCollectionChanged
 }: UseVehicleEditorControllerOptions) {
-  const [form, setForm] = useState<CreateVehicleRequest>(emptyVehicle);
+  const [form, setFormState] = useState<CreateVehicleRequest>(emptyVehicle);
+  const formRef = useRef(form);
   const [saving, setSaving] = useState(false);
-  const [selected, setSelected] = useState<Vehicle | null>(null);
+  const [selected, setSelectedState] = useState<Vehicle | null>(null);
+  const selectedRef = useRef(selected);
   const [mode, setMode] = useState<ModalMode>("create");
-  const [modalOpen, setModalOpen] = useState(false);
+  const [modalOpen, setModalOpenState] = useState(false);
+  const modalOpenRef = useRef(false);
   const [activeTab, setActiveTab] = useState<ModalTab>("model");
   const [openSections, setOpenSections] = useState<OpenSections>(initialOpenSections);
   const [saveAttempted, setSaveAttempted] = useState(false);
+  const [refreshConflicts, setRefreshConflictsState] = useState<DraftRefreshConflict[]>([]);
+  const conflictsRef = useRef(refreshConflicts);
+  const [lastSavedAction, setLastSavedAction] = useState<VehicleSavedAction | null>(null);
+  const requestVersion = useRef(0);
+  useEffect(() => () => {
+    requestVersion.current++;
+    selectedRef.current = null;
+    modalOpenRef.current = false;
+  }, []);
+
+  const setRefreshConflicts = useCallback((value: DraftRefreshConflict[]) => {
+    conflictsRef.current = value;
+    setRefreshConflictsState(value);
+  }, []);
+  // Keep event-time values available even when an API response and typing are batched together.
+  const setForm = useCallback((action: SetStateAction<CreateVehicleRequest>) => {
+    const next = typeof action === "function" ? action(formRef.current) : action;
+    formRef.current = next;
+    setFormState(next);
+    if (conflictsRef.current.length) setRefreshConflicts(conflictsRef.current.map(conflict => ({
+      ...conflict, local: draftValue(next, conflict.field)
+    })).filter(conflict => !sameDraftValue(conflict.local, conflict.saved)));
+  }, [setRefreshConflicts]);
+  const setSelected = useCallback((action: SetStateAction<Vehicle | null>) => {
+    selectedRef.current = typeof action === "function" ? action(selectedRef.current) : action;
+    setSelectedState(selectedRef.current);
+  }, []);
+  const setModalOpen = useCallback((action: SetStateAction<boolean>) => {
+    modalOpenRef.current = typeof action === "function" ? action(modalOpenRef.current) : action;
+    setModalOpenState(modalOpenRef.current);
+  }, []);
+
+  const mergeForm = (detail: Vehicle, previous: CreateVehicleRequest) => {
+    const incoming = vehicleToForm(detail);
+    const merged = reconcileDraft(formRef.current, previous, incoming);
+    const conflicts = retainRefreshConflicts(conflictsRef.current, merged.value, incoming, merged.conflicts);
+    setForm(merged.value);
+    setRefreshConflicts(conflicts);
+  };
 
   const update = (patch: Partial<CreateVehicleRequest>) => {
     setForm((current) => {
@@ -54,10 +105,44 @@ export function useVehicleEditorController({
   };
 
   const setSelectedDetail = (detail: Vehicle) => {
+    requestVersion.current++;
+    setRefreshConflicts([]);
     setSelected(detail);
     setForm(vehicleToForm(detail));
     setSaveAttempted(false);
     onDetailLoaded(detail);
+  };
+
+  const applyIndependentDetail = (detail: Vehicle) => {
+    if (!modalOpenRef.current) { setSelectedDetail(detail); return; }
+    const previous = selectedRef.current;
+    if (!previous || previous.id !== detail.id) return;
+    requestVersion.current++;
+    mergeForm(detail, vehicleToForm(previous));
+    setSelected(detail);
+    onDetailRefreshed(detail, previous);
+  };
+
+  const acknowledgeSavedVehicle = (detail: Vehicle, submitted: CreateVehicleRequest, phase: "core" | "complete") => {
+    if (!modalOpenRef.current || (selectedRef.current && selectedRef.current.id !== detail.id)) return;
+    requestVersion.current++;
+    const previous = selectedRef.current || detail;
+    const saved = phase === "core" && previous.id === detail.id ? coreSavedDetail(detail, previous) : detail;
+    mergeForm(saved, submitted);
+    setSelected(saved);
+    setSaveAttempted(false);
+    setLastSavedAction("vehicle");
+    if (onCoreSaved) onCoreSaved(saved, previous, phase);
+    else onDetailRefreshed(saved, previous);
+  };
+
+  const resolveRefreshConflicts = (choice: "draft" | "saved") => {
+    if (choice === "saved") {
+      let next = { ...formRef.current };
+      for (const conflict of conflictsRef.current) next = { ...next, [conflict.field]: conflict.saved };
+      setForm(next);
+    }
+    setRefreshConflicts([]);
   };
 
   const updateCategory = (category: string) => {
@@ -90,6 +175,9 @@ export function useVehicleEditorController({
   };
 
 	const openCreate = (initialForm: CreateVehicleRequest = emptyVehicle) => {
+    requestVersion.current++;
+    setRefreshConflicts([]);
+    setLastSavedAction(null);
     setSelected(null);
     setMode("create");
 		setForm(initialForm);
@@ -102,6 +190,9 @@ export function useVehicleEditorController({
   };
 
   const closeModal = () => {
+    requestVersion.current++;
+    setRefreshConflicts([]);
+    setLastSavedAction(null);
     setModalOpen(false);
     setSelected(null);
     setMode("create");
@@ -112,16 +203,21 @@ export function useVehicleEditorController({
   };
 
   const openVehicle = (vehicle: Vehicle, nextMode: Exclude<ModalMode, "create">, tab: ModalTab) => {
+    const request = ++requestVersion.current;
     api.vehicle(vehicle.id)
       .then((detail) => {
+        if (request !== requestVersion.current) return;
         setSelectedDetail(detail);
+        setLastSavedAction(null);
         setMode(nextMode);
         setActiveTab(tab);
         setOpenSections(initialOpenSections);
         setModalOpen(true);
         onMessage("");
       })
-      .catch((error: Error) => onMessage(error.message));
+      .catch((error: Error) => {
+        if (request === requestVersion.current) onMessage(error.message);
+      });
   };
 
   const openDetail = (vehicle: Vehicle, tab: ModalTab = "model") => {
@@ -132,15 +228,20 @@ export function useVehicleEditorController({
     openVehicle(vehicle, "edit", tab);
   };
 
-  const refreshSelectedVehicle = (vehicleID = selected?.id) => {
-    if (!vehicleID) return Promise.resolve();
+  const refreshSelectedVehicle = (vehicleID = selectedRef.current?.id, action?: VehicleSavedAction) => {
+    if (!vehicleID || selectedRef.current?.id !== vehicleID) return Promise.resolve();
+    if (action) setLastSavedAction(action);
+    const request = ++requestVersion.current;
     return api
       .vehicle(vehicleID)
       .then((detail) => {
-        setSelectedDetail(detail);
+        if (request !== requestVersion.current || selectedRef.current?.id !== detail.id) return;
+        applyIndependentDetail(detail);
         onCollectionChanged();
       })
-      .catch((error: Error) => onMessage(error.message));
+      .catch((error: Error) => {
+        if (request === requestVersion.current) onMessage(error.message);
+      });
   };
 
   const toggleSection = (section: keyof OpenSections) => {
@@ -157,6 +258,8 @@ export function useVehicleEditorController({
       activeTab,
       openSections,
       saveAttempted,
+      refreshConflicts,
+      lastSavedAction,
       readonly: mode === "view"
     },
     setters: {
@@ -172,6 +275,9 @@ export function useVehicleEditorController({
     commands: {
       update,
       setSelectedDetail,
+      applyIndependentDetail,
+      acknowledgeSavedVehicle,
+      resolveRefreshConflicts,
       updateCategory,
       updateCouplingFront,
       updateCouplingSame,

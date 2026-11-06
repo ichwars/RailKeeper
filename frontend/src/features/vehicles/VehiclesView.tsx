@@ -63,6 +63,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       activeTab,
       openSections,
       saveAttempted,
+      refreshConflicts,
+      lastSavedAction,
       readonly
     },
     setters: {
@@ -78,6 +80,9 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     commands: {
       update,
       setSelectedDetail,
+      applyIndependentDetail,
+      acknowledgeSavedVehicle,
+      resolveRefreshConflicts,
       updateCategory,
       updateCouplingFront,
       updateCouplingSame,
@@ -112,6 +117,14 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       resetSparePartDetail();
       resetCVController();
       resetDecoderFiles();
+    },
+    onDetailRefreshed: (detail, previous) => {
+      refreshVehicleMedia(detail, previous);
+      loadFunctionEdits(detail.functions, detail.id);
+    },
+    onCoreSaved: (detail, previous, phase) => {
+      acknowledgeMediaSaved(detail, previous, phase);
+      loadFunctionEdits(detail.functions, detail.id);
     }
   });
 
@@ -191,6 +204,9 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     commands: {
       reset: resetVehicleMedia,
       loadDetail: loadVehicleMedia,
+      refreshDetail: refreshVehicleMedia,
+      acknowledgeCoreSaved: acknowledgeMediaSaved,
+      acknowledgeImportedImage,
       addImages: addPendingImages,
       setPrimaryPendingImage,
       updatePendingImageTitle,
@@ -211,7 +227,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     saving,
     setSaving,
     onMessage: setMessage,
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "media"),
     onImageUploadComplete: () => {
       setCVFileProfile("");
       setCVFileDescription("");
@@ -235,7 +251,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     selected,
     setSaving,
     onMessage: setMessage,
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "maintenance")
   });
 
   const {
@@ -283,7 +299,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     setSaving,
     onMessage: setMessage,
     onOpenSpareParts: () => setActiveTab("spareParts"),
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "spareParts"),
     t
   });
 
@@ -318,7 +334,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     decoderNumber: form.digitalDecoderNumber || form.dtDecoderNumber || "",
     setSaving,
     onMessage: setMessage,
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "cv")
   });
 
   const {
@@ -346,7 +362,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     setSaving,
     onMessage: setMessage,
     onImportPreview: setCVImportPreview,
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "decoderFiles")
   });
 
   const {
@@ -369,7 +385,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     selected,
     setSaving,
     onMessage: setMessage,
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "documents"),
     t
   });
 
@@ -505,7 +521,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     sortedVehicles,
     selectedVisibleVehicles,
     setVehicles,
-    setSelectedDetail,
+    setSelectedDetail: applyIndependentDetail,
     onMessage: setMessage,
     t
   });
@@ -600,7 +616,9 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       selected,
       mode,
       setSaving,
-      setSelectedDetail,
+      setSelectedDetail: (detail) => acknowledgeSavedVehicle(detail, form, "complete"),
+      acknowledgeCoreSaved: (detail) => acknowledgeSavedVehicle(detail, form, "core"),
+      hasRefreshConflicts: refreshConflicts.length > 0,
       setMode,
       setSaveAttempted,
       setActiveTab,
@@ -610,7 +628,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     validation: {
       missingRequiredLabels: missingRequiredModelFields
     },
-    media: { pendingImages: pendingArticleImages },
+    media: { pendingImages: pendingArticleImages, acknowledgeImportedImage },
     spareParts: {
       selectedInputs: selectedFoundSparePartInputs,
       clearSelected: clearSelectedFoundSpareParts
@@ -757,6 +775,9 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
           activeTab={activeTab}
           saving={saving}
           message={message}
+          refreshConflicts={refreshConflicts}
+          lastSavedAction={lastSavedAction}
+          onResolveRefreshConflicts={resolveRefreshConflicts}
           onSubmit={submit}
           onSubmitSet={submitVehicleSet}
           onClose={closeVehicleCreateDialog}
@@ -794,7 +815,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
               ecosDecoderProfile: selected?.ecosDecoderProfile,
               onOpenCV: () => setActiveTab("cv"),
               externalMappings: selected?.externalMappings || [],
-              readonly,
+              readonly: readonly || saving,
               hideAcquisitionDetails: Boolean(selected?.vehicleSetId),
               articleSearchLoading,
               canRunArticleSearch,
@@ -816,12 +837,12 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             },
             functions: {
               selected,
-              canReadECoS: roles.includes("Admin") && !readonly,
+              canReadECoS: roles.includes("Admin") && !readonly && !saving,
               decoderType: form.decoderType,
               draftMode: mode === "create" || Boolean(ecosDraft),
               draftCVValues: ecosDraft?.cvValues,
               draftDecoderProfile: ecosDraft?.source === "ecos" ? ecosDraft.sourceSummary.profile : undefined,
-              readonly,
+              readonly: readonly || saving,
               saving,
               functionImportInputRef,
               configuredFunctionKeys,
@@ -840,7 +861,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
               selected,
               decoderType: form.decoderType,
               ecosDraft,
-              readonly,
+              readonly: readonly || saving,
               saving,
               cvImportInputRef,
               cvFileInputRef,
@@ -878,8 +899,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             },
             uploads: {
               selected,
-              canTransferToECoS: roles.includes("Admin") && !readonly,
-              readonly,
+              canTransferToECoS: roles.includes("Admin") && !readonly && !saving,
+              readonly: readonly || saving,
               saving,
               imageInputRef,
               attachmentInputRef,
@@ -921,7 +942,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             maintenance: {
               selected,
               pendingArticleImages,
-              readonly,
+              readonly: readonly || saving,
               saving,
               maintenanceForm,
               editingMaintenanceID,
@@ -935,7 +956,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             },
             spareParts: {
               selected,
-              readonly,
+              readonly: readonly || saving,
               saving,
               sparePartForm,
               editingSparePartID,

@@ -1,0 +1,117 @@
+import assert from "node:assert/strict";
+import { mkdir, writeFile } from "node:fs/promises";
+import { chromium } from "playwright";
+
+let inputText = "";
+for await (const part of process.stdin) inputText += part;
+const input = JSON.parse(inputText), origin = new URL(input.base);
+assert.equal(origin.hostname, "127.0.0.1");
+assert.equal(origin.protocol, "http:");
+await mkdir(input.output, { recursive: true });
+const browser = await chromium.launch({ headless: true });
+const checks = [];
+try {
+  for (const language of ["de", "en"]) {
+    const de = language === "de";
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+    await context.route("**/*", route => {
+      const url = new URL(route.request().url());
+      return url.origin === origin.origin || ["data:", "blob:"].includes(url.protocol)
+        ? route.continue() : route.abort();
+    });
+    await context.addInitScript(language => localStorage.setItem("railkeeper.settings.language", language), language);
+    const page = await context.newPage(), errors = [];
+    page.setDefaultTimeout(10000);
+    page.on("pageerror", error => errors.push(error.message));
+    await page.goto(input.base + "/vehicles");
+    await page.getByLabel(de ? "Benutzername" : "Username", { exact: true }).fill(input.credentials.username);
+    await page.getByLabel(de ? "Passwort" : "Password", { exact: true }).fill(input.credentials.password);
+    await page.getByRole("button", { name: de ? "Anmelden" : "Sign in", exact: true }).click();
+    await page.waitForURL("**/overview");
+    const detailURL = input.base + "/api/v1/vehicles/" + input.fixture.vehicleId;
+    const readDetail = async () => {
+      const response = await context.request.get(detailURL);
+      assert.equal(response.status(), 200);
+      return response.json();
+    };
+    const before = await readDetail();
+    await page.goto(input.base + "/vehicles", { waitUntil: "networkidle" });
+    const edit = async () => {
+      const row = page.getByRole("row").filter({ has: page.getByRole("cell", { name: before.name, exact: true }) });
+      await row.getByRole("button", { name: de ? "Bearbeiten" : "Edit", exact: true }).click();
+    };
+    await edit();
+    const dialog = page.getByRole("dialog");
+    const tab = async name => dialog.getByRole("button", { name, exact: true }).click();
+    const designation = () => dialog.getByRole("textbox", { name: de ? /^Bezeichnung/ : /^Designation/ });
+    await designation().fill("UNSAVED-CORE");
+    await tab(de ? "Steuerung" : "Control");
+    const functionName = () => dialog.getByRole("textbox", { name: de ? "F0 Funktionsname" : "F0 Function name", exact: true });
+    await functionName().fill("UNSAVED-FUNCTION");
+    await tab("CV");
+    const raw = () => dialog.locator(".cv-subtabs button").nth(1).click();
+    const manual = async () => {
+      const details = dialog.locator("details.cv-manual-editor");
+      if (!(await details.getAttribute("open")) && !(await details.evaluate(element => element.open))) {
+        await details.locator("summary").click();
+      }
+      return details.getByRole("textbox", { name: de ? "Beschreibung" : "Description", exact: true });
+    };
+    await raw();
+    await (await manual()).fill("UNSAVED-CV-FORM");
+    await tab("Uploads");
+    const imageTitle = () => dialog.getByRole("textbox", { name: de ? "Bildbeschreibung" : "Image description", exact: true }).first();
+    const originalAttachment = () => dialog.locator(".attachment-row").filter({ hasText: "anleitung.txt" });
+    await imageTitle().fill("UNSAVED-IMAGE");
+    await originalAttachment().getByPlaceholder(de ? "Bemerkung" : "Note", { exact: true }).fill("UNSAVED-ATTACHMENT");
+    const uploaded = page.waitForResponse(response => response.request().method() === "POST"
+      && response.url() === detailURL + "/attachments");
+    await dialog.locator(".upload-section").nth(1).locator('input[type="file"]').setInputFiles({
+      name: `confirmed-${language}.txt`, mimeType: "text/plain", buffer: Buffer.from("Confirmed side action.\n")
+    });
+    assert.equal((await uploaded).status(), 201);
+    await dialog.getByRole("status").filter({ hasText: de ? "Bereits gespeichert" : "Already saved" }).waitFor();
+    await dialog.getByText(`confirmed-${language}.txt`, { exact: true }).waitFor();
+    assert.equal(await imageTitle().inputValue(), "UNSAVED-IMAGE");
+    assert.equal(await originalAttachment().getByPlaceholder(de ? "Bemerkung" : "Note", { exact: true }).inputValue(), "UNSAVED-ATTACHMENT");
+    await tab(de ? "Modell" : "Model");
+    assert.equal(await designation().inputValue(), "UNSAVED-CORE");
+    await tab(de ? "Steuerung" : "Control");
+    assert.equal(await functionName().inputValue(), "UNSAVED-FUNCTION");
+    await tab("CV");
+    await raw();
+    assert.equal(await (await manual()).inputValue(), "UNSAVED-CV-FORM");
+    await dialog.getByRole("button", { name: de ? "Abbrechen" : "Cancel", exact: true }).click();
+    await dialog.waitFor({ state: "hidden" });
+    const after = await readDetail();
+    const newAttachments = after.attachments.filter(value => !before.attachments.some(old => old.id === value.id));
+    assert.equal(newAttachments.length, 1);
+    assert.equal(newAttachments[0].originalName, `confirmed-${language}.txt`);
+    assert.deepEqual({ ...after, attachments: before.attachments }, before,
+      "Cancel must preserve only the already confirmed upload, with all draft fields unchanged on the server");
+    await edit();
+    assert.equal(await designation().inputValue(), before.name);
+    await tab(de ? "Steuerung" : "Control");
+    assert.equal(await functionName().inputValue(), before.functions.find(value => value.functionKey === "F0").name);
+    await tab("Uploads");
+    assert.equal(await imageTitle().inputValue(), before.images[0].title);
+    assert.equal(await originalAttachment().getByPlaceholder(de ? "Bemerkung" : "Note", { exact: true }).inputValue(),
+      before.attachments.find(value => value.id === input.fixture.attachmentId).description || "");
+    for (const width of [2580, 1440, 820, 390]) {
+      for (const theme of ["light", "dark"]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.evaluate(theme => document.documentElement.dataset.theme = theme, theme);
+        const bounds = await dialog.locator(".vehicle-save-state").boundingBox();
+        assert.ok(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width + 1);
+        await page.screenshot({ path: `${input.output}/${language}-${theme}-${width}.png` });
+      }
+    }
+    await dialog.getByRole("button", { name: de ? "Abbrechen" : "Cancel", exact: true }).click();
+    assert.deepEqual(errors, []);
+    checks.push(language + ":confirmed-upload-preserves-five-drafts-and-cancel");
+    await context.close();
+  }
+  await writeFile(input.output + "/report.json", JSON.stringify({ passed: true, checks }, null, 2) + "\n");
+} finally {
+  await browser.close();
+}
