@@ -49,3 +49,18 @@ A completed job is shown as completed and cannot be submitted, cancelled or uplo
 dialog. An unavailable status blocks mutations and offers a read-only status check. A still open job
 requires a fresh upload and full review, preserving the existing stale-preview policy. Recovery never
 creates a new job or resends the confirmation. History remains the authority for its actual result.
+
+## Command-station vehicle adoption
+
+Creating a vehicle from an ECoS or CS3 draft submits its selected source mapping in the same request.
+The existing unique provider/object identity is bound in the core vehicle transaction. An already
+assigned source rejects the complete creation, including function changes, audit and inventory-number
+allocation. A retry after a lost creation reply therefore cannot create an unlinked duplicate. The
+dialog retains its draft, reloads inventory on a mapping conflict and requests review of the existing
+assignment. Ordinary vehicle creation remains independent when no mapping is supplied.
+
+Mapping metadata can still be refreshed for the same vehicle. The owner condition is checked inside
+the SQL conflict branch, and the returned mapping comes from that statement. A competing assignment
+cannot silently move the source to another vehicle. Existing explicit same-vehicle rebind behavior
+and the separate station CV adoption remain. No device write, new persistence or backup format is
+introduced; mappings already participate in application backups.

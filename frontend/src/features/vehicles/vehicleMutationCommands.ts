@@ -127,7 +127,9 @@ export function createVehicleMutationCommands({
       const payload = { ...editor.form, images,
         ...(editor.mode === "edit" && editor.selected ? {
           expectedRevision: editor.selected.revision, expectedImagesRevision: editor.selected.imagesRevision
-        } : {}), ...(functionChanges.length ? { functionChanges } : {}) };
+        } : {}), ...(functionChanges.length ? { functionChanges } : {}),
+        ...(editor.mode === "create" && ecos.draft?.mode === "create"
+          ? { externalMapping: { ...ecos.draft.externalMapping } } : {}) };
       let vehicle = editor.mode === "edit" && editor.selected
         ? await api.updateVehicle(editor.selected.id, payload)
         : await api.createVehicle(payload);
@@ -169,6 +171,11 @@ export function createVehicleMutationCommands({
         onMessage(t("vehicles.spareParts.importedCount", { count: sparePartsToImport.length }));
       }
     } catch (error) {
+      if (error instanceof ApiError && error.code === "external_mapping_conflict") {
+        reloadVehicles();
+        onMessage(t("vehicles.ecosDraft.mappingConflict"));
+        return;
+      }
       if (error instanceof ApiError && error.code === "image_revision_missing") {
         onMessage(t("vehicles.mediaConflict.missingRevision"));
         return;
@@ -182,8 +189,7 @@ export function createVehicleMutationCommands({
         ? t("vehicles.functions.conflict")
         : error instanceof ApiError && error.code === "vehicle_function_validation"
         ? t("vehicles.functions.invalidFields", { keys: functionChanges.map(change => change.functionKey).join(", ") })
-        : error instanceof ApiError && error.code === "external_mapping_conflict"
-        ? t("vehicles.ecosDraft.mappingConflict") : error instanceof Error ? error.message : String(error));
+        : error instanceof Error ? error.message : String(error));
     } finally {
       editor.setSaving(false);
     }

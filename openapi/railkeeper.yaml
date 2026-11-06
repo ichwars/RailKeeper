@@ -1963,6 +1963,14 @@ components:
         updatedAt:
           type: string
           format: date-time
+    CreateMappedVehicleRequest:
+      allOf:
+        - $ref: "#/components/schemas/CreateVehicleRequest"
+      type: object
+      properties:
+        externalMapping:
+          description: Optional source identity saved atomically with a new vehicle. An existing owner rejects the entire creation with 409; repeating a lost response cannot create another vehicle. Omit for ordinary vehicle creation. Never writes to a device.
+          $ref: "#/components/schemas/VehicleExternalMappingInput"
     CreateVehicleRequest:
       type: object
       required: [manufacturer, name, gauge]
@@ -8159,12 +8167,13 @@ paths:
                   $ref: "#/components/schemas/Vehicle"
     post:
       tags: [Vehicles]
+      summary: Create a vehicle, optionally binding an import source atomically
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateVehicleRequest"
+              $ref: "#/components/schemas/CreateMappedVehicleRequest"
       responses:
         "201":
           description: Vehicle created
@@ -8174,6 +8183,12 @@ paths:
                 $ref: "#/components/schemas/Vehicle"
         "400":
           description: Invalid vehicle data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Inventory number or source identity already assigned, or a function conflict
           content:
             application/json:
               schema:

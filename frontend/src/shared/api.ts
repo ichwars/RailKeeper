@@ -1151,7 +1151,7 @@ export const api = {
   vehicles: (query = "") =>
     request<Vehicle[]>(`/vehicles${query ? `?q=${encodeURIComponent(query)}` : ""}`),
   overviewValuation: () => request<OverviewValuation>("/overview/valuation"),
-  createVehicle: (input: CreateVehicleRequest) =>
+  createVehicle: (input: CreateVehicleRequest & { externalMapping?: VehicleExternalMappingInput }) =>
     request<Vehicle>("/vehicles", {
       method: "POST",
       body: JSON.stringify(input)

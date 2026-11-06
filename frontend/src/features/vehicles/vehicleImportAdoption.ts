@@ -15,7 +15,10 @@ export async function adoptVehicleImportDraft(
   savedDraft: ECoSVehicleDraftPayload,
   callbacks: VehicleImportCallbacks
 ) {
-  await api.upsertVehicleExternalMapping(vehicle.id, savedDraft.externalMapping);
+  if (!vehicle.externalMappings?.some(mapping => mapping.provider === savedDraft.externalMapping.provider
+    && mapping.externalId === savedDraft.externalMapping.externalId && mapping.vehicleId === vehicle.id)) {
+    await api.upsertVehicleExternalMapping(vehicle.id, savedDraft.externalMapping);
+  }
   if (savedDraft.source === "ecos" && savedDraft.returnToDigitalCenters && savedDraft.cvValues.length) {
     await api.importDigitalCenterCVs(savedDraft.returnToDigitalCenters.sessionId,
       savedDraft.sourceWorkItemId || "", vehicle.id);

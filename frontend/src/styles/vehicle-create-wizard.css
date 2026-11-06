@@ -1006,7 +1006,7 @@
 
   .modal-actions.vehicle-wizard-actions .secondary-button,
   .modal-actions.vehicle-wizard-actions .primary-button {
-    min-height: 42px;
+    min-height: 44px;
     padding: 0 14px;
     font-size: var(--font-size-md);
   }

@@ -19,16 +19,29 @@ func (a *App) listVehicles(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, vehicles)
 }
 
+type createVehicleRequest struct {
+	application.CreateVehicleInput
+	ExternalMapping *application.VehicleExternalMapInput `json:"externalMapping,omitempty"`
+}
+
 func (a *App) createVehicle(w http.ResponseWriter, r *http.Request) {
-	var input application.CreateVehicleInput
+	var input createVehicleRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
 		return
 	}
 
-	vehicle, err := a.vehicleService.Create(r.Context(), input, actorUserID(r))
+	var vehicle *application.Vehicle
+	var err error
+	if input.ExternalMapping != nil {
+		vehicle, err = a.vehicleService.CreateWithExternalMapping(r.Context(), input.CreateVehicleInput, *input.ExternalMapping, actorUserID(r))
+	} else {
+		vehicle, err = a.vehicleService.Create(r.Context(), input.CreateVehicleInput, actorUserID(r))
+	}
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleExternalMappingConflict):
+			respondProblem(w, http.StatusConflict, "external_mapping_conflict", "This source is already assigned to a vehicle. Reload and review the existing assignment before adopting it again.")
 		case errors.Is(err, application.ErrVehicleFunctionValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_function_validation", "Function changes are invalid.")
 		case errors.Is(err, application.ErrVehicleFunctionConflict):
