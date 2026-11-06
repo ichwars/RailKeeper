@@ -54,6 +54,13 @@ cannot use either operation. Repeating a completed POST adds neither catalog row
 backfill audit event. The API reports unlinked entities and drift without silently correcting them;
 generated transport types and the frontend adapter use the same contract.
 
+`GET /api/v1/catalog/{targetType}/{id}` exposes one saved vehicle or set's current fields,
+pinned revision, individual overrides, original authority and immutable article revisions. It uses
+the existing inventory read roles (Viewer, Editor, Admin; no Messe access), performs no backfill
+and never applies pending values. All fields are read in one transaction. Its comparison token
+includes catalog identity and provenance, so changing an assignment with identical visible fields
+still invalidates the previous comparison. Ownership-only edits leave this independent token intact.
+
 `tools/regression/verify_upgrade.py` rehearses the schema on a separate copy of a marked synthetic
 cold reference backup. It compares every existing table and stored file, permits only the four new
 empty tables and appended migration-ledger rows, and checks the automatic SQLite snapshot against
