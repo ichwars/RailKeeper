@@ -24,13 +24,15 @@ export function partitionVehicleImages(pendingImages: PendingArticleImage[], pre
 
 export async function importPendingVehicleImages(
   vehicle: Vehicle, remoteImages: PendingArticleImage[], offset: number,
-  onImported?: (pending: PendingArticleImage, stored: VehicleImage) => void
+  onImported?: (pending: PendingArticleImage, stored: VehicleImage) => void,
+  isCurrent: () => boolean = () => true
 ) {
   let imagesRevision = vehicle.imagesRevision;
   if (remoteImages.length && !validImagesRevision(imagesRevision)) {
     throw new ApiError("Image comparison version missing", "image_revision_missing", 409);
   }
   for (const [imageIndex, image] of remoteImages.entries()) {
+    if (!isCurrent()) return vehicle;
     const stored = await api.importVehicleImageFromUrl(vehicle.id, {
       url: image.url,
       title: image.title || "",
@@ -40,6 +42,7 @@ export async function importPendingVehicleImages(
       sortOrder: offset + imageIndex,
       expectedImagesRevision: imagesRevision
     });
+    if (!isCurrent()) return vehicle;
     onImported?.(image, stored);
     if (!validImagesRevision(stored.imagesRevision)) {
       throw new ApiError("Image saved, comparison version missing", "image_revision_missing", 409);

@@ -80,6 +80,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       setSaveAttempted
     },
     commands: {
+      captureScope,
       update,
       setSelectedDetail,
       applyIndependentDetail,
@@ -653,6 +654,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
   const { submit, confirmDelete } = createVehicleMutationCommands({
     draftOwner: username,
     editor: {
+      captureScope,
       form,
       selected,
       mode,
@@ -700,6 +702,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     submitVehicleSet, closeVehicleSetDialog, openVehicleSet, duplicateVehicleSet,
     closeVehicleCreateDialog, duplicateVehicleSetByID, handleVehicleSetUpdated, handleVehicleSetImageChanged, openSetMember
   } = useVehicleSetController({
+    captureScope,
     username, form, pendingArticleImages, setSaving, setSelectedDetail, setMode,
     setActiveTab, closeModal, openCreate, openDetail, vehicles, load, onMessage: setMessage, t
   });

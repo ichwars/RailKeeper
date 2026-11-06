@@ -60,11 +60,16 @@ export function useVehicleEditorController({
   const conflictsRef = useRef(refreshConflicts);
   const [lastSavedAction, setLastSavedAction] = useState<VehicleSavedAction | null>(null);
   const requestVersion = useRef(0);
-  useEffect(() => () => {
-    requestVersion.current++;
-    selectedRef.current = null;
-    modalOpenRef.current = false;
+  const sessionVersion = useRef(0), alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; requestVersion.current++; sessionVersion.current++; };
   }, []);
+
+  const captureScope = () => {
+    const session = sessionVersion.current;
+    return () => alive.current && modalOpenRef.current && session === sessionVersion.current;
+  };
 
   const setRefreshConflicts = useCallback((value: DraftRefreshConflict[]) => {
     conflictsRef.current = value;
@@ -84,7 +89,9 @@ export function useVehicleEditorController({
     setSelectedState(selectedRef.current);
   }, []);
   const setModalOpen = useCallback((action: SetStateAction<boolean>) => {
-    modalOpenRef.current = typeof action === "function" ? action(modalOpenRef.current) : action;
+    const next = typeof action === "function" ? action(modalOpenRef.current) : action;
+    if (next !== modalOpenRef.current) sessionVersion.current++;
+    modalOpenRef.current = next;
     setModalOpenState(modalOpenRef.current);
   }, []);
 
@@ -175,6 +182,8 @@ export function useVehicleEditorController({
   };
 
 	const openCreate = (initialForm: CreateVehicleRequest = emptyVehicle) => {
+    sessionVersion.current++;
+    setSaving(false);
     requestVersion.current++;
     setRefreshConflicts([]);
     setLastSavedAction(null);
@@ -190,6 +199,8 @@ export function useVehicleEditorController({
   };
 
   const closeModal = () => {
+    sessionVersion.current++;
+    setSaving(false);
     requestVersion.current++;
     setRefreshConflicts([]);
     setLastSavedAction(null);
@@ -203,6 +214,8 @@ export function useVehicleEditorController({
   };
 
   const openVehicle = (vehicle: Vehicle, nextMode: Exclude<ModalMode, "create">, tab: ModalTab) => {
+    sessionVersion.current++;
+    setSaving(false);
     const request = ++requestVersion.current;
     api.vehicle(vehicle.id)
       .then((detail) => {
@@ -274,6 +287,7 @@ export function useVehicleEditorController({
       setSaveAttempted
     },
     commands: {
+      captureScope,
       update,
       setSelectedDetail,
       applyIndependentDetail,

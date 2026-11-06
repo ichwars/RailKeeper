@@ -1,11 +1,12 @@
 import type { FormEvent } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { api, ApiError, type Vehicle, type VehicleFunctionChange, type VehicleImage } from "../../shared/api";
+import { api, ApiError, type Vehicle, type VehicleFunctionChange, type VehicleImage, type VehicleImageCreation } from "../../shared/api";
 import { createdImageFixture, imageFixture, vehicleFixture } from "../../test/fixtures/vehicles";
 import { uploadedImageToPending, type PendingArticleImage } from "./vehicleTransforms";
 import { emptyVehicle, type ECoSVehicleDraftPayload } from "./vehicleViewModel";
 import { createVehicleMutationCommands } from "./vehicleMutationCommands";
+import { importPendingVehicleImages } from "./vehicleImagePersistence";
 
 function commandOptions() {
   const selected: Vehicle | null = null;
@@ -45,6 +46,34 @@ const submitEvent = () => ({ preventDefault: vi.fn() }) as unknown as FormEvent;
 
 describe("createVehicleMutationCommands", () => {
   afterEach(() => vi.restoreAllMocks());
+
+  it("does not acknowledge or start ancillary writes when a closed editor receives a late creation reply", async () => {
+    const options = commandOptions(), created = vehicleFixture(), storedDraft = "another saved draft";
+    localStorage.setItem("railkeeper.vehicleCreateDraft.v2:tester", storedDraft);
+    let finish!: (vehicle: Vehicle) => void, current = true;
+    vi.spyOn(api, "createVehicle").mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    const imageImport = vi.spyOn(api, "importVehicleImageFromUrl");
+    const commands = createVehicleMutationCommands({ ...options,
+      editor: { ...options.editor, captureScope: () => () => current },
+      media: { pendingImages: [{ id: "remote", url: "https://example.invalid/image.png", title: "Image", source: "" }] }
+    });
+    const pending = commands.submit(submitEvent()); current = false; finish(created); await pending;
+    expect(options.editor.setSelectedDetail).not.toHaveBeenCalled();
+    expect(options.functions.acknowledgeSaved).not.toHaveBeenCalled();
+    expect(imageImport).not.toHaveBeenCalled();
+    expect(options.editor.setSaving.mock.calls).toEqual([[true]]);
+    expect(localStorage.getItem("railkeeper.vehicleCreateDraft.v2:tester")).toBe(storedDraft);
+    localStorage.removeItem("railkeeper.vehicleCreateDraft.v2:tester");
+  });
+
+  it("stops remaining image requests and acknowledgments when the editor closes during one image import", async () => {
+    let finish!: (image: VehicleImageCreation) => void, current = true;
+    const imported = vi.spyOn(api, "importVehicleImageFromUrl").mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    const acknowledge = vi.fn(), image = { id: "one", url: "https://example.invalid/one.png", title: "One", source: "" };
+    const pending = importPendingVehicleImages(vehicleFixture(), [image, { ...image, id: "two" }], 0, acknowledge, () => current);
+    current = false; finish(createdImageFixture()); await pending;
+    expect(imported).toHaveBeenCalledOnce(); expect(acknowledge).not.toHaveBeenCalled();
+  });
 
   it("keeps the creation identity on an uncertain request and reports an existing result without another acknowledgment", async () => {
     const options = commandOptions(), id = "a".repeat(32);

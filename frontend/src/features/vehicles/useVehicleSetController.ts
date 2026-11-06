@@ -9,6 +9,7 @@ import type { ModalMode, ModalTab } from "./vehicleViewModel";
 type VehicleSetControllerOptions = {
   username: string;
   form: CreateVehicleRequest;
+  captureScope?: () => () => boolean;
   vehicles: Vehicle[];
   openDetail: (vehicle: Vehicle) => void;
   pendingArticleImages: PendingArticleImage[];
@@ -25,12 +26,14 @@ type VehicleSetControllerOptions = {
 
 export function useVehicleSetController({
   username, form, pendingArticleImages, setSaving, setSelectedDetail, setMode,
-  setActiveTab, closeModal, openCreate, openDetail, vehicles, load, onMessage, t
+  setActiveTab, closeModal, openCreate, openDetail, vehicles, load, onMessage, t, captureScope
 }: VehicleSetControllerOptions) {
 	const [selectedVehicleSetID, setSelectedVehicleSetID] = useState("");
 	const [vehicleSetMode, setVehicleSetMode] = useState<"view" | "edit" | null>(null);
 	const [createPrefill, setCreatePrefill] = useState<VehicleCreatePrefill | null>(null);
   const submitVehicleSet = async (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>, creationId?: string) => {
+    const isCurrent = captureScope?.() || (() => true);
+    if (!isCurrent()) return;
     setSaving(true);
     onMessage("");
     let acknowledged = false;
@@ -41,6 +44,7 @@ export function useVehicleSetController({
         members: vehicleSetMembersFromForm(form, members, pendingArticleImages, imageOwners)
       });
       acknowledged = true;
+      if (!isCurrent()) return;
       clearVehicleCreateDraft(username);
       const firstMember = created.members[0];
       if (firstMember) {
@@ -51,18 +55,20 @@ export function useVehicleSetController({
         closeModal();
       }
       await load();
+      if (!isCurrent()) return;
 			setCreatePrefill(null);
       onMessage(t("vehicles.wizard.created", { count: created.members.length }));
     } catch (error) {
+      if (!isCurrent()) return;
       if (error instanceof ApiError && error.code === "vehicle_creation_conflict") {
-        await load(); onMessage(t("vehicles.creation.alreadyStored")); return;
+        await load(); if (isCurrent()) onMessage(t("vehicles.creation.alreadyStored")); return;
       }
       if (creationId && !acknowledged && (!(error instanceof ApiError) || error.status >= 500 || [408, 499].includes(error.status))) {
         onMessage(t("vehicles.creation.unknown")); return;
       }
       onMessage(error instanceof Error ? error.message : t("vehicles.wizard.createFailed"));
     } finally {
-      setSaving(false);
+      if (isCurrent()) setSaving(false);
     }
   };
 	const closeVehicleSetDialog = () => {

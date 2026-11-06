@@ -26,6 +26,7 @@ type VehicleMutationCommandsOptions = {
     form: CreateVehicleRequest;
     selected: Vehicle | null;
     mode: ModalMode;
+    captureScope?: () => () => boolean;
     setSaving: (saving: boolean) => void;
     setSelectedDetail: (vehicle: Vehicle) => void;
     acknowledgeCoreSaved?: (vehicle: Vehicle) => void;
@@ -84,6 +85,8 @@ export function createVehicleMutationCommands({
 }: VehicleMutationCommandsOptions) {
   const submit = async (event: FormEvent, creationId?: string) => {
     event.preventDefault();
+    const isCurrent = editor.captureScope?.() || (() => true);
+    if (!isCurrent()) return;
     editor.setSaveAttempted(true);
 
     if (media.hasConflicts) {
@@ -137,20 +140,25 @@ export function createVehicleMutationCommands({
         ? await api.updateVehicle(editor.selected.id, payload)
         : await api.createVehicle(payload);
       creationAcknowledged = true;
+      if (!isCurrent()) return;
       if (editor.mode === "create") clearVehicleCreateDraft(draftOwner);
       functions.acknowledgeSaved(vehicle.functions, vehicle.id);
       // The core transaction succeeded. Retrying an ancillary image/import failure must not create a duplicate.
       (editor.acknowledgeCoreSaved || editor.setSelectedDetail)(vehicle);
       editor.setMode("edit");
 
-      vehicle = await importPendingVehicleImages(vehicle, remoteImages, images.length, media.acknowledgeImportedImage);
+      vehicle = await importPendingVehicleImages(vehicle, remoteImages, images.length, media.acknowledgeImportedImage, isCurrent);
+      if (!isCurrent()) return;
 
       for (const part of sparePartsToImport) {
+        if (!isCurrent()) return;
         await api.createVehicleSparePart(vehicle.id, part);
       }
+      if (!isCurrent()) return;
       if (sparePartsToImport.length > 0) {
         spareParts.clearSelected();
         vehicle = await api.vehicle(vehicle.id);
+        if (!isCurrent()) return;
       }
 
       if (ecos.draft && (editor.mode === "create" || editor.mode === "edit")) {
@@ -159,13 +167,16 @@ export function createVehicleMutationCommands({
           clear: ecos.clear,
           returnToSession: ecos.returnToSession,
           reloadVehicles,
-          closeEditor: editor.close
+          closeEditor: editor.close,
+          isCurrent
         });
         vehicle = result.vehicle;
+        if (!isCurrent()) return;
         if (result.returnedToSource) return;
       }
 
       vehicle = await api.vehicle(vehicle.id);
+      if (!isCurrent()) return;
       editor.setSelectedDetail(vehicle);
       editor.setMode("edit");
       editor.setSaveAttempted(false);
@@ -175,6 +186,7 @@ export function createVehicleMutationCommands({
         onMessage(t("vehicles.spareParts.importedCount", { count: sparePartsToImport.length }));
       }
     } catch (error) {
+      if (!isCurrent()) return;
       if (error instanceof ApiError && error.code === "vehicle_creation_conflict") {
         reloadVehicles(); onMessage(t("vehicles.creation.alreadyStored")); return;
       }
@@ -210,7 +222,7 @@ export function createVehicleMutationCommands({
         ? t("vehicles.functions.invalidFields", { keys: functionChanges.map(change => change.functionKey).join(", ") })
         : error instanceof Error ? error.message : String(error));
     } finally {
-      editor.setSaving(false);
+      if (isCurrent()) editor.setSaving(false);
     }
   };
 

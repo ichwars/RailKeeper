@@ -26,6 +26,8 @@ export async function assertCreationRetryGuards(page, input, de, reference) {
     };
     const endpoint = origin.origin + (kind === "set" ? "/api/v1/vehicle-sets" : "/api/v1/vehicles");
     const identities = [], results = [];
+    let heldReady, releaseHeld;
+    const held = new Promise(resolve => { heldReady = resolve; }), released = new Promise(resolve => { releaseHeld = resolve; });
     await page.route(endpoint, async route => {
       if (route.request().method() !== "POST") return route.continue();
       const body = route.request().postDataJSON(); assert.match(body.creationId, /^[0-9a-f]{32}$/);
@@ -39,6 +41,7 @@ export async function assertCreationRetryGuards(page, input, de, reference) {
       assert.equal(response.status(), 201);
       const created = await response.json(); assert.equal(created.id, body.creationId); results.push(created);
       if (identities.length === 1) return route.abort("failed");
+      if (identities.length === 4) { heldReady(); await released; }
       assert.notEqual(body.creationId, identities[0]); return route.fulfill({ response });
     });
     try {
@@ -60,9 +63,30 @@ export async function assertCreationRetryGuards(page, input, de, reference) {
       assert.deepEqual(afterNew.filter(vehicle => !newIDs.includes(vehicle.id)), afterFirst);
       assert.equal(identities.length, 3);
       await page.locator(".vehicle-edit-modal .modal-actions").getByRole("button", { name: de ? "Abbrechen" : "Cancel", exact: true }).click();
-    } finally { await page.unroute(endpoint); }
+      await open(); await submit().click(); await held;
+      await wizard.locator(".vehicle-create-head button").click();
+      const originalResponse = await actor.get("/api/v1/vehicles/" + original.id), originalDetail = await originalResponse.json();
+      const row = page.getByRole("row").filter({ has: page.getByRole("cell", { name: original.name, exact: true }) });
+      await row.getByRole("button", { name: de ? "Bearbeiten" : "Edit", exact: true }).click();
+      const editor = page.locator(".vehicle-edit-modal");
+      const designation = editor.getByRole("textbox", { name: de ? /^Bezeichnung/ : /^Designation/ });
+      const retained = `Retained after ${kind} reply ${language}`; await designation.fill(retained);
+      let staleReads = 0;
+      const observe = request => { if (request.method() === "GET" && request.url() === origin.origin + "/api/v1/vehicles/" + results[2].id) staleReads++; };
+      page.on("request", observe);
+      try {
+        const completed = page.waitForResponse(response => response.url() === endpoint && response.request().method() === "POST");
+        releaseHeld(); assert.equal((await completed).status(), 201);
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        assert.equal(await designation.inputValue(), retained); assert.equal(staleReads, 0);
+        assert.equal(await editor.locator(".modal-actions .primary-button").isEnabled(), true);
+        const unchanged = await actor.get("/api/v1/vehicles/" + original.id); assert.deepEqual(await unchanged.json(), originalDetail);
+      } finally { page.off("request", observe); }
+      await editor.locator(".modal-actions").getByRole("button", { name: de ? "Abbrechen" : "Cancel", exact: true }).click();
+    } finally { releaseHeld(); await page.unroute(endpoint); }
     checks.push(`${language}:${kind}-lost-creation-reply-retains-one-result`, `${language}:${kind}-creation-retry-preserves-all-inventory`,
       `${language}:${kind}-new-identical-draft-creates-a-distinct-owned-result`);
+    checks.push(`${language}:${kind}-late-create-reply-preserves-another-editor`, `${language}:${kind}-late-create-starts-no-ancillary-requests`);
   }
   return checks;
 }
