@@ -4,7 +4,7 @@ description: Sicherung und Wiederherstellung.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-25
+lastReviewed: 2026-11-06
 ---
 
 # Sicherung und Wiederherstellung
@@ -22,6 +22,13 @@ lastReviewed: 2026-10-25
 4. Prüfe vor einem Update, dass eine aktuelle Sicherung vorhanden ist.
 
 Die Anwendungssicherung enthält Bestand, Zubehör, Wartungen, CVs mit Herkunft, Stammdaten, Ausstellungsdaten und gespeicherte Medien. Benutzerkonten, Passwörter, Sitzungen und lokale Systemeinstellungen sind nicht enthalten. Sie ist deshalb keine vollständige Serversicherung.
+
+Format 25 sichert zusätzlich Artikelrevisionen, Fahrzeug-/Set-Zuordnungen und individuelle
+Artikelabweichungen. Ältere unterstützte Sicherungen bleiben einlesbar. Ein älteres Programm kann
+das neue Format nicht vollständig wiederherstellen. Ändere deshalb die Formatnummer nicht manuell.
+Bewahre vor einer Datenmodellumstellung zusätzlich eine vollständige konsistente Installation und
+das dazu passende bisherige Programm auf. Nach neuen Eingaben ist diese ältere Kopie kein
+verlustfreier Rückweg.
 
 ## Eine Sicherung zunächst prüfen
 

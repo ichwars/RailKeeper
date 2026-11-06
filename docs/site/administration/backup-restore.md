@@ -4,7 +4,7 @@ description: Backup and restore.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-25
+lastReviewed: 2026-11-06
 ---
 
 # Backup and restore
@@ -22,6 +22,12 @@ lastReviewed: 2026-10-25
 4. Before updating, check that a current backup exists.
 
 Application backups include inventory, accessories, maintenance, CVs and provenance, master data, exhibition data, and saved media. They exclude user accounts, passwords, sessions, and local system settings. They are not full server backups.
+
+Format 25 also preserves article revisions, vehicle/set relationships and individual catalog overrides.
+Older supported backups remain readable. An older program cannot fully restore the new format;
+never lower the format number manually. Before a data-model migration, also retain a consistent
+full installation and its matching previous program. Once new input exists, that older copy cannot
+provide a lossless rollback.
 
 ## Check a backup first
 

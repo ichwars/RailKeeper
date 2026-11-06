@@ -8,11 +8,24 @@ from pathlib import Path
 from fixture import record_comparison_projection
 
 from preservation import (
-    assert_same, backup_manifest, database_manifest, expected_fresh_restore, file_manifest, vehicle_edit_manifest,
+    assert_same, backup_manifest, database_manifest, expected_backup_upgrade, expected_fresh_restore, file_manifest, vehicle_edit_manifest,
 )
 
 
 class PreservationTests(unittest.TestCase):
+    def test_catalog_schema_upgrade_only_adds_known_empty_tables(self):
+        original = {"format": "railkeeper-backup", "version": 24, "tables": {"vehicles": [{"id": "same", "name": "Keep"}]}}
+        expected = expected_backup_upgrade(original, 25)
+        self.assertEqual(expected["tables"]["vehicles"], original["tables"]["vehicles"])
+        self.assertEqual(expected["tables"]["catalog_article_revisions"], [])
+        self.assertEqual(original["version"], 24)
+        changed = copy.deepcopy(expected)
+        changed["tables"]["vehicle_article_links"] = [{"vehicle_id": "unexpected"}]
+        with self.assertRaises(AssertionError):
+            assert_same(expected, changed, "unexpected backfill")
+        with self.assertRaises(AssertionError):
+            expected_backup_upgrade(original, 26)
+
     def test_cv_api_projection_retains_indices_sources_and_other_revisions(self):
         cv = {"id": "cv", "vehicleId": "v", "cvNumber": 257, "value": 0, "indexCV31": 0,
               "indexCV32": 0, "sourceLine": 2, "sourceExportedAt": "unknown", "revision": "computed"}
@@ -115,9 +128,9 @@ class PreservationTests(unittest.TestCase):
                   "metadata_json": '{"library":"railkeeper-workshop-line"}', "updated_at": "source"}
         custom = {"id": "custom", "type": "manufacturer", "key": "custom", "origin": "custom",
                   "metadata_json": "{}", "updated_at": "original"}
-        source = {"tables": {"master_data_entries": [symbol, custom]},
+        source = {"version": 25, "tables": {"master_data_entries": [symbol, custom]},
                   "profiles": [{"id": "profile", "created_by_user_id": "source-user"}]}
-        local = {"tables": {"master_data_entries": [{**symbol, "updated_at": "target"}]}}
+        local = {"version": 25, "tables": {"master_data_entries": [{**symbol, "updated_at": "target"}]}}
         expected = expected_fresh_restore(source, local, {"target-user"})
         self.assertEqual(expected["tables"]["master_data_entries"][0], custom)
         self.assertEqual(expected["tables"]["master_data_entries"][1]["updated_at"], "target")
