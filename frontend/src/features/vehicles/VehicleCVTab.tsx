@@ -35,6 +35,8 @@ export function VehicleCVTab({
   cvImportInputRef,
   cvFileInputRef,
   cvImportPreview,
+  cvImportNeedsReview = false,
+  recompareCVImportPreview = () => undefined,
   cvImportStats,
   cvForm,
   editingCVID,
@@ -77,6 +79,8 @@ export function VehicleCVTab({
   cvFileInputRef: RefObject<HTMLInputElement | null>;
   cvSummary: { values: number; profiles: number; files: number };
   cvImportPreview: CVImportPreview | null;
+  cvImportNeedsReview?: boolean;
+  recompareCVImportPreview?: () => void;
   cvImportStats: { imported?: number; selected: number; new: number; changed: number; same: number; invalid: number };
   cvForm: VehicleCVValueInput;
   editingCVID: string | null;
@@ -189,7 +193,10 @@ export function VehicleCVTab({
                               <button type="button" className="secondary-button" onClick={() => selectCVImportRows("none")} disabled={saving}>
                                 {t("vehicles.articleSearch.selectNone")}
                               </button>
-                              <button type="button" className="primary-button" onClick={applyCVImportPreview} disabled={readonly || saving || cvImportStats.selected === 0}>
+                              <button type="button" className="secondary-button" onClick={recompareCVImportPreview} disabled={readonly || saving}>
+                                {t("vehicles.cv.importGuard.recompare")}
+                              </button>
+                              <button type="button" className="primary-button" onClick={applyCVImportPreview} disabled={readonly || saving || cvImportNeedsReview || cvImportStats.selected === 0}>
                                 <Check size={15} aria-hidden="true" />
                                 {t("vehicles.articleSearch.applySelected")}
                               </button>
@@ -197,6 +204,7 @@ export function VehicleCVTab({
                                 {t("vehicles.cv.discard")}
                               </button>
                             </div>
+                            {cvImportNeedsReview && <p className="form-message" role="alert">{t("vehicles.cv.importGuard.review")}</p>}
                             <CVImportRowsTable key={cvImportPreview.fileName} preview={cvImportPreview} saving={saving} readonly={readonly} toggle={toggleCVImportRow} />
                           </section>
                         )}

@@ -328,6 +328,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       editingId: editingCVID,
       manualDraft: manualCVDraft,
       importPreview: cvImportPreview,
+      importNeedsReview: cvImportNeedsReview,
       summary: cvSummary,
       importStats: cvImportStats,
       storedDecoderProfiles,
@@ -350,15 +351,19 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       toggleImportRow: toggleCVImportRow,
       selectImportRows: selectCVImportRows,
       applyImportPreview: applyCVImportPreview,
+      recompareImportPreview: recompareCVImportPreview,
       setImportPreview: setCVImportPreview,
       discardImportPreview: discardCVImportPreview
     }
   } = useVehicleCVController({
     selected,
+    readonly,
+    saving,
     decoderNumber: form.digitalDecoderNumber || form.dtDecoderNumber || "",
     setSaving,
     onMessage: setMessage,
     refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "cv"),
+    refreshImportedValues: (vehicleId) => refreshSelectedVehicle(vehicleId, "cv", true),
     reloadSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
   });
 
@@ -915,6 +920,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
               cvFileInputRef,
               cvSummary,
               cvImportPreview,
+              cvImportNeedsReview,
+              recompareCVImportPreview,
               cvImportStats,
               cvForm,
               editingCVID,

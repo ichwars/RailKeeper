@@ -11296,7 +11296,7 @@ paths:
     post:
       tags: [Vehicles]
       summary: Import a reviewed selection of CV values atomically
-      description: Requires Editor or Admin and CSRF. Upserts by vehicle, exact decoder profile, CV number and index pair. Duplicate input keys, unknown field names, missing/null values and foreign source attachments are rejected. All selected values and value histories commit together, or the entire import rolls back. Request limit 8 MiB. This stores inventory data and never writes to a decoder.
+      description: Requires Editor or Admin and CSRF. Upserts by vehicle, exact decoder profile, CV number and index pair. Duplicate input keys, unknown field names, missing/null values and foreign source attachments are rejected. Optional expectedRevision on each value pins an observed row or confirms absence with an empty string. All selected values and value histories commit together, or the entire import rolls back. Business-data limit remains 8 MiB; bounded overhead for up to 10000 comparison revisions is allowed separately. This stores inventory data and never writes to a decoder.
       parameters:
         - name: id
           in: path

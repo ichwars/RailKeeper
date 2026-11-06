@@ -30,5 +30,13 @@ export const importReviewEN: Record<string, string> = {
   "importReview.cv.field.sourceFileId": "Source file",
   "importReview.cv.field.sourceLine": "Original line",
   "importReview.cv.field.sourceExportedAt": "Export timestamp",
-  "importReview.cv.duplicate": "This source contains the same CV identity more than once."
+  "importReview.cv.duplicate": "This source contains the same CV identity more than once.",
+  "vehicles.cv.importGuard.noValues": "No valid CV values found.",
+  "vehicles.cv.importGuard.noSelection": "No CV values selected for import.",
+  "vehicles.cv.importGuard.missingRevision": "A CV comparison version is missing. Compare again before applying.",
+  "vehicles.cv.importGuard.stale": "Changed CV data caused this import to be rejected. Your selection is retained. Compare again before applying.",
+  "vehicles.cv.importGuard.unknown": "The response is unknown; the import may already be saved. Compare again before another attempt.",
+  "vehicles.cv.importGuard.savedRefreshFailed": "{count} CV values were acknowledged as saved. The list could not be refreshed. Reload without applying the same selection again.",
+  "vehicles.cv.importGuard.recompare": "Compare again",
+  "vehicles.cv.importGuard.review": "This comparison needs refreshing. Compare again only reads current values. Already identical values will not be selected again."
 };

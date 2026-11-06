@@ -5,6 +5,7 @@ import { assertMediaDraftWorkflow } from "./media-draft.mjs";
 import { assertCVDraftWorkflow } from "./cv-draft.mjs";
 import { assertMediaActionsWorkflow } from "./media-actions.mjs";
 import { referenceActor } from "./browser-actor.mjs";
+import { assertCVImportGuards } from "./cv-import-guards.mjs";
 
 let inputText = "";
 for await (const part of process.stdin) inputText += part;
@@ -149,6 +150,7 @@ try {
     const reference = await referenceActor(input);
     try {
       checks.push(...await assertCVDraftWorkflow(page, input, de, reference));
+      checks.push(...await assertCVImportGuards(page, input, de, reference));
       checks.push(...await assertMediaDraftWorkflow(page, input, de, reference));
       checks.push(...await assertMediaActionsWorkflow(page, input, de, reference));
     } finally { await reference.actor.dispose(); }
