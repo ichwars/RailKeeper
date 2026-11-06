@@ -313,6 +313,11 @@ type VehicleImage struct {
 	UpdatedAt       string `json:"updatedAt,omitempty"`
 }
 
+type VehicleImageCreation struct {
+	VehicleImage
+	ImagesRevision string `json:"imagesRevision"`
+}
+
 type VehicleImageInput struct {
 	ID              string `json:"id"`
 	URL             string `json:"url"`
@@ -491,18 +496,20 @@ type VehicleCVValueInput struct {
 }
 
 type VehicleCVFile struct {
-	ID             string `json:"id"`
-	VehicleID      string `json:"vehicleId"`
-	FileName       string `json:"fileName"`
-	OriginalName   string `json:"originalName"`
-	Description    string `json:"description,omitempty"`
-	DecoderProfile string `json:"decoderProfile,omitempty"`
-	MimeType       string `json:"mimeType,omitempty"`
-	SizeBytes      int64  `json:"sizeBytes"`
-	StoragePath    string `json:"-"`
-	BlobID         string `json:"-"`
-	CreatedAt      string `json:"createdAt"`
-	UpdatedAt      string `json:"updatedAt"`
+	SourceReferenceCount int    `json:"sourceReferenceCount,omitempty"`
+	Revision             string `json:"revision,omitempty"`
+	ID                   string `json:"id"`
+	VehicleID            string `json:"vehicleId"`
+	FileName             string `json:"fileName"`
+	OriginalName         string `json:"originalName"`
+	Description          string `json:"description,omitempty"`
+	DecoderProfile       string `json:"decoderProfile,omitempty"`
+	MimeType             string `json:"mimeType,omitempty"`
+	SizeBytes            int64  `json:"sizeBytes"`
+	StoragePath          string `json:"-"`
+	BlobID               string `json:"-"`
+	CreatedAt            string `json:"createdAt"`
+	UpdatedAt            string `json:"updatedAt"`
 }
 
 type VehicleCVFileInput struct {

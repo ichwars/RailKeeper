@@ -13,8 +13,9 @@ only when `images` is present: omission preserves images, while an explicit empt
 removal. The server reads and checks the current core and image snapshots in the same transaction as
 core fields, image metadata, function changes, inventory-number history and audit. A mismatch returns
 409 (`vehicle_conflict` or `vehicle_image_conflict`) and commits none of those changes. Core data and
-its response token come from one transaction snapshot; separately loaded images carry their own
-matching collection token.
+its response token, submitted image metadata and the image collection token come from the same
+committed transaction snapshot. A later image change invalidates that acknowledgment's token before
+any ancillary image import can replace the newer primary selection.
 
 Attachment PUT accepts optional `expectedRevision`. Independent image and attachment DELETE accept
 an optional `expectedRevision` query parameter. Current metadata, revision checks, maintenance
@@ -23,6 +24,20 @@ or `image_conflict`); malformed tokens return 400. A maintenance-linked image re
 Requests omitting the optional guards retain the legacy contract. Roles, CSRF and file limits remain
 server-side requirements. The UI must retain the original token with a dirty draft and offer an
 explicit comparison before rebasing it; a refresh alone must not silently authorize stale fields.
+
+Image upload forms and remote-image import requests additionally accept `expectedImagesRevision`.
+The guard is checked before inserting the image or clearing any current primary flag. Their additive
+`VehicleImageCreation` response retains all image fields and includes `imagesRevision` from the same
+creation transaction. A confirmed multi-image upload can chain those acknowledged versions without
+accepting unseen primary or metadata changes. Legacy callers may omit the guard; the original service
+method still returns its existing image record.
+
+Decoder CV-file responses also expose a revision and an optional `sourceReferenceCount` (omission means
+zero). Both come from the same SQL snapshot and include current CV source-reference membership. An
+optional revision guard on CV-file DELETE therefore rejects a confirmation whose source usage changed.
+The deletion retains CV IDs, values, historical source IDs, lines, export times and histories. A later
+CV edit can retain its own historical missing source ID; assigning a new missing ID or a foreign
+vehicle's source file remains invalid. This does not claim that a deleted original file is available.
 
 ## Editor comparison
 
@@ -44,7 +59,8 @@ revision and omits images. Missing comparison tokens block the editor write and 
 Uploads store new payloads under fresh blob identifiers before creating their metadata reference.
 Existing file references are replaced only inside a successful metadata transaction. Failed remote
 image localization/adoption may leave newly allocated blobs unreferenced; create/update clean those
-up after rollback or commit using a bounded cleanup context that survives request cancellation.
+up after rollback or commit using a bounded cleanup context that survives request cancellation. Immediate
+upload handlers use that cancellation-independent, bounded cleanup too.
 Every blob cleanup uses one conditional DELETE checking all image/thumbnail, attachment, CV-file,
 accessory-document and dedicated-set-image references. Referenced payloads remain stored.
 

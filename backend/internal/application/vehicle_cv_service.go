@@ -231,66 +231,38 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `, file.ID, file.VehicleID, file.FileName, file.OriginalName, file.Description, file.DecoderProfile, file.MimeType, file.SizeBytes, file.StoragePath, file.BlobID, file.CreatedAt, file.UpdatedAt); err != nil {
 		return nil, fmt.Errorf("create vehicle cv file: %w", err)
 	}
+	file.Revision = cvFileRevision(file, "[]")
 	return &file, nil
 }
 
 func (s *VehicleService) GetCVFile(ctx context.Context, vehicleID, fileID string) (*VehicleCVFile, error) {
-	var file VehicleCVFile
-	err := s.db.QueryRowContext(ctx, `
-SELECT id, vehicle_id, file_name, original_name, COALESCE(description, ''), COALESCE(decoder_profile, ''),
-       COALESCE(mime_type, ''), size_bytes, storage_path, COALESCE(blob_id, ''), created_at, updated_at
-FROM vehicle_cv_files
-WHERE id=? AND vehicle_id=?
-`, strings.TrimSpace(fileID), strings.TrimSpace(vehicleID)).Scan(
-		&file.ID,
-		&file.VehicleID,
-		&file.FileName,
-		&file.OriginalName,
-		&file.Description,
-		&file.DecoderProfile,
-		&file.MimeType,
-		&file.SizeBytes,
-		&file.StoragePath,
-		&file.BlobID,
-		&file.CreatedAt,
-		&file.UpdatedAt,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrVehicleNotFound
-		}
-		return nil, fmt.Errorf("get vehicle cv file: %w", err)
-	}
-	return &file, nil
+	return readVehicleCVFile(ctx, s.db, vehicleID, fileID)
 }
 
-func (s *VehicleService) DeleteCVFile(ctx context.Context, vehicleID, fileID string) (*VehicleCVFile, error) {
-	file, err := s.GetCVFile(ctx, vehicleID, fileID)
+func (s *VehicleService) DeleteCVFile(ctx context.Context, vehicleID, fileID string, expectedRevision ...string) (*VehicleCVFile, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin CV file delete: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	file, err := readVehicleCVFile(ctx, tx, vehicleID, fileID)
 	if err != nil {
 		return nil, err
 	}
-	result, err := s.db.ExecContext(ctx, `DELETE FROM vehicle_cv_files WHERE id=? AND vehicle_id=?`, strings.TrimSpace(fileID), strings.TrimSpace(vehicleID))
-	if err != nil {
-		return nil, fmt.Errorf("delete vehicle cv file: %w", err)
+	if err := checkVehicleRevision(file.Revision, optionalVehicleRevision(expectedRevision), ErrVehicleCVFileConflict); err != nil {
+		return nil, err
 	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return nil, fmt.Errorf("read vehicle cv file delete result: %w", err)
+	if _, err := tx.ExecContext(ctx, `DELETE FROM vehicle_cv_files WHERE id=? AND vehicle_id=?`, file.ID, file.VehicleID); err != nil {
+		return nil, fmt.Errorf("delete vehicle CV file: %w", err)
 	}
-	if affected == 0 {
-		return nil, ErrVehicleNotFound
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit CV file delete: %w", err)
 	}
 	return file, nil
 }
 
 func (s *VehicleService) loadVehicleCVFiles(ctx context.Context, vehicleID string) ([]VehicleCVFile, error) {
-	rows, err := s.db.QueryContext(ctx, `
-SELECT id, vehicle_id, file_name, original_name, COALESCE(description, ''), COALESCE(decoder_profile, ''),
-       COALESCE(mime_type, ''), size_bytes, storage_path, COALESCE(blob_id, ''), created_at, updated_at
-FROM vehicle_cv_files
-WHERE vehicle_id=?
-ORDER BY created_at ASC
-`, strings.TrimSpace(vehicleID))
+	rows, err := s.db.QueryContext(ctx, vehicleCVFileSelect+`WHERE vehicle_id=? ORDER BY created_at ASC`, strings.TrimSpace(vehicleID))
 	if err != nil {
 		return nil, fmt.Errorf("list vehicle cv files: %w", err)
 	}
@@ -298,24 +270,11 @@ ORDER BY created_at ASC
 
 	out := []VehicleCVFile{}
 	for rows.Next() {
-		var file VehicleCVFile
-		if err := rows.Scan(
-			&file.ID,
-			&file.VehicleID,
-			&file.FileName,
-			&file.OriginalName,
-			&file.Description,
-			&file.DecoderProfile,
-			&file.MimeType,
-			&file.SizeBytes,
-			&file.StoragePath,
-			&file.BlobID,
-			&file.CreatedAt,
-			&file.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scan vehicle cv file: %w", err)
+		file, err := scanVehicleCVFile(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan vehicle CV file: %w", err)
 		}
-		out = append(out, file)
+		out = append(out, *file)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate vehicle cv files: %w", err)

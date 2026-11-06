@@ -159,6 +159,52 @@ func TestAttachmentRevisionGuardsUpdateAndDelete(t *testing.T) {
 	}
 }
 
+func TestImageCreationReceiptProtectsAConcurrentPrimarySelection(t *testing.T) {
+	db := testDB(t)
+	s := application.NewVehicleService(db)
+	v, err := s.Create(t.Context(), application.CreateVehicleInput{Manufacturer: "Reference", Name: "Upload scope",
+		Gauge: "TT", Category: "Lokomotive", Gattung: "Diesellok"}, "actor")
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := application.VehicleImageInput{FileName: "reference.png", MimeType: "image/png", StoragePath: "uploads/reference.png", IsPrimary: true}
+	if _, err := s.CreateImage(t.Context(), v.ID, input); err != nil {
+		t.Fatal(err)
+	}
+	before, err := s.Get(t.Context(), v.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CreateImageWithRevision(t.Context(), v.ID, input, &v.ImagesRevision); !errors.Is(err, application.ErrVehicleImageConflict) {
+		t.Fatalf("expected stale upload conflict: %v", err)
+	}
+	after, err := s.Get(t.Context(), v.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(before, after) {
+		t.Fatal("rejected upload changed the current primary or collection")
+	}
+	created, err := s.CreateImageWithRevision(t.Context(), v.ID, input, &before.ImagesRevision)
+	if err != nil {
+		t.Fatal(err)
+	}
+	current, err := s.Get(t.Context(), v.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.ImagesRevision != current.ImagesRevision || len(current.Images) != 2 ||
+		current.Images[0].ID != created.ID || !current.Images[0].IsPrimary || current.Images[1].IsPrimary {
+		t.Fatal("creation receipt does not match its committed collection")
+	}
+	if _, err := db.Exec(`UPDATE vehicle_images SET title='Newer metadata' WHERE id=?`, created.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CreateImageWithRevision(t.Context(), v.ID, input, &created.ImagesRevision); !errors.Is(err, application.ErrVehicleImageConflict) {
+		t.Fatalf("same-clock metadata change did not invalidate the upload scope: %v", err)
+	}
+}
+
 func TestVehicleConflictCleansUnreferencedLocalizedBlobs(t *testing.T) {
 	db := testDB(t)
 	s := application.NewVehicleService(db)

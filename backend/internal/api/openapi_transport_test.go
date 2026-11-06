@@ -21,6 +21,7 @@ func TestOpenAPITransportFieldsMatchRuntimeJSON(t *testing.T) {
 	for name, record := range map[string]any{
 		"Vehicle":                        application.Vehicle{},
 		"VehicleImage":                   application.VehicleImage{},
+		"VehicleImageCreation":           application.VehicleImageCreation{},
 		"VehicleImageInput":              application.VehicleImageInput{},
 		"VehicleImageImportInput":        importVehicleImageInput{},
 		"VehicleAttachmentImportInput":   importVehicleAttachmentInput{},

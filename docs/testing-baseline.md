@@ -77,6 +77,11 @@ and restore behavior. Both browser suites run on the current target binary/image
 restore, using its own account. This also exercises new write contracts on the matching frontend and
 backend versions while preserving the complete old-to-new database, API and file comparisons.
 
+The Windows standalone workflow also runs focused native Go media tests through its package builder
+before packaging. These cover
+shared legacy paths (including case aliases on Windows), rejected-upload cleanup, committed image
+revision receipts, CV source-link guards, retained historical provenance and canceled-request cleanup.
+
 The runner exercises:
 
 1. Real API creation of the reference; authentication, all four roles and CSRF boundaries.

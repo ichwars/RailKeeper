@@ -239,6 +239,12 @@ try {
   $env:GOARCH = "amd64"
   $env:GOCACHE = Join-Path $repo ".cache\go-build"
   New-Item -ItemType Directory -Force -Path $env:GOCACHE | Out-Null
+  if ($env:GITHUB_ACTIONS -eq "true" -and $env:OS -eq "Windows_NT") {
+    & go test ./internal/application ./internal/api -run 'Test(CVFile|ImageCreation|GuardedImageUpload|MediaDeletion|FileBlobCleanup)' -count=1 -v
+    if ($LASTEXITCODE -ne 0) {
+      throw "Native Windows media preservation tests failed with exit code $LASTEXITCODE"
+    }
+  }
   & go build -buildvcs=false -trimpath -ldflags "-s -w" -o $exePath ./cmd/railkeeper
   if ($LASTEXITCODE -ne 0) {
     throw "Windows backend build failed with exit code $LASTEXITCODE"
