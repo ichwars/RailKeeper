@@ -29,6 +29,7 @@ type VehicleMutationCommandsOptions = {
     setSelectedDetail: (vehicle: Vehicle) => void;
     acknowledgeCoreSaved?: (vehicle: Vehicle) => void;
     hasRefreshConflicts?: boolean;
+    reloadSelectedVehicle?: (vehicleId?: string) => Promise<void>;
     setMode: (mode: ModalMode) => void;
     setSaveAttempted: (attempted: boolean) => void;
     setActiveTab: (tab: ModalTab) => void;
@@ -40,6 +41,7 @@ type VehicleMutationCommandsOptions = {
   };
   media: {
     pendingImages: PendingArticleImage[];
+    hasConflicts?: boolean;
     acknowledgeImportedImage?: (pending: PendingArticleImage, stored: VehicleImage) => void;
   };
   spareParts: {
@@ -83,6 +85,16 @@ export function createVehicleMutationCommands({
     event.preventDefault();
     editor.setSaveAttempted(true);
 
+    if (media.hasConflicts) {
+      editor.setActiveTab("uploads");
+      onMessage(t("vehicles.mediaConflict.resolve"));
+      return;
+    }
+    if (editor.mode === "edit" && editor.selected && (!editor.selected.revision || !editor.selected.imagesRevision)) {
+      onMessage(t("vehicles.mediaConflict.missingRevision"));
+      return;
+    }
+
     if (editor.hasRefreshConflicts) {
       onMessage(t("vehicles.saveState.resolveConflicts"));
       return;
@@ -112,7 +124,10 @@ export function createVehicleMutationCommands({
     try {
       const sparePartsToImport = spareParts.selectedInputs();
       const { images, remoteImages } = partitionVehicleImages(media.pendingImages);
-      const payload = { ...editor.form, images, ...(functionChanges.length ? { functionChanges } : {}) };
+      const payload = { ...editor.form, images,
+        ...(editor.mode === "edit" && editor.selected ? {
+          expectedRevision: editor.selected.revision, expectedImagesRevision: editor.selected.imagesRevision
+        } : {}), ...(functionChanges.length ? { functionChanges } : {}) };
       let vehicle = editor.mode === "edit" && editor.selected
         ? await api.updateVehicle(editor.selected.id, payload)
         : await api.createVehicle(payload);
@@ -154,6 +169,11 @@ export function createVehicleMutationCommands({
         onMessage(t("vehicles.spareParts.importedCount", { count: sparePartsToImport.length }));
       }
     } catch (error) {
+      if (error instanceof ApiError && ["vehicle_conflict", "vehicle_image_conflict"].includes(error.code)) {
+        if (editor.selected) await editor.reloadSelectedVehicle?.(editor.selected.id);
+        onMessage(t("vehicles.mediaConflict.changed"));
+        return;
+      }
       onMessage(error instanceof ApiError && error.code === "vehicle_function_conflict"
         ? t("vehicles.functions.conflict")
         : error instanceof ApiError && error.code === "vehicle_function_validation"

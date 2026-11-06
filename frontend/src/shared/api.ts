@@ -1215,8 +1215,8 @@ export const api = {
       },
       { timeoutMs: 30000 }
     ),
-  deleteVehicleImage: (vehicleId: string, imageId: string) =>
-    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/images/${encodeURIComponent(imageId)}`, {
+  deleteVehicleImage: (vehicleId: string, imageId: string, expectedRevision?: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/images/${encodeURIComponent(imageId)}${expectedRevision === undefined ? "" : `?expectedRevision=${encodeURIComponent(expectedRevision)}`}`, {
       method: "DELETE"
     }),
   uploadVehicleAttachment: (vehicleId: string, file: File, category = "", description = "", maintenanceId = "") => {
@@ -1242,8 +1242,8 @@ export const api = {
         body: JSON.stringify(input)
       }
     ),
-  deleteVehicleAttachment: (vehicleId: string, attachmentId: string) =>
-    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/attachments/${encodeURIComponent(attachmentId)}`, {
+  deleteVehicleAttachment: (vehicleId: string, attachmentId: string, expectedRevision?: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/attachments/${encodeURIComponent(attachmentId)}${expectedRevision === undefined ? "" : `?expectedRevision=${encodeURIComponent(expectedRevision)}`}`, {
       method: "DELETE"
     }),
   vehicleAttachmentDownloadUrl: (vehicleId: string, attachmentId: string) =>

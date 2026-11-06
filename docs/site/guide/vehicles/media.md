@@ -4,7 +4,7 @@ description: Upload, organize, preview, download, and safely remove vehicle imag
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-06
 ---
 
 # Vehicle images and attachments
@@ -117,9 +117,17 @@ Automatic categorization uses this priority, with the first matching rule winnin
 7. Any other allowed file: `Sonstiges`.
 
 You can edit the category and note for each stored attachment. These changes persist only through
-that row's save action, not through the vehicle's **Save changes** action. Saving an attachment row
-reloads the vehicle and discards other unsaved media edits. Save pending image metadata first, then
-edit and save one attachment row before changing another.
+that row's save action, not through the vehicle's **Save changes** action. The refresh preserves pending
+vehicle, function, image and other attachment drafts. **Cancel** discards those pending fields and
+retains independent actions that have already been saved.
+
+## Compare concurrent changes
+
+If someone saves newer values, your draft is retained. A comparison shows your fields and the stored
+values. Explicitly choose which side to keep for conflicting fields. This includes competing primary
+images and image orders. Untouched fields are refreshed. Resolve image conflicts before **Save changes**;
+resolve attachment conflicts before that attachment's separate save. Pending fields for media removed
+elsewhere remain visible for review and can be explicitly discarded.
 
 ## Preview, open, and download attachments
 

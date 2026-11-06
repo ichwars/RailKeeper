@@ -48,8 +48,9 @@ retry concern; acknowledgment alone is not server-side idempotency.
 
 Core-field reconciliation detects changes observed during refresh. The API additionally supports
 optional [content revision guards](media-actions.md) for core fields, image metadata and independent
-image/attachment operations. Clients retain the original token with a dirty draft and must explicitly
-resolve conflicts before rebasing it. Function revision conflicts remain enforced in the shared server
+image/attachment operations. The editor submits its observed tokens and retains the rejected draft.
+Media comparisons include primary-image and order conflicts, keep deleted records' pending metadata
+visible and require an explicit choice for conflicting fields before rebasing their tokens. Function revision conflicts remain enforced in the shared server
 transaction. File operations and separately confirmed actions are not made atomic by the core SQL
 transaction.
 

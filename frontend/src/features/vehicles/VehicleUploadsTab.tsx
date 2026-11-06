@@ -249,7 +249,7 @@ export function VehicleUploadsTab({
                   <input
                     value={image.title || ""}
                     onChange={(event) => onUpdatePendingImageTitle(image.id, event.target.value)}
-                    disabled={readonly}
+                    disabled={readonly || saving}
                     placeholder={t("vehicles.uploads.imageDescription")}
                     aria-label={t("vehicles.uploads.imageDescription")}
                   />
@@ -464,13 +464,13 @@ export function VehicleUploadsTab({
                     <span>{attachment.category || t("vehicles.uploads.noCategory")} - {attachment.mimeType || "Datei"} - {formatFileSize(attachment.sizeBytes)}</span>
                   </div>
                   <div className="attachment-edit-row">
-                    <AppSelect value={edit.category} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { category: event.target.value })} disabled={readonly}>
+                    <AppSelect value={edit.category} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { category: event.target.value })} disabled={readonly || saving}>
                       <option value="">{t("vehicles.uploads.category")}</option>
                       {attachmentCategories.map((category) => (
                         <option key={category} value={category}>{category}</option>
                       ))}
                     </AppSelect>
-                    <input value={edit.description} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { description: event.target.value })} disabled={readonly} placeholder={t("vehicles.uploads.note")} />
+                    <input value={edit.description} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { description: event.target.value })} disabled={readonly || saving} placeholder={t("vehicles.uploads.note")} />
                   </div>
                   <div className="attachment-actions">
                     <button type="button" className="icon-button" onClick={() => setPreviewAttachment(attachment)} aria-label={t("vehicles.uploads.preview")} title={t("vehicles.uploads.preview")}>

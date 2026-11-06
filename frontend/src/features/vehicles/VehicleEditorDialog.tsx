@@ -13,6 +13,8 @@ import { VehicleReadOnlyView } from "./VehicleReadOnlyView";
 import { VehicleSparePartsTab } from "./VehicleSparePartsTab";
 import { VehicleSpeedCurveTab } from "./VehicleSpeedCurveTab";
 import { VehicleUploadsTab } from "./VehicleUploadsTab";
+import { VehicleMediaConflicts } from "./VehicleMediaConflicts";
+import type { MediaDraftConflict } from "./mediaDraftConflicts";
 import { VehicleSaveState } from "./VehicleSaveState";
 import type { VehicleSavedAction } from "./useVehicleEditorController";
 import type { DraftRefreshConflict } from "./vehicleDraftRefresh";
@@ -38,6 +40,8 @@ type VehicleEditorDialogProps = {
   saving: boolean;
   message: string;
   refreshConflicts?: DraftRefreshConflict[];
+  mediaConflicts?: MediaDraftConflict[];
+  onResolveMediaConflict?: (conflict: MediaDraftConflict, choice: "draft" | "saved") => void;
   lastSavedAction?: VehicleSavedAction | null;
   onResolveRefreshConflicts?: (choice: "draft" | "saved") => void;
   tabs: EditorTabs;
@@ -72,6 +76,8 @@ export function VehicleEditorDialog({
   saving,
   message,
   refreshConflicts = [],
+  mediaConflicts = [],
+  onResolveMediaConflict = () => undefined,
   lastSavedAction = null,
   onResolveRefreshConflicts = () => undefined,
   tabs,
@@ -163,6 +169,7 @@ export function VehicleEditorDialog({
             <div className="modal-body" ref={bodyRef}>
               <VehicleSaveState tab={activeTab} saved={lastSavedAction} conflicts={refreshConflicts}
                 onResolve={onResolveRefreshConflicts} />
+              <VehicleMediaConflicts vehicle={selected} conflicts={mediaConflicts} saving={saving} onResolve={onResolveMediaConflict} />
               {activeTab === "model" && <VehicleModelTab {...tabs.model} />}
               {activeTab === "control" && <VehicleFunctionsTab {...tabs.functions} />}
               {activeTab === "speedCurve" && <VehicleSpeedCurveTab {...tabs.speedCurve} />}
@@ -177,7 +184,7 @@ export function VehicleEditorDialog({
               <button type="button" className="secondary-button" onClick={onClose} disabled={saving}>
                 {t("vehicles.cancel")}
               </button>
-              <button className="primary-button" disabled={saving || refreshConflicts.length > 0}>
+              <button className="primary-button" disabled={saving || refreshConflicts.length > 0 || mediaConflicts.some(conflict => conflict.kind === "image")}>
                 <Save size={16} aria-hidden="true" />
                 {saving
                   ? t("vehicles.saving")

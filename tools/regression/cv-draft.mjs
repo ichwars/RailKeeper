@@ -1,19 +1,14 @@
 import assert from "node:assert/strict";
-import { request } from "playwright";
+import { referenceActor } from "./browser-actor.mjs";
 
 const inputFields = ["cvNumber", "value", "decoderProfile", "indexCV31", "indexCV32", "description", "category",
   "protocol", "sourceFileId", "sourceLine", "sourceExportedAt"];
 const editable = value => Object.fromEntries(inputFields.map(field => [field, value[field]]));
 
 export async function assertCVDraftWorkflow(page, input, de) {
-  const language = de ? "de" : "en", origin = new URL(input.base);
-  assert.equal(origin.hostname, "127.0.0.1");
-  assert.equal(origin.protocol, "http:");
-  const actor = await request.newContext({ baseURL: origin.origin, extraHTTPHeaders: { Origin: origin.origin } });
+  const language = de ? "de" : "en";
+  const { actor, csrfToken, origin } = await referenceActor(input);
   try {
-    const login = await actor.post("/api/v1/auth/login", { data: input.credentials });
-    assert.equal(login.status(), 200);
-    const csrfToken = (await login.json()).csrfToken;
     const path = "/api/v1/vehicles/" + encodeURIComponent(input.fixture.vehicleId);
     const read = async () => {
       const response = await actor.get(path);
