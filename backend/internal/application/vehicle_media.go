@@ -121,6 +121,14 @@ func (s *VehicleService) attachCVData(ctx context.Context, vehicles []Vehicle) e
 }
 
 func (s *VehicleService) CreateImage(ctx context.Context, vehicleID string, input VehicleImageInput) (*VehicleImage, error) {
+	created, err := s.CreateImageWithRevision(ctx, vehicleID, input, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &created.VehicleImage, nil
+}
+
+func (s *VehicleService) CreateImageWithRevision(ctx context.Context, vehicleID string, input VehicleImageInput, expectedRevision *string) (*VehicleImageCreation, error) {
 	vehicleID = strings.TrimSpace(vehicleID)
 	input = cleanVehicleImageInput(input)
 	if vehicleID == "" || input.FileName == "" || input.MimeType == "" || (input.StoragePath == "" && input.BlobID == "") {
@@ -164,6 +172,15 @@ func (s *VehicleService) CreateImage(ctx context.Context, vehicleID string, inpu
 	if err := ensureVehicleMaintenanceID(ctx, tx, vehicleID, input.MaintenanceID); err != nil {
 		return nil, err
 	}
+	if expectedRevision != nil {
+		images, err := readVehicleImages(ctx, tx, vehicleID)
+		if err != nil {
+			return nil, err
+		}
+		if err := checkVehicleRevision(vehicleImagesRevision(images), expectedRevision, ErrVehicleImageConflict); err != nil {
+			return nil, err
+		}
+	}
 	var existingCount int
 	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM vehicle_images WHERE vehicle_id=?`, vehicleID).Scan(&existingCount); err != nil {
 		return nil, fmt.Errorf("count vehicle images: %w", err)
@@ -185,11 +202,16 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `, image.ID, image.VehicleID, image.URL, image.Title, image.SourceURL, image.FileName, image.MimeType, image.StoragePath, image.ThumbnailPath, image.BlobID, image.ThumbnailBlobID, image.MaintenanceID, boolToInt(image.IsPrimary), image.SortOrder, image.CreatedAt, image.UpdatedAt); err != nil {
 		return nil, fmt.Errorf("create vehicle image: %w", err)
 	}
+	images, err := readVehicleImages(ctx, tx, vehicleID)
+	if err != nil {
+		return nil, err
+	}
+	imagesRevision := vehicleImagesRevision(images)
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit vehicle image create: %w", err)
 	}
 	image.Revision = vehicleImageRevision(image)
-	return &image, nil
+	return &VehicleImageCreation{VehicleImage: image, ImagesRevision: imagesRevision}, nil
 }
 
 func (s *VehicleService) GetImage(ctx context.Context, vehicleID, imageID string) (*VehicleImage, error) {
@@ -303,8 +325,11 @@ UNION ALL SELECT storage_path FROM vehicle_attachments UNION ALL SELECT storage_
 		if err := rows.Scan(&stored); err != nil {
 			return 0, fmt.Errorf("scan media file reference: %w", err)
 		}
-		if stored.Valid && stored.String != "" && filepath.Clean(filepath.FromSlash(stored.String)) == target {
-			count++
+		if stored.Valid && stored.String != "" {
+			relative, err := filepath.Rel(target, filepath.Clean(filepath.FromSlash(stored.String)))
+			if err == nil && relative == "." {
+				count++
+			}
 		}
 	}
 	if err := rows.Err(); err != nil {

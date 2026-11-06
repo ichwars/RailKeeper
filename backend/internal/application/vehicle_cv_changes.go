@@ -98,13 +98,17 @@ func writeVehicleCVTx(ctx context.Context, tx *sql.Tx, vehicleID string, previou
 		return item, err
 	}
 	if item.SourceFileID != "" {
-		var exists int
-		if err := tx.QueryRowContext(ctx, `SELECT 1 FROM vehicle_cv_files WHERE id=? AND vehicle_id=?`,
-			item.SourceFileID, vehicleID).Scan(&exists); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
+		var sourceVehicleID string
+		err := tx.QueryRowContext(ctx, `SELECT vehicle_id FROM vehicle_cv_files WHERE id=?`, item.SourceFileID).Scan(&sourceVehicleID)
+		// A removed original remains historical evidence on its existing CV, not a newly assigned source.
+		retainedMissingSource := errors.Is(err, sql.ErrNoRows) && previous != nil && previous.SourceFileID == item.SourceFileID
+		if !retainedMissingSource {
+			if errors.Is(err, sql.ErrNoRows) || (err == nil && sourceVehicleID != vehicleID) {
 				return item, ErrVehicleValidation
 			}
-			return item, fmt.Errorf("check CV source ownership: %w", err)
+			if err != nil {
+				return item, fmt.Errorf("check CV source ownership: %w", err)
+			}
 		}
 	}
 	occupied, err := vehicledata.FindCV(ctx, tx, item)

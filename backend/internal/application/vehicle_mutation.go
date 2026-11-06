@@ -40,15 +40,16 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 	if err != nil {
 		return nil, err
 	}
-	if err = tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit create vehicle: %w", err)
-	}
-	images, err := s.loadVehicleImages(ctx, vehicle.ID)
+	images, err := readVehicleImages(ctx, tx, vehicle.ID)
 	if err != nil {
 		return nil, err
 	}
 	vehicle.Images = images
 	vehicle.ImagesRevision = vehicleImagesRevision(images)
+
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit create vehicle: %w", err)
+	}
 	vehicle.Functions, err = s.loadVehicleFunctions(ctx, vehicle.ID)
 	if err != nil {
 		return nil, err
@@ -235,15 +236,16 @@ VALUES(?, ?, 'VehicleUpdated', 'vehicle', ?, ?, '{}')
 		return nil, err
 	}
 	vehicle = *stored
-	if err = tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit update vehicle: %w", err)
-	}
-	images, err := s.loadVehicleImages(ctx, vehicle.ID)
+	images, err := readVehicleImages(ctx, tx, vehicle.ID)
 	if err != nil {
 		return nil, err
 	}
 	vehicle.Images = images
 	vehicle.ImagesRevision = vehicleImagesRevision(images)
+
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit update vehicle: %w", err)
+	}
 	if vehicle.VehicleSet != nil {
 		_, _, _, mainImage, err := s.resolveSetMainImage(ctx, vehicle.VehicleSet.ID)
 		if err != nil {

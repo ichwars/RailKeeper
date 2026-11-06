@@ -13,6 +13,7 @@ import (
 )
 
 var (
+	ErrVehicleCVFileConflict     = errors.New("vehicle CV file or its source references changed")
 	ErrVehicleConflict           = errors.New("vehicle changed since the draft was opened")
 	ErrVehicleImageConflict      = errors.New("vehicle images changed since the draft was opened")
 	ErrVehicleAttachmentConflict = errors.New("vehicle attachment changed since the draft was opened")

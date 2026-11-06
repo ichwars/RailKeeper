@@ -205,8 +205,21 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) deleteVehicleCVFile(w http.ResponseWriter, r *http.Request) {
-	file, err := a.vehicleService.DeleteCVFile(r.Context(), r.PathValue("id"), r.PathValue("cvFileID"))
+	var expected []string
+	if r.URL.Query().Has("expectedRevision") {
+		expected = []string{r.URL.Query().Get("expectedRevision")}
+	}
+	file, err := a.vehicleService.DeleteCVFile(r.Context(), r.PathValue("id"), r.PathValue("cvFileID"), expected...)
 	if err != nil {
+		if errors.Is(err, application.ErrVehicleCVFileConflict) {
+			respondProblem(w, http.StatusConflict, "cv_file_conflict", "The CV file or its source references changed. Review before confirming deletion again.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "cv_file_invalid", "Invalid expected revision.")
+			return
+		}
+
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "cv_file_not_found", "CV file not found.")
 			return

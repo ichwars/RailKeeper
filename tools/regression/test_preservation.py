@@ -35,9 +35,15 @@ class PreservationTests(unittest.TestCase):
         result = record_comparison_projection(source)
         self.assertEqual(result["vehicles"], [{k: v for k, v in vehicle.items() if k not in {"revision", "imagesRevision"}}])
         self.assertEqual(result["images"], [{k: v for k, v in image.items() if k != "revision"}])
+        creation = {**image, "imagesRevision": "created collection"}
+        self.assertEqual(record_comparison_projection(creation), result["images"][0])
         self.assertEqual(result["attachments"], [{k: v for k, v in attachment.items() if k != "revision"}])
         self.assertEqual(result["other"], source["other"])
         self.assertEqual(source["vehicles"][0]["revision"], "core")
+        cv_file = {**attachment, "decoderProfile": "Legacy", "sourceReferenceCount": 3}
+        projected = record_comparison_projection(cv_file)
+        self.assertEqual(projected, {key: value for key, value in cv_file.items() if key not in {"revision", "sourceReferenceCount"}})
+
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

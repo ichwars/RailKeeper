@@ -120,9 +120,13 @@ def record_comparison_projection(value):
         cv = {"id", "vehicleId", "cvNumber", "value"}.issubset(value)
         vehicle = {"id", "inventoryNumber", "manufacturer", "name", "gauge", "qrCodeEnabled"}.issubset(value)
         image = {"id", "vehicleId", "url", "isPrimary", "sortOrder"}.issubset(value)
-        attachment = {"id", "vehicleId", "fileName", "originalName", "sizeBytes"}.issubset(value)
-        computed = {"revision"} if cv or image or attachment else set()
+        media_file = {"id", "vehicleId", "fileName", "originalName", "sizeBytes"}.issubset(value)
+        computed = {"revision"} if cv or image or media_file else set()
+        if media_file:
+            computed.add("sourceReferenceCount")
+        if vehicle or image:
+            computed.add("imagesRevision")
         if vehicle:
-            computed.update({"revision", "imagesRevision"})
+            computed.add("revision")
         return {key: record_comparison_projection(item) for key, item in value.items() if key not in computed}
     return value

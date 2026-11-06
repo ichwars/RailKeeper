@@ -2405,6 +2405,17 @@ components:
         createdAt:
           type: string
           format: date-time
+    VehicleImageCreation:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/VehicleImage"
+      required: [imagesRevision]
+      properties:
+        imagesRevision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          readOnly: true
+          description: Complete image collection revision from the same committed creation snapshot.
     VehicleImageInput:
       type: object
       required: [url]
@@ -2457,6 +2468,7 @@ components:
       type: object
       required: [url]
       properties:
+        expectedImagesRevision: {type: string, pattern: "^[0-9a-f]{64}$", writeOnly: true}
         url: {type: string}
         title: {type: string}
         sourceUrl: {type: string}
@@ -2568,6 +2580,16 @@ components:
       type: object
       required: [id, vehicleId, fileName, originalName, sizeBytes, createdAt, updatedAt]
       properties:
+        sourceReferenceCount:
+          type: integer
+          minimum: 0
+          readOnly: true
+          description: Number of current CV source links in the same snapshot as revision; omission means zero.
+        revision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          readOnly: true
+          description: Content and current source-reference revision for a confirmed deletion.
         id: {type: string}
         vehicleId: {type: string}
         fileName: {type: string}
@@ -10825,9 +10847,31 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+                title: {type: string}
+                sourceUrl: {type: string}
+                maintenanceId: {type: string}
+                isPrimary: {type: boolean}
+                expectedImagesRevision: {type: string, pattern: "^[0-9a-f]{64}$"}
       responses:
+        "409":
+          description: The image collection changed; no image was stored and the existing primary was preserved.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "201":
-          description: Uploaded image
+          description: Uploaded image and committed collection revision
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/VehicleImageCreation"}
         "403":
           description: Editor role required
           content:
@@ -10850,6 +10894,11 @@ paths:
           application/json:
             schema: {$ref: "#/components/schemas/VehicleImageImportInput"}
       responses:
+        "409":
+          description: The image collection changed; no image was stored and the existing primary was preserved.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "201":
           description: Image imported
         "400":
@@ -11404,6 +11453,10 @@ paths:
       tags: [Vehicles]
       summary: Delete a decoder CV file
       parameters:
+        - name: expectedRevision
+          in: query
+          required: false
+          schema: {type: string, pattern: "^[0-9a-f]{64}$"}
         - name: id
           in: path
           required: true
@@ -11415,6 +11468,11 @@ paths:
           schema:
             type: string
       responses:
+        "409":
+          description: The file or its source references changed; nothing was deleted.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "204":
           description: CV file deleted
   /vehicles/{id}/cv-files/{cvFileID}/download:
