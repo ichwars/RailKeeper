@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 24
+	backupVersion = 25
 )
 
 var (
@@ -99,9 +99,13 @@ var backupTableOrder = []string{
 	"inventory_number_schemes",
 	"file_blobs",
 	"storage_locations",
+	"catalog_articles",
+	"catalog_article_revisions",
 	"vehicle_sets",
 	"vehicles",
 	"vehicle_set_members",
+	"vehicle_article_links",
+	"vehicle_set_article_links",
 	"inventory_number_history",
 	"vehicle_external_mappings",
 	"vehicle_images",
@@ -156,6 +160,10 @@ type backupTableVersionPolicy struct {
 }
 
 var backupTableVersions = map[string]backupTableVersionPolicy{
+	"catalog_articles":                         {introduced: 25, required: 25},
+	"catalog_article_revisions":                {introduced: 25, required: 25},
+	"vehicle_article_links":                    {introduced: 25, required: 25},
+	"vehicle_set_article_links":                {introduced: 25, required: 25},
 	"retired_allocation_records":               {introduced: 23, required: 23},
 	"master_data_entries":                      {introduced: 1, required: 1},
 	"master_data_relations":                    {introduced: 1, required: 1},
@@ -739,7 +747,11 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 			result.Errors = append(result.Errors, validateBackupCVProvenance(rows)...)
 		}
 		if len(item.UnknownColumns) > 0 {
-			result.Warnings = append(result.Warnings, fmt.Sprintf("Tabelle %s enthält unbekannte Spalten, die beim Restore ignoriert werden.", table))
+			if isVehicleCatalogBackupTable(table) {
+				result.Errors = append(result.Errors, fmt.Sprintf("Katalogtabelle %s enthält unbekannte Spalten. / Unknown catalog table columns.", table))
+			} else {
+				result.Warnings = append(result.Warnings, fmt.Sprintf("Tabelle %s enthält unbekannte Spalten, die beim Restore ignoriert werden.", table))
+			}
 		}
 		if table == "accessory_product_attributes" {
 			result.Errors = append(result.Errors,
@@ -772,6 +784,7 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 	if doc.Profiles != nil {
 		result.Errors = append(result.Errors, validateBackupDataTransferProfiles(doc.Profiles)...)
 	}
+	result.Errors = append(result.Errors, validateBackupVehicleCatalog(doc)...)
 
 	return finishBackupValidation(result), nil
 }

@@ -18,7 +18,7 @@ from client import Client, setup
 from fixture import observations, seed
 from matrix import inventory
 from preservation import (
-    assert_same, backup_manifest, digest, expected_fresh_restore, installation_manifest, vehicle_edit_manifest,
+    assert_same, backup_manifest, digest, expected_backup_upgrade, expected_fresh_restore, installation_manifest, vehicle_edit_manifest,
 )
 from runtime import Runtime
 
@@ -213,7 +213,9 @@ def run(args):
                      "data_transfer_jobs", "data_transfer_artifacts"):
             assert_same(original["tables"][name], startup_tables[name], "Installation startup " + name)
         target.client.login(credentials)
-        assert_same(baseline, backup_manifest(target.client.request("GET", "/api/v1/backup/export")), "Installation startup")
+        upgraded = target.client.request("GET", "/api/v1/backup/export")
+        assert_same(backup_manifest(expected_backup_upgrade(backup, upgraded["version"])),
+                    backup_manifest(upgraded), "Installation startup")
         assert_same(observed, observations(target.client, fixture), "Installation API observations")
         verify_media(target.client, fixture)
         verify_artifact(target.client, fixture)
