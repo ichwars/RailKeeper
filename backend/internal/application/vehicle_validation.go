@@ -73,13 +73,6 @@ func isValidVehicleOperationalInput(input CreateVehicleInput) bool {
 		(*input.MaximumSpeedKmh >= 1 && *input.MaximumSpeedKmh <= 1000)
 }
 
-func nullableInt(value *int) any {
-	if value == nil {
-		return nil
-	}
-	return *value
-}
-
 func cleanVehicleImageInputs(images []VehicleImageInput) []VehicleImageInput {
 	seen := map[string]bool{}
 	cleaned := []VehicleImageInput{}
