@@ -9,6 +9,7 @@ import { assertCVImportGuards } from "./cv-import-guards.mjs";
 import { assertTransferImportRecovery } from "./transfer-import-recovery.mjs";
 import { assertStationAdoptionGuards } from "./station-adoption-guards.mjs";
 import { assertArticleReviewGuards } from "./article-review-guards.mjs";
+import { assertLegacyCVAdoption } from "./legacy-cv-adoption.mjs";
 
 let inputText = "";
 for await (const part of process.stdin) inputText += part;
@@ -159,6 +160,7 @@ try {
       checks.push(...await assertTransferImportRecovery(page, input, de, reference));
       checks.push(...await assertStationAdoptionGuards(page, input, de, reference));
       checks.push(...await assertArticleReviewGuards(page, input, de, reference));
+      checks.push(...await assertLegacyCVAdoption(page, input, de, reference));
     } finally { await reference.actor.dispose(); }
     assert.deepEqual(errors, []);
     await context.close();
