@@ -2,6 +2,7 @@
 
 import copy
 import json
+import uuid
 from datetime import datetime, timedelta, timezone
 
 
@@ -13,6 +14,14 @@ FIELDS = {
 }
 TABLES = ("catalog_articles", "catalog_article_revisions", "vehicle_article_links", "vehicle_set_article_links")
 NOTE = "Übernommene Katalogdarstellung, Quellenzeitpunkt unbekannt. / Imported catalog representation, source time unknown."
+
+
+def checked_adoption_clock(value):
+    timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    now = datetime.now(timezone.utc)
+    if timestamp.tzinfo is None or not now - timedelta(minutes=15) <= timestamp <= now + timedelta(seconds=5):
+        raise AssertionError("A new catalog adoption must have its own current timestamp")
+    return value
 
 
 def expected_catalog_backfill(document, actual):
@@ -27,12 +36,7 @@ def expected_catalog_backfill(document, actual):
         actual_row = actual_rows[table].get(identity)
         if actual_row is None:
             raise AssertionError("Expected legacy catalog assignment is absent from " + table)
-        value = actual_row[clock]
-        timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        now = datetime.now(timezone.utc)
-        if timestamp.tzinfo is None or not now - timedelta(minutes=15) <= timestamp <= now + timedelta(seconds=5):
-            raise AssertionError("A new catalog adoption must have its own current timestamp")
-        row[clock] = value
+        row[clock] = checked_adoption_clock(actual_row[clock])
         for column in ("fields_json", "overrides_json"):
             if column in row:
                 if json.loads(actual_row[column]) != row[column]:
@@ -104,3 +108,72 @@ def expected_catalog_authority(document, source_version):
             composed = {**revisions[row["revision_id"]], **json.loads(row["overrides_json"])}
             row["authority"] = "catalog" if composed == legacy[row[identity]] else "legacy"
     return expected
+
+
+def exercise_catalog_writes(client, vehicle_id):
+    """Verify explicit HTTP writes against a complete independently derived backup."""
+    from preservation import assert_same, backup_manifest
+
+    before = client.request("GET", "/api/v1/backup/export")
+    path = "/api/v1/catalog/vehicle/" + vehicle_id
+    state = client.request("GET", path)
+    if state["authority"] != "catalog" or not state.get("pinned"):
+        raise AssertionError("The synthetic catalog write reference must have an active pinned revision")
+    values = {**state["currentFields"], "manufacturer": "SYNTHETIC-CATALOG-CORRECTION",
+              "name": "Unselected synthetic catalog designation"}
+    command = {"id": uuid.uuid4().hex, "expectedRevision": state["revision"], "fields": values,
+               "note": "Synthetic explicit selection check", "selectedFields": ["manufacturer"]}
+    confirmed = client.request("POST", path + "/revisions", command, expected=201)
+    actual = client.request("GET", "/api/v1/backup/export")
+    expected = copy.deepcopy(before)
+    article = state["pinned"]["articleId"]
+    revision = next(row for row in actual["tables"][TABLES[1]] if row["id"] == command["id"])
+    if json.loads(revision["fields_json"]) != values:
+        raise AssertionError("The saved immutable revision differs from the confirmed catalog values")
+    expected["tables"][TABLES[1]].append({
+        "id": command["id"], "article_id": article,
+        "revision_number": max(row["revision_number"] for row in before["tables"][TABLES[1]] if row["article_id"] == article) + 1,
+        "fields_json": revision["fields_json"], "note": command["note"],
+        "created_at": checked_adoption_clock(revision["created_at"]),
+    })
+    saved = next(row for row in actual["tables"]["vehicles"] if row["id"] == vehicle_id)
+    original = next(row for row in expected["tables"]["vehicles"] if row["id"] == vehicle_id)
+    original.update(manufacturer=values["manufacturer"], updated_at=checked_adoption_clock(saved["updated_at"]))
+    link = next(row for row in expected["tables"][TABLES[2]] if row["vehicle_id"] == vehicle_id)
+    saved_link = next(row for row in actual["tables"][TABLES[2]] if row["vehicle_id"] == vehicle_id)
+    current = {**state["currentFields"], "manufacturer": values["manufacturer"]}
+    overrides = {key: value for key, value in current.items() if value != values[key]}
+    if json.loads(saved_link["overrides_json"]) != overrides:
+        raise AssertionError("Unselected owned values were not retained as individual overrides")
+    link.update(revision_id=command["id"], overrides_json=saved_link["overrides_json"],
+                updated_at=checked_adoption_clock(saved_link["updated_at"]))
+    assert_same(backup_manifest(expected), backup_manifest(actual), "Complete catalog write effect")
+    if confirmed["currentFields"] != current or confirmed["pinned"]["id"] != command["id"]:
+        raise AssertionError("Catalog confirmation does not describe its saved result")
+    for repeated in (command, {**command, "id": uuid.uuid4().hex}):
+        client.request("POST", path + "/revisions", repeated, expected=409)
+        assert_same(backup_manifest(actual), backup_manifest(client.request("GET", "/api/v1/backup/export")),
+                    "Repeated or stale catalog confirmation")
+    adoption = {"expectedRevision": confirmed["revision"], "revisionId": state["pinned"]["id"],
+                "selectedFields": ["manufacturer"]}
+    adopted = client.request("POST", path + "/adoption", adoption)
+    current["manufacturer"] = state["pinned"]["fields"]["manufacturer"]
+    if adopted["currentFields"] != current or adopted["pinned"]["id"] != adoption["revisionId"]:
+        raise AssertionError("Revision adoption changed unselected current values")
+    expected = copy.deepcopy(actual)
+    actual = client.request("GET", "/api/v1/backup/export")
+    original = next(row for row in expected["tables"]["vehicles"] if row["id"] == vehicle_id)
+    saved = next(row for row in actual["tables"]["vehicles"] if row["id"] == vehicle_id)
+    original.update(manufacturer=current["manufacturer"], updated_at=checked_adoption_clock(saved["updated_at"]))
+    overrides = {key: value for key, value in current.items() if value != state["pinned"]["fields"][key]}
+    link = next(row for row in expected["tables"][TABLES[2]] if row["vehicle_id"] == vehicle_id)
+    saved_link = next(row for row in actual["tables"][TABLES[2]] if row["vehicle_id"] == vehicle_id)
+    if json.loads(saved_link["overrides_json"]) != overrides:
+        raise AssertionError("Adoption did not preserve individual overrides")
+    link.update(revision_id=adoption["revisionId"], overrides_json=saved_link["overrides_json"],
+                updated_at=checked_adoption_clock(saved_link["updated_at"]))
+    assert_same(backup_manifest(expected), backup_manifest(actual), "Complete catalog adoption effect")
+    client.request("POST", path + "/adoption", adoption, expected=409)
+    assert_same(backup_manifest(actual), backup_manifest(client.request("GET", "/api/v1/backup/export")),
+                "Repeated catalog adoption")
+    return before

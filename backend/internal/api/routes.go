@@ -219,6 +219,8 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/catalog/legacy-backfill", routeAccessAdmin, (*App).vehicleCatalogBackfillReport, nil},
 		{http.MethodPost, "/api/v1/catalog/legacy-backfill", routeAccessAdmin, (*App).backfillVehicleCatalog, nil},
 		{http.MethodGet, "/api/v1/catalog/{targetType}/{id}", routeAccessViewer, (*App).vehicleCatalogContext, nil},
+		{http.MethodPost, "/api/v1/catalog/{targetType}/{id}/revisions", routeAccessEditor, (*App).createVehicleCatalogRevision, nil},
+		{http.MethodPost, "/api/v1/catalog/{targetType}/{id}/adoption", routeAccessEditor, (*App).adoptVehicleCatalogRevision, nil},
 		{http.MethodPost, "/api/v1/backup/validate", routeAccessAdmin, (*App).validateBackup, nil},
 		{http.MethodPost, "/api/v1/backup/restore", routeAccessAdmin, (*App).restoreBackup, nil},
 		{http.MethodGet, "/api/v1/exhibition-lists", routeAccessMesse, (*App).listExhibitionLists, nil},

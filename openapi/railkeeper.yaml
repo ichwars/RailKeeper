@@ -3429,6 +3429,39 @@ components:
           type: array
           items: {$ref: '#/components/schemas/VehicleCatalogRevision'}
         revision: {type: string, pattern: '^[0-9a-f]{64}$'}
+    VehicleCatalogRevisionInput:
+      type: object
+      additionalProperties: false
+      required: [id, expectedRevision, fields, selectedFields]
+      properties:
+        id: {type: string, pattern: '^[0-9a-f]{32}$'}
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        fields: {$ref: '#/components/schemas/VehicleCatalogFields'}
+        note: {type: string, maxLength: 2000}
+        independent: {type: boolean, default: false}
+        selectedFields:
+          type: array
+          uniqueItems: true
+          maxItems: 13
+          description: Explicit selection; an empty array pins the revision while preserving every saved field.
+          items:
+            type: string
+            enum: [name, manufacturer, articleNumber, articleSourceUrl, gauge, epoch, railwayCompany, category, gattung, description, ean, productionPeriod, listPrice]
+    VehicleCatalogAdoptionInput:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision, revisionId, selectedFields]
+      properties:
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        revisionId: {type: string, minLength: 1}
+        selectedFields:
+          type: array
+          uniqueItems: true
+          maxItems: 13
+          description: Explicit selection; an empty array pins the revision while preserving every saved field.
+          items:
+            type: string
+            enum: [name, manufacturer, articleNumber, articleSourceUrl, gauge, epoch, railwayCompany, category, gattung, description, ean, productionPeriod, listPrice]
     VehicleCatalogAssignment:
       type: object
       required: [targetType, targetId, name, authority, overrideFields, differentFields]
@@ -9668,6 +9701,70 @@ paths:
           description: Inventory role required
         "404":
           description: Target not found
+  /catalog/{targetType}/{id}/revisions:
+    parameters:
+      - name: targetType
+        in: path
+        required: true
+        schema: {type: string, enum: [vehicle, set]}
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    post:
+      summary: Create and explicitly assign an immutable catalog revision
+      description: Editor or Admin and CSRF required. A current catalog comparison and explicit field selection protect existing data. Unselected owned values and other targets remain unchanged. Legacy proposals are retained as immutable revisions before activation. Request limit is 1 MiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VehicleCatalogRevisionInput'}
+      responses:
+        "201":
+          description: Confirmed saved assignment
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VehicleCatalogContext'}
+        "400":
+          description: Invalid confirmation or JSON
+        "403":
+          description: Editor or Admin and CSRF required
+        "404":
+          description: Target or own-article revision not found
+        "409":
+          description: Comparison changed or revision identity already saved; reload and review before another confirmation
+  /catalog/{targetType}/{id}/adoption:
+    parameters:
+      - name: targetType
+        in: path
+        required: true
+        schema: {type: string, enum: [vehicle, set]}
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    post:
+      summary: Adopt selected fields from a revision of the existing article
+      description: Editor or Admin and CSRF required. A current catalog comparison and explicit field selection protect existing data. Unselected owned values and other targets remain unchanged. Legacy proposals are retained as immutable revisions before activation. Request limit is 1 MiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VehicleCatalogAdoptionInput'}
+      responses:
+        "200":
+          description: Confirmed saved assignment
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VehicleCatalogContext'}
+        "400":
+          description: Invalid confirmation or JSON
+        "403":
+          description: Editor or Admin and CSRF required
+        "404":
+          description: Target or own-article revision not found
+        "409":
+          description: Comparison changed or revision identity already saved; reload and review before another confirmation
   /catalog/legacy-backfill:
     get:
       summary: Report catalog assignments without changing inventory
