@@ -91,6 +91,16 @@ func TestCVDraftRollsBackStaleRowsIdentityMovesForeignSourcesAndSQLFailure(t *te
 	if _, err := s.CreateCVValue(t.Context(), v.ID, application.VehicleCVValueInput{CVNumber: 2, Value: 6, DecoderProfile: "B"}); err != nil {
 		t.Fatal(err)
 	}
+	otherVehicle, err := s.Create(t.Context(), application.CreateVehicleInput{Manufacturer: "Test", Name: "Other owner", Gauge: "TT", Category: "Lokomotive", Gattung: "Diesellok"}, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	foreignFile, err := s.CreateCVFile(t.Context(), otherVehicle.ID, application.VehicleCVFileInput{
+		FileName: "foreign.txt", OriginalName: "foreign.txt", StoragePath: "cv-files/synthetic-not-read.txt",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, err := db.Exec(`CREATE TRIGGER reject_cv_test BEFORE UPDATE ON vehicle_cv_values
 WHEN NEW.value=99 BEGIN SELECT RAISE(ABORT, 'injected CV write failure'); END`); err != nil {
 		t.Fatal(err)
@@ -102,7 +112,7 @@ WHEN NEW.value=99 BEGIN SELECT RAISE(ABORT, 'injected CV write failure'); END`);
 	}{
 		{"stale", application.VehicleCVChange{ID: b.ID, ExpectedRevision: strings.Repeat("0", 64), Value: &application.VehicleCVValueInput{CVNumber: 2, Value: 9, DecoderProfile: "A"}}, application.ErrVehicleCVConflict},
 		{"occupied profile identity", application.VehicleCVChange{ID: b.ID, ExpectedRevision: b.Revision, Value: &application.VehicleCVValueInput{CVNumber: 2, Value: 9, DecoderProfile: "B"}}, application.ErrVehicleCVConflict},
-		{"foreign source", application.VehicleCVChange{ID: b.ID, ExpectedRevision: b.Revision, Value: &application.VehicleCVValueInput{CVNumber: 2, Value: 9, DecoderProfile: "A", SourceFileID: "foreign-file"}}, application.ErrVehicleValidation},
+		{"foreign source", application.VehicleCVChange{ID: b.ID, ExpectedRevision: b.Revision, Value: &application.VehicleCVValueInput{CVNumber: 2, Value: 9, DecoderProfile: "A", SourceFileID: foreignFile.ID}}, application.ErrVehicleValidation},
 		{"SQL failure", application.VehicleCVChange{ID: b.ID, ExpectedRevision: b.Revision, Value: &application.VehicleCVValueInput{CVNumber: 2, Value: 99, DecoderProfile: "A"}}, nil},
 	} {
 		t.Run(test.name, func(t *testing.T) {
