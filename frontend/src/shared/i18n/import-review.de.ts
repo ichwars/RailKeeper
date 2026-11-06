@@ -30,5 +30,13 @@ export const importReviewDE: Record<string, string> = {
   "importReview.cv.field.sourceFileId": "Quelldatei",
   "importReview.cv.field.sourceLine": "Originalzeile",
   "importReview.cv.field.sourceExportedAt": "Exportzeitpunkt",
-  "importReview.cv.duplicate": "Dieselbe CV-Identität steht mehrfach in dieser Quelle."
+  "importReview.cv.duplicate": "Dieselbe CV-Identität steht mehrfach in dieser Quelle.",
+  "vehicles.cv.importGuard.noValues": "Keine gültigen CV-Werte gefunden.",
+  "vehicles.cv.importGuard.noSelection": "Keine CV-Werte für den Import ausgewählt.",
+  "vehicles.cv.importGuard.missingRevision": "Eine CV-Vergleichsversion fehlt. Bitte vor dem Übernehmen erneut vergleichen.",
+  "vehicles.cv.importGuard.stale": "Die Übernahme wurde wegen geänderter CV-Daten abgewiesen. Die Auswahl bleibt erhalten. Bitte erneut vergleichen.",
+  "vehicles.cv.importGuard.unknown": "Die Antwort ist unklar; die Übernahme kann bereits gespeichert sein. Bitte vor einem weiteren Versuch erneut vergleichen.",
+  "vehicles.cv.importGuard.savedRefreshFailed": "{count} CV-Werte wurden bestätigt gespeichert. Die Liste konnte nicht aktualisiert werden. Bitte neu laden, ohne dieselbe Auswahl erneut zu übernehmen.",
+  "vehicles.cv.importGuard.recompare": "Erneut vergleichen",
+  "vehicles.cv.importGuard.review": "Dieser Vergleich benötigt eine Aktualisierung. Erneut vergleichen liest nur den aktuellen Bestand. Bereits identische Werte werden nicht erneut ausgewählt."
 };

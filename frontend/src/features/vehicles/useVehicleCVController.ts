@@ -7,12 +7,10 @@ import {
   type VehicleCVValueInput
 } from "../../shared/api";
 import {
-  buildCVImportPreview,
   commonDecoderProfiles,
-  isValidCVValueInput,
-  type CVImportPreview
+  isValidCVValueInput
 } from "./cvImport";
-import { readCVImportFile } from "./cvFileImport";
+import { useVehicleCVImportController } from "./useVehicleCVImportController";
 import { useI18n } from "../../shared/i18n";
 import { emptyCVForm } from "./vehicleViewModel";
 import {
@@ -23,6 +21,9 @@ import {
 type UseVehicleCVControllerOptions = {
   selected: Vehicle | null;
   decoderNumber: string;
+  readonly?: boolean;
+  saving?: boolean;
+  refreshImportedValues?: (vehicleId: string) => Promise<void>;
   setSaving: (saving: boolean) => void;
   onMessage: (message: string) => void;
   refreshSelectedVehicle: (vehicleId?: string) => Promise<void>;
@@ -32,6 +33,9 @@ type UseVehicleCVControllerOptions = {
 export function useVehicleCVController({
   selected,
   decoderNumber,
+  readonly = false,
+  saving = false,
+  refreshImportedValues,
   setSaving,
   onMessage,
   refreshSelectedVehicle,
@@ -40,9 +44,12 @@ export function useVehicleCVController({
   const { t } = useI18n();
   const [form, setForm] = useState<VehicleCVValueInput>(emptyCVForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [lastImported, setLastImported] = useState(0);
-  const [importPreview, setImportPreview] = useState<CVImportPreview | null>(null);
-  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const imports = useVehicleCVImportController({ selected, readonly, saving, setSaving, onMessage,
+    refreshSaved: refreshImportedValues || refreshSelectedVehicle });
+  const { preview: importPreview, needsReview: importNeedsReview, imported: lastImported } = imports.state;
+  const { importInputRef } = imports.refs;
+  const { importValues, toggleImportRow, selectImportRows, applyImportPreview, setImportPreview,
+    recompareImportPreview, discardImportPreview } = imports.commands;
   const [manualChanges, setManualChanges] = useState<CVDraftChange[]>([]);
   const [lastManualSave, setLastManualSave] = useState(0);
   const draftGeneration = useRef(0), nextDraftID = useRef(0);
@@ -92,8 +99,7 @@ export function useVehicleCVController({
     setManualChanges([]);
     setLastManualSave(0);
     resetForm();
-    setImportPreview(null);
-    setLastImported(0);
+    imports.commands.reset();
   };
 
   const edit = (value: VehicleCVValue) => {
@@ -194,64 +200,6 @@ export function useVehicleCVController({
     URL.revokeObjectURL(url);
   };
 
-  const importValues = async (files: FileList | null) => {
-    if (!selected || !files || files.length === 0) return;
-    const [file] = Array.from(files);
-    setLastImported(0);
-    setImportPreview(null);
-    setSaving(true);
-    onMessage("");
-    try {
-      const values = await readCVImportFile(file);
-      const preview = buildCVImportPreview(file.name, values, selected.cvValues || []);
-      if (!preview.rows.some((row) => row.status !== "invalid")) {
-        throw new Error("Keine gültigen CV-Werte gefunden.");
-      }
-      setImportPreview({ ...preview, vehicleId: selected.id });
-    } catch (error) {
-      onMessage(error instanceof Error ? error.message : String(error));
-    } finally {
-      setSaving(false);
-      if (importInputRef.current) importInputRef.current.value = "";
-    }
-  };
-
-  const toggleImportRow = (id: string, selectedRow: boolean) => {
-    setImportPreview((current) => current ? {
-      ...current,
-      rows: current.rows.map((row) => row.id === id ? { ...row, selected: selectedRow } : row)
-    } : current);
-  };
-
-  const selectImportRows = (mode: "all" | "none" | "empty") => {
-    setImportPreview((current) => current ? {
-      ...current,
-      rows: current.rows.map((row) => ({
-        ...row,
-        selected: row.status !== "invalid" && (mode === "all" || (mode === "empty" && row.status === "new"))
-      }))
-    } : current);
-  };
-
-  const applyImportPreview = () => {
-    if (!selected || !importPreview || (importPreview.vehicleId && importPreview.vehicleId !== selected.id)) return;
-    const rows = importPreview.rows.filter((row) => row.selected && row.status !== "invalid");
-    if (rows.length === 0) {
-      onMessage("Keine CV-Werte für den Import ausgewählt.");
-      return;
-    }
-    setSaving(true);
-    onMessage("");
-    api.importVehicleCVValues(selected.id, rows.map((row) => row.input))
-      .then(() => refreshSelectedVehicle(selected.id))
-      .then(() => {
-        setImportPreview(null);
-        setLastImported(rows.length);
-        onMessage("");
-      })
-      .catch((error: Error) => onMessage(error.message))
-      .finally(() => setSaving(false));
-  };
 
   return {
     state: {
@@ -259,6 +207,7 @@ export function useVehicleCVController({
       editingId,
       manualDraft: { changes: manualChanges, values: workingCVValues, conflicts: manualConflicts.map(change => change.id), lastSavedCount: lastManualSave },
       importPreview,
+      importNeedsReview,
       summary,
       importStats,
       storedDecoderProfiles,
@@ -281,8 +230,9 @@ export function useVehicleCVController({
       toggleImportRow,
       selectImportRows,
       applyImportPreview,
+      recompareImportPreview,
       setImportPreview,
-      discardImportPreview: () => setImportPreview(null)
+      discardImportPreview
     }
   };
 }

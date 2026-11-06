@@ -97,6 +97,18 @@ describe("VehicleCVTab", () => {
     expect(toggleCVImportRow).toHaveBeenCalledWith("cv-1", false);
   });
 
+  it("blocks a stale import until an explicit comparison is requested", () => {
+    const applyCVImportPreview = vi.fn(), recompareCVImportPreview = vi.fn();
+    renderTab({ cvImportPreview: { fileName: "stale.csv", rows: [] }, cvImportNeedsReview: true,
+      cvImportStats: { selected: 1, new: 1, changed: 0, same: 0, invalid: 0 },
+      applyCVImportPreview, recompareCVImportPreview });
+    expect(screen.getByRole("button", { name: "Ausgewählte Felder übernehmen" })).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Vergleich benötigt eine Aktualisierung");
+    fireEvent.click(screen.getByRole("button", { name: "Erneut vergleichen" }));
+    expect(recompareCVImportPreview).toHaveBeenCalledOnce();
+    expect(applyCVImportPreview).not.toHaveBeenCalled();
+  });
+
   it("opens a source in the side panel without inserting raw details into the list", () => {
     const address = cvValueFixture({ id: "address", cvNumber: 1, value: 3, description: "" });
     const config = cvValueFixture({ id: "config", cvNumber: 29, value: 14, description: "" });

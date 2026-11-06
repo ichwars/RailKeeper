@@ -6,19 +6,23 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 
 	"railkeeper/backend/internal/application"
 )
 
+const maxCVImportDataBytes = 8 * 1024 * 1024
+const maxCVImportRevisionBytes = application.MaxVehicleCVImportValues * (64 + len(`"expectedRevision":""`) + 1)
+
 func (a *App) importVehicleCVValues(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, 8*1024*1024)
+	r.Body = http.MaxBytesReader(w, r.Body, int64(maxCVImportDataBytes+maxCVImportRevisionBytes))
 	var body struct {
 		Values []json.RawMessage `json:"values"`
 	}
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&body); err != nil {
-		respondProblem(w, http.StatusBadRequest, "invalid_json", "Invalid CV import JSON (maximum 8 MiB).")
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Invalid CV import JSON or comparison overhead exceeds its limit.")
 		return
 	}
 	if err := decoder.Decode(new(any)); err != io.EOF {
@@ -48,6 +52,11 @@ func (a *App) importVehicleCVValues(w http.ResponseWriter, r *http.Request) {
 		}
 		input.Values = append(input.Values, value)
 	}
+	dataBytes, err := cvImportDataSize(body.Values)
+	if err != nil || dataBytes > maxCVImportDataBytes {
+		respondProblem(w, http.StatusBadRequest, "cv_import_invalid", "CV import data exceeds 8 MiB excluding comparison versions.")
+		return
+	}
 	count, err := a.vehicleService.ImportCVValues(r.Context(), r.PathValue("id"), input)
 	if err != nil {
 		switch {
@@ -65,4 +74,35 @@ func (a *App) importVehicleCVValues(w http.ResponseWriter, r *http.Request) {
 	}
 	a.recordAudit(r, "VehicleCVValuesImported", "vehicle", r.PathValue("id"))
 	respondJSON(w, http.StatusOK, map[string]int{"imported": count})
+}
+
+// Keep the original business-data budget when row comparison versions add transport overhead.
+func cvImportDataSize(rows []json.RawMessage) (int, error) {
+	size := len(`{"values":[]}`)
+	if len(rows) > 1 {
+		size += len(rows) - 1
+	}
+	var buffer bytes.Buffer
+	encoder := json.NewEncoder(&buffer)
+	encoder.SetEscapeHTML(false)
+	for _, row := range rows {
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(row, &fields); err != nil {
+			return 0, err
+		}
+		for key := range fields {
+			if strings.EqualFold(key, "expectedRevision") {
+				delete(fields, key)
+			}
+		}
+		buffer.Reset()
+		if err := encoder.Encode(fields); err != nil {
+			return 0, err
+		}
+		size += buffer.Len() - 1 // Encoder appends a newline outside the original JSON object.
+		if size > maxCVImportDataBytes {
+			return size, nil
+		}
+	}
+	return size, nil
 }

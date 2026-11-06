@@ -18,3 +18,22 @@ in their owning features. The shared components perform no requests and hold no 
 These components do not implement request idempotency, change transaction boundaries or authorize
 device writes. Reviewed import jobs, CV identity/source checks and device-specific confirmation remain
 the authority for writes. Article search keeps its existing synchronous loading state.
+
+## Confirmed CV imports
+
+`useVehicleCVImportController` owns file comparison, selection and the outcome of one CV import.
+It sends the revisions observed in the preview, including an empty revision for an identity observed
+absent. A revision supplied by a file never authorizes a write. The existing import transaction checks
+every selected identity and commits values and histories together. Unselected rows are not submitted.
+The 10,000-row import limit remains separate from the smaller manual editing draft.
+
+A conflict or uncertain response retains the selection and blocks another write until the user
+compares again. That comparison only reads current values. It retains originally selected differing
+rows and deselects identical results, including values committed before a lost response. A confirmed
+save clears its selection before refreshing the vehicle, so a refresh failure cannot repeat the save.
+Other open vehicle, function and manual CV drafts survive both comparison and import.
+
+The HTTP business-data budget remains 8 MiB. A bounded allowance for the existing optional comparison
+revisions prevents their metadata from reducing that budget. This changes neither accepted file
+formats nor file-upload limits. Legacy clients may still omit revisions; the reviewed frontend always
+supplies them. No additional persistence or backup format is introduced.

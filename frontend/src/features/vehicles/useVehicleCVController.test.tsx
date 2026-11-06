@@ -69,10 +69,10 @@ describe("useVehicleCVController", () => {
     expect(result.current.state.importPreview).toMatchObject({ fileName: "decoder.csv" });
     expect(result.current.state.importStats).toMatchObject({ selected: 1, new: 1 });
 
-    act(() => result.current.commands.applyImportPreview());
+    await act(() => result.current.commands.applyImportPreview());
     await waitFor(() => expect(api.importVehicleCVValues).toHaveBeenCalledWith(
       "vehicle-1",
-      [expect.objectContaining({ cvNumber: 2, value: 7 })]
+      [expect.objectContaining({ cvNumber: 2, value: 7, expectedRevision: "" })]
     ));
     expect(refreshSelectedVehicle).toHaveBeenCalledWith("vehicle-1");
     await waitFor(() => expect(result.current.state.importPreview).toBeNull());
@@ -87,9 +87,10 @@ describe("useVehicleCVController", () => {
     const { result } = renderController();
     await act(() => result.current.commands.importValues(fileList(new File(["Decoder: LokPilot 5 micro DCC\nCV 1 = 3"], "full.txt"))));
     expect(result.current.state.importStats).toMatchObject({ new: 1367, selected: 1367, invalid: 0 });
-    act(() => result.current.commands.applyImportPreview());
+    await act(() => result.current.commands.applyImportPreview());
     await waitFor(() => expect(api.importVehicleCVValues).toHaveBeenCalledOnce());
     expect(vi.mocked(api.importVehicleCVValues).mock.calls[0][1]).toHaveLength(1367);
+    expect(vi.mocked(api.importVehicleCVValues).mock.calls[0][1].every(value => value.expectedRevision === "")).toBe(true);
     await waitFor(() => expect(result.current.state.importPreview).toBeNull());
   });
 
