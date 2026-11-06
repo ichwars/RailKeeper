@@ -12,7 +12,7 @@ and CSRF checks.
 | CV/library and command-station function suggestions | Vehicle save | Protected draft fields and source evidence remain in `functionDraft`; suggestions are reviewable before saving. |
 | Decoder-file function preview | Vehicle save | The explicit preview action supplements missing fields in the same function draft. Assigned fields, intentional edits/deletions, nullable flags, modes and original revisions stay protected. Contradictory file suggestions are not silently selected. Source filenames remain separate from editable own notes. |
 | Image titles, order, primary image, maintenance link | Vehicle save | Existing image metadata shares the core transaction. Pending remote images import afterwards. Each successful import becomes a persisted draft item immediately. |
-| Local image/attachment upload | File selection/drop | These are independent uploads. A successful upload remains after cancel. The result is shown after refreshing the vehicle. |
+| Local image/attachment upload | Explicit confirmation of captured file selection/drop | At most 20 files per operation. Each acknowledged file remains after cancel. Per-file results distinguish saved, rejected, unknown, unattempted and skipped files; retries exclude saved and unknown files. |
 | Persisted image deletion | Its delete action | Independent deletion; maintenance-linked images remain protected. Removing an unsaved remote image only changes the draft. |
 | Attachment metadata | The attachment's save action | Independent metadata change. Typing into its fields alone does not save, and the vehicle's bottom save does not submit it. |
 | Attachment deletion | Explicit delete confirmation | Independent deletion; canceling the confirmation changes nothing. |

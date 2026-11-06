@@ -6,7 +6,9 @@ export function useVehicleCollectionController() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [options, setOptions] = useState<MasterDataOptions>(emptyOptions);
   const [query, setQuery] = useState("");
-  const [message, setMessage] = useState("");
+  const [notice, setNotice] = useState({ message: "", tone: "error" as "error" | "status" });
+  const setMessage = useCallback((message: string) => setNotice({ message, tone: "error" }), []);
+  const setStatusMessage = useCallback((message: string) => setNotice({ message, tone: "status" }), []);
   const [loading, setLoading] = useState(false);
   const load = useCallback(() => {
     setLoading(true);
@@ -58,5 +60,6 @@ export function useVehicleCollectionController() {
       .catch((error: Error) => setMessage(error.message));
   }, []);
 
-  return { vehicles, setVehicles, options, query, setQuery, message, setMessage, loading, load };
+  return { vehicles, setVehicles, options, query, setQuery, message: notice.message, messageTone: notice.tone,
+    setMessage, setStatusMessage, loading, load };
 }

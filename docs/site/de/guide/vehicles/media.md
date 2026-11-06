@@ -34,13 +34,17 @@ und WebP. Das Standardlimit des Servers beträgt 10 MB pro Bild, ein Betreiber k
 Grenze konfigurieren. Der Browser prüft die gewählte Endung, der Server zusätzlich Dateigröße und
 erkannten MIME-Typ.
 
-RailKeeper lädt ausgewählte Bilder nacheinander hoch. Wenn anfangs noch kein Bild vorhanden ist,
-markiert jede Anfrage eines Mehrfachuploads ihr Bild als **Hauptbild**. Daher ist die zuletzt
-erfolgreich hochgeladene Datei das Hauptbild. Frühere erfolgreiche Dateien bleiben gespeichert,
-wenn eine spätere Datei fehlschlägt; weitere spätere Dateien werden in diesem Durchlauf nicht mehr
-versucht. Lade oder öffne das Fahrzeug vor einem erneuten Versuch neu. Vergleiche die aktualisierte
-Bildliste und das Hauptbild und lade nur weiterhin fehlende Dateien hoch. Der Bildupload wirkt
-unmittelbar und wartet nicht auf **Änderungen speichern**.
+Wähle höchstens 20 Bilder pro Vorgang. Prüfe im Bestätigungsdialog Fahrzeug, Dateien und
+Wartungsverknüpfung. Erst **Ausgewählte Dateien speichern** beginnt den Upload. Abbrechen davor
+speichert nichts. Die Dateien werden nacheinander gespeichert. Ist der Bildentwurf anfangs leer,
+bleibt das zuletzt erfolgreich gespeicherte Bild Hauptbild.
+
+Das Ergebnis unterscheidet **Gespeichert**, **Abgelehnt**, **Noch nicht versucht**, **Übersprungen**
+und **Antwort unklar**. Nach einer Ablehnung kannst du die Datei überspringen und offene Dateien
+fortsetzen. Bestätigte Dateien werden nicht erneut gesendet. Bei unklarer Antwort prüfe zuerst
+die aktualisierte Dateiliste, bevor du eine fehlende Datei neu auswählst. Bei einer parallelen
+Bildänderung wird die alte Bestätigung gesperrt; prüfe dann die Liste und wähle nur fehlende Bilder neu.
+Gespeicherte Dateien bleiben beim Abbrechen des Fahrzeugeditors erhalten.
 
 ## Bildmetadaten ordnen
 
@@ -98,11 +102,10 @@ Fahrzeugs per Drag-and-drop bei **Dateien hier ablegen** ab. Die vor dem Upload 
 und Bemerkung gelten für jede Datei dieses Uploads. Mit **Kategorie automatisch** bestimmt
 RailKeeper für jede Datei eine Kategorie.
 
-Wie Bilder werden Beilagen nacheinander hochgeladen. Eine frühere erfolgreiche Datei bleibt
-gespeichert, wenn eine spätere Datei fehlschlägt, und RailKeeper versucht weitere Dateien in diesem
-Durchlauf nicht. Lade oder öffne das Fahrzeug neu, vergleiche die Liste gespeicherter Beilagen und
-lade nur weiterhin fehlende Dateien hoch. Gespeicherte Beilagen zeigen Originalname, Kategorie,
-MIME-Typ und Größe.
+Auch Beilagen werden vor dem Upload bestätigt, mit höchstens 20 Dateien und den festgehaltenen
+Angaben. Die Ergebnisliste und Fortsetzen-Funktion verhalten sich wie bei Bildern. Bereits
+bestätigte Dateien bleiben gespeichert. Dateiauswahl und erfolgreiche Bilduploads erhalten offene
+Profil- und Bemerkungsfelder für Decoderdateien.
 
 ## Formate, Grenzen und Kategorien für Beilagen
 
@@ -152,12 +155,11 @@ Originaldatei herunter. Dies sind getrennte Aktionen: Du kannst in RailKeeper pr
 
 ## Bilder und Beilagen löschen
 
-Das Entfernen eines gespeicherten Bildes wirkt sofort und benötigt keine zusätzliche Bestätigung.
-War es das Hauptbild, bestimmt RailKeeper das nächste Bild nach Sortierreihenfolge zum Hauptbild.
-Ein verknüpftes Bild muss zuerst wie oben beschrieben getrennt und gespeichert werden. Beim Löschen
-einer Beilage erscheint **Beilage löschen?**. Bestätige erst nach Prüfung des Originaldateinamens.
-Schlägt die Löschung fehl, lade den Datensatz neu und gehe nicht davon aus, dass Datei oder
-Metadaten entfernt wurden.
+Bilder und Beilagen werden erst nach **Gespeicherte Datei löschen?** entfernt. Prüfe Fahrzeug
+und Dateiname. Eine inzwischen geänderte Datei erfordert nach Aktualisieren der Liste eine neue
+Bestätigung. Ein verknüpftes Bild muss zuerst wie oben beschrieben getrennt und gespeichert werden.
+War das gelöschte Bild Hauptbild, bestimmt RailKeeper das nächste Bild nach Sortierreihenfolge.
+Die bestätigte Löschung bleibt beim Abbrechen des Fahrzeugeditors bestehen.
 
 ## Rollen-, Speicher- und Sicherungsgrenzen
 
@@ -183,7 +185,7 @@ das Bearbeiten von Wartungen bleiben Fachgrenzen, die auf dieser Seite nicht erk
 | Keine Bilder oder Beilagen | Nutze die Uploadaktion des Leerzustands am richtigen Fahrzeug. |
 | Format ist nicht erlaubt | Wähle eines der genannten Formate. Die abgelehnte Datei wird nicht gespeichert. |
 | Datei ist leer oder zu groß | Korrigiere oder verkleinere die Datei und beachte die Servergrenze. |
-| Mehrfachupload schlägt teilweise fehl | Frühere Dateien bleiben gespeichert. Lade das Fahrzeug neu, vergleiche die aktualisierte Liste und lade nur weiterhin fehlende Dateien hoch. |
+| Mehrfachupload schlägt teilweise fehl | Prüfe die Einzelergebnisse, überspringe abgelehnte Dateien bei Bedarf und setze offene Dateien fort. Unklare Antworten zuerst in der Dateiliste prüfen. |
 | Bildmetadaten werden nicht gespeichert | Lasse den Fahrzeugdialog offen, lies den Fehler und nutze erneut **Änderungen speichern**. |
 | Verknüpftes Bild kann nicht gelöscht werden | Wähle **Keine Wartung**, speichere das Fahrzeug und entferne danach das Bild. |
 | Vorschau ist nicht verfügbar | Lade die Datei herunter oder öffne sie mit einem geeigneten lokalen Programm. |

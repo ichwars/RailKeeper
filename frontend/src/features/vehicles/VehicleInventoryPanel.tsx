@@ -54,6 +54,7 @@ type InventoryPanelProps = {
   sortedVehicles: Vehicle[];
   loading: boolean;
   message: string;
+  messageTone?: "error" | "status";
   query: string;
   columns: readonly VehicleTableColumn[];
   columnWidths: TableColumnWidths<VehicleTableColumn>;
@@ -138,6 +139,7 @@ export function VehicleInventoryPanel({
   sortedVehicles,
   loading,
   message,
+  messageTone = "error",
   query,
   columns,
   columnWidths,
@@ -446,7 +448,8 @@ export function VehicleInventoryPanel({
           </div>
         </div>
 
-        {message && <p className="form-message">{message}</p>}
+        {message && <p className={`form-message${messageTone === "status" ? " is-status" : ""}`}
+          role={messageTone === "status" ? "status" : "alert"}>{message}</p>}
 
         {!loading && sortedVehicles.length > 0 ? (
           <VehicleInventoryMobileList

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ComponentProps, type FormEventHandler } from "react";
+import { useLayoutEffect, useRef, type ComponentProps, type FormEventHandler, type ReactNode } from "react";
 import { Save, X } from "lucide-react";
 
 import type { Vehicle } from "../../shared/api";
@@ -39,6 +39,8 @@ type VehicleEditorDialogProps = {
   activeTab: ModalTab;
   saving: boolean;
   message: string;
+  messageTone?: "error" | "status";
+  mediaDialogs?: ReactNode;
   refreshConflicts?: DraftRefreshConflict[];
   mediaConflicts?: MediaDraftConflict[];
   onResolveMediaConflict?: (conflict: MediaDraftConflict, choice: "draft" | "saved") => void;
@@ -75,6 +77,8 @@ export function VehicleEditorDialog({
   activeTab,
   saving,
   message,
+  messageTone = "error",
+  mediaDialogs,
   refreshConflicts = [],
   mediaConflicts = [],
   onResolveMediaConflict = () => undefined,
@@ -180,7 +184,8 @@ export function VehicleEditorDialog({
             </div>
 
             <footer className={`modal-actions${activeTab === "control" ? " function-editor-footer" : ""}`}>
-              {message && <p className="form-message">{message}</p>}
+              {message && <p className={`form-message${messageTone === "status" ? " is-status" : ""}`}
+                role={messageTone === "status" ? "status" : "alert"}>{message}</p>}
               <button type="button" className="secondary-button" onClick={onClose} disabled={saving}>
                 {t("vehicles.cancel")}
               </button>
@@ -195,6 +200,7 @@ export function VehicleEditorDialog({
         )}
         </form>
       )}
+      {mediaDialogs}
     </div>
   );
 }

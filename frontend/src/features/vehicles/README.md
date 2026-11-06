@@ -5,7 +5,9 @@ Vehicle inventory is the central RailKeeper domain. This feature owns the invent
 The inventory view composes the existing feature controllers. Collection loading belongs to
 `useVehicleCollectionController`; form/selection state and aggregate refresh belong to
 `useVehicleEditorController`. `useVehicleImageDraftController` owns local image drafts, while
-`useVehicleMediaController` retains the existing immediate upload/deletion behavior. Image persistence
+`useVehicleMediaController` retains image and attachment drafts. `useVehicleUploads` and
+`useVehicleMediaDeletion` own independent confirmed actions, bounded progress and revision guards.
+Selecting local files alone does not upload them. Image persistence
 and imported mapping/CV adoption run after the core save through `vehicleImagePersistence` and
 `vehicleImportAdoption`. Set creation, duplication and dialog state belong to `useVehicleSetController`.
 

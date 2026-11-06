@@ -448,18 +448,20 @@ können beim Speichern leer gelassene Felder füllen.
 
 Schlägt eine Datei während der Vorschauerzeugung fehl, wurde keine Datei gespeichert und der Stapel
 erzeugt nicht die normale Vorschau. **Dateien speichern** speichert mehrere Dateien nacheinander.
-Ein später Fehler nimmt frühere erfolgreiche Uploads nicht zurück. Lade neu und vergleiche vor einem
-erneuten Versuch. Funktionsvorschläge bleiben bis zur gemeinsamen Speicherung ein Entwurf.
+Der Vorgang ist auf 20 Dateien begrenzt. Ein später Fehler nimmt frühere erfolgreiche Uploads nicht
+zurück. Die Einzelergebnisse unterscheiden gespeichert, abgelehnt, offen, übersprungen und unklar.
+Fortsetzen sendet nur abgelehnte oder noch nicht versuchte Dateien. Prüfe unklare Antworten zuerst
+in der Dateiliste. Funktionsvorschläge bleiben bis zur gemeinsamen Speicherung ein Entwurf.
 
 Gespeicherte Dateien zeigen Originalname, Profil, MIME-Typ, Größe und Beschreibung. **Download**
-liefert die Originaldatei. **Löschen** entfernt sie sofort ohne weitere Bestätigung und entfernt die
-gespeicherten Dateidaten, wenn keine Referenz verbleibt.
+liefert die Originaldatei. **Löschen** öffnet eine Bestätigung mit Fahrzeug, Dateiname und Zahl
+aktuell verknüpfter CV-Werte. Erst die Bestätigung entfernt die gespeicherten Dateidaten, sofern
+keine andere Dateireferenz verbleibt. Zwischenzeitlich geänderte Nutzung blockiert die Löschung.
 
-Ein CV-Wert kann unter **Quelldatei** eine Decoder-Datei nennen. Bearbeite vor dem Löschen einer
-Datei die CV-Zeilen, prüfe dieses Feld, wähle für jede passende Zeile **Ohne Datei** und speichere
-die Änderung. Die stabile CV-Tabelle zeigt die Quellenzuordnung nicht. Das Löschen einer Datei
-löscht weder ihre CV-Werte noch deren gespeicherte Quellen-ID. Ohne diese Reihenfolge können
-veraltete Referenzen verbleiben.
+Ein CV-Wert kann unter **Quelldatei** eine Decoder-Datei nennen. Das Löschen der Originaldatei
+erhält CV-Werte, IDs, Historien und historische Quellen-IDs. Die entfernte Originaldatei ist danach
+nicht mehr abrufbar. Ein bestehender CV darf seinen eigenen historischen Bezug beim Bearbeiten
+behalten; eine neue Zuordnung zu einer fehlenden oder fremden Datei wird abgelehnt.
 
 ## ECoS-Vorschau als Eingangspfad verwenden
 
@@ -502,7 +504,7 @@ ECoS-Werte behalten ihre eigene Herkunft. Bei eindeutigem CV8-Hersteller und pas
 | In Funktionsentwurf übernehmen | Erst mit Änderungen speichern | Nein |
 | Decoder-Dateien speichern | Nacheinander | Nur nach vollständigem Erfolg |
 | Decoder-Datei herunterladen | Nein | Nein |
-| Decoder-Datei löschen | Sofort | Nach Erfolg |
+| Decoder-Datei löschen | Nach ausdrücklicher Bestätigung | Nach Erfolg |
 
 Funktionen, CV-Werte, CV-Historie, Decoder-Dateimetadaten und Decoder-Dateiinhalte gehören zur
 lokalen RailKeeper-Anwendungssicherung. Erstelle und validiere vor großen Importen oder
@@ -522,7 +524,7 @@ keine vollständigen RailKeeper-Sicherungen.
 | CV-Import meldet ein Duplikat | Behalte eine Kombination aus CV-Nummer und Profil in der Quelle. |
 | Dateivorschau enthält keine Metadaten | Die Datei kann trotzdem gespeichert werden, es gibt aber keinen Vorschlag. |
 | Datei wird abgelehnt | Prüfe Endung, Inhalt, leere Datei und die Größengrenze des Betreibers. |
-| Datei ist noch CV-Quelle | Entferne **Quelldatei** an passenden CV-Zeilen vor dem Löschen. |
+| Datei ist noch CV-Quelle | Prüfe die Verknüpfungsanzahl vor dem Bestätigen. Historische CV-Verweise bleiben nach dem Löschen erhalten. |
 | CV-Entwurf meldet einen Konflikt | Prüfe gespeicherte und eigene Angaben. Der Entwurf bleibt erhalten; erst nach bewusster Auflösung erneut speichern. |
 | Mehrere Datei-Uploads schlagen teilweise fehl | Lade neu, vergleiche gespeicherte Ergebnisse und wiederhole nur fehlende Dateien. |
 | Eine Einzelaktion aktualisiert das Fahrzeug | Offene Fahrzeug-, Funktions- und CV-Entwürfe bleiben erhalten. Unterschiedlich geänderte Angaben müssen geprüft werden. |

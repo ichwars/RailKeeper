@@ -3,6 +3,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import { assertMediaDraftWorkflow } from "./media-draft.mjs";
 import { assertCVDraftWorkflow } from "./cv-draft.mjs";
+import { assertMediaActionsWorkflow } from "./media-actions.mjs";
+import { referenceActor } from "./browser-actor.mjs";
 
 let inputText = "";
 for await (const part of process.stdin) inputText += part;
@@ -98,7 +100,11 @@ try {
     await dialog.locator(".upload-section").nth(1).locator('input[type="file"]').setInputFiles({
       name: `confirmed-${language}.txt`, mimeType: "text/plain", buffer: Buffer.from("Confirmed side action.\n")
     });
+    const uploadConfirmation = page.getByRole("dialog", { name: de ? "Dateien jetzt speichern?" : "Save selected files now?", exact: true });
+    await uploadConfirmation.getByRole("button", { name: de ? "Ausgewählte Dateien speichern" : "Save selected files", exact: true }).click();
     assert.equal((await uploaded).status(), 201);
+    const uploadResult = page.getByRole("dialog", { name: de ? "Dateien: Fortschritt und Ergebnis" : "Files: progress and results", exact: true });
+    await uploadResult.getByRole("button", { name: de ? "Schließen" : "Close", exact: true }).last().click();
     await dialog.getByRole("status").filter({ hasText: de ? "Bereits gespeichert" : "Already saved" }).waitFor();
     await dialog.getByText(`confirmed-${language}.txt`, { exact: true }).waitFor();
     assert.equal(await imageTitle().inputValue(), "UNSAVED-IMAGE");
@@ -140,8 +146,13 @@ try {
     assert.deepEqual(errors, []);
     checks.push(language + ":confirmed-upload-preserves-five-drafts-and-cancel");
     checks.push(language + ":decoder-file-supplements-shared-function-draft-without-overwriting");
-    checks.push(...await assertCVDraftWorkflow(page, input, de));
-    checks.push(...await assertMediaDraftWorkflow(page, input, de));
+    const reference = await referenceActor(input);
+    try {
+      checks.push(...await assertCVDraftWorkflow(page, input, de, reference));
+      checks.push(...await assertMediaDraftWorkflow(page, input, de, reference));
+      checks.push(...await assertMediaActionsWorkflow(page, input, de, reference));
+    } finally { await reference.actor.dispose(); }
+    assert.deepEqual(errors, []);
     await context.close();
   }
   await writeFile(input.output + "/report.json", JSON.stringify({ passed: true, checks }, null, 2) + "\n");

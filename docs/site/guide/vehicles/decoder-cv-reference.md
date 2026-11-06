@@ -420,17 +420,20 @@ left empty during file saving.
 
 If one file in preview generation fails, no file has been stored and the batch does not produce the
 normal preview. **Save files** stores multiple files sequentially. A later failure does not undo
-earlier successful uploads. Reload and compare before retrying. Function suggestions remain pending
-until the shared save.
+earlier successful uploads. Each operation is limited to 20 files. Per-file results distinguish saved,
+rejected, unattempted, skipped and unknown responses. Resume sends only rejected or unattempted files.
+Check unknown responses in the refreshed file list first. Function suggestions remain pending until
+the shared save.
 
 Stored files show original name, profile, MIME type, size, and description. **Download** retrieves
-the original file. **Delete** removes it immediately without another confirmation and removes the
-stored file data when no reference remains.
+the original file. **Delete** opens confirmation showing the vehicle, file name and current linked
+CV-value count. Only confirmation removes stored file data, provided no other file reference remains.
+Changed usage blocks deletion.
 
-A CV value can name a decoder file under **Source file**. Before deleting a file, edit CV rows,
-inspect that field, choose **No file** for every matching row, and save each change. The stable CV
-table does not display the source assignment. Deleting a file does not delete its CV values or
-clear their stored source identifier, so skipping this sequence can leave stale references.
+A CV value can name a decoder file under **Source file**. Deleting the original retains CV values,
+IDs, histories and historical source identifiers. The removed original can no longer be opened.
+An existing CV may retain its own historical reference during editing; a new assignment to a missing
+file or another vehicle's file is rejected.
 
 ## Use an ECoS preview as an input path
 
@@ -472,7 +475,7 @@ ECoS values retain their own provenance. A clear CV8 manufacturer and matching s
 | Add to function draft | Only with Save changes | No |
 | Save decoder files | Sequentially | Only after full success |
 | Download a decoder file | No | No |
-| Delete a decoder file | Immediately | After success |
+| Delete a decoder file | After explicit confirmation | After success |
 
 Functions, CV values, CV history, decoder-file metadata, and decoder-file data belong to the local
 RailKeeper application backup. Create and validate a current backup before large imports or cleanup.
@@ -491,7 +494,7 @@ Function and CV JSON exports are exchange files, not complete RailKeeper backups
 | CV import reports a duplicate | Keep one CV-number/profile identity in the source. |
 | File preview has no metadata | The file may still be stored, but no suggestion is available. |
 | File is rejected | Check extension, content, empty-file status, and the operator's size limit. |
-| A file is still a CV source | Clear **Source file** on matching CV rows before deleting it. |
+| A file is still a CV source | Review its linked-value count before confirming. Historical CV references remain after deletion. |
 | CV draft reports a conflict | Review stored and pending data. The draft is retained; resolve deliberately before saving again. |
 | Several file uploads partly fail | Reload, compare stored results, then retry only missing files. |
 | A separate action refreshes the vehicle | Pending vehicle, function and CV drafts are retained. Diverging data requires review. |
