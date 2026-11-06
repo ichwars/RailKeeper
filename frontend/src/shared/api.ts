@@ -235,6 +235,7 @@ export type VehicleExternalMapping = components["schemas"]["VehicleExternalMappi
 export type VehicleExternalMappingInput = components["schemas"]["VehicleExternalMappingInput"];
 
 export type VehicleImage = components["schemas"]["VehicleImage"];
+export type VehicleImageCreation = components["schemas"]["VehicleImageCreation"];
 
 export type VehicleImageInput = components["schemas"]["VehicleImageInput"];
 
@@ -1191,13 +1192,16 @@ export const api = {
     request<void>(`/vehicles/${encodeURIComponent(id)}`, {
       method: "DELETE"
     }),
-  uploadVehicleImage: (vehicleId: string, file: File, title = "", isPrimary = false, maintenanceId = "") => {
+  uploadVehicleImage: (
+    vehicleId: string, file: File, title = "", isPrimary = false, maintenanceId = "", expectedImagesRevision?: string
+  ) => {
     const form = new FormData();
     form.append("file", file);
     form.append("title", title);
     form.append("isPrimary", String(isPrimary));
     form.append("maintenanceId", maintenanceId);
-    return request<VehicleImage>(
+    if (expectedImagesRevision !== undefined) form.append("expectedImagesRevision", expectedImagesRevision);
+    return request<VehicleImageCreation>(
       `/vehicles/${encodeURIComponent(vehicleId)}/images`,
       {
         method: "POST",
@@ -1207,7 +1211,7 @@ export const api = {
     );
   },
   importVehicleImageFromUrl: (vehicleId: string, input: VehicleImageImportInput) =>
-    request<VehicleImage>(
+    request<VehicleImageCreation>(
       `/vehicles/${encodeURIComponent(vehicleId)}/images/import-url`,
       {
         method: "POST",
@@ -1360,8 +1364,8 @@ export const api = {
       { timeoutMs: 30000 }
     );
   },
-  deleteVehicleCVFile: (vehicleId: string, cvFileId: string) =>
-    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-files/${encodeURIComponent(cvFileId)}`, {
+  deleteVehicleCVFile: (vehicleId: string, cvFileId: string, expectedRevision?: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-files/${encodeURIComponent(cvFileId)}${expectedRevision === undefined ? "" : `?expectedRevision=${encodeURIComponent(expectedRevision)}`}`, {
       method: "DELETE"
     }),
   vehicleCVFileDownloadUrl: (vehicleId: string, cvFileId: string) =>

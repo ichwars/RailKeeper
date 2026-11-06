@@ -169,6 +169,10 @@ export function createVehicleMutationCommands({
         onMessage(t("vehicles.spareParts.importedCount", { count: sparePartsToImport.length }));
       }
     } catch (error) {
+      if (error instanceof ApiError && error.code === "image_revision_missing") {
+        onMessage(t("vehicles.mediaConflict.missingRevision"));
+        return;
+      }
       if (error instanceof ApiError && ["vehicle_conflict", "vehicle_image_conflict"].includes(error.code)) {
         if (editor.selected) await editor.reloadSelectedVehicle?.(editor.selected.id);
         onMessage(t("vehicles.mediaConflict.changed"));

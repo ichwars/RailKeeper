@@ -1,8 +1,8 @@
 import type { FormEvent } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { api, ApiError, type Vehicle, type VehicleFunctionChange } from "../../shared/api";
-import { imageFixture, vehicleFixture } from "../../test/fixtures/vehicles";
+import { api, ApiError, type Vehicle, type VehicleFunctionChange, type VehicleImage } from "../../shared/api";
+import { createdImageFixture, vehicleFixture } from "../../test/fixtures/vehicles";
 import { uploadedImageToPending, type PendingArticleImage } from "./vehicleTransforms";
 import { emptyVehicle, type ECoSVehicleDraftPayload } from "./vehicleViewModel";
 import { createVehicleMutationCommands } from "./vehicleMutationCommands";
@@ -87,12 +87,12 @@ describe("createVehicleMutationCommands", () => {
 
   it("retries only the remaining remote image after a partial import and retains the stored image ID", async () => {
     const options = commandOptions(), created = vehicleFixture({ id: "created", images: [] });
-    const first = imageFixture({ id: "stored-first", vehicleId: created.id, url: "/first.png" });
-    const second = imageFixture({ id: "stored-second", vehicleId: created.id, url: "/second.png", isPrimary: false });
+    const first = createdImageFixture({ id: "stored-first", vehicleId: created.id, url: "/first.png" });
+    const second = createdImageFixture({ id: "stored-second", vehicleId: created.id, url: "/second.png", isPrimary: false });
     const firstPending = { id: "remote-first", url: "https://example.test/first.png", title: "First", source: "" };
     const secondPending = { id: "remote-second", url: "https://example.test/second.png", title: "Second", source: "" };
     let pending: PendingArticleImage[] = [firstPending, secondPending];
-    const acknowledgeImportedImage = (original: PendingArticleImage, stored: typeof first) => {
+    const acknowledgeImportedImage = (original: PendingArticleImage, stored: VehicleImage) => {
       pending = pending.map(image => image.id === original.id ? uploadedImageToPending(stored) : image);
     };
     vi.spyOn(api, "createVehicle").mockResolvedValue(created);
@@ -155,7 +155,7 @@ describe("createVehicleMutationCommands", () => {
     vi.spyOn(api, "updateVehicle").mockResolvedValue(created);
     vi.spyOn(api, "vehicle").mockResolvedValue(created);
     vi.spyOn(api, "importVehicleImageFromUrl").mockRejectedValueOnce(new Error("Import unavailable"))
-      .mockResolvedValueOnce({ id: "image", vehicleId: created.id, url: "/local.png", isPrimary: false, sortOrder: 0, createdAt: "", updatedAt: "" });
+      .mockResolvedValueOnce({ imagesRevision: "b".repeat(64), id: "image", vehicleId: created.id, url: "/local.png", isPrimary: false, sortOrder: 0, createdAt: "", updatedAt: "" });
 
     await createVehicleMutationCommands(options).submit(submitEvent());
 
@@ -186,7 +186,7 @@ describe("createVehicleMutationCommands", () => {
     vi.spyOn(api, "createVehicle").mockResolvedValue(created);
     vi.spyOn(api, "vehicle").mockResolvedValue(created);
     vi.spyOn(api, "importVehicleImageFromUrl").mockResolvedValue({
-      id: "new", vehicleId: created.id, url: "/new.png", isPrimary: false, sortOrder: 1, createdAt: "", updatedAt: ""
+      imagesRevision: "b".repeat(64), id: "new", vehicleId: created.id, url: "/new.png", isPrimary: false, sortOrder: 1, createdAt: "", updatedAt: ""
     });
     await createVehicleMutationCommands(options).submit(submitEvent());
     expect(api.createVehicle).toHaveBeenCalledWith(expect.objectContaining({ images: [

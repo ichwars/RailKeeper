@@ -4,10 +4,15 @@ import type {
   VehicleCVValue,
   VehicleFunction,
   VehicleImage,
+  VehicleImageCreation,
   VehicleMaintenance
 } from "../../shared/api";
 
 const timestamp = "2026-07-23T08:00:00Z";
+
+export function createdImageFixture(overrides: Partial<VehicleImageCreation> = {}): VehicleImageCreation {
+  return { ...imageFixture(), imagesRevision: "b".repeat(64), ...overrides };
+}
 
 export function imageFixture(overrides: Partial<VehicleImage> = {}): VehicleImage {
   return {
@@ -72,6 +77,7 @@ export function cvValueFixture(overrides: Partial<VehicleCVValue> = {}): Vehicle
 export function cvFileFixture(overrides: Partial<VehicleCVFile> = {}): VehicleCVFile {
   return {
     id: "cv-file-1",
+    revision: "a".repeat(64),
     vehicleId: "vehicle-1",
     fileName: "decoder.esux",
     originalName: "decoder.esux",
