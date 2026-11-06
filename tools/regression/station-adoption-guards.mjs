@@ -40,6 +40,20 @@ export async function assertStationAdoptionGuards(page, input, de, reference) {
       await page.evaluate(theme => document.documentElement.dataset.theme = theme, theme);
       await page.keyboard.press("Tab"); await submit().focus();
       assert.ok(await submit().evaluate(button => document.activeElement === button && getComputedStyle(button).outlineStyle !== "none"));
+      const contrast = await submit().evaluate(button => {
+        const context = document.createElement("canvas").getContext("2d"), style = getComputedStyle(button);
+        const light = color => {
+          context.fillStyle = color; context.fillRect(0, 0, 1, 1);
+          const rgb = [...context.getImageData(0, 0, 1, 1).data].slice(0, 3).map(value => {
+            const channel = value / 255;
+            return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+          });
+          return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+        };
+        const foreground = light(style.color), background = light(style.backgroundColor);
+        return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
+      });
+      assert.ok(contrast >= 4.5, `${language}/${theme}/${width}: create action contrast ${contrast}`);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
       if (width === 390) { const box = await submit().boundingBox(); assert.ok(box && box.width >= 44 && box.height >= 44); }
       await page.evaluate(() => document.fonts.ready);

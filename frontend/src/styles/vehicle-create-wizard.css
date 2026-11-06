@@ -780,6 +780,8 @@
 
 .modal-actions.vehicle-wizard-actions .primary-button {
   flex: 0 0 auto;
+  background: var(--accent-strong);
+  color: var(--panel);
   box-shadow: 0 4px 10px rgba(65, 147, 16, 0.16);
 }
 
