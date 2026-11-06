@@ -1,4 +1,5 @@
-﻿import { useSettingsPreferences } from "./useSettingsPreferences";
+﻿import { useSettingsAuth } from "./useSettingsAuth";
+import { useSettingsPreferences } from "./useSettingsPreferences";
 import { useSettingsGeneral } from "./useSettingsGeneral";
 import { SettingsProfileCard } from "./SettingsProfileCard";
 import { SettingsInventoryCard } from "./SettingsInventoryCard";
@@ -9,19 +10,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { ChevronDown, ChevronUp, ExternalLink, RefreshCw, Trash2, Upload, X } from "lucide-react";
 
-import {
-  api,
-  AuditLogEntry,
-  MasterDataEntry,
-  MasterDataInput,
-  Role,
-  Session,
-  SessionRecord,
-  SMTPSettings,
-  SMTPSettingsInput,
-  TwoFactorStatus,
-  UserAccount
-} from "../../shared/api";
+import { api, MasterDataEntry, MasterDataInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 
 import { SettingsAuthTab } from "./SettingsAuthTab";
@@ -54,16 +43,12 @@ import { useSettingsTransfer } from "./useSettingsTransfer";
 
 import {
   applyVisibleMetadata,
-  auditActor,
-  auditTarget,
   cv8BinaryText,
   cv8CountryText,
   cv8DecimalText,
   cv8HexText,
   cv8NameText,
   emptyForm,
-  emptyPasswordForm,
-  emptyUserForm,
   entryToForm,
   externalLink,
   formatDateTime,
@@ -81,7 +66,7 @@ import {
   normalizeCV8Hex,
   settingsTabs
 } from "./settingsModel";
-import type { FormState, PasswordFormState, SettingsConfirmDialog, SettingsTab, UserFormState } from "./settingsModel";
+import type { FormState, SettingsConfirmDialog, SettingsTab } from "./settingsModel";
 
 type MasterDataSortDirection = "asc" | "desc";
 
@@ -153,47 +138,9 @@ export function SettingsView({ username }: { username: string }) {
   const { storageUsage, storageLoading, loadStorageUsage } = storage;
   const preferences = useSettingsPreferences(username);
   const general = useSettingsGeneral(activeSettingsTab, preferences, loadStorageUsage);
-  const [currentSession, setCurrentSession] = useState<Session | null>(null);
-  const [authMessage, setAuthMessage] = useState("");
-  const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
-  const [users, setUsers] = useState<UserAccount[]>([]);
-  const [usersLoading, setUsersLoading] = useState(false);
-  const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
-  const [auditLogLoading, setAuditLogLoading] = useState(false);
-  const [auditLogMessage, setAuditLogMessage] = useState("");
-  const [sessions, setSessions] = useState<SessionRecord[]>([]);
-  const [sessionsLoading, setSessionsLoading] = useState(false);
-  const [sessionsMessage, setSessionsMessage] = useState("");
-  const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
-  const [userForm, setUserForm] = useState<UserFormState>(emptyUserForm);
-  const [userSaving, setUserSaving] = useState(false);
-  const [passwordForm, setPasswordForm] = useState<PasswordFormState>(emptyPasswordForm);
-  const [passwordSaving, setPasswordSaving] = useState(false);
-  const [passwordMessage, setPasswordMessage] = useState("");
-  const [smtpSettings, setSmtpSettings] = useState<SMTPSettings | null>(null);
-  const [smtpForm, setSmtpForm] = useState<SMTPSettingsInput & { password: string; testRecipient: string }>({
-    enabled: false,
-    publicUrl: "",
-    host: "",
-    port: "587",
-    username: "",
-    password: "",
-    from: "",
-    tlsMode: "starttls",
-    clearPassword: false,
-    testRecipient: ""
-  });
-  const [smtpLoading, setSmtpLoading] = useState(false);
-  const [smtpSaving, setSmtpSaving] = useState(false);
-  const [smtpTesting, setSmtpTesting] = useState(false);
-  const [smtpMessage, setSmtpMessage] = useState("");
-  const [twoFactorStatus, setTwoFactorStatus] = useState<TwoFactorStatus | null>(null);
-  const [twoFactorCode, setTwoFactorCode] = useState("");
-  const [twoFactorPassword, setTwoFactorPassword] = useState("");
-  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
-  const [twoFactorSaving, setTwoFactorSaving] = useState(false);
-  const [twoFactorMessage, setTwoFactorMessage] = useState("");
   const [confirmDialog, setConfirmDialog] = useState<SettingsConfirmDialog | null>(null);
+  const auth = useSettingsAuth({ username, activeSettingsTab, requestConfirmation: setConfirmDialog });
+  const { currentSession, canManageUsers, canEditMasterData } = auth;
   // Keep controller state mounted when navigating between settings tabs.
   const transfer = useSettingsTransfer({
     requestConfirmation: setConfirmDialog,
@@ -204,8 +151,6 @@ export function SettingsView({ username }: { username: string }) {
     clearMasterDataSearch: () => setSearch(""),
     loadStorageUsage
   });
-  const canManageUsers = Boolean(currentSession?.roles.includes("Admin"));
-  const canEditMasterData = Boolean(currentSession?.roles.some((role) => role === "Admin" || role === "Editor"));
   const activeDataType = useMemo(
     () => masterDataTypes.find((item) => item.type === activeType) || masterDataTypes[0],
     [activeType]
@@ -232,14 +177,6 @@ export function SettingsView({ username }: { username: string }) {
   const selectArticleType = (type: ArticleDataType) => {
     setActiveArticleType(type);
     writeSettingsLocation({ tab: "data", group: "article", type });
-  };
-  const auditLabel = (action: string) => {
-    const label = t(`settings.auditAction.${action}`);
-    return label === `settings.auditAction.${action}` ? action : label;
-  };
-  const roleDescription = (role: string) => {
-    const description = t(`settings.role.${role}`);
-    return description === `settings.role.${role}` ? t("settings.roles.custom") : description;
   };
   const activeDataLabel = masterLabel(activeDataType.type);
   const activeDataDescription = masterDescription(activeDataType.type);
@@ -274,23 +211,6 @@ export function SettingsView({ username }: { username: string }) {
     if (activeSettingsTab !== "data" || storageUsage || storageLoading) return;
     loadStorageUsage();
   }, [activeSettingsTab, storageUsage, storageLoading]);
-
-  useEffect(() => {
-    loadCurrentSession();
-  }, [username]);
-
-  useEffect(() => {
-    if (activeSettingsTab !== "auth" || !canManageUsers) return;
-    loadUsersAndRoles();
-    loadAuditLog();
-    loadSessions();
-    loadSMTPSettings();
-  }, [activeSettingsTab, canManageUsers]);
-
-  useEffect(() => {
-    if (activeSettingsTab !== "auth") return;
-    loadTwoFactorStatus();
-  }, [activeSettingsTab]);
 
   useEffect(() => {
     if (activeSettingsTab !== "data" || dataGroup !== "general" || loadedTypes[activeType]) return;
@@ -379,334 +299,10 @@ export function SettingsView({ username }: { username: string }) {
     reader.readAsDataURL(file);
   };
 
-  const loadCurrentSession = () => {
-    setAuthMessage("");
-    api
-      .session()
-      .then(setCurrentSession)
-      .catch((error: Error) => setAuthMessage(error.message));
-  };
-
-  const loadTwoFactorStatus = () => {
-    setTwoFactorLoading(true);
-    setTwoFactorMessage("");
-    api
-      .twoFactorStatus()
-      .then(setTwoFactorStatus)
-      .catch((error: Error) => setTwoFactorMessage(error.message))
-      .finally(() => setTwoFactorLoading(false));
-  };
-
-  const loadUsersAndRoles = () => {
-    setUsersLoading(true);
-    setAuthMessage("");
-    Promise.all([api.roles(), api.users()])
-      .then(([roles, accounts]) => {
-        setAvailableRoles(roles);
-        setUsers(accounts);
-      })
-      .catch((error: Error) => setAuthMessage(error.message))
-      .finally(() => setUsersLoading(false));
-  };
-
-  const loadAuditLog = () => {
-    setAuditLogLoading(true);
-    setAuditLogMessage("");
-    api
-      .auditLog(10)
-      .then((result) => setAuditLog(result.entries))
-      .catch((error: Error) => setAuditLogMessage(error.message))
-      .finally(() => setAuditLogLoading(false));
-  };
-
-  const loadSessions = () => {
-    setSessionsLoading(true);
-    setSessionsMessage("");
-    api
-      .sessions(5)
-      .then(setSessions)
-      .catch((error: Error) => setSessionsMessage(error.message))
-      .finally(() => setSessionsLoading(false));
-  };
-
-  const loadSMTPSettings = () => {
-    setSmtpLoading(true);
-    setSmtpMessage("");
-    api
-      .smtpSettings()
-      .then((settings) => {
-        setSmtpSettings(settings);
-        setSmtpForm((current) => ({
-          ...current,
-          enabled: settings.enabled,
-          publicUrl: settings.publicUrl || "",
-          host: settings.host || "",
-          port: settings.port || "587",
-          username: settings.username || "",
-          password: "",
-          from: settings.from || "",
-          tlsMode: settings.tlsMode || "starttls",
-          clearPassword: false
-        }));
-      })
-      .catch((error: Error) => setSmtpMessage(error.message))
-      .finally(() => setSmtpLoading(false));
-  };
-
-  const saveSMTPSettings = (event: FormEvent) => {
-    event.preventDefault();
-    setSmtpSaving(true);
-    setSmtpMessage("");
-    api
-      .updateSMTPSettings({
-        enabled: smtpForm.enabled,
-        publicUrl: smtpForm.publicUrl,
-        host: smtpForm.host,
-        port: smtpForm.port,
-        username: smtpForm.username,
-        password: smtpForm.password || undefined,
-        from: smtpForm.from,
-        tlsMode: smtpForm.tlsMode,
-        clearPassword: smtpForm.clearPassword
-      })
-      .then((settings) => {
-        setSmtpSettings(settings);
-        setSmtpForm((current) => ({
-          ...current,
-          enabled: settings.enabled,
-          publicUrl: settings.publicUrl || "",
-          host: settings.host || "",
-          port: settings.port || "587",
-          username: settings.username || "",
-          password: "",
-          from: settings.from || "",
-          tlsMode: settings.tlsMode || "starttls",
-          clearPassword: false
-        }));
-        setSmtpMessage(t("settings.smtp.saved"));
-      })
-      .catch((error: Error) => setSmtpMessage(error.message))
-      .finally(() => setSmtpSaving(false));
-  };
-
-  const testSMTPSettings = () => {
-    const recipient = smtpForm.testRecipient.trim();
-    if (!recipient) {
-      setSmtpMessage(t("settings.smtp.recipientRequired"));
-      return;
-    }
-    setSmtpTesting(true);
-    setSmtpMessage("");
-    api
-      .testSMTPSettings({ recipient })
-      .then(() => setSmtpMessage(t("settings.smtp.testSent", { recipient })))
-      .catch((error: Error) => setSmtpMessage(error.message))
-      .finally(() => setSmtpTesting(false));
-  };
-
-  const setupTwoFactor = (onPrepared?: (status: TwoFactorStatus) => void) => {
-    setTwoFactorSaving(true);
-    setTwoFactorMessage("");
-    api
-      .setupTwoFactor()
-      .then((status) => {
-        setTwoFactorStatus(status);
-        setTwoFactorMessage(t("settings.auth.twoFactorSetupDone"));
-        if (canManageUsers) loadAuditLog();
-        onPrepared?.(status);
-      })
-      .catch((error: Error) => setTwoFactorMessage(error.message))
-      .finally(() => setTwoFactorSaving(false));
-  };
-
-  const enableTwoFactor = (onEnabled?: (status: TwoFactorStatus) => void) => {
-    const code = twoFactorCode.trim();
-    if (!code) {
-      setTwoFactorMessage(t("settings.auth.twoFactorCodeRequired"));
-      return;
-    }
-    setTwoFactorSaving(true);
-    setTwoFactorMessage("");
-    api
-      .enableTwoFactor({ code })
-      .then((status) => {
-        setTwoFactorStatus({ ...status, enabled: true, prepared: true });
-        setTwoFactorCode("");
-        setTwoFactorMessage(t("settings.auth.twoFactorEnabled"));
-        loadCurrentSession();
-        loadTwoFactorStatus();
-        if (canManageUsers) loadUsersAndRoles();
-        if (canManageUsers) loadAuditLog();
-        onEnabled?.({ ...status, enabled: true, prepared: true });
-      })
-      .catch((error: Error) => setTwoFactorMessage(error.message))
-      .finally(() => setTwoFactorSaving(false));
-  };
-
-  const disableTwoFactor = (onDisabled?: () => void) => {
-    if (!twoFactorPassword.trim()) {
-      setTwoFactorMessage(t("settings.auth.twoFactorPasswordRequired"));
-      return;
-    }
-    setTwoFactorSaving(true);
-    setTwoFactorMessage("");
-    api
-      .disableTwoFactor({ currentPassword: twoFactorPassword, code: twoFactorCode })
-      .then(() => {
-        setTwoFactorStatus({ enabled: false, prepared: false });
-        setTwoFactorCode("");
-        setTwoFactorPassword("");
-        setTwoFactorMessage(t("settings.auth.twoFactorDisabled"));
-        loadCurrentSession();
-        if (canManageUsers) {
-          loadUsersAndRoles();
-          loadSessions();
-          loadAuditLog();
-        }
-        onDisabled?.();
-      })
-      .catch((error: Error) => setTwoFactorMessage(error.message))
-      .finally(() => setTwoFactorSaving(false));
-  };
-
   const confirmSettingsAction = () => {
     const action = confirmDialog?.onConfirm;
     setConfirmDialog(null);
     action?.();
-  };
-
-  const revokeSession = (session: SessionRecord) => {
-    setConfirmDialog({
-      title: t("settings.sessions.revoke"),
-      body: t("settings.sessions.revokeConfirm", { username: session.username }),
-      confirmLabel: t("settings.sessions.revoke"),
-      danger: true,
-      onConfirm: () => {
-        setSessionsMessage("");
-        api
-          .revokeSession(session.id)
-          .then(() => {
-            loadSessions();
-            loadAuditLog();
-          })
-          .catch((error: Error) => setSessionsMessage(error.message));
-      }
-    });
-  };
-
-  const changePassword = (event: FormEvent) => {
-    event.preventDefault();
-    setPasswordMessage("");
-    if (passwordForm.newPassword.length < 12) {
-      setPasswordMessage(t("settings.password.error.tooShort"));
-      return;
-    }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordMessage(t("settings.password.error.mismatch"));
-      return;
-    }
-    setPasswordSaving(true);
-    api
-      .changePassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword
-      })
-      .then(() => {
-        setPasswordForm(emptyPasswordForm);
-        setPasswordMessage(t("settings.password.changed"));
-        loadSessions();
-        loadAuditLog();
-      })
-      .catch((error: Error) => setPasswordMessage(error.message))
-      .finally(() => setPasswordSaving(false));
-  };
-
-  const startUserCreate = () => {
-    setEditingUser(null);
-    setUserForm(emptyUserForm);
-    setAuthMessage("");
-  };
-
-  const startUserEdit = (user: UserAccount) => {
-    setEditingUser(user);
-    setUserForm({
-      username: user.username,
-      email: user.email || "",
-      password: "",
-      confirmPassword: "",
-      roles: user.roles.length > 0 ? user.roles : ["Viewer"]
-    });
-    setAuthMessage("");
-  };
-
-  const toggleUserRole = (role: string, checked: boolean) => {
-    setUserForm((current) => {
-      const nextRoles = checked
-        ? [...current.roles, role]
-        : current.roles.filter((currentRole) => currentRole !== role);
-      return { ...current, roles: Array.from(new Set(nextRoles)) };
-    });
-  };
-
-  const saveUser = (event: FormEvent, onSaved?: () => void) => {
-    event.preventDefault();
-    setUserSaving(true);
-    setAuthMessage("");
-
-    const passwordTouched = userForm.password.length > 0 || userForm.confirmPassword.length > 0;
-    if ((!editingUser || passwordTouched) && userForm.password.length < 12) {
-      setUserSaving(false);
-      setAuthMessage(t("settings.users.passwordTooShort"));
-      return;
-    }
-
-    if (userForm.password !== userForm.confirmPassword) {
-      setUserSaving(false);
-      setAuthMessage(t("setup.passwordMismatch"));
-      return;
-    }
-
-    const input = {
-      username: userForm.username,
-      email: userForm.email,
-      password: userForm.password || undefined,
-      roles: userForm.roles
-    };
-    const action = editingUser ? api.updateUser(editingUser.id, input) : api.createUser(input);
-
-    action
-      .then((user) => {
-        setEditingUser(user);
-        setUserForm({ username: user.username, email: user.email || "", password: "", confirmPassword: "", roles: user.roles });
-        loadUsersAndRoles();
-        loadAuditLog();
-        loadCurrentSession();
-        onSaved?.();
-      })
-      .catch((error: Error) => setAuthMessage(error.message))
-      .finally(() => setUserSaving(false));
-  };
-
-  const deleteUser = (user: UserAccount) => {
-    setConfirmDialog({
-      title: t("vehicles.delete"),
-      body: t("settings.users.deleteConfirm", { username: user.username }),
-      confirmLabel: t("vehicles.delete"),
-      danger: true,
-      onConfirm: () => {
-        setAuthMessage("");
-        api
-          .deleteUser(user.id)
-          .then(() => {
-            if (editingUser?.id === user.id) {
-              startUserCreate();
-            }
-            loadUsersAndRoles();
-            loadAuditLog();
-          })
-          .catch((error: Error) => setAuthMessage(error.message));
-      }
-    });
   };
 
   const startCreate = () => {
@@ -1309,65 +905,7 @@ export function SettingsView({ username }: { username: string }) {
       {activeSettingsTab === "appearance" && <SettingsAppearanceTab preferences={preferences} />}
 
       {activeSettingsTab === "auth" && (
-        <SettingsAuthTab
-          t={t}
-          currentSession={currentSession}
-          twoFactorStatus={twoFactorStatus}
-          twoFactorCode={twoFactorCode}
-          setTwoFactorCode={setTwoFactorCode}
-          twoFactorPassword={twoFactorPassword}
-          setTwoFactorPassword={setTwoFactorPassword}
-          twoFactorLoading={twoFactorLoading}
-          twoFactorSaving={twoFactorSaving}
-          twoFactorMessage={twoFactorMessage}
-          setupTwoFactor={setupTwoFactor}
-          enableTwoFactor={enableTwoFactor}
-          disableTwoFactor={disableTwoFactor}
-          authMessage={authMessage}
-          loadCurrentSession={loadCurrentSession}
-          changePassword={changePassword}
-          passwordForm={passwordForm}
-          setPasswordForm={setPasswordForm}
-          passwordSaving={passwordSaving}
-          passwordMessage={passwordMessage}
-          smtpSettings={smtpSettings}
-          smtpForm={smtpForm}
-          setSmtpForm={setSmtpForm}
-          smtpLoading={smtpLoading}
-          smtpSaving={smtpSaving}
-          smtpTesting={smtpTesting}
-          smtpMessage={smtpMessage}
-          loadSMTPSettings={loadSMTPSettings}
-          saveSMTPSettings={saveSMTPSettings}
-          testSMTPSettings={testSMTPSettings}
-          canManageUsers={canManageUsers}
-          startUserCreate={startUserCreate}
-          editingUser={editingUser}
-          saveUser={saveUser}
-          userForm={userForm}
-          setUserForm={setUserForm}
-          availableRoles={availableRoles}
-          toggleUserRole={toggleUserRole}
-          userSaving={userSaving}
-          usersLoading={usersLoading}
-          users={users}
-          formatDateTime={formatDateTime}
-          startUserEdit={startUserEdit}
-          deleteUser={deleteUser}
-          loadSessions={loadSessions}
-          sessionsLoading={sessionsLoading}
-          sessions={sessions}
-          revokeSession={revokeSession}
-          sessionsMessage={sessionsMessage}
-          loadAuditLog={loadAuditLog}
-          auditLogLoading={auditLogLoading}
-          auditLog={auditLog}
-          auditLabel={auditLabel}
-          auditActor={auditActor}
-          auditTarget={auditTarget}
-          auditLogMessage={auditLogMessage}
-          roleDescription={roleDescription}
-        />
+        <SettingsAuthTab controller={auth} />
       )}
 
       {confirmDialog && (

@@ -1,144 +1,76 @@
+import { useI18n } from "../../shared/i18n";
+import { auditActor, auditTarget, formatDateTime } from "./settingsModel";
+import type { SettingsAuthController } from "./useSettingsAuth";
 import { useEffect, useState } from "react";
-import type { Dispatch, FormEvent, SetStateAction } from "react";
+
 import { History, KeyRound, Mail, Pencil, RefreshCw, Save, Send, Shield, Trash2, UserCog, Users, X } from "lucide-react";
-import type { AuditLogEntry, Role, Session, SessionRecord, SMTPSettings, SMTPSettingsInput, TwoFactorStatus, UserAccount } from "../../shared/api";
+import type { UserAccount } from "../../shared/api";
 import { AppSelect } from "../../shared/ui/AppSelect";
 
-type Translate = (key: string, values?: Record<string, string | number>) => string;
+export function SettingsAuthTab({ controller }: { controller: SettingsAuthController }) {
+  const { t } = useI18n();
+  const {
+    currentSession,
+    twoFactorStatus,
+    twoFactorCode,
+    setTwoFactorCode,
+    twoFactorPassword,
+    setTwoFactorPassword,
+    twoFactorLoading,
+    twoFactorSaving,
+    twoFactorMessage,
+    setupTwoFactor,
+    enableTwoFactor,
+    disableTwoFactor,
+    authMessage,
+    loadCurrentSession,
+    changePassword,
+    passwordForm,
+    setPasswordForm,
+    passwordSaving,
+    passwordMessage,
+    smtpSettings,
+    smtpForm,
+    setSmtpForm,
+    smtpLoading,
+    smtpSaving,
+    smtpTesting,
+    smtpMessage,
+    loadSMTPSettings,
+    saveSMTPSettings,
+    testSMTPSettings,
+    canManageUsers,
+    startUserCreate,
+    editingUser,
+    saveUser,
+    userForm,
+    setUserForm,
+    availableRoles,
+    toggleUserRole,
+    userSaving,
+    usersLoading,
+    users,
+    startUserEdit,
+    deleteUser,
+    loadSessions,
+    sessionsLoading,
+    sessions,
+    revokeSession,
+    sessionsMessage,
+    loadAuditLog,
+    auditLogLoading,
+    auditLog,
+    auditLogMessage
+  } = controller;
+  const auditLabel = (action: string) => {
+    const label = t(`settings.auditAction.${action}`);
+    return label === `settings.auditAction.${action}` ? action : label;
+  };
+  const roleDescription = (role: string) => {
+    const description = t(`settings.role.${role}`);
+    return description === `settings.role.${role}` ? t("settings.roles.custom") : description;
+  };
 
-type UserFormState = {
-  username: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  roles: string[];
-};
-
-type PasswordFormState = {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-};
-
-type SettingsAuthTabProps = {
-  t: Translate;
-  currentSession: Session | null;
-  twoFactorStatus: TwoFactorStatus | null;
-  twoFactorCode: string;
-  setTwoFactorCode: Dispatch<SetStateAction<string>>;
-  twoFactorPassword: string;
-  setTwoFactorPassword: Dispatch<SetStateAction<string>>;
-  twoFactorLoading: boolean;
-  twoFactorSaving: boolean;
-  twoFactorMessage: string;
-  setupTwoFactor: (onPrepared?: (status: TwoFactorStatus) => void) => void;
-  enableTwoFactor: (onEnabled?: (status: TwoFactorStatus) => void) => void;
-  disableTwoFactor: (onDisabled?: () => void) => void;
-  authMessage: string;
-  loadCurrentSession: () => void;
-  changePassword: (event: FormEvent<HTMLFormElement>) => void;
-  passwordForm: PasswordFormState;
-  setPasswordForm: Dispatch<SetStateAction<PasswordFormState>>;
-  passwordSaving: boolean;
-  passwordMessage: string;
-  smtpSettings: SMTPSettings | null;
-  smtpForm: SMTPSettingsInput & { password: string; testRecipient: string };
-  setSmtpForm: Dispatch<SetStateAction<SMTPSettingsInput & { password: string; testRecipient: string }>>;
-  smtpLoading: boolean;
-  smtpSaving: boolean;
-  smtpTesting: boolean;
-  smtpMessage: string;
-  loadSMTPSettings: () => void;
-  saveSMTPSettings: (event: FormEvent<HTMLFormElement>) => void;
-  testSMTPSettings: () => void;
-  canManageUsers: boolean;
-  startUserCreate: () => void;
-  editingUser: UserAccount | null;
-  saveUser: (event: FormEvent<HTMLFormElement>, onSaved?: () => void) => void;
-  userForm: UserFormState;
-  setUserForm: Dispatch<SetStateAction<UserFormState>>;
-  availableRoles: Role[];
-  toggleUserRole: (role: string, checked: boolean) => void;
-  userSaving: boolean;
-  usersLoading: boolean;
-  users: UserAccount[];
-  formatDateTime: (value: string) => string;
-  startUserEdit: (user: UserAccount) => void;
-  deleteUser: (user: UserAccount) => void;
-  loadSessions: () => void;
-  sessionsLoading: boolean;
-  sessions: SessionRecord[];
-  revokeSession: (session: SessionRecord) => void;
-  sessionsMessage: string;
-  loadAuditLog: () => void;
-  auditLogLoading: boolean;
-  auditLog: AuditLogEntry[];
-  auditLabel: (action: string) => string;
-  auditActor: (entry: AuditLogEntry) => string;
-  auditTarget: (entry: AuditLogEntry) => string;
-  auditLogMessage: string;
-  roleDescription: (role: string) => string;
-};
-
-export function SettingsAuthTab({
-  t,
-  currentSession,
-  twoFactorStatus,
-  twoFactorCode,
-  setTwoFactorCode,
-  twoFactorPassword,
-  setTwoFactorPassword,
-  twoFactorLoading,
-  twoFactorSaving,
-  twoFactorMessage,
-  setupTwoFactor,
-  enableTwoFactor,
-  disableTwoFactor,
-  authMessage,
-  loadCurrentSession,
-  changePassword,
-  passwordForm,
-  setPasswordForm,
-  passwordSaving,
-  passwordMessage,
-  smtpSettings,
-  smtpForm,
-  setSmtpForm,
-  smtpLoading,
-  smtpSaving,
-  smtpTesting,
-  smtpMessage,
-  loadSMTPSettings,
-  saveSMTPSettings,
-  testSMTPSettings,
-  canManageUsers,
-  startUserCreate,
-  editingUser,
-  saveUser,
-  userForm,
-  setUserForm,
-  availableRoles,
-  toggleUserRole,
-  userSaving,
-  usersLoading,
-  users,
-  formatDateTime,
-  startUserEdit,
-  deleteUser,
-  loadSessions,
-  sessionsLoading,
-  sessions,
-  revokeSession,
-  sessionsMessage,
-  loadAuditLog,
-  auditLogLoading,
-  auditLog,
-  auditLabel,
-  auditActor,
-  auditTarget,
-  auditLogMessage,
-  roleDescription
-}: SettingsAuthTabProps) {
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [twoFactorDialogOpen, setTwoFactorDialogOpen] = useState(false);
   const [twoFactorDialogMode, setTwoFactorDialogMode] = useState<"setup" | "disable">("setup");
