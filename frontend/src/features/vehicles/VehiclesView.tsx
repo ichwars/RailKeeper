@@ -183,6 +183,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
   const {
     state: {
       attachmentDeleteCandidate,
+      mediaConflicts,
       pendingImages: pendingArticleImages,
       previewImage,
       attachmentEdits,
@@ -208,6 +209,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       refreshDetail: refreshVehicleMedia,
       acknowledgeCoreSaved: acknowledgeMediaSaved,
       acknowledgeImportedImage,
+      resolveConflict: resolveMediaConflict,
       addImages: addPendingImages,
       setPrimaryPendingImage,
       updatePendingImageTitle,
@@ -229,6 +231,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     setSaving,
     onMessage: setMessage,
     refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "media"),
+    reloadSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
     onImageUploadComplete: () => {
       setCVFileProfile("");
       setCVFileDescription("");
@@ -631,6 +634,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       setSelectedDetail: (detail) => acknowledgeSavedVehicle(detail, form, "complete"),
       acknowledgeCoreSaved: (detail) => acknowledgeSavedVehicle(detail, form, "core"),
       hasRefreshConflicts: refreshConflicts.length > 0,
+      reloadSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
       setMode,
       setSaveAttempted,
       setActiveTab,
@@ -640,7 +644,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     validation: {
       missingRequiredLabels: missingRequiredModelFields
     },
-    media: { pendingImages: pendingArticleImages, acknowledgeImportedImage },
+    media: { pendingImages: pendingArticleImages, acknowledgeImportedImage,
+      hasConflicts: mediaConflicts.some(conflict => conflict.kind === "image") },
     spareParts: {
       selectedInputs: selectedFoundSparePartInputs,
       clearSelected: clearSelectedFoundSpareParts
@@ -788,6 +793,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
           saving={saving}
           message={message}
           refreshConflicts={refreshConflicts}
+          mediaConflicts={mediaConflicts}
+          onResolveMediaConflict={resolveMediaConflict}
           lastSavedAction={lastSavedAction}
           onResolveRefreshConflicts={resolveRefreshConflicts}
           onSubmit={submit}

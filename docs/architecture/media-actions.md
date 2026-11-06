@@ -24,6 +24,21 @@ Requests omitting the optional guards retain the legacy contract. Roles, CSRF an
 server-side requirements. The UI must retain the original token with a dirty draft and offer an
 explicit comparison before rebasing it; a refresh alone must not silently authorize stale fields.
 
+## Editor comparison
+
+The current editor supplies both observed vehicle tokens on its vehicle save and retains pending core,
+function, image and attachment fields when a conflict response refreshes the saved record. Core fields
+use the existing three-way comparison. Image titles, source and maintenance links and attachment notes,
+categories and links are compared separately; competing primary selections and image orders are also
+reviewed. Untouched fields and new uploads merge without erasing pending fields. Comparisons follow
+current typing and do not display private hashes or maintenance IDs.
+
+Conflicting image fields block the vehicle save until a user explicitly keeps the draft or adopts the
+stored fields. Attachment conflicts block only that attachment's separate save. Pending fields for a
+record deleted elsewhere remain visible until explicitly discarded; they never recreate the removed
+media record. An exhibition flag action first reads the current complete vehicle, sends its core
+revision and omits images. Missing comparison tokens block the editor write and prompt a reload.
+
 ## File completion and cleanup
 
 Uploads store new payloads under fresh blob identifiers before creating their metadata reference.
@@ -51,3 +66,8 @@ image clearing, matching response tokens, full rollback and cleanup that preserv
 HTTP tests exercise conflicts, malformed guards, CSRF and shared legacy file preservation through the
 last reference. Cross-version API comparison ignores only these new computed fields on their exact
 record types; raw database, backup and filesystem comparisons remain complete.
+
+The target-browser regression uses a separate authenticated writer to cause real core, image and
+attachment conflicts, verifies rejected requests leave the complete aggregate unchanged, resolves the
+reviewed fields, saves with current revisions and compares every unrelated field and original file byte.
+Both languages, four viewport widths, both themes, keyboard focus and mobile target sizes are covered.

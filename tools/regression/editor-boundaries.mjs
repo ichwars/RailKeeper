@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
+import { assertMediaDraftWorkflow } from "./media-draft.mjs";
 import { assertCVDraftWorkflow } from "./cv-draft.mjs";
 
 let inputText = "";
@@ -140,6 +141,7 @@ try {
     checks.push(language + ":confirmed-upload-preserves-five-drafts-and-cancel");
     checks.push(language + ":decoder-file-supplements-shared-function-draft-without-overwriting");
     checks.push(...await assertCVDraftWorkflow(page, input, de));
+    checks.push(...await assertMediaDraftWorkflow(page, input, de));
     await context.close();
   }
   await writeFile(input.output + "/report.json", JSON.stringify({ passed: true, checks }, null, 2) + "\n");

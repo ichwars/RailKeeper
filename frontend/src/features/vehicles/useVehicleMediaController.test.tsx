@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { api } from "../../shared/api";
+import { api, ApiError, type VehicleAttachment } from "../../shared/api";
 import { imageFixture, vehicleFixture } from "../../test/fixtures/vehicles";
 import { useVehicleMediaController } from "./useVehicleMediaController";
 
@@ -115,6 +115,7 @@ describe("useVehicleMediaController", () => {
     const { result, refreshSelectedVehicle } = renderController();
     const attachment = {
       id: "attachment-1",
+      revision: "a".repeat(64),
       vehicleId: "vehicle-1",
       fileName: "manual.pdf",
       originalName: "manual.pdf",
@@ -124,10 +125,12 @@ describe("useVehicleMediaController", () => {
     };
     vi.spyOn(api, "updateVehicleAttachment").mockResolvedValue(attachment);
 
+    act(() => result.current.commands.loadDetail(vehicleFixture({ attachments: [attachment] })));
     act(() => result.current.commands.updateAttachmentEdit(attachment.id, { category: "Anleitung" }));
     act(() => result.current.commands.saveAttachment(attachment));
     await waitFor(() => expect(refreshSelectedVehicle).toHaveBeenCalledWith("vehicle-1"));
     expect(api.updateVehicleAttachment).toHaveBeenCalledWith("vehicle-1", attachment.id, {
+      expectedRevision: attachment.revision,
       description: "",
       category: "Anleitung",
       maintenanceId: ""
@@ -160,11 +163,11 @@ describe("vehicle media draft and persistence boundary", () => {
     expect(remove).not.toHaveBeenCalled();
   });
 
-  it("keeps maintenance-linked images and writes persisted deletions immediately after the link is cleared", async () => {
+  it("keeps maintenance-linked drafts and deletes an unlinked stored image with its original revision", async () => {
     vi.spyOn(api, "deleteVehicleImage").mockResolvedValue(undefined);
     const { result, options } = renderDraftBoundaryController();
     const image = {
-      id: "stored", url: "/local.png", title: "Stored", source: "", persisted: true, maintenanceId: "maintenance"
+      id: "image-1", url: "/local.png", title: "Stored", source: "", persisted: true, maintenanceId: "maintenance"
     };
     act(() => result.current.commands.addImages([image]));
     act(() => result.current.commands.removePendingImage(image));
@@ -173,7 +176,47 @@ describe("vehicle media draft and persistence boundary", () => {
     act(() => result.current.commands.updatePendingImageMaintenance(image.id, ""));
     act(() => result.current.commands.removePendingImage(result.current.state.pendingImages[0]));
     await waitFor(() => expect(options.refreshSelectedVehicle).toHaveBeenCalledWith(options.selected.id));
-    expect(api.deleteVehicleImage).toHaveBeenCalledExactlyOnceWith(options.selected.id, image.id);
+    expect(api.deleteVehicleImage).toHaveBeenCalledExactlyOnceWith(options.selected.id, image.id, options.selected.images?.[0].revision);
     expect(result.current.state.pendingImages).toEqual([]);
+  });
+});
+
+
+describe("media revision guards", () => {
+  it("retains attachment drafts through a conflict and requires a reviewed choice before writing", async () => {
+    const attachment: VehicleAttachment = {
+      id: "a", revision: "a".repeat(64), vehicleId: "vehicle-1", fileName: "manual.txt", originalName: "manual.txt",
+      sizeBytes: 4, createdAt: "original", updatedAt: "original", description: "Original", category: "manual"
+    };
+    const before = vehicleFixture({ attachments: [attachment] });
+    const incoming = vehicleFixture({ attachments: [{ ...attachment, description: "Newer", category: "invoice", revision: "b".repeat(64) }] });
+    const options = {
+      readonly: false, saving: false, setSaving: vi.fn(), onMessage: vi.fn(),
+      refreshSelectedVehicle: vi.fn().mockResolvedValue(undefined), reloadSelectedVehicle: vi.fn().mockResolvedValue(undefined),
+      onImageUploadComplete: vi.fn()
+    };
+    const update = vi.spyOn(api, "updateVehicleAttachment").mockRejectedValueOnce(new ApiError("Changed", "attachment_conflict", 409))
+      .mockResolvedValueOnce(incoming.attachments![0]);
+    const { result, rerender } = renderHook(({ selected }) => useVehicleMediaController({ ...options, selected }),
+      { initialProps: { selected: before } });
+    act(() => result.current.commands.loadDetail(before));
+    act(() => result.current.commands.updateAttachmentEdit(attachment.id, { description: "Own" }));
+    act(() => result.current.commands.saveAttachment(attachment));
+    await waitFor(() => expect(options.reloadSelectedVehicle).toHaveBeenCalledWith(before.id));
+    expect(options.refreshSelectedVehicle).not.toHaveBeenCalled();
+    expect(result.current.state.attachmentEdits.a.description).toBe("Own");
+    act(() => result.current.commands.refreshDetail(incoming, before));
+    rerender({ selected: incoming });
+    expect(result.current.state.mediaConflicts).toHaveLength(1);
+    act(() => result.current.commands.saveAttachment(incoming.attachments![0]));
+    expect(update).toHaveBeenCalledOnce();
+    act(() => result.current.commands.updateAttachmentEdit(attachment.id, { description: "Own final" }));
+    expect(result.current.state.mediaConflicts[0].fields[0].local).toBe("Own final");
+    act(() => result.current.commands.resolveConflict(result.current.state.mediaConflicts[0], "draft"));
+    act(() => result.current.commands.saveAttachment(incoming.attachments![0]));
+    await waitFor(() => expect(options.refreshSelectedVehicle).toHaveBeenCalledWith(before.id));
+    expect(update).toHaveBeenLastCalledWith(before.id, attachment.id, {
+      description: "Own final", category: "invoice", maintenanceId: "", expectedRevision: "b".repeat(64)
+    });
   });
 });

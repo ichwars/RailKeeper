@@ -14,11 +14,12 @@ export type PendingArticleImage = ArticleSearchImage & {
   isPrimary?: boolean;
   persisted?: boolean;
   mimeType?: string;
+  fileName?: string;
   thumbnailUrl?: string;
   maintenanceId?: string;
 };
 
-export type AttachmentEditState = Record<string, { description: string; category: string; maintenanceId: string }>;
+export type AttachmentEditState = Record<string, { description: string; category: string; maintenanceId: string; expectedRevision?: string }>;
 export type FunctionEdit = VehicleFunctionInput & {
   persisted?: boolean; modeAssigned?: boolean; dirty?: boolean; deleted?: boolean; revision?: string;
 };
@@ -110,6 +111,7 @@ export function vehicleImageToPending(image: VehicleImageRecord): PendingArticle
     isPrimary: image.isPrimary,
     persisted: true,
     mimeType: image.mimeType || "",
+    fileName: image.fileName || "",
     maintenanceId: image.maintenanceId || ""
   };
 }
@@ -127,6 +129,7 @@ export function attachmentsToEditState(attachments?: VehicleAttachment[]): Attac
     (attachments || []).map((attachment) => [
       attachment.id,
       {
+        expectedRevision: attachment.revision,
         description: attachment.description || "",
         category: attachment.category || "",
         maintenanceId: attachment.maintenanceId || ""

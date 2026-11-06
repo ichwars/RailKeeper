@@ -12,6 +12,7 @@ const timestamp = "2026-07-23T08:00:00Z";
 export function imageFixture(overrides: Partial<VehicleImage> = {}): VehicleImage {
   return {
     id: "image-1",
+    revision: "d".repeat(64),
     vehicleId: "vehicle-1",
     url: "/api/v1/vehicles/vehicle-1/images/image-1/file",
     isPrimary: true,
@@ -83,6 +84,8 @@ export function cvFileFixture(overrides: Partial<VehicleCVFile> = {}): VehicleCV
 
 export function vehicleFixture(overrides: Partial<Vehicle> = {}): Vehicle {
   return {
+    revision: "e".repeat(64),
+    imagesRevision: "f".repeat(64),
     id: "vehicle-1",
     inventoryNumber: "RK-LOK-000001",
     manufacturer: "ESU",

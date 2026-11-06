@@ -46,6 +46,36 @@ const submitEvent = () => ({ preventDefault: vi.fn() }) as unknown as FormEvent;
 describe("createVehicleMutationCommands", () => {
   afterEach(() => vi.restoreAllMocks());
 
+  it("submits the observed core and image revisions and retains a rejected draft during reload", async () => {
+    const options = commandOptions(), selected = vehicleFixture();
+    const reloadSelectedVehicle = vi.fn().mockResolvedValue(undefined);
+    const update = vi.spyOn(api, "updateVehicle").mockRejectedValue(new ApiError("Changed", "vehicle_image_conflict", 409));
+    const form = { ...options.editor.form, name: "Own retained draft" };
+    await createVehicleMutationCommands({ ...options,
+      editor: { ...options.editor, mode: "edit", selected, form, reloadSelectedVehicle }
+    }).submit(submitEvent());
+    expect(update).toHaveBeenCalledWith(selected.id, expect.objectContaining({
+      name: "Own retained draft", expectedRevision: selected.revision, expectedImagesRevision: selected.imagesRevision
+    }));
+    expect(reloadSelectedVehicle).toHaveBeenCalledExactlyOnceWith(selected.id);
+    expect(options.editor.setSelectedDetail).not.toHaveBeenCalled();
+    expect(options.functions.acknowledgeSaved).not.toHaveBeenCalled();
+    expect(form.name).toBe("Own retained draft");
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.mediaConflict.changed");
+  });
+
+  it("blocks unreviewed image conflicts and records missing their comparison version", async () => {
+    const options = commandOptions();
+    const update = vi.spyOn(api, "updateVehicle");
+    await createVehicleMutationCommands({ ...options, media: { ...options.media, hasConflicts: true } }).submit(submitEvent());
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.mediaConflict.resolve");
+    await createVehicleMutationCommands({ ...options,
+      editor: { ...options.editor, mode: "edit", selected: vehicleFixture({ revision: undefined }) }
+    }).submit(submitEvent());
+    expect(update).not.toHaveBeenCalled();
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.mediaConflict.missingRevision");
+  });
+
   it("blocks unresolved refreshed fields before any write", async () => {
     const options = commandOptions();
     const create = vi.spyOn(api, "createVehicle");

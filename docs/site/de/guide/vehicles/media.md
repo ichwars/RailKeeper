@@ -4,7 +4,7 @@ description: Fahrzeugbilder und Beilagen hochladen, ordnen, anzeigen, herunterla
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-06
 ---
 
 # Fahrzeugbilder und Beilagen
@@ -128,10 +128,18 @@ Die automatische Kategorisierung nutzt diese Priorität. Die erste zutreffende R
 
 Kategorie und Bemerkung lassen sich für jede gespeicherte Beilage einzeln ändern. Diese Änderungen
 werden nur über die Speichern-Aktion der jeweiligen Zeile gespeichert, nicht über
-**Änderungen speichern** am Fahrzeug. Beim Speichern einer Beilagenzeile wird das Fahrzeug neu
-geladen, wodurch andere ungespeicherte Medienänderungen verworfen werden. Speichere zuerst
-ausstehende Bildmetadaten. Bearbeite und speichere danach jeweils eine Beilagenzeile, bevor du die
-nächste änderst.
+**Änderungen speichern** am Fahrzeug. Das anschließende Aktualisieren erhält offene Fahrzeug-,
+Funktions-, Bild- und weitere Anhangsentwürfe. **Abbrechen** verwirft diese offenen Angaben und erhält
+bereits gespeicherte Einzelaktionen.
+
+## Parallele Änderungen vergleichen
+
+Hat jemand inzwischen andere Werte gespeichert, bleibt dein Entwurf erhalten. Ein Vergleich zeigt
+deine Angaben und die gespeicherten Werte. Wähle für widersprüchliche Felder ausdrücklich die
+gewünschte Seite. Das gilt auch für konkurrierende Hauptbilder und Bildreihenfolgen. Unberührte
+Angaben werden aktualisiert. Bildkonflikte müssen vor **Änderungen speichern** geklärt werden;
+Anhangskonflikte vor der eigenen Speicheraktion des betroffenen Anhangs. Noch offene Angaben zu einem
+inzwischen entfernten Medium bleiben zum Prüfen sichtbar und können ausdrücklich verworfen werden.
 
 ## Beilagen anzeigen, öffnen und herunterladen
 

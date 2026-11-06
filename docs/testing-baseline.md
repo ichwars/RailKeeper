@@ -72,6 +72,11 @@ through the documented Playwright host setup, or use an already prepared test en
 ignored `output/`; they are not committed or added to the distribution package. The output directory must
 be new, so reruns cannot overwrite an earlier reference or an existing installation.
 
+For an upgrade comparison, the source binary prepares the reference and verifies its original export
+and restore behavior. Both browser suites run on the current target binary/image after the fresh app
+restore, using its own account. This also exercises new write contracts on the matching frontend and
+backend versions while preserving the complete old-to-new database, API and file comparisons.
+
 The runner exercises:
 
 1. Real API creation of the reference; authentication, all four roles and CSRF boundaries.
