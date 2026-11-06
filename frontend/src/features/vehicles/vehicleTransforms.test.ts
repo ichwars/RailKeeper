@@ -18,6 +18,7 @@ import {
 } from "./vehicleTransforms";
 
 describe("vehicle transforms", () => {
+  const localDownloadUrl = "/api/v1/vehicles/vehicle-1/images/image-1/file";
   it("maps a persisted vehicle into an editable form", () => {
     const form = vehicleToForm(vehicleFixture({ articleSourceUrl: undefined, ean: undefined }));
     expect(form).toMatchObject({
@@ -62,6 +63,18 @@ describe("vehicle transforms", () => {
       maintenanceId: ""
     });
     expect(functionsToEditState([functionFixture()]).F0).toMatchObject({ name: "Licht", persisted: true });
+  });
+
+  it.each([
+    { sourceUrl: undefined, url: localDownloadUrl, expected: "" },
+    { sourceUrl: "https://example.test/original", url: localDownloadUrl, expected: "https://example.test/original" },
+    { sourceUrl: undefined, url: "https://example.test/legacy.jpg", expected: "https://example.test/legacy.jpg" },
+    { sourceUrl: localDownloadUrl, url: localDownloadUrl, expected: localDownloadUrl }
+  ])("preserves image provenance without inventing local sources: $expected", ({ sourceUrl, url, expected }) => {
+    const image = imageFixture({ id: "image-1", vehicleId: "vehicle-1", sourceUrl, url });
+    const [pending] = vehicleImagesToPending(vehicleFixture({ images: [image] }));
+    expect(pending.source).toBe(expected);
+    expect(pending.url).toBe(url);
   });
 
   it("checks exhibition eligibility and builds an entry", () => {

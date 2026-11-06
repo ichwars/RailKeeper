@@ -17,6 +17,10 @@ in `frontend/src/shared/api.ts`; generated types can replace it later once the A
 
 ## Runtime
 
+The [regression baseline](testing-baseline.md) documents the feature matrix, synthetic reference collection,
+content comparisons, app/installation restore exercises and process/browser checks used for incremental changes.
+Its reports distinguish source coverage, actual runtime checks and remaining hardware/platform acceptance.
+
 The production runtime is a Go binary that serves:
 
 - `/api/v1/*` for JSON APIs

@@ -253,6 +253,12 @@ try {
 
 Assert-RailKeeperPackageDirectory -PackageDir $packageDir
 
+# CI validates the actual resource-patched EXE before an archive can be published.
+# Local packaging retains its existing prerequisites.
+if ($env:GITHUB_ACTIONS -eq "true") {
+  & (Join-Path $PSScriptRoot "test_windows_baseline.ps1") -PackageDir $packageDir
+}
+
 if (Test-Path -LiteralPath $zipPath) {
   Remove-Item -LiteralPath $zipPath -Force
 }

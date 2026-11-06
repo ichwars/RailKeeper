@@ -273,7 +273,7 @@ export function VehicleUploadsTab({
                       onClick={() => setExportImage(image)}>
                       <Download size={15} aria-hidden="true" />{t("locomotiveImage.action")}
                     </button>
-                    <a className="icon-button" href={image.source} target="_blank" rel="noreferrer" aria-label={t("vehicles.uploads.openSource")} title={t("vehicles.uploads.openSource")}>
+                    <a className="icon-button" href={image.source || image.url} target="_blank" rel="noreferrer" aria-label={t("vehicles.uploads.openSource")} title={t("vehicles.uploads.openSource")}>
                       <ExternalLink size={15} />
                     </a>
                     <button type="button" className="icon-button" onClick={() => onMovePendingImage(image.id, -1)} disabled={readonly || imageIndex === 0} aria-label={t("vehicles.uploads.moveUp")} title={t("vehicles.uploads.moveUp")}>

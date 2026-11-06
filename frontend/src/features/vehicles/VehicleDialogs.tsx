@@ -81,7 +81,7 @@ export function ImagePreviewDialog({
             <h2>{t("vehicles.imagePreview.title")}</h2>
             <p className="image-preview-source">
               {image.title || t("vehicles.imagePreview.defaultTitle")} - {sourceDisplayName(image.source)}
-              <a className="icon-button image-title-link" href={image.source} target="_blank" rel="noreferrer" aria-label={t("vehicles.articleSearch.sourceOpen")} title={t("vehicles.articleSearch.sourceOpen")}>
+              <a className="icon-button image-title-link" href={image.source || image.url} target="_blank" rel="noreferrer" aria-label={t("vehicles.articleSearch.sourceOpen")} title={t("vehicles.articleSearch.sourceOpen")}>
                 <ExternalLink size={15} />
               </a>
             </p>

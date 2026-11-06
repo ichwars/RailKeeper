@@ -1,0 +1,9 @@
+{
+  "name": "railkeeper-regression",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "dependencies": {
+    "playwright": "1.64.1"
+  }
+}
