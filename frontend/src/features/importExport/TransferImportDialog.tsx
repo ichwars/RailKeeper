@@ -25,6 +25,7 @@ import type {
 import { TransferConfirmDialog, type TransferPendingAction } from "./TransferConfirmDialog";
 import { TransferReviewTable } from "./TransferReviewTable";
 import { TransferSetReview } from "./TransferSetReview";
+import { useTransferImportConfirmation } from "./useTransferImportConfirmation";
 
 export type ImportDialogStep = "profile" | "file" | "mapping" | "review" | "confirm";
 
@@ -110,6 +111,8 @@ export function TransferImportDialog({
   }, [preview, unresolvedIssues.length]);
   const step = currentStep(profileId, file, preview, job, mappingAccepted, requiresReupload);
   const mappingReady = csvMapping.length === 0 || csvMapping.every((column) => column.origin !== "unmapped");
+  const confirmation = useTransferImportConfirmation({ job, language, confirm: onConfirm, refresh: onRefreshJob,
+    recovered: adoptRecoveredDetails, close: onClose, setBusy, setError });
 
   useEffect(() => {
     if (!initialJob) return;
@@ -142,6 +145,7 @@ export function TransferImportDialog({
   }, [initialJob?.id, initialRequiresReupload, language]);
 
   function requestProfileChange(nextProfileId: string) {
+    if (confirmation.blocked) return;
     if (nextProfileId === profileId) return;
     if (preview) {
       setPendingChange({ kind: "profile", profileId: nextProfileId });
@@ -151,6 +155,7 @@ export function TransferImportDialog({
   }
 
   async function changeProfile(nextProfileId: string) {
+    if (confirmation.blocked) return;
     setBusy(true);
     setError("");
     try {
@@ -174,6 +179,7 @@ export function TransferImportDialog({
   }
 
   function chooseFile(event: ChangeEvent<HTMLInputElement>) {
+    if (confirmation.blocked) return;
     const nextFile = event.target.files?.[0];
     event.target.value = "";
     if (!nextFile || (!profileId && !job)) return;
@@ -185,6 +191,7 @@ export function TransferImportDialog({
   }
 
   async function uploadFile(nextFile: File) {
+    if (confirmation.blocked) return;
     acceptedMappingIdentityRef.current = null;
     setFile(nextFile);
     setBusy(true);
@@ -211,6 +218,7 @@ export function TransferImportDialog({
   }
 
   function changeMapping(columnIndex: number, value: string) {
+    if (confirmation.blocked) return;
     setCSVMapping((current) => current.map((column) => {
       if (column.index !== columnIndex) return column;
       if (value === "__ignore__") return { ...column, targetField: "", origin: "ignored" };
@@ -221,6 +229,7 @@ export function TransferImportDialog({
   }
 
   async function applyMapping() {
+    if (confirmation.blocked) return;
     if (!preview || !job || !mappingReady) return;
     if (!mappingDirty && !saveMappingToProfile) {
       acceptedMappingIdentityRef.current = csvMappingIdentity(job, csvMapping);
@@ -253,6 +262,7 @@ export function TransferImportDialog({
   }
 
   async function resolve(issue: DataTransferIssue, resolution: DataTransferIssueResolution) {
+    if (confirmation.blocked) return;
     if (!preview || !job) return;
     setBusy(true);
     setError("");
@@ -275,50 +285,39 @@ export function TransferImportDialog({
 
   async function confirmImport() {
     if (!job || unresolvedIssues.length > 0 || approvedRecords === 0 || job.state !== "ready") return;
-    setBusy(true);
-    setError("");
-    try {
-      await onConfirm(job.id, job.revision);
-      onClose();
-    } catch (reason) {
-      await recoverConflict(reason, job.id, copy.confirmError, true);
-    } finally {
-      setBusy(false);
-    }
+    await confirmation.confirm();
   }
 
-  async function recoverConflict(reason: unknown, jobId: string | undefined, fallback: string,
-    reuploadRequired = false) {
+  function adoptRecoveredDetails(details: DataTransferJobDetails, reuploadRequired: boolean) {
+    requiresReuploadRef.current = reuploadRequired;
+    const refreshedPreview = previewFromDetails(details.job, details);
+    const refreshedMapping = refreshedPreview?.csvMapping ?? [];
+    const refreshedIdentity = csvMappingIdentity(details.job, refreshedMapping);
+    const keepAccepted = !reuploadRequired && acceptedMappingIdentityRef.current === refreshedIdentity;
+    if (!keepAccepted) acceptedMappingIdentityRef.current = null;
+    setJob(details.job);
+    setPreview(refreshedPreview);
+    setCSVMapping(refreshedMapping);
+    setMappingAccepted(!reuploadRequired && (!vehicleCSVMappingRequired(details.job) || keepAccepted));
+    setRequiresReupload(reuploadRequired);
+    setError(details.job.state === "completed" ? "" : reuploadRequired ? copy.confirmConflictRecovery : copy.conflictRecovery);
+  }
+
+  async function recoverConflict(reason: unknown, jobId: string | undefined, fallback: string) {
     if (!(reason instanceof ApiError) || reason.status !== 409 || !jobId) {
       setError(errorMessage(reason, fallback));
       return;
     }
-    if (reuploadRequired) {
-      requiresReuploadRef.current = true;
-      setRequiresReupload(true);
-      acceptedMappingIdentityRef.current = null;
-      setMappingAccepted(false);
-    }
     try {
       const details = await onRefreshJob(jobId);
-      const refreshedPreview = previewFromDetails(details.job, details);
-      const refreshedMapping = refreshedPreview?.csvMapping ?? [];
-      const refreshedIdentity = csvMappingIdentity(details.job, refreshedMapping);
-      const keepAccepted = acceptedMappingIdentityRef.current === refreshedIdentity;
-      if (!keepAccepted) acceptedMappingIdentityRef.current = null;
-      setJob(details.job);
-      setPreview(refreshedPreview);
-      setCSVMapping(refreshedMapping);
-      setMappingAccepted(!reuploadRequired && (!vehicleCSVMappingRequired(details.job) || keepAccepted));
-      setRequiresReupload(reuploadRequired);
-      setError(reuploadRequired ? copy.confirmConflictRecovery : copy.conflictRecovery);
+      adoptRecoveredDetails(details, false);
     } catch (refreshError) {
       setError(errorMessage(refreshError, copy.conflictRecovery));
     }
   }
 
   async function cancelJob() {
-    if (!job) return;
+    if (!job || confirmation.blocked) return;
     setBusy(true);
     setError("");
     try {
@@ -362,7 +361,7 @@ export function TransferImportDialog({
           {!initialJob && (
             <label className="data-transfer-field">
               <span>{copy.profile}</span>
-              <AppSelect aria-label={copy.profile} value={profileId} disabled={busy}
+              <AppSelect aria-label={copy.profile} value={profileId} disabled={busy || confirmation.blocked}
                 onChange={(event) => requestProfileChange(event.target.value)}>
                 <option value="">{copy.chooseProfile}</option>
                 {importProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
@@ -382,14 +381,14 @@ export function TransferImportDialog({
             <label className={`data-transfer-file-drop${busy ? " busy" : ""}`}>
               <FileUp size={28} aria-hidden="true" />
               <span><strong>{file?.name || job?.sourceName || copy.chooseFile}</strong><small>{copy.fileHelp}</small></span>
-              <input ref={fileRef} type="file" aria-label={copy.fileLabel} disabled={busy}
+              <input ref={fileRef} type="file" aria-label={copy.fileLabel} disabled={busy || confirmation.blocked}
                 accept={snapshot?.format === "csv" ? ".csv,text/csv" : ".json,application/json"}
                 onChange={chooseFile} />
               <span className="secondary-button"><Upload size={15} aria-hidden="true" />{copy.browse}</span>
             </label>
           ) : null}
 
-          {preview && preview.job.format === "csv" && !mappingAccepted ? (
+          {preview && !confirmation.blocked && preview.job.format === "csv" && !mappingAccepted ? (
             <section className="transfer-mapping-section">
               <header><div><p className="eyebrow">{copy.serverPreview}</p><h3>{copy.mappingTitle}</h3></div></header>
               <p>{copy.mappingExplanation}</p>
@@ -431,7 +430,7 @@ export function TransferImportDialog({
             </section>
           ) : null}
 
-          {preview && mappingAccepted && !requiresReupload ? (
+          {preview && !confirmation.blocked && mappingAccepted && !requiresReupload ? (
             <section className="transfer-preview-section">
               <header>
                 <div><p className="eyebrow">{copy.serverPreview}</p><h3>{copy.preview}</h3></div>
@@ -457,21 +456,25 @@ export function TransferImportDialog({
             </section>
           ) : null}
 
-          {error ? <p className="form-message error" role="alert">{error}</p> : null}
+          {confirmation.blocked ? <p className="form-message" role={confirmation.outcome === "unknown" ? "alert" : "status"}>
+            {confirmation.message}</p> : null}
+          {error && !confirmation.blocked ? <p className="form-message error" role="alert">{error}</p> : null}
         </div>
 
         <footer className="data-transfer-dialog-actions">
-          {job ? <button type="button" className="secondary-button" disabled={busy}
+          {job && !confirmation.blocked ? <button type="button" className="secondary-button" disabled={busy}
             onClick={() => setPendingChange({ kind: "cancel" })}>{copy.cancelJob}</button> : <span />}
           <span>
             <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>{copy.close}</button>
-            {preview && preview.job.format === "csv" && !mappingAccepted ? (
+            {confirmation.outcome === "unknown" ? <button type="button" className="primary-button" disabled={busy}
+              onClick={() => void confirmation.check()}>{confirmation.checkLabel}</button> : null}
+            {preview && !confirmation.blocked && preview.job.format === "csv" && !mappingAccepted ? (
               <button type="button" className="primary-button"
                 disabled={busy || requiresReupload || !mappingReady} onClick={() => void applyMapping()}>
                 {mappingDirty || saveMappingToProfile || !mappingReady ? copy.validateMapping : copy.continueReview}
               </button>
             ) : null}
-            {preview && mappingAccepted && !requiresReupload ? (
+            {preview && !confirmation.blocked && mappingAccepted && !requiresReupload ? (
               <button type="button" className="primary-button" disabled={busy || unresolvedIssues.length > 0 ||
                 approvedRecords === 0 || job?.state !== "ready"} onClick={() => void confirmImport()}>
                 <CheckCircle2 size={16} aria-hidden="true" />{importButtonLabel(approvedRecords, language)}

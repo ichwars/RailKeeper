@@ -37,3 +37,15 @@ The HTTP business-data budget remains 8 MiB. A bounded allowance for the existin
 revisions prevents their metadata from reducing that budget. This changes neither accepted file
 formats nor file-upload limits. Legacy clients may still omit revisions; the reviewed frontend always
 supplies them. No additional persistence or backup format is introduced.
+
+## Import job completion
+
+CSV/JSON confirmation retains its existing job, source hash, revision, target fingerprints and single
+transaction. The same job cannot apply twice, including concurrent confirmations. An intentional new
+import creates a distinct job through the existing workflow.
+
+After a conflicting or uncertain completion response, `useTransferImportConfirmation` reads that job.
+A completed job is shown as completed and cannot be submitted, cancelled or uploaded again from the
+dialog. An unavailable status blocks mutations and offers a read-only status check. A still open job
+requires a fresh upload and full review, preserving the existing stale-preview policy. Recovery never
+creates a new job or resends the confirmation. History remains the authority for its actual result.

@@ -282,6 +282,12 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     if (!visibleJob(details.job)) throw new Error("Der Auftrag ist für diese Rolle nicht verfügbar.");
     if (mountedRef.current) {
       setError("");
+      if (details.job.state === "completed") setReuploadRequiredJobIds((current) => {
+        if (!current.has(jobId)) return current;
+        const next = new Set(current);
+        next.delete(jobId);
+        return next;
+      });
       setSelectedJobDetails(details);
       setJobs((current) => current.map((job) => job.id === details.job.id ? details.job : job));
       setAllJobs((current) => current.map((job) => job.id === details.job.id ? details.job : job));
