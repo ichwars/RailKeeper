@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/infrastructure/vehicledata"
 )
 
 const MaxVehicleCVImportValues = 10000
@@ -17,45 +19,26 @@ type VehicleCVImportInput struct {
 
 // ImportCVValues applies the reviewed selection as one transaction, including value history.
 func (s *VehicleService) ImportCVValues(ctx context.Context, vehicleID string, input VehicleCVImportInput) (int, error) {
+	vehicleID = strings.TrimSpace(vehicleID)
 	if len(input.Values) == 0 || len(input.Values) > MaxVehicleCVImportValues {
 		return 0, ErrVehicleValidation
 	}
 	seen := map[string]bool{}
 	for i, value := range input.Values {
 		value = cleanVehicleCVValueInput(value)
-		key := fmt.Sprintf("%s:%d:%v:%v", value.DecoderProfile, value.CVNumber,
-			cvIndexKey(value.IndexCV31), cvIndexKey(value.IndexCV32))
+		key := vehicleCVIdentity(value)
 		if !isValidVehicleCVValueInput(value) || seen[key] {
 			return 0, ErrVehicleValidation
 		}
-		seen[key] = true
-		input.Values[i] = value
+		seen[key], input.Values[i] = true, value
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := beginVehicleCVWrite(ctx, s.db, vehicleID)
 	if err != nil {
-		return 0, fmt.Errorf("begin cv import: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-	var exists int
-	if err := tx.QueryRowContext(ctx, `SELECT 1 FROM vehicles WHERE id=?`, vehicleID).Scan(&exists); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return 0, ErrVehicleNotFound
-		}
 		return 0, err
 	}
+	defer func() { _ = tx.Rollback() }()
 	now := time.Now().UTC().Format(time.RFC3339Nano)
-	checkedFiles := map[string]bool{}
 	for _, value := range input.Values {
-		if value.SourceFileID != "" && !checkedFiles[value.SourceFileID] {
-			if err := tx.QueryRowContext(ctx, `SELECT 1 FROM vehicle_cv_files WHERE id=? AND vehicle_id=?`,
-				value.SourceFileID, vehicleID).Scan(&exists); err != nil {
-				if errors.Is(err, sql.ErrNoRows) {
-					return 0, ErrVehicleValidation
-				}
-				return 0, err
-			}
-			checkedFiles[value.SourceFileID] = true
-		}
 		if err := importCVValueTx(ctx, tx, vehicleID, value, now); err != nil {
 			return 0, err
 		}
@@ -74,32 +57,15 @@ func cvIndexKey(value *int) int {
 }
 
 func importCVValueTx(ctx context.Context, tx *sql.Tx, vehicleID string, value VehicleCVValueInput, now string) error {
-	var id string
-	var oldValue int
-	err := tx.QueryRowContext(ctx, `SELECT id, value FROM vehicle_cv_values
-WHERE vehicle_id=? AND cv_number=? AND decoder_profile=? AND index_cv31 IS ? AND index_cv32 IS ?`,
-		vehicleID, value.CVNumber, value.DecoderProfile, value.IndexCV31, value.IndexCV32).Scan(&id, &oldValue)
-	if errors.Is(err, sql.ErrNoRows) {
-		_, err = tx.ExecContext(ctx, `INSERT INTO vehicle_cv_values
-(id, vehicle_id, cv_number, value, description, category, protocol, decoder_profile, source_file_id,
- created_at, updated_at, index_cv31, index_cv32, source_line, source_exported_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			randomID(), vehicleID, value.CVNumber, value.Value, value.Description, value.Category,
-			value.Protocol, value.DecoderProfile, value.SourceFileID, now, now, value.IndexCV31, value.IndexCV32, value.SourceLine, value.SourceExportedAt)
-		return err
+	previous, err := vehicledata.FindCV(ctx, tx, cvRecordInput(vehicleID, value))
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("read imported CV: %w", err)
 	}
-	if err != nil {
-		return err
+	var existing *vehicledata.CVRecord
+	if err == nil {
+		existing = &previous
 	}
-	_, err = tx.ExecContext(ctx, `UPDATE vehicle_cv_values
-SET value=?, description=?, category=?, protocol=?, source_file_id=?, updated_at=?,
-    source_line=COALESCE(?, source_line), source_exported_at=CASE WHEN ?='' THEN source_exported_at ELSE ? END WHERE id=? AND vehicle_id=?`,
-		value.Value, value.Description, value.Category, value.Protocol, value.SourceFileID, now, value.SourceLine, value.SourceExportedAt, value.SourceExportedAt, id, vehicleID)
-	if err != nil || oldValue == value.Value {
-		return err
-	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO vehicle_cv_value_history
-(id, cv_value_id, vehicle_id, old_value, new_value, changed_at) VALUES(?, ?, ?, ?, ?, ?)`,
-		randomID(), id, vehicleID, oldValue, value.Value, now)
+	_, err = writeVehicleCVTx(ctx, tx, vehicleID, existing, value, now)
 	return err
 }
 

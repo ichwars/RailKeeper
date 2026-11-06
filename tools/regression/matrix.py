@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ROUTES_SHA256 = "cae085fbfa4ae00906babdd05e3ca85ccbbbd677f1f9d89ccf4f6be6e2abae53"
+ROUTES_SHA256 = "5cdd088d9efe3111fd0fae9c112d388899917dfaf45ca11e75879273e1aeec88"
 
 # Longest matching prefix wins. New top-level areas must be classified explicitly.
 FEATURES = {

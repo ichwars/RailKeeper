@@ -62,6 +62,11 @@ transactions. It never begins or commits a transaction and imports no applicatio
 cycle with legacy infrastructure adapters that still depend on application types. The application maps
 its existing vehicle model to a typed storage record; public response types and stored values are unchanged.
 
+CV writes similarly use caller-owned transactions through `vehicledata`. The additive
+[atomic CV changes API](architecture/cv-drafts.md) supports bounded manual batches, exact profile/index
+identity checks and computed row revisions. Existing single-value and import routes share the writer;
+their existing requests remain valid. The database schema and backup format are unchanged.
+
 ## Frontend settings
 
 `SettingsView` composes the existing settings areas and coordinates shared confirmations. Its controllers

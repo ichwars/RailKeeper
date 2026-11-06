@@ -138,6 +138,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/vehicles/{id}/cv-values", routeAccessViewer, (*App).listVehicleCVValues, nil},
 		{http.MethodPost, "/api/v1/vehicles/{id}/cv-values", routeAccessEditor, (*App).createVehicleCVValue, nil},
 		{http.MethodPost, "/api/v1/vehicles/{id}/cv-values/import", routeAccessEditor, (*App).importVehicleCVValues, nil},
+		{http.MethodPost, "/api/v1/vehicles/{id}/cv-values/changes", routeAccessEditor, (*App).applyVehicleCVChanges, nil},
 		{http.MethodPut, "/api/v1/vehicles/{id}/cv-values/{cvValueID}", routeAccessEditor, (*App).updateVehicleCVValue, nil},
 		{http.MethodDelete, "/api/v1/vehicles/{id}/cv-values/{cvValueID}", routeAccessEditor, (*App).deleteVehicleCVValue, nil},
 		{http.MethodPost, "/api/v1/cv-files/preview", routeAccessEditor, (*App).previewVehicleCVFile, nil},

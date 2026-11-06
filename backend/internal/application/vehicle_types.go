@@ -443,6 +443,7 @@ type VehicleFunctionChange struct {
 
 type VehicleCVValue struct {
 	ID               string                  `json:"id"`
+	Revision         string                  `json:"revision,omitempty"`
 	VehicleID        string                  `json:"vehicleId"`
 	CVNumber         int                     `json:"cvNumber"`
 	IndexCV31        *int                    `json:"indexCV31,omitempty"`
@@ -470,17 +471,18 @@ type VehicleCVValueHistory struct {
 }
 
 type VehicleCVValueInput struct {
-	CVNumber         int    `json:"cvNumber"`
-	IndexCV31        *int   `json:"indexCV31,omitempty"`
-	IndexCV32        *int   `json:"indexCV32,omitempty"`
-	Value            int    `json:"value"`
-	Description      string `json:"description"`
-	Category         string `json:"category"`
-	Protocol         string `json:"protocol"`
-	DecoderProfile   string `json:"decoderProfile"`
-	SourceFileID     string `json:"sourceFileId"`
-	SourceLine       *int   `json:"sourceLine,omitempty"`
-	SourceExportedAt string `json:"sourceExportedAt,omitempty"`
+	ExpectedRevision *string `json:"expectedRevision,omitempty"`
+	CVNumber         int     `json:"cvNumber"`
+	IndexCV31        *int    `json:"indexCV31,omitempty"`
+	IndexCV32        *int    `json:"indexCV32,omitempty"`
+	Value            int     `json:"value"`
+	Description      string  `json:"description"`
+	Category         string  `json:"category"`
+	Protocol         string  `json:"protocol"`
+	DecoderProfile   string  `json:"decoderProfile"`
+	SourceFileID     string  `json:"sourceFileId"`
+	SourceLine       *int    `json:"sourceLine,omitempty"`
+	SourceExportedAt string  `json:"sourceExportedAt,omitempty"`
 }
 
 type VehicleCVFile struct {

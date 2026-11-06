@@ -7,7 +7,9 @@ Go and frontend tests remain required; this baseline adds process, restore and b
 ## Feature matrix
 
 `tools/regression/matrix.py` inventories all registered HTTP methods, paths and access declarations.
-Its reviewed digest freezes the 200-route baseline at commit `2cdfd4430ffb28d0d726d2de6cb67bc43b329946`.
+Its original reviewed digest froze 200 routes at commit `2cdfd4430ffb28d0d726d2de6cb67bc43b329946`.
+The current 201-route digest adds only the Editor/CSRF-protected manual CV draft endpoint; all original
+methods, paths and access declarations remain unchanged.
 An intentional contract change requires reviewing the matrix and updating the digest. The script verifies
 that evidence source files exist. This source inventory does not establish behavioral coverage of every route.
 
@@ -93,6 +95,11 @@ The exported application tables, profiles and files are compared by full content
 For a fresh installation, two existing restore policies are applied explicitly to the expected result:
 the target's bundled workshop symbols remain authoritative, and a profile creator absent locally is cleared.
 All other fields must match. These rules do not import users. A full installation copy preserves those users.
+
+The cross-version API observations omit only the new computed `revision` field on stored CV records,
+which older binaries do not emit. All persisted CV fields, IDs, index pages, sources and histories remain
+compared. Transaction/HTTP tests independently verify revision conflicts. Raw table/file comparisons do
+not omit any CV data and the backup format does not store computed revisions.
 
 The read-only SQLite manifest hashes sorted full rows and column metadata, checks integrity and foreign keys,
 and distinguishes NULL, numeric zero, text and blobs. File contents use SHA-256. Reordering rows is harmless;

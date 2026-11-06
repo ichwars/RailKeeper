@@ -5,12 +5,24 @@ import unittest
 from contextlib import closing
 from pathlib import Path
 
+from fixture import cv_comparison_projection
+
 from preservation import (
     assert_same, backup_manifest, database_manifest, expected_fresh_restore, file_manifest, vehicle_edit_manifest,
 )
 
 
 class PreservationTests(unittest.TestCase):
+    def test_cv_api_projection_retains_indices_sources_and_other_revisions(self):
+        cv = {"id": "cv", "vehicleId": "v", "cvNumber": 257, "value": 0, "indexCV31": 0,
+              "indexCV32": 0, "sourceLine": 2, "sourceExportedAt": "unknown", "revision": "computed"}
+        original = {"revision": "vehicle", "cvValues": [cv], "functions": [{"revision": "function"}]}
+        projected = cv_comparison_projection(original)
+        self.assertEqual(projected["revision"], "vehicle")
+        self.assertEqual(projected["functions"], original["functions"])
+        self.assertEqual(projected["cvValues"], [{key: value for key, value in cv.items() if key != "revision"}])
+        self.assertEqual(original["cvValues"][0]["revision"], "computed")
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

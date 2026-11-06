@@ -105,4 +105,19 @@ def observations(client, fixture):
                  "/api/v1/accessory-products/" + fixture["productId"] + "/stock",
                  "/api/v1/accessory-products/" + fixture["productId"] + "/usage-history",
                  "/api/v1/exhibition-lists/" + fixture["eventId"] + "/workspace"]
-    return {path: client.request("GET", path) for path in endpoints}
+    return {path: cv_comparison_projection(client.request("GET", path)) for path in endpoints}
+
+
+def cv_comparison_projection(value):
+    """Older binaries lack the computed CV revision. Compare every persisted field unchanged.
+
+    The revision itself is checked by the new CV transaction/HTTP conflict tests. This projection
+    removes only that added read-only field from CV records, never revisions of other entities.
+    """
+    if isinstance(value, list):
+        return [cv_comparison_projection(item) for item in value]
+    if isinstance(value, dict):
+        cv = {"id", "vehicleId", "cvNumber", "value"}.issubset(value)
+        return {key: cv_comparison_projection(item) for key, item in value.items()
+                if not (cv and key == "revision")}
+    return value

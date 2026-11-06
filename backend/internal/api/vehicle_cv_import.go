@@ -51,6 +51,8 @@ func (a *App) importVehicleCVValues(w http.ResponseWriter, r *http.Request) {
 	count, err := a.vehicleService.ImportCVValues(r.Context(), r.PathValue("id"), input)
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleCVConflict):
+			respondProblem(w, http.StatusConflict, "cv_value_conflict", "CV data changed. No values were changed.")
 		case errors.Is(err, application.ErrVehicleValidation):
 			respondProblem(w, http.StatusBadRequest, "cv_import_invalid", "Invalid CV values, duplicate keys or incomplete index pair (maximum 10000 values).")
 		case errors.Is(err, application.ErrVehicleNotFound):
