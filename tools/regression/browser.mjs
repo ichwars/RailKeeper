@@ -45,12 +45,12 @@ try {
       ["/settings", de ? "Allgemein" : "General"]
     ];
     for (const [path, title] of workspaces) {
-      await page.goto(input.base + path, { waitUntil: "networkidle" });
+      await page.goto(input.base + path, { waitUntil: "domcontentloaded" });
       await page.getByRole("heading", { name: title, exact: true }).first().waitFor();
       assert.equal(await page.getByLabel(de ? "Benutzername" : "Username", { exact: true }).count(), 0);
       checks.push(language + path);
     }
-    await page.goto(input.base + "/vehicles", { waitUntil: "networkidle" });
+    await page.goto(input.base + "/vehicles", { waitUntil: "domcontentloaded" });
     const row = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "Referenzlok 1", exact: true }) });
     const edit = () => row.getByRole("button", { name: de ? "Bearbeiten" : "Edit", exact: true }).click();
     await edit();
@@ -98,10 +98,11 @@ try {
       for (const theme of ["light", "dark"]) {
         await page.setViewportSize({ width, height: 1000 });
         await page.evaluate((theme) => localStorage.setItem("railkeeper.theme", theme), theme);
-        await page.reload({ waitUntil: "networkidle" });
+        await page.reload({ waitUntil: "domcontentloaded" });
         await page.getByText("Referenzlok 1", { exact: true }).filter({ visible: true }).first().waitFor();
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
         assert.equal(overflow, false, `${language}/${theme}/${width}: page overflow`);
+        await page.evaluate(() => document.fonts.ready);
         await page.screenshot({ path: `${input.output}/${language}-${theme}-${width}.png` });
         checks.push(`${language}:${theme}:${width}`);
         await assertResponsiveWorkspaces(page, {

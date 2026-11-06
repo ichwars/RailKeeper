@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 // Exercise real controls: invisible native switch inputs must stay inside the scrollable table,
 // and the visible maintenance selector must never cover the image-upload action.
 export async function assertResponsiveWorkspaces(page, { base, width, de, screenshotPrefix }) {
-  await page.goto(base + "/settings", { waitUntil: "networkidle" });
+  await page.goto(base + "/settings", { waitUntil: "domcontentloaded" });
   await page.locator(".settings-dashboard-grid").waitFor();
   await page.evaluate(() => document.fonts.ready);
   await assertViewportFits(page, "general settings");
@@ -18,7 +18,7 @@ export async function assertResponsiveWorkspaces(page, { base, width, de, screen
 
   // Open the existing table action before inspecting the same dialog at the requested width.
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto(base + "/vehicles", { waitUntil: "networkidle" });
+  await page.goto(base + "/vehicles", { waitUntil: "domcontentloaded" });
   const row = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "Referenzlok 1", exact: true }) });
   await row.getByRole("button", { name: de ? "Bearbeiten" : "Edit", exact: true }).click();
   const dialog = page.getByRole("dialog");

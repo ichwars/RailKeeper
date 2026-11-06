@@ -35,7 +35,7 @@ try {
       return response.json();
     };
     const before = await readDetail();
-    await page.goto(input.base + "/vehicles", { waitUntil: "networkidle" });
+    await page.goto(input.base + "/vehicles", { waitUntil: "domcontentloaded" });
     const edit = async () => {
       const row = page.getByRole("row").filter({ has: page.getByRole("cell", { name: before.name, exact: true }) });
       await row.getByRole("button", { name: de ? "Bearbeiten" : "Edit", exact: true }).click();
@@ -78,6 +78,7 @@ try {
         const bounds = await adoptFunctions.boundingBox();
         assert.ok(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width + 1,
           `${language}/${theme}/${width}: function-preview action outside viewport`);
+        await page.evaluate(() => document.fonts.ready);
         await page.screenshot({ path: `${input.output}/${language}-${theme}-${width}-function-preview.png` });
       }
     }
@@ -129,6 +130,7 @@ try {
         await page.evaluate(theme => document.documentElement.dataset.theme = theme, theme);
         const bounds = await dialog.locator(".vehicle-save-state").boundingBox();
         assert.ok(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width + 1);
+        await page.evaluate(() => document.fonts.ready);
         await page.screenshot({ path: `${input.output}/${language}-${theme}-${width}.png` });
       }
     }
