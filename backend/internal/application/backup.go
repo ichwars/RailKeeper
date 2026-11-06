@@ -419,6 +419,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	if err := retireRestoredLegacyAllocations(ctx, tx); err != nil {
 		return nil, err
 	}
+	if err := backfillVehicleCatalogTx(ctx, tx); err != nil {
+		return nil, err
+	}
 	uploadsSwap, err := s.replaceUploadsWithStaged(stagedFiles)
 	if err != nil {
 		return nil, err
