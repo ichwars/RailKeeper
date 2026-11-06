@@ -10,7 +10,7 @@ and CSRF checks.
 | Model/control fields | Vehicle save | Core vehicle fields are saved together; cancel discards pending fields. |
 | Function edits, deletion, JSON import | Vehicle save | `functionChanges` shares the core transaction. Original revisions detect conflicting function changes; failed validation/conflicts retain the draft. |
 | CV/library and command-station function suggestions | Vehicle save | Protected draft fields and source evidence remain in `functionDraft`; suggestions are reviewable before saving. |
-| Decoder-file function preview | Its explicit adoption action | The existing preview action writes functions separately. Other pending function edits retain their revisions when the aggregate reloads. |
+| Decoder-file function preview | Vehicle save | The explicit preview action supplements missing fields in the same function draft. Assigned fields, intentional edits/deletions, nullable flags, modes and original revisions stay protected. Contradictory file suggestions are not silently selected. Source filenames remain separate from editable own notes. |
 | Image titles, order, primary image, maintenance link | Vehicle save | Existing image metadata shares the core transaction. Pending remote images import afterwards. Each successful import becomes a persisted draft item immediately. |
 | Local image/attachment upload | File selection/drop | These are independent uploads. A successful upload remains after cancel. The result is shown after refreshing the vehicle. |
 | Persisted image deletion | Its delete action | Independent deletion; maintenance-linked images remain protected. Removing an unsaved remote image only changes the draft. |

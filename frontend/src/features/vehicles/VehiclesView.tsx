@@ -165,6 +165,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       reset: resetFunctionEdits,
       loadDetail: loadFunctionEdits,
       mergeDetail: mergeFunctionEdits,
+      supplementFileSuggestions,
       changes: functionChanges,
       acknowledgeSaved: acknowledgeSavedFunctions,
       remove: deleteFunction,
@@ -362,6 +363,11 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     setSaving,
     onMessage: setMessage,
     onImportPreview: setCVImportPreview,
+    onFunctionSuggestions: (previews) => {
+      const result = supplementFileSuggestions(previews);
+      if (result.applied > 0) setActiveTab("control");
+      return result;
+    },
     refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "decoderFiles")
   });
 

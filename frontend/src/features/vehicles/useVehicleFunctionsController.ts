@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
 
-import { type CreateVehicleRequest, type Vehicle, type VehicleFunction, type VehicleFunctionInput } from "../../shared/api";
+import { type CreateVehicleRequest, type Vehicle, type VehicleCVFilePreview, type VehicleFunction, type VehicleFunctionInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { functionKeys, functionMappingsFromImport, isValidFunctionMapping } from "./cvImport";
 import { functionDraftChanges, functionHasContent, functionInput } from "./functionDraft";
 import { functionsToEditState, type FunctionEditState } from "./vehicleTransforms";
 import { emptyFunctionEdit } from "./vehicleViewModel";
+import { supplementFileFunctionDraft } from "./functionFileSuggestions";
 
 type UseVehicleFunctionsControllerOptions = {
   selected: Vehicle | null;
@@ -69,6 +70,12 @@ export function useVehicleFunctionsController({
     else delete next[functionKey];
     return next;
   });
+
+  const supplementFileSuggestions = (previews: VehicleCVFilePreview[]) => {
+    const result = supplementFileFunctionDraft(edits, previews);
+    setEdits(result.edits);
+    return { applied: result.applied, blocked: result.blocked };
+  };
 
   const configuredKeys = functionKeys.filter((functionKey) => {
     const edit = edits[functionKey];
@@ -138,6 +145,7 @@ export function useVehicleFunctionsController({
     state: { edits, showConfiguredOnly, configuredKeys, visibleKeys, summary },
     refs: { importInputRef },
     setters: { setEdits, setShowConfiguredOnly },
-    commands: { functionEdit, updateFunctionEdit, reset, loadDetail, mergeDetail, acknowledgeSaved, changes: () => functionDraftChanges(edits), remove, exportValues, importValues }
+    commands: { functionEdit, updateFunctionEdit, reset, loadDetail, mergeDetail, acknowledgeSaved, supplementFileSuggestions,
+      changes: () => functionDraftChanges(edits), remove, exportValues, importValues }
   };
 }

@@ -30,6 +30,19 @@ export function invalidFunctionChanges(changes: VehicleFunctionChange[]) {
     bytes(change.value.symbolKey) > 80 || bytes(change.value.notes) > 1000)).map(change => change.functionKey);
 }
 
+export function functionFileSource(fileName: string, functionKey: string) {
+  return `Decoder-Dateivorschau · ${functionKey} · ${JSON.stringify(fileName)}`;
+}
+
+function isFileSource(line: string, functionKey: string) {
+  const prefix = `Decoder-Dateivorschau · ${functionKey} · `;
+  if (!line.startsWith(prefix)) return false;
+  try {
+    const value: unknown = JSON.parse(line.slice(prefix.length));
+    return typeof value === "string" && functionFileSource(value, functionKey) === line;
+  } catch { return false; }
+}
+
 // Presentation only: retain every original note byte until the user edits their own text.
 // Match only the explicit source-line formats emitted by RailKeeper for this key.
 export function functionNoteParts(notes = "", functionKey: string) {
@@ -37,7 +50,8 @@ export function functionNoteParts(notes = "", functionKey: string) {
   const isSource = (line: string) => (line.startsWith("RailComPlus · ") &&
     line.includes("CV31=1 / CV32=1") && new RegExp(`CV${cv}=\\d+`).test(line) &&
     new RegExp(`CV${cv + 1}=\\d+`).test(line)) || line.startsWith(`CV-Mapping · ${functionKey} · `) ||
-    Boolean(key && new RegExp(`^ECoS · #[1-9]\\d* · F${key[1]} · funcexists=\\d{1,10} · (dauer|moment) · \\d{4}-\\d{2}-\\d{2}T`).test(line));
+    Boolean(key && new RegExp(`^ECoS · #[1-9]\\d* · F${key[1]} · funcexists=\\d{1,10} · (dauer|moment) · \\d{4}-\\d{2}-\\d{2}T`).test(line)) ||
+    isFileSource(line, functionKey);
   const lines = notes.split("\n");
   return { own: lines.filter(line => !isSource(line)).join("\n"), sources: lines.filter(isSource) };
 }
