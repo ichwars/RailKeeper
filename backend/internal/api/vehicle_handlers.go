@@ -154,6 +154,13 @@ func (a *App) updateVehicle(w http.ResponseWriter, r *http.Request) {
 	vehicle, err := a.vehicleService.Update(r.Context(), r.PathValue("id"), input, actorUserID(r))
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleConflict):
+			respondProblem(w, http.StatusConflict, "vehicle_conflict", "Vehicle data changed. Compare the current vehicle before saving the retained draft.")
+		case errors.Is(err, application.ErrVehicleImageConflict):
+			respondProblem(w, http.StatusConflict, "vehicle_image_conflict", "Vehicle images changed. Compare the current images before saving the retained draft.")
+		case errors.Is(err, application.ErrVehicleImageInUse):
+			respondProblem(w, http.StatusConflict, "image_in_use", "Unlink maintenance images before removing them.")
+
 		case errors.Is(err, application.ErrVehicleFunctionValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_function_validation", "Function changes are invalid.")
 		case errors.Is(err, application.ErrVehicleFunctionConflict):

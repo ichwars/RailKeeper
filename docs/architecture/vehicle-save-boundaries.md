@@ -46,10 +46,12 @@ temporary draft IDs immediately, so retrying after a later image failed includes
 than importing the same image again. A browser response lost before acknowledgment remains a separate
 retry concern; acknowledgment alone is not server-side idempotency.
 
-Core-field reconciliation only detects changes observed during refresh. It does not by itself supply a
-server revision check for core fields or image metadata. Function revision conflicts remain enforced in
-the shared server transaction. File operations and separately confirmed actions are not made atomic by
-the core SQL transaction.
+Core-field reconciliation detects changes observed during refresh. The API additionally supports
+optional [content revision guards](media-actions.md) for core fields, image metadata and independent
+image/attachment operations. Clients retain the original token with a dirty draft and must explicitly
+resolve conflicts before rebasing it. Function revision conflicts remain enforced in the shared server
+transaction. File operations and separately confirmed actions are not made atomic by the core SQL
+transaction.
 
 ## Regression evidence
 

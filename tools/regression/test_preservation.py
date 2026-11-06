@@ -5,7 +5,7 @@ import unittest
 from contextlib import closing
 from pathlib import Path
 
-from fixture import cv_comparison_projection
+from fixture import record_comparison_projection
 
 from preservation import (
     assert_same, backup_manifest, database_manifest, expected_fresh_restore, file_manifest, vehicle_edit_manifest,
@@ -17,11 +17,27 @@ class PreservationTests(unittest.TestCase):
         cv = {"id": "cv", "vehicleId": "v", "cvNumber": 257, "value": 0, "indexCV31": 0,
               "indexCV32": 0, "sourceLine": 2, "sourceExportedAt": "unknown", "revision": "computed"}
         original = {"revision": "vehicle", "cvValues": [cv], "functions": [{"revision": "function"}]}
-        projected = cv_comparison_projection(original)
+        projected = record_comparison_projection(original)
         self.assertEqual(projected["revision"], "vehicle")
         self.assertEqual(projected["functions"], original["functions"])
         self.assertEqual(projected["cvValues"], [{key: value for key, value in cv.items() if key != "revision"}])
         self.assertEqual(original["cvValues"][0]["revision"], "computed")
+
+    def test_new_revision_projection_only_omits_computed_tokens(self):
+        vehicle = {"id": "v", "inventoryNumber": "1", "manufacturer": "Test", "name": "Test",
+                   "gauge": "TT", "qrCodeEnabled": True, "revision": "core", "imagesRevision": "media"}
+        image = {"id": "i", "vehicleId": "v", "url": "private", "isPrimary": True, "sortOrder": 0,
+                 "revision": "image", "title": "Keep"}
+        attachment = {"id": "a", "vehicleId": "v", "fileName": "a.txt", "originalName": "a.txt",
+                      "sizeBytes": 7, "revision": "attachment", "description": "Keep"}
+        source = {"vehicles": [vehicle], "images": [image], "attachments": [attachment],
+                  "other": {"revision": 3, "imagesRevision": "keep"}}
+        result = record_comparison_projection(source)
+        self.assertEqual(result["vehicles"], [{k: v for k, v in vehicle.items() if k not in {"revision", "imagesRevision"}}])
+        self.assertEqual(result["images"], [{k: v for k, v in image.items() if k != "revision"}])
+        self.assertEqual(result["attachments"], [{k: v for k, v in attachment.items() if k != "revision"}])
+        self.assertEqual(result["other"], source["other"])
+        self.assertEqual(source["vehicles"][0]["revision"], "core")
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

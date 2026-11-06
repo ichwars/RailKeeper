@@ -22,15 +22,13 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 		}
 	}
 
+	defer s.cleanupLocalizedVehicleImages(ctx, input.Images)
+
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin create vehicle: %w", err)
 	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
+	defer func() { _ = tx.Rollback() }()
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	vehicle, err := s.insertVehicleTx(ctx, tx, vehicleID, input, actorUserID, now)
@@ -38,6 +36,10 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 		return nil, err
 	}
 
+	vehicle, err = readVehicleCore(ctx, tx, vehicle.ID)
+	if err != nil {
+		return nil, err
+	}
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit create vehicle: %w", err)
 	}
@@ -46,6 +48,7 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 		return nil, err
 	}
 	vehicle.Images = images
+	vehicle.ImagesRevision = vehicleImagesRevision(images)
 	vehicle.Functions, err = s.loadVehicleFunctions(ctx, vehicle.ID)
 	if err != nil {
 		return nil, err
@@ -161,15 +164,30 @@ func (s *VehicleService) Update(ctx context.Context, id string, input CreateVehi
 		UpdatedAt:                 now,
 	}
 
+	defer s.cleanupLocalizedVehicleImages(ctx, input.Images)
+
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin update vehicle: %w", err)
 	}
-	defer func() {
+	defer func() { _ = tx.Rollback() }()
+
+	existing, err = readVehicleCore(ctx, tx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkVehicleRevision(existing.Revision, input.ExpectedRevision, ErrVehicleConflict); err != nil {
+		return nil, err
+	}
+	if replaceImages {
+		images, err := readVehicleImages(ctx, tx, id)
 		if err != nil {
-			_ = tx.Rollback()
+			return nil, err
 		}
-	}()
+		if err := checkVehicleRevision(vehicleImagesRevision(images), input.ExpectedImagesRevision, ErrVehicleImageConflict); err != nil {
+			return nil, err
+		}
+	}
 
 	if vehicle.InventoryNumber != existing.InventoryNumber {
 		if err = s.ensureInventoryNumberAvailable(ctx, tx, vehicle.InventoryNumber, vehicle.ID); err != nil {
@@ -212,6 +230,11 @@ VALUES(?, ?, 'VehicleUpdated', 'vehicle', ?, ?, '{}')
 		return nil, err
 	}
 
+	stored, err := readVehicleCore(ctx, tx, vehicle.ID)
+	if err != nil {
+		return nil, err
+	}
+	vehicle = *stored
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit update vehicle: %w", err)
 	}
@@ -220,6 +243,14 @@ VALUES(?, ?, 'VehicleUpdated', 'vehicle', ?, ?, '{}')
 		return nil, err
 	}
 	vehicle.Images = images
+	vehicle.ImagesRevision = vehicleImagesRevision(images)
+	if vehicle.VehicleSet != nil {
+		_, _, _, mainImage, err := s.resolveSetMainImage(ctx, vehicle.VehicleSet.ID)
+		if err != nil {
+			return nil, err
+		}
+		vehicle.VehicleSet.MainImage = mainImage
+	}
 	attachments, err := s.loadVehicleAttachments(ctx, vehicle.ID)
 	if err != nil {
 		return nil, err

@@ -97,22 +97,15 @@ func (s *FileBlobService) DeleteIfUnreferenced(ctx context.Context, id string) e
 	if id == "" {
 		return nil
 	}
-	var count int
-	if err := s.db.QueryRowContext(ctx, `
-SELECT
-  (SELECT COUNT(*) FROM vehicle_images WHERE blob_id=? OR thumbnail_blob_id=?) +
-  (SELECT COUNT(*) FROM vehicle_attachments WHERE blob_id=?) +
-  (SELECT COUNT(*) FROM vehicle_cv_files WHERE blob_id=?) +
-  (SELECT COUNT(*) FROM accessory_documents WHERE file_blob_id=?)
-  + (SELECT COUNT(*) FROM vehicle_sets WHERE set_image_blob_id=? OR set_image_thumbnail_blob_id=?)
-`, id, id, id, id, id, id, id).Scan(&count); err != nil {
-		return fmt.Errorf("count file blob references: %w", err)
-	}
-	if count > 0 {
-		return nil
-	}
-	if _, err := s.db.ExecContext(ctx, `DELETE FROM file_blobs WHERE id=?`, id); err != nil {
-		return fmt.Errorf("delete file blob: %w", err)
+	if _, err := s.db.ExecContext(ctx, `
+DELETE FROM file_blobs WHERE id=?
+AND NOT EXISTS (SELECT 1 FROM vehicle_images WHERE blob_id=? OR thumbnail_blob_id=?)
+AND NOT EXISTS (SELECT 1 FROM vehicle_attachments WHERE blob_id=?)
+AND NOT EXISTS (SELECT 1 FROM vehicle_cv_files WHERE blob_id=?)
+AND NOT EXISTS (SELECT 1 FROM accessory_documents WHERE file_blob_id=?)
+AND NOT EXISTS (SELECT 1 FROM vehicle_sets WHERE set_image_blob_id=? OR set_image_thumbnail_blob_id=?)
+`, id, id, id, id, id, id, id, id); err != nil {
+		return fmt.Errorf("delete unreferenced file blob: %w", err)
 	}
 	return nil
 }

@@ -65,6 +65,8 @@ type VehicleService struct {
 type VehicleImageLocalizer func(ctx context.Context, vehicleID string, images []VehicleImageInput) ([]VehicleImageInput, error)
 
 type Vehicle struct {
+	Revision                  string                      `json:"revision,omitempty"`
+	ImagesRevision            string                      `json:"imagesRevision,omitempty"`
 	ID                        string                      `json:"id"`
 	VehicleSetID              string                      `json:"vehicleSetId,omitempty"`
 	VehicleSetName            string                      `json:"vehicleSetName,omitempty"`
@@ -291,6 +293,7 @@ type VehicleExternalMapInput struct {
 }
 
 type VehicleImage struct {
+	Revision        string `json:"revision,omitempty"`
 	ID              string `json:"id"`
 	VehicleID       string `json:"vehicleId"`
 	URL             string `json:"url"`
@@ -327,6 +330,7 @@ type VehicleImageInput struct {
 }
 
 type VehicleAttachment struct {
+	Revision      string `json:"revision,omitempty"`
 	ID            string `json:"id"`
 	VehicleID     string `json:"vehicleId"`
 	FileName      string `json:"fileName"`
@@ -355,9 +359,10 @@ type VehicleAttachmentInput struct {
 }
 
 type VehicleAttachmentUpdateInput struct {
-	Description   string `json:"description"`
-	Category      string `json:"category"`
-	MaintenanceID string `json:"maintenanceId"`
+	ExpectedRevision *string `json:"expectedRevision,omitempty"`
+	Description      string  `json:"description"`
+	Category         string  `json:"category"`
+	MaintenanceID    string  `json:"maintenanceId"`
 }
 
 type VehicleMaintenance struct {
@@ -512,6 +517,8 @@ type VehicleCVFileInput struct {
 }
 
 type CreateVehicleInput struct {
+	ExpectedRevision          *string             `json:"expectedRevision,omitempty"`
+	ExpectedImagesRevision    *string             `json:"expectedImagesRevision,omitempty"`
 	InventoryNumber           string              `json:"inventoryNumber"`
 	Manufacturer              string              `json:"manufacturer"`
 	ArticleNumber             string              `json:"articleNumber"`
