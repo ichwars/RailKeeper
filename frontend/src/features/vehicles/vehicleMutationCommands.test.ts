@@ -2,7 +2,7 @@ import type { FormEvent } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, ApiError, type Vehicle, type VehicleFunctionChange, type VehicleImage } from "../../shared/api";
-import { createdImageFixture, vehicleFixture } from "../../test/fixtures/vehicles";
+import { createdImageFixture, imageFixture, vehicleFixture } from "../../test/fixtures/vehicles";
 import { uploadedImageToPending, type PendingArticleImage } from "./vehicleTransforms";
 import { emptyVehicle, type ECoSVehicleDraftPayload } from "./vehicleViewModel";
 import { createVehicleMutationCommands } from "./vehicleMutationCommands";
@@ -45,6 +45,19 @@ const submitEvent = () => ({ preventDefault: vi.fn() }) as unknown as FormEvent;
 
 describe("createVehicleMutationCommands", () => {
   afterEach(() => vi.restoreAllMocks());
+
+  it("preserves untouched stored ordering numbers and renumbers only an explicit reordering", async () => {
+    const selected = vehicleFixture({ images: [imageFixture({ id: "primary", sortOrder: 8 }),
+      imageFixture({ id: "other", sortOrder: 2, isPrimary: false })] });
+    const pending = selected.images!.map(uploadedImageToPending);
+    const options = commandOptions();
+    const update = vi.spyOn(api, "updateVehicle").mockResolvedValue(selected);
+    const editor = { ...options.editor, mode: "edit" as const, selected };
+    await createVehicleMutationCommands({ ...options, editor, media: { pendingImages: pending } }).submit(submitEvent());
+    expect(update.mock.calls[0][1].images?.map(image => image.sortOrder)).toEqual([8, 2]);
+    await createVehicleMutationCommands({ ...options, editor, media: { pendingImages: [...pending].reverse() } }).submit(submitEvent());
+    expect(update.mock.calls[1][1].images?.map(image => image.sortOrder)).toEqual([0, 1]);
+  });
 
   it("submits the observed core and image revisions and retains a rejected draft during reload", async () => {
     const options = commandOptions(), selected = vehicleFixture();

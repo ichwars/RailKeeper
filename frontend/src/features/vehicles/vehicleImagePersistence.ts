@@ -4,16 +4,20 @@ import type { PendingArticleImage } from "./vehicleTransforms";
 
 const isRemotePendingImage = (image: PendingArticleImage) => !image.persisted && /^https?:\/\//i.test(image.url);
 
-export function partitionVehicleImages(pendingImages: PendingArticleImage[]) {
+export function partitionVehicleImages(pendingImages: PendingArticleImage[], previous?: Vehicle | null) {
   const remoteImages = pendingImages.filter(isRemotePendingImage);
-  const images = pendingImages.filter((image) => !isRemotePendingImage(image)).map((image, index) => ({
+  const localImages = pendingImages.filter((image) => !isRemotePendingImage(image));
+  const stored = previous?.images || [];
+  const unchangedOrder = localImages.length === stored.length && localImages.every((image, index) =>
+    image.persisted && image.id === stored[index]?.id);
+  const images = localImages.map((image, index) => ({
     id: image.persisted ? image.id : undefined,
     url: image.url,
     title: image.title,
     sourceUrl: image.source,
     maintenanceId: image.maintenanceId || "",
     isPrimary: Boolean(image.isPrimary),
-    sortOrder: index
+    sortOrder: unchangedOrder ? stored[index].sortOrder : index
   }));
   return { images, remoteImages };
 }

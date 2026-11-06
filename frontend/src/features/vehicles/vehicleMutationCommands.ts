@@ -123,7 +123,7 @@ export function createVehicleMutationCommands({
     onMessage("");
     try {
       const sparePartsToImport = spareParts.selectedInputs();
-      const { images, remoteImages } = partitionVehicleImages(media.pendingImages);
+      const { images, remoteImages } = partitionVehicleImages(media.pendingImages, editor.selected);
       const payload = { ...editor.form, images,
         ...(editor.mode === "edit" && editor.selected ? {
           expectedRevision: editor.selected.revision, expectedImagesRevision: editor.selected.imagesRevision
