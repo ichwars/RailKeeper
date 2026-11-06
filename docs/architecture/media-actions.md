@@ -32,6 +32,10 @@ creation transaction. A confirmed multi-image upload can chain those acknowledge
 accepting unseen primary or metadata changes. Legacy callers may omit the guard; the original service
 method still returns its existing image record.
 
+Metadata-only saves retain stored image ordering numbers, including zero after a primary image.
+The metadata lookup captures each stored image's current position and order in the write transaction.
+Zero at an unchanged position stays zero; explicit reordering and new-image index defaults remain supported.
+
 Decoder CV-file responses also expose a revision and an optional `sourceReferenceCount` (omission means
 zero). Both come from the same SQL snapshot and include current CV source-reference membership. An
 optional revision guard on CV-file DELETE therefore rejects a confirmation whose source usage changed.

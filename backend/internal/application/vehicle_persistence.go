@@ -39,7 +39,9 @@ func saveVehicleImages(ctx context.Context, tx *sql.Tx, vehicleID string, images
 			image.ThumbnailBlobID = meta.ThumbnailBlobID
 		}
 		sortOrder := image.SortOrder
-		if sortOrder == 0 {
+		// Zero is a stored order too. Keep it when this image stayed in the same position.
+		keepsZero := (hasMeta || meta.ID != "") && meta.SortOrder == 0 && meta.Position == index
+		if sortOrder == 0 && !keepsZero {
 			sortOrder = index
 		}
 		imageURL := image.URL
