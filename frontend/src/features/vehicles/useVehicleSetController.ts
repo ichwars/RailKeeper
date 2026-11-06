@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api, type CreateVehicleRequest, type Vehicle } from "../../shared/api";
+import { api, ApiError, type CreateVehicleRequest, type Vehicle } from "../../shared/api";
 import { vehicleSetInputFromForm, vehicleSetMembersFromForm } from "./VehicleCreateWizard";
 import { clearVehicleCreateDraft, type VehicleSetMemberDraft } from "./vehicleCreateWizardState";
 import { vehicleSetDuplicatePrefill, type VehicleCreatePrefill } from "./vehicleSetDuplicate";
@@ -30,14 +30,17 @@ export function useVehicleSetController({
 	const [selectedVehicleSetID, setSelectedVehicleSetID] = useState("");
 	const [vehicleSetMode, setVehicleSetMode] = useState<"view" | "edit" | null>(null);
 	const [createPrefill, setCreatePrefill] = useState<VehicleCreatePrefill | null>(null);
-  const submitVehicleSet = async (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>) => {
+  const submitVehicleSet = async (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>, creationId?: string) => {
     setSaving(true);
     onMessage("");
+    let acknowledged = false;
     try {
       const created = await api.createVehicleSet({
+        ...(creationId ? { creationId } : {}),
         set: vehicleSetInputFromForm(form),
         members: vehicleSetMembersFromForm(form, members, pendingArticleImages, imageOwners)
       });
+      acknowledged = true;
       clearVehicleCreateDraft(username);
       const firstMember = created.members[0];
       if (firstMember) {
@@ -51,6 +54,12 @@ export function useVehicleSetController({
 			setCreatePrefill(null);
       onMessage(t("vehicles.wizard.created", { count: created.members.length }));
     } catch (error) {
+      if (error instanceof ApiError && error.code === "vehicle_creation_conflict") {
+        await load(); onMessage(t("vehicles.creation.alreadyStored")); return;
+      }
+      if (creationId && !acknowledged && (!(error instanceof ApiError) || error.status >= 500 || [408, 499].includes(error.status))) {
+        onMessage(t("vehicles.creation.unknown")); return;
+      }
       onMessage(error instanceof Error ? error.message : t("vehicles.wizard.createFailed"));
     } finally {
       setSaving(false);

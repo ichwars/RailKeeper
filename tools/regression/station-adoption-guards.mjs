@@ -16,10 +16,12 @@ export async function assertStationAdoptionGuards(page, input, de, reference) {
     const wizard = page.locator(".vehicle-create-wizard"), submit = () => wizard.locator('.vehicle-wizard-actions button[type="submit"]');
     await submit().click(); await submit().click();
     const endpoint = origin.origin + "/api/v1/vehicles";
-    let requests = 0;
+    let requests = 0, creationId;
     await page.route(endpoint, async route => {
       if (route.request().method() !== "POST") return route.continue();
-      requests++; assert.deepEqual(route.request().postDataJSON().externalMapping, externalMapping);
+      requests++; const body = route.request().postDataJSON(); assert.deepEqual(body.externalMapping, externalMapping);
+      assert.match(body.creationId, /^[0-9a-f]{32}$/);
+      if (creationId) assert.equal(body.creationId, creationId); else creationId = body.creationId;
       if (requests > 1) return route.continue();
       const response = await route.fetch(); assert.equal(response.status(), 201);
       const vehicle = await response.json(); assert.equal(vehicle.externalMappings[0].vehicleId, vehicle.id);
@@ -31,7 +33,7 @@ export async function assertStationAdoptionGuards(page, input, de, reference) {
     assert.equal(saved.length, 1);
     const replay = page.waitForResponse(response => response.url() === endpoint && response.request().method() === "POST");
     await submit().click(); assert.equal((await replay).status(), 409);
-    await wizard.locator(".form-message").filter({ hasText: de ? "bereits einem Fahrzeug zugeordnet" : "already assigned to a vehicle" }).waitFor();
+    await wizard.locator(".form-message").filter({ hasText: de ? "Anlegevorgang ist bereits gespeichert" : "creation is already stored" }).waitFor();
     const after = await readList(); assert.deepEqual(after.filter(vehicle => vehicle.name === name), saved);
     assert.deepEqual(after.filter(vehicle => vehicle.id !== saved[0].id), before, "Source replay changed other inventory");
     assert.equal(requests, 2);

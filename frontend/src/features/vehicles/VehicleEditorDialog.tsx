@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ComponentProps, type FormEventHandler, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ComponentProps, type FormEvent, type ReactNode } from "react";
 import { Save, X } from "lucide-react";
 
 import type { Vehicle } from "../../shared/api";
@@ -47,8 +47,8 @@ type VehicleEditorDialogProps = {
   lastSavedAction?: VehicleSavedAction | null;
   onResolveRefreshConflicts?: (choice: "draft" | "saved") => void;
   tabs: EditorTabs;
-  onSubmit: FormEventHandler<HTMLFormElement>;
-  onSubmitSet: (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>) => Promise<void>;
+  onSubmit: (event: FormEvent<HTMLFormElement>, creationId?: string) => void;
+  onSubmitSet: (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>, creationId?: string) => Promise<void>;
   onClose: () => void;
   onTabChange: (tab: ModalTab) => void;
   onEdit: () => void;

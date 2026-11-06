@@ -65,6 +65,18 @@ cannot silently move the source to another vehicle. Existing explicit same-vehic
 and the separate station CV adoption remain. No device write, new persistence or backup format is
 introduced; mappings already participate in application backups.
 
+## Creation identity
+
+Vehicle and set creation accepts an optional 32-character lowercase hexadecimal `creationId`.
+The wizard generates it once per confirmed draft, reuses it on retries and includes it in explicitly
+saved local drafts. It becomes the existing vehicle or set ID, without a separate receipt table.
+An existing identity returns a conflict before inventory allocation, image localization or further
+writes; the transaction checks again before insertion. Cross-kind reuse is rejected too. This guard
+applies while the created entity exists. Legacy clients may omit the field and retain server IDs.
+A deliberately new draft receives another identity and can create an identical article as a distinct
+owned vehicle. An uncertain reply retains the draft and asks to inspect inventory; replay never
+silently replaces the first result or starts ancillary import actions.
+
 ## Article suggestion scope
 
 Vehicle and accessory search controllers bind pending responses to their current editor target and

@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useReducer, useState, type ComponentProps, type FormEventHandler } from "react";
+import { useEffect, useReducer, useRef, useState, type ComponentProps, type FormEventHandler, type FormEvent } from "react";
 
 import { api, type CreateVehicleRequest, type InventoryNumberScheme } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -21,14 +21,15 @@ import {
 import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
 import type { PendingArticleImage } from "./vehicleTransforms";
 import type { ArticleSearchController } from "./useArticleSearchController";
+import { newVehicleCreationIdentity } from "./vehicleCreationIdentity";
 
 type VehicleCreateWizardProps = {
   draftOwner: string;
   model: ComponentProps<typeof VehicleModelTab>;
   saving: boolean;
   message: string;
-  onSubmitSingle: FormEventHandler<HTMLFormElement>;
-  onSubmitSet: (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>) => Promise<void>;
+  onSubmitSingle: (event: FormEvent<HTMLFormElement>, creationId?: string) => void;
+  onSubmitSet: (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>, creationId?: string) => Promise<void>;
   onClose: () => void;
   setCreationDisabled?: boolean;
   prefill?: VehicleCreatePrefill | null;
@@ -50,6 +51,7 @@ export function VehicleCreateWizard({
   const [setSchemeError, setSetSchemeError] = useState("");
   const [draftResult, setDraftResult] = useState(() => loadVehicleCreateDraft(draftOwner));
   const [draftMessage, setDraftMessage] = useState("");
+  const creationIdRef = useRef<string | undefined>(undefined);
   const { kind, members, step, shared: form } = wizard;
   const { options, filteredGattungen, selectOptions, onUpdate, onUpdateCategory } = model;
 
@@ -91,23 +93,25 @@ export function VehicleCreateWizard({
   const invalidMemberIndex = invalidVehicleSetMemberIndex(members);
 
   const submit: FormEventHandler<HTMLFormElement> = (event) => {
+    event.preventDefault();
     if (step !== "details") {
-      event.preventDefault();
       if (step === "basics" && !canContinueFromBasics) return;
       dispatch({ type: "go-to-step", step: step === "basics" ? "article" : "details" });
       return;
     }
     if (kind === "set") {
-      event.preventDefault();
       if (invalidMemberIndex >= 0) {
         dispatch({ type: "set-active-details-tab", tab: `member:${invalidMemberIndex}` });
         setDraftMessage(t("vehicles.wizard.invalidMember", { count: invalidMemberIndex + 1 }));
         return;
       }
-      void onSubmitSet(members, wizard.articleImageOwners || {});
-      return;
     }
-    onSubmitSingle(event);
+    let creationId: string;
+    try { creationId = wizard.creationId || creationIdRef.current || newVehicleCreationIdentity(); }
+    catch { setDraftMessage(t("vehicles.creation.prepareFailed")); return; }
+    creationIdRef.current = creationId; dispatch({ type: "set-creation-id", id: creationId });
+    if (kind === "set") void onSubmitSet(members, wizard.articleImageOwners || {}, creationId);
+    else onSubmitSingle(event, creationId);
   };
 
   const back = () => {
@@ -194,6 +198,7 @@ export function VehicleCreateWizard({
             title={setCreationDisabled && draftResult.state.kind === "set"
               ? t("vehicles.wizard.setDisabledEcos") : undefined}
             onClick={() => {
+            creationIdRef.current = draftResult.state.creationId;
             dispatch({ type: "replace-state", state: draftResult.state });
             onUpdate(draftResult.state.shared);
             articleSearchController.commands.restoreDraft(
