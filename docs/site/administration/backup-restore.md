@@ -4,7 +4,7 @@ description: Backup and restore.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-11-06
+lastReviewed: 2026-11-07
 ---
 
 # Backup and restore
@@ -23,8 +23,10 @@ lastReviewed: 2026-11-06
 
 Application backups include inventory, accessories, maintenance, CVs and provenance, master data, exhibition data, and saved media. They exclude user accounts, passwords, sessions, and local system settings. They are not full server backups.
 
-Format 25 also preserves article revisions, vehicle/set relationships and individual catalog overrides.
-Older supported backups remain readable. An older program cannot fully restore the new format;
+Format 26 preserves article revisions, vehicle/set relationships, individual catalog overrides and
+the original assignment mode. Restore retains unresolved catalog proposals. Active article fields
+must match the saved vehicle representation. Older supported backups, including format 25, remain
+readable. An older program cannot fully restore the new format;
 never lower the format number manually. Before a data-model migration, also retain a consistent
 full installation and its matching previous program. Once new input exists, that older copy cannot
 provide a lossless rollback.

@@ -36,8 +36,9 @@ Admins can read the mapping/difference report using `GET /api/v1/catalog/legacy-
 missing relationships, pinned article revisions and individual overrides. Reading it changes no
 assignment. An explicitly sent `POST` on the same route completes only missing relationships and
 requires the existing CSRF protection. Retries add neither catalog rows nor another backfill audit
-event. Existing differences are never silently corrected; legacy vehicle/set fields remain
-authoritative during this transition.
+event. Existing differences are never silently corrected. Matching assignments use the article
+revision plus individual overrides with a transactionally maintained legacy vehicle projection.
+Unresolved proposals retain legacy authority and their original assignment mode.
 
 The [catalog-model reference](https://github.com/ichwars/RailKeeper/blob/main/docs/architecture/vehicle-catalog.md)
 documents field mapping, backups and preservation evidence. Viewer, Editor and Messe cannot use

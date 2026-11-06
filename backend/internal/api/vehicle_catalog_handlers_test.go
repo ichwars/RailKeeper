@@ -12,7 +12,11 @@ func TestVehicleCatalogBackfillHTTPRequiresAdminCSRFAndReplaysWithoutMoreChanges
 	db := testRouterDB(t)
 	auth, service := application.NewAuthService(db), application.NewVehicleService(db)
 	router := NewRouter(Config{AuthService: auth, VehicleService: service})
-	if _, err := service.Create(t.Context(), application.CreateVehicleInput{Manufacturer: "Piko", Name: "Legacy", Gauge: "H0", Category: "Lokomotive", Gattung: "Diesellok"}, "actor"); err != nil {
+	created, err := service.Create(t.Context(), application.CreateVehicleInput{Manufacturer: "Piko", Name: "Legacy", Gauge: "H0", Category: "Lokomotive", Gattung: "Diesellok"}, "actor")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DELETE FROM vehicle_article_links WHERE vehicle_id=?`, created.ID); err != nil {
 		t.Fatal(err)
 	}
 	path := "/api/v1/catalog/legacy-backfill"

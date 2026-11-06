@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 25
+	backupVersion = 26
 )
 
 var (
@@ -316,6 +316,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 			_ = tx.Rollback()
 		}
 	}()
+	if err := suspendVehicleCatalogProjectionTx(ctx, tx); err != nil {
+		return nil, err
+	}
 	articleMasterData, err := readLegacyRestoreArticleMasterData(ctx, tx, doc.Version)
 	if err != nil {
 		return nil, err
@@ -420,6 +423,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 		return nil, err
 	}
 	if err := backfillVehicleCatalogTx(ctx, tx); err != nil {
+		return nil, err
+	}
+	if err := restoreVehicleCatalogProjectionTx(ctx, tx, doc.Version < 26); err != nil {
 		return nil, err
 	}
 	uploadsSwap, err := s.replaceUploadsWithStaged(stagedFiles)

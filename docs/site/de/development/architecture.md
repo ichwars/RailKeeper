@@ -37,7 +37,9 @@ lesen. Er nennt fehlende Beziehungen, Artikelrevisionen und individuelle Abweich
 ändert keine Zuordnung. Ein ausdrücklich gesendetes `POST` auf dieselbe Route ergänzt nur fehlende
 Beziehungen und benötigt den bestehenden CSRF-Schutz. Wiederholungen erzeugen keine zusätzlichen
 Katalogdatensätze oder Befüllungs-Auditeinträge. Bestehende Abweichungen werden nicht automatisch
-korrigiert; während dieser Übergangsphase bleiben die bisherigen Fahrzeug-/Setfelder maßgeblich.
+korrigiert. Bereits übereinstimmende Zuordnungen verwenden Artikelrevision plus individuelle
+Abweichungen mit einer transaktional gepflegten bisherigen Fahrzeugansicht. Ungeklärte Vorschläge
+bleiben im bisherigen Schreibmodus, ihr ursprünglicher Modus bleibt ebenfalls gespeichert.
 
 Die [Artikelmodell-Referenz](https://github.com/ichwars/RailKeeper/blob/main/docs/architecture/vehicle-catalog.md)
 beschreibt Feldzuordnung, Sicherung und Erhaltungsnachweise. Viewer, Editor und Messe haben keinen

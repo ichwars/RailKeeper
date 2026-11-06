@@ -66,8 +66,10 @@ func catalogBackupFixture(t *testing.T) (*application.BackupService, *applicatio
 	}{
 		{`INSERT INTO catalog_articles(id, origin, source_entity_id, created_at) VALUES('article', 'manual', NULL, ?)`, []any{now}},
 		{`INSERT INTO catalog_article_revisions(id, article_id, revision_number, fields_json, note, created_at) VALUES('revision-1', 'article', 1, ?, 'Original', ?), ('revision-2', 'article', 2, ?, 'Explicit correction', ?)`, []any{string(raw), now, string(raw), now}},
-		{`INSERT INTO vehicle_article_links(vehicle_id, revision_id, overrides_json, authority, updated_at) VALUES(?, 'revision-1', '{"name":"Owned label","manufacturer":""}', 'legacy', ?)`, []any{vehicle.ID, now}},
-		{`INSERT INTO vehicle_set_article_links(vehicle_set_id, revision_id, overrides_json, authority, updated_at) VALUES(?, 'revision-2', '{"gauge":"TT"}', 'legacy', ?)`, []any{set.ID, now}},
+		{`INSERT INTO vehicle_article_links(vehicle_id, revision_id, overrides_json, authority, updated_at) VALUES(?, 'revision-1', '{"name":"Owned label","manufacturer":""}', 'legacy', ?)
+ON CONFLICT(vehicle_id) DO UPDATE SET revision_id=excluded.revision_id, overrides_json=excluded.overrides_json, authority=excluded.authority, updated_at=excluded.updated_at`, []any{vehicle.ID, now}},
+		{`INSERT INTO vehicle_set_article_links(vehicle_set_id, revision_id, overrides_json, authority, updated_at) VALUES(?, 'revision-2', '{"gauge":"TT"}', 'legacy', ?)
+ON CONFLICT(vehicle_set_id) DO UPDATE SET revision_id=excluded.revision_id, overrides_json=excluded.overrides_json, authority=excluded.authority, updated_at=excluded.updated_at`, []any{set.ID, now}},
 	} {
 		if _, err := db.ExecContext(t.Context(), query.sql, query.args...); err != nil {
 			t.Fatal(err)
@@ -89,7 +91,7 @@ func catalogBackupFixture(t *testing.T) (*application.BackupService, *applicatio
 
 func TestVehicleCatalogBackupRoundTripPreservesRevisionsLinksAndIndividualOverrides(t *testing.T) {
 	service, doc := catalogBackupFixture(t)
-	if doc.Version != 25 {
+	if doc.Version != 26 {
 		t.Fatalf("version=%d", doc.Version)
 	}
 	validation, err := service.Validate(t.Context(), doc)
@@ -112,8 +114,16 @@ func TestVehicleCatalogBackupRoundTripPreservesRevisionsLinksAndIndividualOverri
 		}
 		t.Fatal("catalog or existing inventory changed across restore")
 	}
-	if len(after.Tables["catalog_article_revisions"]) != 2 {
-		t.Fatal("historical revision missing")
+	for _, id := range []string{"revision-1", "revision-2"} {
+		found := false
+		for _, row := range after.Tables["catalog_article_revisions"] {
+			if row["id"] == id {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("historical revision %s missing", id)
+		}
 	}
 }
 
@@ -125,7 +135,13 @@ func TestVehicleCatalogBackupPreflightRejectsIncompleteRelationshipsBeforeAnyRes
 		"orphan revision": func(d *application.BackupDocument) {
 			d.Tables["catalog_article_revisions"][0]["article_id"] = "missing"
 		},
-		"duplicate revision":  func(d *application.BackupDocument) { d.Tables["catalog_article_revisions"][1]["revision_number"] = 1 },
+		"duplicate revision": func(d *application.BackupDocument) {
+			for _, row := range d.Tables["catalog_article_revisions"] {
+				if row["id"] == "revision-2" {
+					row["revision_number"] = 1
+				}
+			}
+		},
 		"fractional revision": func(d *application.BackupDocument) { d.Tables["catalog_article_revisions"][0]["revision_number"] = 1.5 },
 		"orphan vehicle":      func(d *application.BackupDocument) { d.Tables["vehicle_article_links"][0]["vehicle_id"] = "missing" },
 		"orphan set": func(d *application.BackupDocument) {
@@ -143,9 +159,22 @@ func TestVehicleCatalogBackupPreflightRejectsIncompleteRelationshipsBeforeAnyRes
 		"nonstring override": func(d *application.BackupDocument) {
 			d.Tables["vehicle_article_links"][0]["overrides_json"] = `{"name":12}`
 		},
-		"unknown authority":     func(d *application.BackupDocument) { d.Tables["vehicle_article_links"][0]["authority"] = "both" },
-		"unknown origin":        func(d *application.BackupDocument) { d.Tables["catalog_articles"][0]["origin"] = "guessed" },
-		"missing legacy source": func(d *application.BackupDocument) { d.Tables["catalog_articles"][0]["origin"] = "legacy_vehicle" },
+		"unknown authority": func(d *application.BackupDocument) { d.Tables["vehicle_article_links"][0]["authority"] = "both" },
+		"missing source authority": func(d *application.BackupDocument) {
+			delete(d.Tables["vehicle_article_links"][0], "source_authority")
+		},
+		"invalid source authority": func(d *application.BackupDocument) {
+			d.Tables["vehicle_article_links"][0]["source_authority"] = "guessed"
+		},
+		"inconsistent canonical projection": func(d *application.BackupDocument) {
+			for _, row := range d.Tables["vehicle_article_links"] {
+				row["authority"] = "catalog"
+				row["overrides_json"] = `{"name":"Contradictory name"}`
+			}
+		},
+		"downgraded writer format": func(d *application.BackupDocument) { d.Version = 25 },
+		"unknown origin":           func(d *application.BackupDocument) { d.Tables["catalog_articles"][0]["origin"] = "guessed" },
+		"missing legacy source":    func(d *application.BackupDocument) { d.Tables["catalog_articles"][0]["origin"] = "legacy_vehicle" },
 		"invalid timestamp": func(d *application.BackupDocument) {
 			d.Tables["catalog_article_revisions"][0]["created_at"] = "unknown"
 		},
@@ -200,5 +229,35 @@ func TestVehicleCatalogBackupAcceptsVersion24AndBackfillsWithoutChangingLegacyIn
 	}
 	if len(after.Tables["vehicle_article_links"]) != 3 || len(after.Tables["vehicle_set_article_links"]) != 1 {
 		t.Fatal("legacy restore did not completely represent existing vehicles and sets")
+	}
+}
+
+func TestVehicleCatalogBackupVersion25PreservesPendingCatalogAuthorityAndAllOriginalData(t *testing.T) {
+	service, doc := catalogBackupFixture(t)
+	setLegacyBackupVersion(doc, 25)
+	for _, row := range doc.Tables["vehicle_article_links"] {
+		if row["revision_id"] == "revision-1" {
+			row["authority"] = "catalog"
+		}
+	}
+	if _, err := service.Import(t.Context(), doc); err != nil {
+		t.Fatal(err)
+	}
+	after, err := service.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range []string{"vehicle_article_links", "vehicle_set_article_links"} {
+		for _, row := range doc.Tables[table] {
+			row["source_authority"] = row["authority"]
+			if row["revision_id"] == "revision-1" || row["revision_id"] == "revision-2" {
+				row["authority"] = "legacy"
+			} else {
+				row["authority"] = "catalog"
+			}
+		}
+	}
+	if !reflect.DeepEqual(catalogBackupTableSnapshot(t, doc), catalogBackupTableSnapshot(t, after)) || !reflect.DeepEqual(doc.Files, after.Files) {
+		t.Fatal("format 25 restore changed data beyond the explicit authority conversion")
 	}
 }

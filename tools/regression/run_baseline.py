@@ -134,7 +134,8 @@ def run(args):
         client.request("GET", "/api/v1/vehicles/" + marker["id"], expected=404)
         restored_backup = client.request("GET", "/api/v1/backup/export")
         if args.catalog_backfill and (previous_backend / "migrations/0074_vehicle_catalog_legacy.sql").is_file():
-            assert_same(backup_manifest(expected_backup_upgrade(backup, restored_backup["version"], restored_backup)),
+            assert_same(backup_manifest(expected_backup_upgrade(backup, restored_backup["version"], restored_backup,
+                        args.catalog_authority)),
                         backup_manifest(restored_backup), "In-place restore with legacy catalog backfill")
             backup, baseline = restored_backup, backup_manifest(restored_backup)
         else:
@@ -155,7 +156,7 @@ def run(args):
             restore(target.client, backup)
             restored_backup = target.client.request("GET", "/api/v1/backup/export")
             expected = backup_manifest(expected_fresh_restore(backup, local_backup, local_users,
-                restored_backup if args.catalog_backfill else None))
+                restored_backup if args.catalog_backfill else None, args.catalog_authority))
             after = installation_manifest(target.data_dir)["tables"]
             for table in ("users", "roles", "user_roles", "app_settings", "user_settings"):
                 assert_same(before[table], after[table], "Local installation " + table)
@@ -195,6 +196,11 @@ def run(args):
                                         text=True, capture_output=True, timeout=180)
                 if result.returncode:
                     raise AssertionError("Editor save boundaries failed: " + result.stderr[-2500:])
+                final_backup = target.client.request("GET", "/api/v1/backup/export")
+                validation = target.client.upload("/api/v1/backup/validate", "after-editor.json",
+                                                  json.dumps(final_backup).encode(), "application/json", expected=200)
+                if not validation["compatible"]:
+                    raise AssertionError("Editor writes left an incompatible backup or catalog projection")
                 passed("target-browser-confirmed-action-preserves-drafts-and-cancel")
 
     # The source process has exited. Its main DB and WAL plus every stored file form a cold backup.
@@ -221,7 +227,8 @@ def run(args):
             assert_same(original["tables"][name], startup_tables[name], "Installation startup " + name)
         target.client.login(credentials)
         upgraded = target.client.request("GET", "/api/v1/backup/export")
-        assert_same(backup_manifest(expected_backup_upgrade(backup, upgraded["version"], upgraded if args.catalog_backfill else None)),
+        assert_same(backup_manifest(expected_backup_upgrade(backup, upgraded["version"],
+                    upgraded if args.catalog_backfill else None, args.catalog_authority)),
                     backup_manifest(upgraded), "Installation startup")
         assert_same(observed, observations(target.client, fixture), "Installation API observations")
         verify_media(target.client, fixture)
@@ -252,6 +259,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, required=True, help="New directory; existing paths are refused")
     parser.add_argument("--browser", action="store_true")
     parser.add_argument("--catalog-backfill", action="store_true", help="Verify the separately checked legacy catalog backfill")
+    parser.add_argument("--catalog-authority", action="store_true", help="Verify the checked catalog authority conversion")
     parser.add_argument("--image", help="Optional existing image on a rootless local Docker test daemon")
     arguments = parser.parse_args()
     for field in ("binary", "backend", "static_dir", "previous_binary", "previous_backend"):

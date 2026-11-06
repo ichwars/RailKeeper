@@ -54,6 +54,6 @@ if ($LASTEXITCODE -ne 0) { throw "Preservation comparison tests failed." }
   --binary (Join-Path $package "RailKeeper.exe") `
   --backend $package --static-dir (Join-Path $package "web") `
   --previous-binary $previousBinary --previous-backend (Join-Path $previousSource "backend") `
-  --catalog-backfill --browser --output (Join-Path $testRoot "run")
+  --catalog-backfill --catalog-authority --browser --output (Join-Path $testRoot "run")
 if ($LASTEXITCODE -ne 0) { throw "Native Windows upgrade/restore/browser baseline failed." }
 Write-Host "Native Windows baseline passed. Report: $(Join-Path $testRoot 'run\report.json')"

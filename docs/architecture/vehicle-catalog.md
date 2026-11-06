@@ -28,9 +28,24 @@ The same idempotent conversion runs within restore's transaction. Supported olde
 their exact legacy inventory and receive the missing catalog relationships. Raw legacy NULLs remain
 untouched by migration; catalog JSON follows the existing API's empty-string representation. A later
 legacy edit can differ from the initial snapshot; a mapping/difference report identifies that drift.
-Legacy fields remain authoritative throughout this phase. Switching to `catalog` requires all
-writers and their transactional legacy projection and is a separate step. Missing future API fields
-must preserve the association.
+This initial backfill preserves the legacy authority. The following writer migration activates only
+relationships whose revision plus overrides already equal all thirteen legacy fields. Pending values
+remain in legacy mode, with their original authority retained separately in `source_authority`, even
+when a previous format-25 relationship was marked `catalog`. No pending proposal is applied or lost.
+
+In active `catalog` mode the revision and individual overrides compose the model representation.
+The old vehicle/set columns remain its transactional compatibility projection, preserving existing
+API responses, exports and valuation rules. All existing inventory writers use SQLite triggers to
+retain the pinned immutable revision and update only the edited vehicle/set's overrides in the same
+transaction. Ownership-only changes and equivalent NULL/empty catalog values do not rewrite catalog
+metadata. Set edits do not propagate to existing members. Newly created set members share their
+known set's revision; reused inventory retains its previous identity. Independent new vehicles and
+sets receive separate articles. Matching model text never establishes shared identity.
+
+Legacy-mode edits retain unresolved revision/override data. A relationship can become active once
+its complete composed representation matches the saved legacy values. Missing new API fields
+preserve the existing assignment. Explicit revision adoption is a separate operation; another owned
+vehicle never receives a catalog correction automatically.
 
 Administrators can read `GET /api/v1/catalog/legacy-backfill` for the complete assignment/difference
 report. A GET never fills missing relationships. `POST` on the same route explicitly completes
@@ -46,13 +61,20 @@ the complete original table manifest. It refuses production/unmarked sources and
 Its explicit `--catalog-backfill` profile additionally checks every generated article, revision and
 relationship against an independent projection of the original legacy data. All original tables and
 files remain subject to exact comparison. Extra rows, incorrect fields/overrides and an invented
-source timestamp fail the comparison. The native Windows reference runner uses the same profile.
+source timestamp fail the comparison. The additional `--catalog-authority` profile independently
+derives the exact authority/source-authority conversion, while preserving original revisions,
+overrides, timestamps and every other column. The native Windows runner uses both profiles.
 
-Backup format 25 includes all four tables before they are used. Preflight validates complete revision
+Backup format 26 includes all four tables and the original-authority marker. Preflight validates complete revision
 fields, overrides, revision numbering, origin, timestamps and relationships against the backup itself.
 Missing required tables, unknown catalog columns, dangling links and manually lowered format numbers
-are incompatible. Formats 1–24 remain supported; missing catalog relationships are backfilled only
-from the restored legacy representations. Local authentication remains outside application backups.
+are incompatible. Active catalog relationships must exactly compose their legacy projection.
+Formats 1–25 remain supported; missing catalog relationships are backfilled only
+from the restored legacy representations. Restore suspends exactly the six projection triggers
+inside its transaction, imports the complete inventory/catalog, converts old authority markers and
+reinstates the triggers before commit. Failure rolls back both data and trigger definitions. Format
+26 preserves its supplied markers without reclassification. Local authentication remains outside
+application backups.
 
 Before migration, retain a consistent full installation, application export and matching old binary.
 The migration is additive and the automatic SQLite migration snapshot remains an extra safeguard.

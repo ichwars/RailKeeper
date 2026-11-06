@@ -73,8 +73,8 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 25 {
-		t.Fatalf("expected backup version 25, got %d", backup.Version)
+	if backup.Version != 26 {
+		t.Fatalf("expected backup version 26, got %d", backup.Version)
 	}
 	if len(backup.Tables["vehicles"]) != 1 {
 		t.Fatalf("expected one vehicle in backup, got %d", len(backup.Tables["vehicles"]))
@@ -156,8 +156,8 @@ func TestBackupVersionEighteenPreservesVehicleSetInventoryNumber(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 25 {
-		t.Fatalf("expected backup version 25, got %d", backup.Version)
+	if backup.Version != 26 {
+		t.Fatalf("expected backup version 26, got %d", backup.Version)
 	}
 	if got := backup.Tables["vehicle_sets"][0]["inventory_number"]; got != created.InventoryNumber {
 		t.Fatalf("set inventory number missing from backup: %v", got)
@@ -230,7 +230,7 @@ func TestLegacyVersionSeventeenVehicleSetNumbersAreNormalizedDeterministically(t
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc.Version = 17
+	setLegacyBackupVersion(doc, 17)
 	legacyRows := []map[string]any{
 		{
 			"id": "set-b", "name": "Später", "manufacturer": "Roco", "gauge": "H0",
@@ -291,7 +291,7 @@ func TestLegacyVersionSeventeenVehicleSetNumbersActivateExistingInactiveScheme(t
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc.Version = 17
+	setLegacyBackupVersion(doc, 17)
 	doc.Tables["vehicle_sets"] = []map[string]any{{
 		"id": "set-a", "name": "Altset", "manufacturer": "Roco", "gauge": "H0",
 		"category": "Wagen", "gattung": "Reisezugwagen",
@@ -331,7 +331,7 @@ func TestLegacyVersionSeventeenWithoutVehicleSetsRestoresSetNumberScheme(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc.Version = 17
+	setLegacyBackupVersion(doc, 17)
 	doc.Tables["vehicle_sets"] = []map[string]any{}
 	doc.Tables["vehicle_set_members"] = []map[string]any{}
 	setSchemes := make([]map[string]any, 0, len(doc.Tables["inventory_number_schemes"]))
@@ -377,7 +377,7 @@ WHERE type='article_type' AND key='track'`); err != nil {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if doc.Version != 25 {
+	if doc.Version != 26 {
 		t.Fatalf("version=%d", doc.Version)
 	}
 	if _, err := service.Import(t.Context(), doc); err != nil {
@@ -450,7 +450,7 @@ WHERE type='article_type' AND key='track'`); err != nil {
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc.Version = 15
+	setLegacyBackupVersion(doc, 15)
 	for _, row := range doc.Tables["master_data_entries"] {
 		delete(row, "origin")
 	}
@@ -527,8 +527,8 @@ func TestBackupOperationalFieldsAndListPriceRemainCompatible(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if document.Version != 25 {
-		t.Fatalf("expected backup version 25 for operational fields and accessory list price, got %d",
+	if document.Version != 26 {
+		t.Fatalf("expected backup version 26 for operational fields and accessory list price, got %d",
 			document.Version)
 	}
 	targetDir := t.TempDir()
@@ -553,7 +553,7 @@ func TestBackupOperationalFieldsAndListPriceRemainCompatible(t *testing.T) {
 	for _, row := range legacy.Tables["accessory_products"] {
 		delete(row, "list_price")
 	}
-	legacy.Version = 14
+	setLegacyBackupVersion(legacy, 14)
 	legacyDir := t.TempDir()
 	legacyDB := backupTestDB(t, legacyDir)
 	if _, err := application.NewBackupService(legacyDB, legacyDir).Import(ctx, legacy); err != nil {
@@ -605,8 +605,8 @@ func TestBackupVersionFourRoundTripPreservesStageOneDataReferences(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 25 {
-		t.Fatalf("expected version 25 export, got %d", backup.Version)
+	if backup.Version != 26 {
+		t.Fatalf("expected version 26 export, got %d", backup.Version)
 	}
 	for _, table := range stageOneBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -688,8 +688,8 @@ INSERT INTO accessory_installation_positions(installation_id, position_id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 25 {
-		t.Fatalf("expected version 25 export, got %d", backup.Version)
+	if backup.Version != 26 {
+		t.Fatalf("expected version 26 export, got %d", backup.Version)
 	}
 	for _, table := range []string{
 		"layout_unit_outline_points", "layout_technical_positions",
@@ -766,8 +766,8 @@ INSERT INTO plan_track_object_reservations(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 25 {
-		t.Fatalf("expected version 25 export, got %d", backup.Version)
+	if backup.Version != 26 {
+		t.Fatalf("expected version 26 export, got %d", backup.Version)
 	}
 	for _, table := range versionFiveBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -824,7 +824,7 @@ SELECT active FROM plan_track_object_reservations WHERE reservation_id='track-pl
 	}
 
 	legacy := *backup
-	legacy.Version = 7
+	setLegacyBackupVersion(&legacy, 7)
 	legacy.Tables = make(map[string][]map[string]any, len(backup.Tables))
 	for table, rows := range backup.Tables {
 		legacy.Tables[table] = rows
@@ -879,8 +879,8 @@ INSERT INTO layout_unit_ports(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 25 || len(backup.Tables["layout_unit_ports"]) != 1 {
-		t.Fatalf("expected version 25 module-port export, got version=%d rows=%d",
+	if backup.Version != 26 || len(backup.Tables["layout_unit_ports"]) != 1 {
+		t.Fatalf("expected version 26 module-port export, got version=%d rows=%d",
 			backup.Version, len(backup.Tables["layout_unit_ports"]))
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE layout_unit_ports SET name='Changed', x_mm=100`); err != nil {
@@ -935,8 +935,8 @@ VALUES('layout-grade', 'Steigungsanlage', 'private', 'TT', '1:120', '', 3.5,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 25 {
-		t.Fatalf("expected version 25 export, got %d", backup.Version)
+	if backup.Version != 26 {
+		t.Fatalf("expected version 26 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE layouts SET max_grade_percent=NULL WHERE id='layout-grade'`); err != nil {
 		t.Fatal(err)
@@ -954,7 +954,7 @@ VALUES('layout-grade', 'Steigungsanlage', 'private', 'TT', '1:120', '', 3.5,
 	}
 
 	legacy := *backup
-	legacy.Version = 8
+	setLegacyBackupVersion(&legacy, 8)
 	legacy.Tables = make(map[string][]map[string]any, len(backup.Tables))
 	for table, rows := range backup.Tables {
 		legacyRows := make([]map[string]any, 0, len(rows))
@@ -998,8 +998,8 @@ VALUES('layout-clearance', 'Abstandsanlage', 'private', 'TT', '1:120', '', NULL,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 25 {
-		t.Fatalf("expected version 25 export, got %d", backup.Version)
+	if backup.Version != 26 {
+		t.Fatalf("expected version 26 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `
 UPDATE layouts SET minimum_track_clearance_mm=NULL WHERE id='layout-clearance'`); err != nil {
@@ -1018,7 +1018,7 @@ SELECT minimum_track_clearance_mm FROM layouts WHERE id='layout-clearance'`).Sca
 	}
 
 	legacy := *backup
-	legacy.Version = 9
+	setLegacyBackupVersion(&legacy, 9)
 	legacy.Tables = make(map[string][]map[string]any, len(backup.Tables))
 	for table, rows := range backup.Tables {
 		legacyRows := make([]map[string]any, 0, len(rows))
@@ -1270,8 +1270,8 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 25 {
-		t.Fatalf("expected version 25 export, got %d", backup.Version)
+	if backup.Version != 26 {
+		t.Fatalf("expected version 26 export, got %d", backup.Version)
 	}
 	for _, table := range versionThreeBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -2059,7 +2059,7 @@ func TestBackupVersionThreeWithoutVersionFourTablesRemainsCompatible(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc.Version = 3
+	setLegacyBackupVersion(doc, 3)
 	for _, table := range versionFourBackupTableNames() {
 		delete(doc.Tables, table)
 	}
@@ -2101,7 +2101,7 @@ func TestBackupVersionFourWithoutTrackPlannerTablesRemainsCompatible(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc.Version = 4
+	setLegacyBackupVersion(doc, 4)
 	for _, table := range versionFiveBackupTableNames() {
 		delete(doc.Tables, table)
 	}
@@ -2127,7 +2127,7 @@ func TestBackupVersionFiveRequiresTrackPlannerTables(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc.Version = 5
+	setLegacyBackupVersion(doc, 5)
 	for _, table := range versionFiveBackupTableNames() {
 		delete(doc.Tables, table)
 	}

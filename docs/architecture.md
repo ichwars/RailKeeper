@@ -205,7 +205,7 @@ Node.js is only used to build the frontend.
   It does not infer key mode/inversion or apply these rules to other Kühn decoders. See
   [Kühn quality and source conflicts](architecture/kuehn-cv-quality.md).
   Coverage counts include documented memory ranges, not full semantic decoding of every byte.
-  Profile validation applies to master-data writes/imports and backup preflight. Backup version 25
+  Profile validation applies to master-data writes/imports and backup preflight. Backup version 26
   carries this data; restore fills missing bundled profiles for older backups.
 - RailComPlus presentation uses one client-side evaluator (`shared/railComPlus.ts`) for both
   import previews and saved vehicle readings. It requires the reviewed active LokPilot 5 micro DCC
@@ -251,14 +251,15 @@ Node.js is only used to build the frontend.
 - SQLite remains the default database because it keeps local installation, backup, and restore simple.
 - Attachments are stored on the filesystem below the configured data directory; metadata stays in SQLite.
 - CV provenance stores the physical source line and source export wall-clock timestamp without an inferred timezone. Missing provenance on edits/imports preserves existing metadata. Legacy records remain unknown until matched to an original source.
-- Backup version 25 includes optional catalog articles, immutable revisions, vehicle/set links and
+- Backup version 26 includes optional catalog articles, immutable revisions, vehicle/set links and
   individual catalog overrides alongside vehicle sets, vehicles, accessories, storage, maintenance, CVs,
   exhibitions, transfer profiles, conflict exceptions, uploads, and archived legacy planning data.
   Older supported backups remain importable. Legacy layout allocations are archived and retired
   transactionally during restore; vehicle allocations remain unchanged. Restore defers foreign-key
   checks and validates them at commit.
-- The additive catalog schema does not change the authoritative vehicle/set fields. Its field map,
-  backup boundary and later backfill/cutover rules are defined in
+- Consistent catalog relationships become authoritative with transactional legacy projections for
+  every existing inventory writer. Unresolved proposals retain legacy authority and their original
+  marker. Its field map, backup boundary and authority rules are defined in
   [vehicle catalog relationships](architecture/vehicle-catalog.md).
 - Backup and restore intentionally exclude local authentication and installation data such as users,
   roles, sessions, password hashes, audit logs, SMTP settings, and user UI settings.

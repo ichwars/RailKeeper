@@ -3,8 +3,8 @@ import json
 import unittest
 from datetime import datetime, timezone
 
-from catalog import NOTE, TABLES, expected_catalog_backfill
-from preservation import assert_same, backup_manifest
+from catalog import NOTE, TABLES, expected_catalog_backfill, expected_catalog_authority
+from preservation import assert_same, backup_manifest, expected_backup_upgrade, vehicle_edit_manifest
 
 
 def fixture():
@@ -28,6 +28,50 @@ def fixture():
 
 
 class CatalogPreservationTests(unittest.TestCase):
+    def test_authority_conversion_keeps_pending_values_and_original_catalog_marker(self):
+        _, original = fixture()
+        link = original["tables"][TABLES[2]][0]
+        link.update(authority="catalog", overrides_json='{"name":"Pending proposal"}')
+        expected = expected_backup_upgrade(original, 26, original, True)
+        converted = expected["tables"][TABLES[2]]
+        self.assertEqual(converted[0], {**link, "authority": "legacy", "source_authority": "catalog"})
+        self.assertEqual(converted[1], {**original["tables"][TABLES[2]][1], "authority": "catalog", "source_authority": "legacy"})
+        for table in ("vehicles", "vehicle_sets", TABLES[0], TABLES[1]):
+            self.assertEqual(expected["tables"][table], original["tables"][table])
+        self.assertNotIn("source_authority", link)
+
+    def test_format26_preserves_unknown_and_explicit_original_authorities(self):
+        _, original = fixture()
+        original = expected_catalog_authority(original, 25)
+        original["version"] = 26
+        original["tables"][TABLES[2]][0]["source_authority"] = None
+        original["tables"][TABLES[2]][1].update(authority="legacy", source_authority="catalog", overrides_json='{"name":"Pending"}')
+        self.assertEqual(expected_backup_upgrade(original, 26, original, True), original)
+
+    def test_authority_conversion_does_not_mask_changes_to_values_revisions_or_provenance(self):
+        _, original = fixture()
+        expected = expected_backup_upgrade(original, 26, original, True)
+        for column, value in (("source_authority", "catalog"), ("revision_id", "other"),
+                              ("updated_at", "different"), ("overrides_json", '{"name":"Changed"}')):
+            with self.subTest(column=column):
+                changed = copy.deepcopy(expected)
+                changed["tables"][TABLES[2]][0][column] = value
+                with self.assertRaises(AssertionError):
+                    assert_same(backup_manifest(expected), backup_manifest(changed), "Authority conversion")
+
+    def test_browser_comparison_retains_target_overrides_and_other_vehicle_clocks(self):
+        _, original = fixture()
+        original = expected_catalog_authority(original, 25)
+        changed = copy.deepcopy(original)
+        changed["tables"][TABLES[2]][0]["updated_at"] = "new"
+        self.assertEqual(vehicle_edit_manifest(original, "a"), vehicle_edit_manifest(changed, "a"))
+        for target, column, value in ((0, "overrides_json", '{"name":"Wrong"}'), (0, "revision_id", "other"),
+                                       (0, "source_authority", "catalog"), (1, "updated_at", "new")):
+            with self.subTest(target=target, column=column):
+                changed = copy.deepcopy(original)
+                changed["tables"][TABLES[2]][target][column] = value
+                self.assertNotEqual(vehicle_edit_manifest(original, "a"), vehicle_edit_manifest(changed, "a"))
+
     def test_existing_manual_articles_and_unresolved_overrides_remain_exact(self):
         _, original = fixture()
         for article in original["tables"][TABLES[0]]:

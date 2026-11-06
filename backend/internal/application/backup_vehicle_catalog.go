@@ -108,5 +108,5 @@ func validateBackupVehicleCatalog(doc *BackupDocument) []string {
 			timestamp(row, "updated_at", relation.table)
 		}
 	}
-	return problems
+	return append(problems, validateBackupCatalogAuthority(doc)...)
 }

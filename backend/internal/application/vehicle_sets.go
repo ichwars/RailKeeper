@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/infrastructure/vehicledata"
 )
 
 const maxVehicleSetMembers = 100
@@ -81,6 +83,9 @@ INSERT INTO vehicle_set_members(vehicle_set_id, vehicle_id, position, label)
 VALUES(?, ?, ?, ?)
 `, setID, member.ID, index+1, member.Name); err != nil {
 			return nil, fmt.Errorf("insert vehicle set member: %w", err)
+		}
+		if err := vehicledata.LinkCreatedSetMember(ctx, tx, setID, member.ID); err != nil {
+			return nil, err
 		}
 		member.VehicleSetID = setID
 		member.VehicleSetName = setInput.Name
