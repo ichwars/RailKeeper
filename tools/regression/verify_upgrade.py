@@ -5,13 +5,14 @@ import hashlib
 import json
 import shutil
 import sqlite3
+import datetime as dt
 from contextlib import closing
 from pathlib import Path
 
 from preservation import assert_same, database_manifest, digest, installation_manifest
 from runtime import Runtime
 from catalog import TABLES, expected_catalog_backfill, expected_catalog_authority
-from decoder import TABLES as DECODER_TABLES
+from decoder import TABLES as DECODER_TABLES, expected_decoder_backfill
 
 
 CATALOG_TABLES = {"catalog_articles", "catalog_article_revisions", "vehicle_article_links", "vehicle_set_article_links"}
@@ -40,6 +41,9 @@ def run(args):
                 assert_same({"columns": original["columns"]}, {"columns": current["columns"]}, "Migration ledger columns")
                 if not set(original["rows"]).issubset(current["rows"]) or current["count"] <= original["count"]:
                     raise AssertionError("Migration ledger did not retain all existing entries")
+            elif args.decoder_backfill and name in DECODER_TABLES:
+                assert_same({"columns": original["columns"]}, {"columns": after["tables"][name]["columns"]}, "Decoder schema columns")
+                continue
             elif not args.catalog_backfill or name not in CATALOG_TABLES:
                 assert_same(original, after["tables"].get(name, {}), "Migration preserved table " + name)
             else:
@@ -48,7 +52,25 @@ def run(args):
                     columns.append((len(columns), "source_authority", "TEXT", 0, None, 0))
                 assert_same({"columns": columns}, {"columns": after["tables"][name]["columns"]}, "Catalog schema columns")
         added = set(after["tables"]) - set(before["tables"])
-        if args.catalog_backfill:
+        if args.decoder_backfill:
+            if added != set(DECODER_TABLES) - set(before["tables"]):
+                raise AssertionError("Unexpected table added during decoder adoption")
+            required = ("vehicles", "vehicle_cv_values", "vehicle_cv_value_history", "vehicle_cv_files", "file_blobs", *DECODER_TABLES)
+            def document(directory):
+                with closing(sqlite3.connect((directory / "railkeeper.db").as_uri() + "?mode=ro", uri=True)) as db:
+                    db.row_factory = sqlite3.Row
+                    names = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+                    return {"version": 27, "tables": {table: [dict(row) for row in db.execute('SELECT * FROM "' + table + '"')]
+                                                      if table in names else [] for table in required}}
+            original = document(source)
+            original["createdAt"] = json.loads((reference / "reference-backup.json").read_text())["createdAt"]
+            actual = document(target)
+            actual["createdAt"] = dt.datetime.now(dt.timezone.utc).isoformat()
+            expected = expected_decoder_backfill(original, actual)
+            for table in DECODER_TABLES:
+                assert_same({"rows": sorted(digest(row) for row in expected["tables"][table])},
+                            {"rows": sorted(digest(row) for row in actual["tables"][table])}, "Complete expected decoder adoption " + table)
+        elif args.catalog_backfill:
             if added != CATALOG_TABLES - set(before["tables"]):
                 raise AssertionError("Unexpected table added by catalog backfill")
             document = json.loads((reference / "reference-backup.json").read_text())
@@ -79,13 +101,15 @@ def run(args):
               "targetBinarySHA256": hashlib.sha256(args.binary.read_bytes()).hexdigest(),
               "preservedTables": {name: {"count": item["count"], "sha256": digest(item)}
                                   for name, item in before["tables"].items() if name != "schema_migrations"
-                                  and (not args.catalog_backfill or name not in CATALOG_TABLES)},
+                                  and (not args.catalog_backfill or name not in CATALOG_TABLES)
+                                  and (not args.decoder_backfill or name not in DECODER_TABLES[2:])},
               "preservedFiles": before["files"], "addedTables": sorted(added),
               "catalogTables": {name: {"count": after["tables"][name]["count"], "sha256": digest(after["tables"][name])}
                                 for name in sorted(CATALOG_TABLES)},
               "validatedSafetySnapshots": sorted(new_files), "catalogBackfillVerified": args.catalog_backfill,
               "catalogAuthorityVerified": args.catalog_authority,
-              "decoderModelVerified": args.decoder_model}
+              "decoderModelVerified": args.decoder_model,
+              "decoderBackfillVerified": args.decoder_backfill}
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     print(f"PASS migration preserved all {len(report['preservedTables'])} legacy tables, files and safety snapshot")
 
@@ -100,6 +124,7 @@ if __name__ == "__main__":
     parser.add_argument("--catalog-backfill", action="store_true")
     parser.add_argument("--catalog-authority", action="store_true")
     parser.add_argument("--decoder-model", action="store_true")
+    parser.add_argument("--decoder-backfill", action="store_true")
     arguments = parser.parse_args()
     for field in ("binary", "backend", "static_dir"):
         setattr(arguments, field, getattr(arguments, field).resolve(strict=True))
