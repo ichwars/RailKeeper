@@ -3111,6 +3111,69 @@ components:
         sources:
           type: array
           items: {$ref: '#/components/schemas/DecoderCVSnapshotSource'}
+    DecoderInstanceInput:
+      type: object
+      additionalProperties: false
+      required: [id, expectedRevision, label, manufacturer, model, serialNumber, notes]
+      description: Complete explicit instance edit. New instances require a new 32-character lowercase hexadecimal ID; updates retain the existing ID. Text limits apply to UTF-8 bytes.
+      properties:
+        id: {type: string, minLength: 1}
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        label: {type: string, minLength: 1, maxLength: 160}
+        manufacturer: {type: string, maxLength: 160}
+        model: {type: string, maxLength: 160}
+        serialNumber: {type: string, maxLength: 160}
+        notes: {type: string, maxLength: 4000}
+    DecoderInstallationInput:
+      type: object
+      additionalProperties: false
+      required: [id, expectedRevision, decoderId, installedAt, notes]
+      properties:
+        id: {type: string, pattern: '^[0-9a-f]{32}$'}
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        decoderId: {type: string, minLength: 1}
+        installedAt: {type: [string, 'null'], format: date}
+        notes: {type: string, maxLength: 4000}
+    DecoderRemovalInput:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision, removedAt, note]
+      properties:
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        removedAt: {type: [string, 'null'], format: date}
+        note: {type: string, maxLength: 2000, description: Appended to existing episode notes.}
+    DecoderInstallationDatesInput:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision, installedAt, removedAt]
+      properties:
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        installedAt: {type: [string, 'null'], format: date}
+        removedAt: {type: [string, 'null'], format: date}
+    DecoderCVWorkspaceInput:
+      type: object
+      additionalProperties: false
+      required: [id, expectedRevision, profile]
+      properties:
+        id: {type: string, pattern: '^[0-9a-f]{32}$'}
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        profile: {type: string, minLength: 1, maxLength: 160, description: New trimmed working label with at most 160 UTF-8 bytes. Does not identify hardware.}
+    DecoderCVCheckpointInput:
+      type: object
+      additionalProperties: false
+      required: [id, expectedRevision, note]
+      properties:
+        id: {type: string, pattern: '^[0-9a-f]{32}$'}
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        note: {type: string, maxLength: 2000}
+    DecoderCVAssignmentInput:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision, installationId, snapshotId]
+      properties:
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        installationId: {type: [string, 'null'], description: Active installation in this vehicle, or explicit null to clear the current association.}
+        snapshotId: {type: string, pattern: '^[0-9a-f]{32}$', description: Stable identity of the checkpoint retained before changing the association.}
     DecoderText:
       type: object
       required: [de, en]
@@ -9839,6 +9902,179 @@ paths:
         "401": {description: Authentication required}
         "403": {description: Inventory role required}
         "404": {description: Vehicle not found}
+  /vehicles/{id}/decoder-configurations/instances:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    post:
+      summary: Confirm a distinct physical decoder instance
+      description: Editor or Admin and CSRF required. A current context revision and a new stable instance ID prevent stale or duplicate confirmations. Matching models never merge instances. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderInstanceInput'}
+      responses:
+        "201":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid or incomplete explicit edit}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle not found}
+        "409": {description: Stale comparison or instance identity already saved}
+  /vehicles/{id}/decoder-configurations/instances/{decoderID}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+      - {name: decoderID, in: path, required: true, schema: {type: string}}
+    put:
+      summary: Correct the description of an existing physical decoder
+      description: Editor or Admin and CSRF required. Requires a current context revision and every instance field, including empty optional text. The body ID must match the path. Earlier snapshot hardware descriptions remain unchanged. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderInstanceInput'}
+      responses:
+        "200":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid or incomplete explicit edit}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle or instance not found}
+        "409": {description: Stale comparison}
+  /vehicles/{id}/decoder-configurations/installations:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    post:
+      summary: Confirm a new decoder installation episode
+      description: Editor or Admin and CSRF required. An instance may have at most one active installation. Unknown installation dates require explicit null. Does not assign CV groups or change the vehicle's descriptive decoder type. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderInstallationInput'}
+      responses:
+        "201":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid installation or date}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle or instance not found}
+        "409": {description: Stale comparison, duplicate identity or already installed instance}
+  /vehicles/{id}/decoder-configurations/installations/{installationID}/removal:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+      - {name: installationID, in: path, required: true, schema: {type: string}}
+    post:
+      summary: Confirm removal without rewriting previous CV evidence
+      description: Editor or Admin and CSRF required. Unknown removal dates require explicit null. Retains the installation episode and appends the supplied note. Existing CV groups and snapshots retain their identities. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderRemovalInput'}
+      responses:
+        "200":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid dates or note}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Installation does not belong to this vehicle}
+        "409": {description: Stale comparison or episode already removed}
+  /vehicles/{id}/decoder-configurations/installations/{installationID}/dates:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+      - {name: installationID, in: path, required: true, schema: {type: string}}
+    put:
+      summary: Correct known installation and removal dates explicitly
+      description: Editor or Admin and CSRF required. Both nullable date fields are required. Dates must be valid and chronological; a removal date requires a removed episode. Earlier snapshot descriptions remain unchanged. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderInstallationDatesInput'}
+      responses:
+        "200":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid dates or state}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Installation does not belong to this vehicle}
+        "409": {description: Stale comparison}
+  /vehicles/{id}/decoder-configurations/workspaces:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    post:
+      summary: Create an empty named CV working group
+      description: Editor or Admin and CSRF required. A new stable group identity and a distinct trimmed label create an unassigned manual workspace. No CVs, hardware or measurement history are inferred. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderCVWorkspaceInput'}
+      responses:
+        "201":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid working label or identity}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle not found}
+        "409": {description: Stale comparison or group identity/label already exists}
+  /vehicles/{id}/decoder-configurations/workspaces/{workspaceID}/assignment:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+      - {name: workspaceID, in: path, required: true, schema: {type: string}}
+    put:
+      summary: Confirm or clear a working group's physical installation
+      description: Editor or Admin and CSRF required. First retains a checkpoint of the previous working state and hardware, then changes only the current association. A new association must be an active installation in this vehicle. Never rewrites CV labels or old snapshots. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderCVAssignmentInput'}
+      responses:
+        "200":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid or foreign installation}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle or group not found}
+        "409": {description: Stale comparison, unchanged association or snapshot identity already saved}
+  /vehicles/{id}/decoder-configurations/workspaces/{workspaceID}/checkpoints:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+      - {name: workspaceID, in: path, required: true, schema: {type: string}}
+    post:
+      summary: Record the saved CV working group as an immutable partial state
+      description: Editor or Admin and CSRF required. Captures saved CVs, actual histories and available sources atomically with audit. Unsaved browser drafts are excluded. The recording time does not claim a complete measurement or a common source export time. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderCVCheckpointInput'}
+      responses:
+        "201":
+          description: Saved decoder context including the new snapshot summary
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid checkpoint identity or note}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle or group not found}
+        "409": {description: Stale comparison or checkpoint identity already saved}
   /decoder-configurations/snapshots:
     get:
       summary: List immutable partial CV working states

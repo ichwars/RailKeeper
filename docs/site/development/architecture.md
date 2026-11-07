@@ -71,6 +71,14 @@ returns HTTP 410 rather than another file. Messe cannot use these inventory rout
 The [decoder-model reference](https://github.com/ichwars/RailKeeper/blob/main/docs/architecture/decoder-configurations.md)
 describes the model and transaction rules. The OpenAPI contract defines each route and response.
 
+Editor and Admin confirm physical instances, installation/removal, date corrections, working
+groups, associations and checkpoints under `/api/v1/vehicles/{id}/decoder-configurations`.
+Every command requires CSRF protection, the current context revision and all documented edit
+fields. Unknown dates and clearing an association use explicit null. New records retain their
+request identity on retries. After HTTP 409, reload and review; never generate a replacement
+identity and replay automatically. A checkpoint contains saved CVs and excludes open browser
+drafts. Earlier snapshots retain their original hardware descriptions and vehicle identities.
+
 ## Preserve the boundaries
 
 Roles and protections are enforced by the server. Device data starts as read-only suggestions; writes require an explicitly confirmed preview. CV values remain separate from their meaning: library rules interpret raw data only with documented model, firmware and index context.

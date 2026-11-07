@@ -74,6 +74,14 @@ Messe hat keinen Zugriff auf diese Bestandsrouten.
 Die [Decodermodell-Referenz](https://github.com/ichwars/RailKeeper/blob/main/docs/architecture/decoder-configurations.md)
 beschreibt Modell und Transaktionsregeln. Der OpenAPI-Vertrag definiert Routen und Antworten.
 
+Editor und Admin bestätigen Exemplare, Ein-/Ausbau, Datumskorrekturen, Arbeitsgruppen, Zuordnungen
+und Teilstände unter `/api/v1/vehicles/{id}/decoder-configurations`. Jeder Befehl verlangt
+CSRF-Schutz, den aktuellen Vergleichsstand und alle dokumentierten Formularfelder. Unbekannte
+Datumsangaben und das Aufheben einer Zuordnung verwenden ausdrücklich null. Neue Datensätze
+behalten beim Wiederholen ihre Anforderungs-ID. Nach HTTP 409 neu laden und prüfen; keine neue
+Kennung erzeugen und automatisch erneut senden. Ein Teilstand enthält gespeicherte CVs und keine
+offenen Browserentwürfe. Frühere Teilstände behalten Hardwarebeschreibung und Fahrzeugzuordnung.
+
 ## Grenzen erhalten
 
 Rollen und Schutzmaßnahmen werden serverseitig geprüft. Gerätedaten beginnen als lesende Vorschläge; Schreibvorgänge benötigen eine bewusst bestätigte Vorschau. CV-Werte bleiben von ihrer Bedeutung getrennt: Bibliotheksregeln erklären Rohdaten nur bei belegtem Modell-, Firmware- und Indexkontext.
