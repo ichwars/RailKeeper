@@ -14,6 +14,7 @@ import {
   ReportDialog
 } from "./VehicleDialogs";
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
+import { DecoderArchiveDialog } from "./DecoderCVArchive";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
 import { VehicleCatalogPanel } from "./VehicleCatalogPanel";
 import { catalogFieldsFrom } from "./vehicleCatalogModel";
@@ -55,6 +56,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     useVehicleCollectionController();
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
   const [quickMenuVehicleID, setQuickMenuVehicleID] = useState("");
+  const [archiveOwner, setArchiveOwner] = useState<string | null>(null);
+  const canReadDecoderArchive = roles.some(role => ["Admin", "Editor", "Viewer"].includes(role));
 	const canEditVehicleSets = roles.includes("Admin") || roles.includes("Editor");
 
   const {
@@ -730,7 +733,9 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 
   return (
     <>
+      {archiveOwner === username && canReadDecoderArchive && <DecoderArchiveDialog onClose={() => setArchiveOwner(null)} />}
       <VehicleInventoryPanel
+        onOpenCVArchive={canReadDecoderArchive ? () => setArchiveOwner(username) : undefined}
         vehicles={vehicles}
         sortedVehicles={sortedVehicles}
         loading={loading}
@@ -924,6 +929,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             speedCurve: { selected, ecosDraft },
             cv: {
               selected,
+              canReadArchive: canReadDecoderArchive,
+              archiveOwnerKey: username,
               decoderType: form.decoderType,
               ecosDraft,
               readonly: readonly || saving,

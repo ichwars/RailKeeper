@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
+  Archive,
   BadgeCheck,
   Copy,
   Eye,
@@ -102,6 +103,7 @@ type InventoryPanelProps = {
   onCreate: () => void;
   onReload: () => void;
   onOpenReport: () => void;
+  onOpenCVArchive?: () => void;
   onQueryChange: (value: string) => void;
   onToggleColumn: (column: VehicleTableColumn) => void;
   onMoveColumn: (column: VehicleTableColumn, direction: VehicleColumnMove) => void;
@@ -168,6 +170,7 @@ export function VehicleInventoryPanel({
   onCreate,
   onReload,
   onOpenReport,
+  onOpenCVArchive,
   onQueryChange,
   onToggleColumn,
   onMoveColumn,
@@ -317,6 +320,8 @@ export function VehicleInventoryPanel({
                 onMove={onMoveColumn}
                 onReset={onResetColumns}
               />
+              {onOpenCVArchive && <button type="button" className="icon-button decoder-archive-open" onClick={onOpenCVArchive}
+                aria-label={t("decoderConfig.archive")} title={t("decoderConfig.archive")}><Archive size={16} /></button>}
               <button type="button" className="icon-button" onClick={onOpenReport} aria-label={t("vehicles.report.open")} title={t("vehicles.report.open")} disabled={loading || vehicles.length === 0}>
                 <Printer size={16} />
               </button>

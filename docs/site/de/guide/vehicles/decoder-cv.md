@@ -4,7 +4,7 @@ description: Decoder, Funktionen und CV-Daten.
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-11-06
+lastReviewed: 2026-11-07
 ---
 
 # Decoder, Funktionen und CV-Daten
@@ -18,6 +18,7 @@ Wähle den Ablauf, den du gerade brauchst. Die praktischen Anleitungen verwenden
 | Modell, Firmware und Erkennung prüfen | [Den richtigen Decoder erkennen](decoder-identification) |
 | F0/F1/F3 gemeinsam ergänzen und manuelle Angaben schützen | [Funktionstasten übernehmen](functions-walkthrough) |
 | Ein Modell oder eine Quelle nachschlagen | [Decoderbibliothek](decoder-library) |
+| Gespeicherte Werte, Historien und Originale lesen | [CV-Archiv](cv-archive) |
 | Hersteller- und Firmwaregrenzen verstehen | [Modellhinweise](decoder-model-notes) |
 | Formate, Rohwerte und Sonderfälle nachlesen | [Technische Referenz](decoder-cv-reference) |
 
