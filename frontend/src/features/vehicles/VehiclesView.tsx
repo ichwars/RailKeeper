@@ -15,6 +15,7 @@ import {
 } from "./VehicleDialogs";
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
 import { DecoderArchiveDialog } from "./DecoderCVArchive";
+import { useDecoderConfigurationController } from "./useDecoderConfigurationController";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
 import { VehicleCatalogPanel } from "./VehicleCatalogPanel";
 import { catalogFieldsFrom } from "./vehicleCatalogModel";
@@ -137,6 +138,13 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       acknowledgeMediaSaved(detail, previous, phase);
       loadFunctionEdits(detail.functions, detail.id);
     }
+  });
+
+  const decoderConfigurations = useDecoderConfigurationController({
+    ownerKey: `${username}:${sessionKey}`, selected,
+    active: modalOpen && activeTab === "cv" && canReadDecoderArchive,
+    readonly: readonly || !canEditVehicleSets, busy: saving, setBusy: setSaving,
+    captureScope: () => captureScope(sessionKey)
   });
 
   useEffect(() => {
@@ -929,6 +937,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             speedCurve: { selected, ecosDraft },
             cv: {
               selected,
+              configurations: canReadDecoderArchive ? decoderConfigurations : undefined,
               canReadArchive: canReadDecoderArchive,
               archiveOwnerKey: username,
               decoderType: form.decoderType,

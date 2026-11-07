@@ -19,6 +19,7 @@ Wähle den Ablauf, den du gerade brauchst. Die praktischen Anleitungen verwenden
 | F0/F1/F3 gemeinsam ergänzen und manuelle Angaben schützen | [Funktionstasten übernehmen](functions-walkthrough) |
 | Ein Modell oder eine Quelle nachschlagen | [Decoderbibliothek](decoder-library) |
 | Gespeicherte Werte, Historien und Originale lesen | [CV-Archiv](cv-archive) |
+| Decoderexemplare, Einbauten und Arbeitsgruppenzuordnungen erfassen | [Decoderexemplare und Einbauten](decoder-installations) |
 | Hersteller- und Firmwaregrenzen verstehen | [Modellhinweise](decoder-model-notes) |
 | Formate, Rohwerte und Sonderfälle nachlesen | [Technische Referenz](decoder-cv-reference) |
 
