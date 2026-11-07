@@ -11,6 +11,7 @@ from pathlib import Path
 from preservation import assert_same, database_manifest, digest, installation_manifest
 from runtime import Runtime
 from catalog import TABLES, expected_catalog_backfill, expected_catalog_authority
+from decoder import TABLES as DECODER_TABLES
 
 
 CATALOG_TABLES = {"catalog_articles", "catalog_article_revisions", "vehicle_article_links", "vehicle_set_article_links"}
@@ -60,6 +61,9 @@ def run(args):
             for table in TABLES:
                 assert_same({"rows": sorted(digest(row) for row in expected["tables"][table])},
                             {"rows": sorted(digest(row) for row in actual["tables"][table])}, "Complete expected catalog backfill " + table)
+        elif args.decoder_model:
+            if added != set(DECODER_TABLES) or any(after["tables"][name]["count"] for name in added):
+                raise AssertionError("Decoder schema must add exactly five empty tables")
         elif added != CATALOG_TABLES or any(after["tables"][name]["count"] for name in added):
             raise AssertionError("Catalog schema must add exactly four empty tables")
         for name, value in before["files"].items():
@@ -80,7 +84,8 @@ def run(args):
               "catalogTables": {name: {"count": after["tables"][name]["count"], "sha256": digest(after["tables"][name])}
                                 for name in sorted(CATALOG_TABLES)},
               "validatedSafetySnapshots": sorted(new_files), "catalogBackfillVerified": args.catalog_backfill,
-              "catalogAuthorityVerified": args.catalog_authority}
+              "catalogAuthorityVerified": args.catalog_authority,
+              "decoderModelVerified": args.decoder_model}
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     print(f"PASS migration preserved all {len(report['preservedTables'])} legacy tables, files and safety snapshot")
 
@@ -94,6 +99,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--catalog-backfill", action="store_true")
     parser.add_argument("--catalog-authority", action="store_true")
+    parser.add_argument("--decoder-model", action="store_true")
     arguments = parser.parse_args()
     for field in ("binary", "backend", "static_dir"):
         setattr(arguments, field, getattr(arguments, field).resolve(strict=True))

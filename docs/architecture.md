@@ -153,6 +153,9 @@ Node.js is only used to build the frontend.
 - Z21 locomotive reads are targeted status polls for decoder addresses already known to RailKeeper, not a
   roster import. Only the confirmed address enters the comparison workspace; driving and function state is
   discarded. See `docs/architecture/z21-read-scope.md` for protocol evidence, bounds, and hardware gaps.
+- The additive [decoder installation and CV snapshot model](architecture/decoder-configurations.md)
+  preserves physical decoder identity separately from working profile labels and recorded partial
+  states. Backup support precedes use; existing mutable CV rows remain authoritative.
 - Decoder CV identity is vehicle + exact trimmed decoder profile + CV number + optional CV31/CV32 pair.
   Unindexed values and zero index pages remain distinct. Reviewed CV selections commit atomically.
   ECoS CVs use a bounded database XML export with explicit index pages and additive adoption with

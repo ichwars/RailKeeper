@@ -91,7 +91,7 @@ ON CONFLICT(vehicle_set_id) DO UPDATE SET revision_id=excluded.revision_id, over
 
 func TestVehicleCatalogBackupRoundTripPreservesRevisionsLinksAndIndividualOverrides(t *testing.T) {
 	service, doc := catalogBackupFixture(t)
-	if doc.Version != 26 {
+	if doc.Version != 27 {
 		t.Fatalf("version=%d", doc.Version)
 	}
 	validation, err := service.Validate(t.Context(), doc)
@@ -256,6 +256,10 @@ func TestVehicleCatalogBackupVersion25PreservesPendingCatalogAuthorityAndAllOrig
 				row["authority"] = "catalog"
 			}
 		}
+	}
+	// Format 27 adds only these empty model tables to this historical catalog fixture.
+	for _, table := range []string{"decoder_instances", "decoder_installations", "decoder_cv_workspaces", "decoder_cv_snapshots", "decoder_cv_snapshot_sources"} {
+		doc.Tables[table] = []map[string]any{}
 	}
 	if !reflect.DeepEqual(catalogBackupTableSnapshot(t, doc), catalogBackupTableSnapshot(t, after)) || !reflect.DeepEqual(doc.Files, after.Files) {
 		t.Fatal("format 25 restore changed data beyond the explicit authority conversion")

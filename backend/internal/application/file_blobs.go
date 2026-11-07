@@ -104,7 +104,8 @@ AND NOT EXISTS (SELECT 1 FROM vehicle_attachments WHERE blob_id=?)
 AND NOT EXISTS (SELECT 1 FROM vehicle_cv_files WHERE blob_id=?)
 AND NOT EXISTS (SELECT 1 FROM accessory_documents WHERE file_blob_id=?)
 AND NOT EXISTS (SELECT 1 FROM vehicle_sets WHERE set_image_blob_id=? OR set_image_thumbnail_blob_id=?)
-`, id, id, id, id, id, id, id, id); err != nil {
+AND NOT EXISTS (SELECT 1 FROM decoder_cv_snapshot_sources WHERE blob_id=?)
+`, id, id, id, id, id, id, id, id, id); err != nil {
 		return fmt.Errorf("delete unreferenced file blob: %w", err)
 	}
 	return nil

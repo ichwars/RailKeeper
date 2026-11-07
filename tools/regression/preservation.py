@@ -82,8 +82,17 @@ def backup_manifest(document):
     }
 
 
-def expected_backup_upgrade(document, target_version, catalog_backfill=None, catalog_authority=False):
+def expected_backup_upgrade(document, target_version, catalog_backfill=None, catalog_authority=False, decoder_model=False):
     """Apply explicit checked schema rules; never ignore actual rows or unknown upgrades."""
+    if decoder_model and target_version == 27 and document["version"] in (24, 25, 26):
+        from decoder import TABLES
+        expected = expected_backup_upgrade(document, 26, catalog_backfill, catalog_authority)
+        expected["version"] = 27
+        for table in TABLES:
+            if expected["tables"].get(table):
+                raise AssertionError("Older backup unexpectedly contains decoder configuration records")
+            expected["tables"][table] = []
+        return expected
     expected = copy.deepcopy(document)
     if document["version"] != target_version:
         versions = (document["version"], target_version)
@@ -104,14 +113,14 @@ def expected_backup_upgrade(document, target_version, catalog_backfill=None, cat
     return expected
 
 
-def expected_fresh_restore(document, local_backup, local_user_ids, catalog_backfill=None, catalog_authority=False):
+def expected_fresh_restore(document, local_backup, local_user_ids, catalog_backfill=None, catalog_authority=False, decoder_model=False):
     """Apply the checked schema upgrade and two existing cross-installation policies.
 
     BackupService retains the target's bundled workshop symbols and clears a
     transfer-profile creator if that installation does not contain that user.
     All remaining fields, including timestamps and IDs, must match exactly.
     """
-    expected = expected_backup_upgrade(document, local_backup["version"], catalog_backfill, catalog_authority)
+    expected = expected_backup_upgrade(document, local_backup["version"], catalog_backfill, catalog_authority, decoder_model)
     symbols = {}
     for row in local_backup["tables"]["master_data_entries"]:
         if (row["type"] == "symbols" and row["origin"] == "bundled"
