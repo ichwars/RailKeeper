@@ -13,11 +13,12 @@ export type VehicleCatalogOptions = {
   readonly?: boolean;
   busy?: boolean;
   captureScope?: () => () => boolean;
-  onSaved?: () => Promise<void>;
+  onSaved?: (confirmed: boolean) => Promise<void>;
+  onPendingChange?: (pending: boolean) => void;
 };
 
 export function useVehicleCatalogController({ targetType, targetId, savedFields, readonly = false,
-  busy = false, captureScope, onSaved }: VehicleCatalogOptions) {
+  busy = false, captureScope, onSaved, onPendingChange }: VehicleCatalogOptions) {
   const { t } = useI18n();
   const [context, setContext] = useState<VehicleCatalogContext | null>(null);
   const [draft, setDraft] = useState<CatalogDraft | null>(null);
@@ -26,10 +27,12 @@ export function useVehicleCatalogController({ targetType, targetId, savedFields,
   const [refreshPending, setRefreshPending] = useState(false);
   const [error, setError] = useState(""), [status, setStatus] = useState("");
   const mounted = useRef(true), request = useRef(0), writing = useRef(false);
+  const confirmedWrite = useRef(false);
   useEffect(() => {
     mounted.current = true;
     setContext(null); setDraft(null); setComparedFields(null); setLoading(false); setSaving(false);
     setRefreshPending(false);
+    confirmedWrite.current = false;
     setError(""); setStatus(""); writing.current = false;
     return () => { mounted.current = false; request.current++; };
   }, [targetType, targetId]);
@@ -94,7 +97,8 @@ export function useVehicleCatalogController({ targetType, targetId, savedFields,
     if (draft.creating && missingCatalogFields(draft.fields).length) { setError(t("catalog.required")); return; }
     const isCurrent = capture();
     if (!isCurrent()) return;
-    writing.current = true; setSaving(true); setError(""); setStatus("");
+    writing.current = true; confirmedWrite.current = false;
+    setSaving(true); setRefreshPending(true); setError(""); setStatus(""); onPendingChange?.(true);
     let acknowledged = false;
     try {
       const result = draft.creating
@@ -103,19 +107,22 @@ export function useVehicleCatalogController({ targetType, targetId, savedFields,
         : await api.adoptCatalogRevision(targetType, targetId, { expectedRevision: context.revision,
           revisionId: draft.revisionID, selectedFields: draft.selected });
       acknowledged = true;
+      confirmedWrite.current = true;
       if (!isCurrent()) return;
       setContext(result); setDraft(catalogDraftFrom(result)); setComparedFields(savedFields ? { ...savedFields } : null);
       setStatus(t("catalog.saved"));
       setRefreshPending(true);
-      await onSaved?.();
-      if (isCurrent()) setRefreshPending(false);
+      await onSaved?.(true);
+      if (isCurrent()) { setRefreshPending(false); onPendingChange?.(false); }
     } catch (reason) {
       if (!isCurrent()) return;
       setError(acknowledged ? t("catalog.refreshFailed") : reason instanceof ApiError && reason.status === 409
         ? t("catalog.conflict") : reason instanceof ApiError && reason.status === 400
           ? t("catalog.invalid") : t("catalog.unconfirmed"));
     } finally {
-      if (isCurrent()) { writing.current = false; setSaving(false); }
+      if (isCurrent()) {
+        writing.current = false; setSaving(false);
+      }
     }
   };
 
@@ -125,8 +132,8 @@ export function useVehicleCatalogController({ targetType, targetId, savedFields,
     if (!isCurrent()) return;
     setLoading(true); setError("");
     try {
-      await onSaved?.();
-      if (isCurrent()) setRefreshPending(false);
+      await onSaved?.(confirmedWrite.current);
+      if (isCurrent()) { setRefreshPending(false); onPendingChange?.(false); }
     } catch {
       if (isCurrent()) setError(t("catalog.refreshFailed"));
     } finally {

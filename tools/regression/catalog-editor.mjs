@@ -67,8 +67,8 @@ export async function assertCatalogRevisionWorkflow(page, input, de, { actor, cs
     await tab(de ? "Modell" : "Model");
     const retry = panel.getByRole("button", { name: de ? "Gespeicherte Ansicht erneut laden" : "Reload the saved view", exact: true });
     await retry.waitFor();
-    await panel.getByText(de ? "Der Artikelstand ist gespeichert. Die Fahrzeugansicht konnte noch nicht aktualisiert werden."
-      : "The article revision is saved. The vehicle view could not be refreshed yet.", { exact: true }).waitFor();
+    await panel.getByText(de ? "Der Artikelstand ist gespeichert. Die Bestandsansicht konnte noch nicht aktualisiert werden."
+      : "The article revision is saved. The inventory view could not be refreshed yet.", { exact: true }).waitFor();
     blockRefresh = false; await retry.click();
     await editor.locator(".vehicle-refresh-conflicts").waitFor();
     assert.equal(writes, 1, "Retrying a saved view must not repeat the confirmed catalog write");

@@ -94,6 +94,12 @@ The vehicle dialog keeps the widget mounted across tabs and keys it to the edito
 reopening the same vehicle. An acknowledged write followed by a failed aggregate read offers a
 separate read-only refresh retry. That retry preserves every open form draft and sends no second
 catalog confirmation.
+The set editor uses the same comparison in its read-only view and General tab. Its saved baseline
+and current form draft are reconciled after catalog and image actions, with explicit choices for
+conflicting fields. Set saves are blocked while a catalog result or its refresh remains unresolved,
+including uncertain network results. A read-only retry reconciles the latest saved state without
+claiming that an unacknowledged write succeeded. Dialog-session scopes also protect reopening the
+same set. Changing a set revision does not propagate fields into member vehicles.
 
 `tools/regression/verify_upgrade.py` rehearses the schema on a separate copy of a marked synthetic
 cold reference backup. It compares every existing table and stored file, permits only the four new
