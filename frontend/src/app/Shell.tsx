@@ -1,12 +1,16 @@
 import type { ReactNode } from "react";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
-import { BarChart3, Box, Boxes, Bug, CalendarDays, ChevronLeft, ChevronRight, CircuitBoard, FileInput, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Bug, ChevronLeft, ChevronRight, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import type { AppView } from "./App";
 import { api } from "../shared/api";
 import { installClientErrorCapture } from "../features/bugReporting/clientErrorBuffer";
 import type { BugReportCapability } from "../shared/apiBugReports";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference, themePreferenceKey, type ThemePreference } from "../shared/theme";
+import { sidebarNavigation } from "./sidebarNavigation";
+import { SidebarAdditionalNavigation } from "./SidebarAdditionalNavigation";
+import { followAppLink } from "./appNavigation";
+import { captureSidebarRead } from "./sidebarSaving";
 import {
   readSidebarPrefs,
   sidebarOrderChangedEvent,
@@ -17,16 +21,6 @@ const LazyBugReportDialog = lazy(() => import("../features/bugReporting/BugRepor
   default: module.BugReportDialog
 })));
 const bugReportFallbackURL = "https://github.com/ichwars/RailKeeper/issues/new";
-
-const navItems = [
-  { view: "overview", href: "/overview", labelKey: "nav.overview", icon: BarChart3 },
-  { view: "vehicles", href: "/vehicles", labelKey: "nav.vehicles", icon: Box },
-  { view: "accessories", href: "/accessories", labelKey: "nav.accessories", icon: Boxes },
-  { view: "exhibition", href: "/exhibition", labelKey: "nav.exhibition", icon: CalendarDays },
-  { view: "importExport", href: "/import-export", labelKey: "nav.importExport", icon: FileInput },
-  { view: "digitalCenters", href: "/digital-centers", labelKey: "nav.digitalCenters", icon: CircuitBoard },
-  { view: "settings", href: "/settings", labelKey: "nav.settings", icon: Settings }
-] as const;
 
 const sidebarCollapsedKey = "railkeeper.sidebarCollapsed";
 const betaUpdatesKey = "railkeeper.settings.betaUpdates";
@@ -53,30 +47,8 @@ function readLocalBool(key: string, fallback: boolean) {
   return value === "true";
 }
 
-function allowedNavItems(roles: string[]) {
-  if (roles.includes("Admin")) return [...navItems];
-  const canUseInventory = roles.includes("Editor") || roles.includes("Viewer");
-  const canUseExhibition = roles.includes("Messe");
-  return navItems.filter((item) => {
-    if (item.view === "exhibition") return canUseExhibition;
-    if (item.view === "importExport") return canUseInventory || canUseExhibition;
-    return canUseInventory;
-  });
-}
-
 function readNavItems(roles: string[], username: string) {
-  const available = allowedNavItems(roles);
-  const prefs = readSidebarPrefs(username);
-  const visible = available.filter((item) => item.view === "settings" || !prefs.hidden.includes(item.view));
-  try {
-    const ordered = prefs.order
-      .map((view) => visible.find((item) => item.view === view))
-      .filter((item): item is (typeof navItems)[number] => Boolean(item));
-    const missing = visible.filter((item) => !ordered.some((orderedItem) => orderedItem.view === item.view));
-    return [...ordered, ...missing];
-  } catch {
-    return visible;
-  }
+  return sidebarNavigation(roles, readSidebarPrefs(username));
 }
 
 export function Shell({
@@ -84,19 +56,22 @@ export function Shell({
   username,
   roles,
   activeView,
-  onLogout
+  onLogout,
+  onNavigate
 }: {
   children: ReactNode;
   username: string;
   roles: string[];
   activeView: AppView;
   onLogout: () => void;
+  onNavigate?: (view: AppView) => void;
 }) {
   const loadBugReportDiagnostics = useCallback(() => api.bugReportConfig(true), []);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
   const [orderedNavItems, setOrderedNavItems] = useState(() => readNavItems(roles, username));
+  const sidebarRevision = useRef(0);
   const [appVersion, setAppVersion] = useState("");
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [bugReportCapability, setBugReportCapability] = useState<BugReportCapability | null>(null);
@@ -115,7 +90,11 @@ export function Shell({
   }, []);
 
   useEffect(() => {
-    const syncOrder = () => setOrderedNavItems(readNavItems(roles, username));
+    const syncOrder = () => {
+      sidebarRevision.current += 1;
+      setOrderedNavItems(readNavItems(roles, username));
+    };
+    syncOrder();
 
     window.addEventListener(sidebarOrderChangedEvent, syncOrder);
     window.addEventListener("storage", syncOrder);
@@ -127,12 +106,14 @@ export function Shell({
 
   useEffect(() => {
     let cancelled = false;
+    const requestedSidebarRevision = sidebarRevision.current;
+    const sidebarReadCurrent = captureSidebarRead(username);
     api
       .profileSettings()
       .then(({ settings }) => {
         if (cancelled) return;
         const sidebarValue = settings[sidebarPrefsKey(username)];
-        if (sidebarValue) {
+        if (sidebarValue && sidebarRevision.current === requestedSidebarRevision && sidebarReadCurrent()) {
           window.localStorage.setItem(sidebarPrefsKey(username), sidebarValue);
           setOrderedNavItems(readNavItems(roles, username));
         }
@@ -263,7 +244,7 @@ export function Shell({
         </div>
 
         <nav id="main-navigation" className="nav" aria-label={t("nav.main")}>
-          {orderedNavItems.map((item) => {
+          {orderedNavItems.visible.map((item) => {
             const Icon = item.icon;
             const label = t(item.labelKey);
             return (
@@ -271,13 +252,20 @@ export function Shell({
                 key={item.view}
                 className={`nav-entry${activeView === item.view ? " active" : ""}`}
                 href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
+                aria-current={activeView === item.view ? "page" : undefined}
+                onClick={event => {
+                  setMobileMenuOpen(false);
+                  followAppLink(event, onNavigate ? () => onNavigate(item.view) : undefined);
+                }}
               >
                 <Icon size={16} aria-hidden="true" />
                 <span>{label}</span>
               </a>
             );
           })}
+
+          <SidebarAdditionalNavigation items={orderedNavItems.additional} activeView={activeView}
+            onNavigate={() => setMobileMenuOpen(false)} onSelect={onNavigate} />
 
           <button
             type="button"
@@ -291,7 +279,11 @@ export function Shell({
 
           <div className="sidebar-footer" aria-label={t("nav.footerActions")}>
             <div className="sidebar-footer-actions">
-              <a href="/settings" title={t("nav.system")} aria-label={t("nav.system")}>
+              <a href="/settings" title={t("nav.system")} aria-label={t("nav.system")}
+                onClick={event => {
+                  setMobileMenuOpen(false);
+                  followAppLink(event, onNavigate ? () => onNavigate("settings") : undefined);
+                }}>
                 <Settings size={17} aria-hidden="true" />
               </a>
               <a href="https://github.com/ichwars/RailKeeper" target="_blank" rel="noreferrer" title={t("nav.repository")} aria-label={t("nav.repository")}>

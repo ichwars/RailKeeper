@@ -18,6 +18,20 @@ export type SidebarPrefs = {
   hidden: AppView[];
 };
 
+export type SidebarProfile = "collection" | "all";
+const collectionTools: AppView[] = ["exhibition", "importExport", "digitalCenters"];
+
+export function sidebarProfile(prefs: SidebarPrefs): SidebarProfile | "custom" {
+  if (prefs.hidden.length === 0) return "all";
+  if (prefs.hidden.length === collectionTools.length &&
+    collectionTools.every((view) => prefs.hidden.includes(view))) return "collection";
+  return "custom";
+}
+
+export function applySidebarProfile(prefs: SidebarPrefs, profile: SidebarProfile): SidebarPrefs {
+  return { order: [...prefs.order], hidden: profile === "collection" ? [...collectionTools] : [] };
+}
+
 export function sidebarPrefsKey(username: string) {
   return `${sidebarPrefsBaseKey}:${username || "local"}`;
 }

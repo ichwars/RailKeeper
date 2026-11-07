@@ -29,6 +29,14 @@ Beschriftungen. „Spalten“ bietet eine ausdrücklich auswählbare kompakte An
 vorhandene Spalten und Breiten bleiben bis zur bewussten Änderung erhalten. Breite
 Tabellen scrollen innerhalb ihres gekennzeichneten, per Tastatur erreichbaren Bereichs.
 
+Unter Einstellungen bietet „Persönliche Ansicht“ die ausdrücklich auswählbaren Profile
+„Sammlung“ und „Alle Funktionen“. Sammlung bündelt Ausstellung, Import/Export und
+Digitalzentralen unter „Weitere Funktionen“; diese Werkzeuge bleiben innerhalb der
+jeweiligen Berechtigungen erreichbar. Die Auswahl verändert weder die Rolle noch die
+persönliche Reihenfolge oder offene Eingaben. Bestehende Ansichten werden nicht automatisch
+umgestellt. CV-Arbeitsgruppen enthalten aktuelle bearbeitbare Werte, gespeicherte Teilstände
+bewahren frühere Werte und Quellen. Beides ersetzt keinen Beleg für ein Decoderexemplar.
+
 ## Codequalität als eigener Bereich
 
 - Fachliche Module haben schmale Verträge und überprüfbare Abhängigkeiten.
@@ -120,3 +128,7 @@ Inventory filters have visible labels and individually removable active chips. A
 filters can be collapsed without losing their effect. The column picker offers an explicit
 compact preset while retaining existing preferences until the user changes them. Wide tables
 remain in a labelled, keyboard-accessible scrolling region.
+Personal view presets are opt-in. Collection groups specialist tools under More functions;
+All functions shows every permitted workspace. Existing ordering, roles and open inputs
+remain unchanged. Editable CV working values, recorded partial states and physical decoder
+identity are described separately; stored profile labels are never renamed.
