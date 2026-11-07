@@ -8,6 +8,7 @@ import type { components } from "../generated/api";
 import { createAccessoriesAPI } from "./apiAccessories";
 import { createBugReportAPI } from "./apiBugReports";
 import { createVehicleCatalogAPI } from "./apiVehicleCatalog";
+import { createDecoderConfigurationsAPI } from "./apiDecoderConfigurations";
 import type { ECoSImageOptions, ECoSImagePreview, ECoSImageResult } from "./ecosImageModel";
 import type { DecoderLibrary, DecoderLibraryMatch } from "./decoderLibraryModel";
 import type {
@@ -43,6 +44,7 @@ import type {
 export * from "./apiAccessories";
 export * from "./apiBugReports";
 export type * from "./apiVehicleCatalog";
+export type * from "./apiDecoderConfigurations";
 export type * from "../features/importExport/dataTransferModel";
 export type * from "../features/digitalCenters/digitalCenterModel";
 
@@ -907,6 +909,7 @@ function digitalCenterSessionSuffix(sessionID?: string) {
 }
 
 export const api = {
+  ...createDecoderConfigurationsAPI(request),
   ...createVehicleCatalogAPI(request),
   catalogBackfillReport: () => request<VehicleCatalogBackfillReport>("/catalog/legacy-backfill"),
   backfillLegacyCatalog: () => request<VehicleCatalogBackfillReport>("/catalog/legacy-backfill", { method: "POST" }),

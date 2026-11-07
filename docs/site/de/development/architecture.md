@@ -4,7 +4,7 @@ description: Architektur und Beiträge.
 audience: developer
 status: development
 reviewedVersion: main
-lastReviewed: 2026-11-06
+lastReviewed: 2026-11-07
 ---
 
 # Architektur und Beiträge
@@ -57,6 +57,22 @@ Vergleichstoken und `selectedFields` sind erforderlich; eine leere Auswahl erhä
 Werte. Neue Revisionen verwenden eine beim Wiederholen erhaltene 32-stellige Hex-Kennung.
 Bei HTTP 409 den gespeicherten Stand neu vergleichen. Die Anforderung nicht automatisch verändern
 und erneut senden. Bestehende Fahrzeug-/Set-Schreibaufrufe erhalten ihre bisherige Bedeutung.
+
+## Gespeicherte Decoderstände lesen
+
+Viewer, Editor und Admin können `GET /api/v1/vehicles/{id}/decoder-configurations` lesen, ohne
+den Bestand zu ändern. Decoderexemplare, Einbauzeiträume, exakte Arbeitsbezeichnungen und erfasste
+CV-Teilstände bleiben getrennt. Unbekannte Einbaudaten bleiben leer.
+
+`GET /api/v1/decoder-configurations/snapshots` liefert das private Archiv, optional nach der
+historischen `vehicleId` gefiltert. Teilstände und aufbewahrte Originalquellen werden über ihre
+Teilstand-ID abgerufen und bleiben nach Fahrzeuglöschung lesbar. Historische unbekannte CV-Werte
+und einzelne Quellenzeitpunkte bleiben erhalten; der Erfassungszeitpunkt behauptet keine
+vollständige Messung. Fehlende Originalinhalte liefern HTTP 410 statt einer anderen Datei.
+Messe hat keinen Zugriff auf diese Bestandsrouten.
+
+Die [Decodermodell-Referenz](https://github.com/ichwars/RailKeeper/blob/main/docs/architecture/decoder-configurations.md)
+beschreibt Modell und Transaktionsregeln. Der OpenAPI-Vertrag definiert Routen und Antworten.
 
 ## Grenzen erhalten
 
