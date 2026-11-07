@@ -1,0 +1,75 @@
+.vehicle-valuations,
+.manual-valuation-summary {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.vehicle-edit-modal .vehicle-valuations { padding: var(--space-lg); }
+.vehicle-valuations p,
+.vehicle-valuations h3,
+.vehicle-valuations h4 { margin: 0; }
+
+.valuation-heading,
+.valuation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.valuation-heading { justify-content: space-between; }
+.valuation-actions button { white-space: normal; }
+
+.valuation-form {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.valuation-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.valuation-fields label { display: grid; gap: var(--space-xs); min-width: 0; }
+.valuation-wide { grid-column: 1 / -1; }
+
+.valuation-history {
+  display: grid;
+  gap: var(--space-md);
+  list-style: none;
+  padding: 0;
+}
+
+.valuation-history li {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.valuation-provenance {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.valuation-currency-totals { display: grid; gap: var(--space-md); }
+.valuation-currency-totals > div { display: flex; justify-content: space-between; gap: var(--space-md); }
+.valuation-currency-totals dd { display: grid; gap: var(--space-xs); min-width: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 600px) {
+  .valuation-fields { grid-template-columns: 1fr; }
+  .vehicle-valuations button,
+  .vehicle-valuations a,
+  .manual-valuation-summary button,
+  .manual-valuation-summary input { min-height: 44px; }
+  .vehicle-valuations input,
+  .vehicle-valuations textarea { min-width: 0; width: 100%; min-height: 44px; }
+}

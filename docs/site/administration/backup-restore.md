@@ -23,6 +23,11 @@ lastReviewed: 2026-11-07
 
 Application backups include inventory, accessories, maintenance, CVs and provenance, master data, exhibition data, and saved media. They exclude user accounts, passwords, sessions, and local system settings. They are not full server backups.
 
+Format 28 adds dated manual vehicle valuations, retaining original entries, corrections,
+withdrawals, provenance and actual recording times. Preflight also checks relationships and
+correction chains before replacing data. Older backups remain readable and never fabricate
+valuation history.
+
 Format 27 adds tables for physical decoders, installations, CV working groups and immutable partial
 states with frozen sources. Unknown installation dates stay unknown; recording time is not a readout
 time. Frozen sources remain available after the original CV file is removed. This schema extension

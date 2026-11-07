@@ -22,6 +22,15 @@ oder als historische Marktwerte ausgegeben. Frühere Zeitpunkte und unbekannte B
 werden nicht erfunden. Auswertungen nennen Bewertungsumfang und fehlende Angaben.
 Es gibt keine automatische Verbindung zu Preisportalen oder Cloud-Diensten.
 
+Bewertungen werden als unveränderliche Einträge ergänzt. Eine Berichtigung oder Rücknahme
+verweist auf ihren Vorgänger und bewahrt dessen Betrag, Herkunft und Erfassungszeit.
+Konkurrierende Berichtigungen erfordern einen erneuten Vergleich. Bei einer verlorenen
+Speicherantwort prüft die Oberfläche die bereits vergebene Eintragskennung, bevor weitere
+Änderungen möglich sind. Die Stichtagsauswertung verwendet den heute bekannten Verlauf,
+zählt Fahrzeugexemplare und summiert unterschiedliche Währungen getrennt und ohne Rundung.
+Ein vollständiger JSON-Verlaufsexport und App-Backupformat 28 erhalten auch ersetzte Werte.
+Schema 80 ergänzt ausschließlich eine zunächst leere Bewertungstabelle.
+
 Im Fahrzeugbestand bleiben häufige Filter direkt sichtbar. „Weitere Filter“ bündelt
 Gattung, Bahngesellschaft, Epoche, Adapter, Datenprüfung und Ausstellungstauglichkeit.
 Aktive Filter erscheinen auch bei geschlossenem Bereich mit einzeln entfernbaren

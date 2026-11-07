@@ -32,6 +32,9 @@ describe("OverviewView", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => null);
     vi.spyOn(api, "vehicles").mockResolvedValue([vehicleFixture()]);
     vi.spyOn(api, "accessoryArticles").mockResolvedValue(accessories);
+    vi.spyOn(api, "valuationSummary").mockResolvedValue({
+      asOf: "2026-11-07", vehicleCount: 1, valuedVehicles: 0, missingVehicles: 1, totals: []
+    });
     vi.spyOn(api, "overviewValuation").mockResolvedValue({
       vehicleListValue: "100.00",
       vehiclePurchaseValue: "80.00",

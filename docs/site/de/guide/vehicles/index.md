@@ -380,3 +380,8 @@ Datei physisch zu entfernen.
 - [Ersteinrichtung und Anmeldung](/de/guide/getting-started/)
 - [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/)
 - [Übersicht der Administration](/de/administration/)
+
+## Manuelle Wertentwicklung
+
+Datierte eigene Bewertungen, Berichtigungen und die Sammlungsauswertung findest du unter
+[Manuelle Wertentwicklung](value-history.md). Listen- und Kaufpreise bleiben unverändert.

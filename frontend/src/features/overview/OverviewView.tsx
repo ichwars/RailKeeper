@@ -34,6 +34,8 @@ import { translate, useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { InventoryTrendChart, ValueDistributionChart } from "./OverviewCharts";
 import { OverviewMetricDialog } from "./OverviewMetricDialog";
+import { ManualValuationSummary } from "./ManualValuationSummary";
+import { valuationChangedEvent } from "../vehicles/valuationModel";
 import { formatOverviewMoney } from "./OverviewValuationCard";
 import {
   accessoryCount,
@@ -329,6 +331,7 @@ export function OverviewView({ username = "local", roles = ["Editor"] }: Overvie
   const visibleMetrics = displayedMetricPreference.order.filter((metric) =>
     displayedMetricPreference.active.includes(metric));
   const refreshOverview = () => {
+    window.dispatchEvent(new Event(valuationChangedEvent));
     void loadVehicles();
     void loadAccessories();
     void loadValuation();
@@ -556,6 +559,7 @@ export function OverviewView({ username = "local", roles = ["Editor"] }: Overvie
       </section>
 
       <section className="overview-analysis-secondary">
+        <ManualValuationSummary key={username} />
         <article className="overview-card overview-ranking-card">
           <header className="overview-analysis-head"><h2>{t("overview.structure.title")}</h2></header>
           {vehicleDependentState ? <p className={vehicleError ? "overview-module-state error" : "overview-module-state"}

@@ -281,6 +281,18 @@
       "labelEN": "Report an issue",
       "reviewEvidence": "source",
       "reviewedAt": "2026-11-02"
+    },
+    {
+      "id": "vehicle-valuations",
+      "audience": "user",
+      "status": "documented",
+      "englishPath": "guide/vehicles/value-history.md",
+      "germanPath": "de/guide/vehicles/value-history.md",
+      "labelDE": "Manuelle Wertentwicklung",
+      "labelEN": "Manual value history",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-11-07",
+      "screenshot": "valuations"
     }
   ],
   "owners": {
@@ -349,7 +361,8 @@
       "vehicles": "vehicles-core",
       "decoderLibrary": "vehicle-decoder-cv",
       "ecosFunctions": "digital-centers",
-      "bugReport": "bug-reporting"
+      "bugReport": "bug-reporting",
+      "valuation": "vehicle-valuations"
     },
     "apiPrefixes": {
       "/health": "system-operations",
@@ -393,7 +406,9 @@
       "/api/v1/exhibition-lists": "exhibition",
       "/api/v1/decoder-library": "vehicle-decoder-cv",
       "/api/v1/vehicles/{id}/ecos-functions": "digital-centers",
-      "/api/v1/bug-reports": "bug-reporting"
+      "/api/v1/bug-reports": "bug-reporting",
+      "/api/v1/valuations": "vehicle-valuations",
+      "/api/v1/vehicles/{id}/valuations": "vehicle-valuations"
     },
     "environmentVariables": {
       "LOCALAPPDATA": "deployment-configuration",

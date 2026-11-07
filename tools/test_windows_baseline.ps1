@@ -56,4 +56,10 @@ if ($LASTEXITCODE -ne 0) { throw "Preservation comparison tests failed." }
   --previous-binary $previousBinary --previous-backend (Join-Path $previousSource "backend") `
   --catalog-backfill --catalog-authority --catalog-writes --decoder-model --decoder-backfill --browser --output (Join-Path $testRoot "run")
 if ($LASTEXITCODE -ne 0) { throw "Native Windows upgrade/restore/browser baseline failed." }
+& python (Join-Path $regression "run_valuations.py") `
+  --binary (Join-Path $package "RailKeeper.exe") `
+  --backend $package --static-dir (Join-Path $package "web") `
+  --browser --output (Join-Path $testRoot "valuations")
+if ($LASTEXITCODE -ne 0) { throw "Native Windows valuation history/restore/browser checks failed." }
 Write-Host "Native Windows baseline passed. Report: $(Join-Path $testRoot 'run\report.json')"
+Write-Host "Manual valuation checks passed. Report: $(Join-Path $testRoot 'valuations\report.json')"

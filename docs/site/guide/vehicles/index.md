@@ -364,3 +364,8 @@ important records; the application does not promise physical cleanup of every re
 - [First setup and sign-in](/guide/getting-started/)
 - [Overview, metrics, and data quality](/guide/overview/)
 - [Administration overview](/administration/)
+
+## Manual value history
+
+See [Manual value history](value-history.md) for dated estimates, corrections and the collection
+summary. Existing list and purchase prices remain unchanged.

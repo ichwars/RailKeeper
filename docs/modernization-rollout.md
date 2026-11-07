@@ -1,6 +1,6 @@
 # Modernisierung erproben und ausliefern
 
-Dieser Ablauf gilt für den Entwicklungsstand mit Schema 79 und App-Backupformat 27.
+Dieser Ablauf gilt für den Entwicklungsstand mit Schema 80 und App-Backupformat 28.
 Er definiert die technische Qualifizierung und die verbleibende Anwendererprobung.
 Ein zusammengeführter PR ist noch kein veröffentlichter oder produktiv installierter Stand.
 Eine Veröffentlichung oder Produktivumstellung erfolgt mit einem eigenen Auftrag.
@@ -115,7 +115,7 @@ nachweislich übertragen. Neue Decoder- und Archivdaten lassen sich nicht verlus
 ein altes Modell oder Backupformat zurückschreiben. Keine Formatnummer manuell ändern
 und kein altes Programm ungeprüft auf einer migrierten Datenbank starten.
 
-Release Notes nennen tatsächliche Migrationen, Format 27, erhaltene ältere Importformate,
+Release Notes nennen tatsächliche Migrationen, Format 28, erhaltene ältere Importformate,
 unabhängige lokale Anmeldung, geprüfte Plattformen und diese Rückfallgrenze. Sie unterscheiden
 technische Nachweise, Anwendererprobung und physische Geräteabnahme. Eine neue Version
 oder ein Veröffentlichungstermin wird erst im gesonderten Releaseauftrag festgelegt.

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { VehicleCVValuesTable } from "./VehicleCVValuesTable";
+import { VehicleValuations } from "./VehicleValuations";
 import { Pencil, Printer, QrCode } from "lucide-react";
 import { Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -301,6 +302,7 @@ export function VehicleReadOnlyView({
           )}
         </div>
       )}
+      <VehicleValuations key={vehicle.id} vehicleID={vehicle.id} />
     </div>
   );
 }

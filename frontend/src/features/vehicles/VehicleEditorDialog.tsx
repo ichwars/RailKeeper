@@ -13,6 +13,7 @@ import { VehicleReadOnlyView } from "./VehicleReadOnlyView";
 import { VehicleSparePartsTab } from "./VehicleSparePartsTab";
 import { VehicleSpeedCurveTab } from "./VehicleSpeedCurveTab";
 import { VehicleUploadsTab } from "./VehicleUploadsTab";
+import { VehicleValuations } from "./VehicleValuations";
 import { VehicleMediaConflicts } from "./VehicleMediaConflicts";
 import type { MediaDraftConflict } from "./mediaDraftConflicts";
 import { VehicleSaveState } from "./VehicleSaveState";
@@ -68,6 +69,7 @@ const editorTabs: Array<{ key: ModalTab; labelKey?: string; label?: string }> = 
   { key: "cv", label: "CV" },
   { key: "uploads", labelKey: "vehicles.tab.uploads" },
   { key: "maintenance", labelKey: "vehicles.tab.maintenance" },
+  { key: "valuations", labelKey: "valuation.title" },
   { key: "spareParts", labelKey: "vehicles.tab.spareParts" }
 ];
 
@@ -99,9 +101,23 @@ export function VehicleEditorDialog({
 	createPrefill,
   articleSearchController
 }: VehicleEditorDialogProps) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const bodyRef = useRef<HTMLDivElement>(null);
+  const tabNavigationRef = useRef<HTMLElement>(null);
   useLayoutEffect(() => { if (bodyRef.current) bodyRef.current.scrollTop = 0; }, [activeTab]);
+  useLayoutEffect(() => {
+    const revealActiveTab = () => {
+      const navigation = tabNavigationRef.current;
+      const active = navigation?.querySelector<HTMLElement>("button.active");
+      if (!navigation || !active) return;
+      const bounds = navigation.getBoundingClientRect(), target = active.getBoundingClientRect();
+      if (target.left < bounds.left) navigation.scrollLeft += target.left - bounds.left;
+      else if (target.right > bounds.right) navigation.scrollLeft += target.right - bounds.right;
+    };
+    revealActiveTab();
+    window.addEventListener("resize", revealActiveTab);
+    return () => window.removeEventListener("resize", revealActiveTab);
+  }, [activeTab, language, mode]);
 
   return (
     <div className="modal-layer" onKeyDown={(event) => {
@@ -129,7 +145,7 @@ export function VehicleEditorDialog({
         <form
           key={`${mode}-${selected?.id || "new"}`}
           className={mode === "view" ? "vehicle-modal vehicle-read-modal-shell" : "vehicle-modal vehicle-edit-modal"}
-          onSubmit={onSubmit}
+          onSubmit={event => { if (activeTab === "valuations") event.preventDefault(); else onSubmit(event); }}
         >
         <header className="modal-head">
           <h2>
@@ -160,12 +176,13 @@ export function VehicleEditorDialog({
           />
         ) : (
           <>
-            <nav className="modal-tabs" aria-label={t("vehicles.modal.aria")}>
+            <nav ref={tabNavigationRef} className="modal-tabs" aria-label={t("vehicles.modal.aria")}>
               {editorTabs.map((tab) => (
                 <button
                   key={tab.key}
                   type="button"
                   className={activeTab === tab.key ? "active" : ""}
+                  aria-pressed={activeTab === tab.key}
                   onClick={() => onTabChange(tab.key)}
                 >
                   {tab.label || t(tab.labelKey || "")}
@@ -185,6 +202,8 @@ export function VehicleEditorDialog({
               {activeTab === "uploads" && <VehicleUploadsTab {...tabs.uploads} />}
               {activeTab === "maintenance" && <VehicleMaintenanceTab {...tabs.maintenance} />}
               {activeTab === "spareParts" && <VehicleSparePartsTab {...tabs.spareParts} />}
+              {selected && <VehicleValuations key={`${draftOwner}:${selected.id}`} vehicleID={selected.id}
+                canEdit active={activeTab === "valuations"} />}
             </div>
 
             <footer className={`modal-actions${activeTab === "control" ? " function-editor-footer" : ""}`}>
@@ -193,12 +212,12 @@ export function VehicleEditorDialog({
               <button type="button" className="secondary-button" onClick={onClose} disabled={saving}>
                 {t("vehicles.cancel")}
               </button>
-              <button className="primary-button" disabled={saving || refreshConflicts.length > 0 || mediaConflicts.some(conflict => conflict.kind === "image")}>
+              {activeTab !== "valuations" && <button className="primary-button" disabled={saving || refreshConflicts.length > 0 || mediaConflicts.some(conflict => conflict.kind === "image")}>
                 <Save size={16} aria-hidden="true" />
                 {saving
                   ? t("vehicles.saving")
                   : t("vehicles.saveChanges")}
-              </button>
+              </button>}
             </footer>
           </>
         )}

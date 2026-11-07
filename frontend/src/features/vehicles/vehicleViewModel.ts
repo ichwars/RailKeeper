@@ -90,7 +90,7 @@ export const emptyVehicle: CreateVehicleRequest = {
 };
 
 export type ModalMode = "create" | "view" | "edit";
-export type ModalTab = "model" | "control" | "speedCurve" | "cv" | "uploads" | "maintenance" | "spareParts";
+export type ModalTab = "model" | "control" | "speedCurve" | "cv" | "uploads" | "maintenance" | "spareParts" | "valuations";
 export type SortKey = VehicleSortableColumn;
 export type SortDirection = "asc" | "desc";
 export type InventoryViewMode = "table" | "cards";

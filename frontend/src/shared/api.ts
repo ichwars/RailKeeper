@@ -9,6 +9,7 @@ import { createAccessoriesAPI } from "./apiAccessories";
 import { createBugReportAPI } from "./apiBugReports";
 import { createVehicleCatalogAPI } from "./apiVehicleCatalog";
 import { createDecoderConfigurationsAPI } from "./apiDecoderConfigurations";
+import { createValuationsAPI } from "./apiValuations";
 import type { ECoSImageOptions, ECoSImagePreview, ECoSImageResult } from "./ecosImageModel";
 import type { DecoderLibrary, DecoderLibraryMatch } from "./decoderLibraryModel";
 import type {
@@ -45,6 +46,7 @@ export * from "./apiAccessories";
 export * from "./apiBugReports";
 export type * from "./apiVehicleCatalog";
 export type * from "./apiDecoderConfigurations";
+export type * from "./apiValuations";
 export type * from "../features/importExport/dataTransferModel";
 export type * from "../features/digitalCenters/digitalCenterModel";
 
@@ -929,6 +931,7 @@ function cvComparisonQuery(expectedRevision?: string, scope?: VehicleCVWorkspace
 }
 
 export const api = {
+  ...createValuationsAPI(request),
   ...createDecoderConfigurationsAPI(request),
   ...createVehicleCatalogAPI(request),
   catalogBackfillReport: () => request<VehicleCatalogBackfillReport>("/catalog/legacy-backfill"),
