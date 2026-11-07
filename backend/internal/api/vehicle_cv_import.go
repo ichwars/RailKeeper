@@ -90,16 +90,32 @@ func cvImportDataSize(rows []json.RawMessage) (int, error) {
 		if err := json.Unmarshal(row, &fields); err != nil {
 			return 0, err
 		}
-		for key := range fields {
+		if fields == nil {
+			size += len("null")
+			continue
+		}
+		size += 2 // Object delimiters; values retain their original JSON escaping.
+		count := 0
+		for key, value := range fields {
 			if strings.EqualFold(key, "expectedRevision") || strings.EqualFold(key, "expectedWorkspaceRevision") {
-				delete(fields, key)
+				continue
 			}
+			if count > 0 {
+				size++
+			}
+			count++
+			buffer.Reset()
+			if err := encoder.Encode(key); err != nil {
+				return 0, err
+			}
+			size += buffer.Len() - 1 + 1 // Encoded key without its newline, then colon.
+			buffer.Reset()
+			// Encoding a RawMessage again can change Unicode escaping between Go versions.
+			if err := json.Compact(&buffer, value); err != nil {
+				return 0, err
+			}
+			size += buffer.Len()
 		}
-		buffer.Reset()
-		if err := encoder.Encode(fields); err != nil {
-			return 0, err
-		}
-		size += buffer.Len() - 1 // Encoder appends a newline outside the original JSON object.
 		if size > maxCVImportDataBytes {
 			return size, nil
 		}

@@ -63,8 +63,10 @@ bewahren frühere Werte und Quellen. Beides ersetzt keinen Beleg für ein Decode
 - Validierung, Parallelkonflikt, Abbruch und technische Fehler bleiben unterscheidbar.
   Eine verlorene Antwort darf keine blinde Wiederholung einer Speicherung auslösen.
 - Go-Linting und React-Hook-Regeln sind verpflichtend. Coverage wird auf einem festen
-  Messumfang abgesichert und gezielt auf 80 % Statements/Zeilen sowie 75 %
-  Verzweigungen/Funktionen erhöht. Kritische Fallprüfungen gelten unabhängig davon.
+  Messumfang mit mindestens 80 % Statements/Zeilen sowie 75 % Verzweigungen/Funktionen
+  abgesichert. Die Backendabdeckung erhält eine eigene paketübergreifende Messung und
+  Modulgrenzen. Kritische Fallprüfungen gelten unabhängig davon. Werkzeugversionen,
+  Messumfang und Prüfgruppen beschreibt [Qualitätsprüfungen](quality-gates.md).
 
 ## Vor jedem nächsten Schritt
 

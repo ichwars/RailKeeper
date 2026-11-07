@@ -4,7 +4,7 @@ description: Wegweiser und Begriffe.
 audience: reference
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-07
 ---
 
 # Wegweiser und Begriffe
@@ -43,3 +43,12 @@ lastReviewed: 2026-10-23
 ## Tastatur und Bilder
 
 Mit Tab wechselst du zwischen Bedienelementen, mit Enter aktivierst du Schaltflächen. Escape schließt viele Dialoge; lies vor dem Verlassen Hinweise auf ungespeicherte Änderungen. Handbuchbilder lassen sich über einen Klick in voller Größe öffnen. Suche oben im Handbuch nach einem Begriff oder einer Aufgabe.
+
+## Datum und unbekannte Ereigniszeitpunkte
+
+Datumsfelder akzeptieren `TT.MM.JJJJ` und `JJJJ-MM-TT`. Kalenderbeschriftungen folgen der
+ausgewählten Sprache Deutsch oder Englisch. Das Öffnen erhält den aktuellen Wert; **Heute**
+wählt das Tagesdatum erst nach ausdrücklicher Betätigung. **Datum leeren** oder **Leeren**
+entfernt ein optionales Datum. Ein leerer Einbau- oder Ausbauzeitpunkt bedeutet weiterhin
+unbekannt. Ungültige oder unvollständige Eingaben kehren beim Verlassen zum vorherigen Wert
+zurück; prüfe das angezeigte Datum vor dem Speichern.

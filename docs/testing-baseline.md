@@ -46,6 +46,10 @@ python3 tools/regression/matrix.py
 python3 -m unittest discover -s tools/regression -p 'test_*.py'
 ```
 
+The [quality gates](quality-gates.md) define the fixed frontend/backend measurement scopes,
+compiler/minimum-version policy and recurring race/fuzz checks. Those automated results
+remain separate from the preservation and platform qualification below.
+
 ## Synthetic reference collection and process checks
 
 The reference contains two separate vehicles with the same model article, a two-member set with individual

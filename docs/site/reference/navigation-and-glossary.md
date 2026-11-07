@@ -4,7 +4,7 @@ description: Navigation and glossary.
 audience: reference
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-07
 ---
 
 # Navigation and glossary
@@ -43,3 +43,11 @@ lastReviewed: 2026-10-23
 ## Keyboard and pictures
 
 Tab moves between controls; Enter activates buttons. Escape closes many dialogs; check unsaved-change notices before leaving. Click handbook pictures to open them at full size. Use the handbook search to find a term or task.
+
+## Dates and unknown event times
+
+Date fields accept `DD.MM.YYYY` and `YYYY-MM-DD`. Calendar labels follow the chosen German
+or English language. Opening the calendar leaves the current value intact; **Today** chooses
+today only after you activate it. **Clear date** or **Clear** removes an optional date.
+An empty installation/removal date continues to mean unknown. Invalid or incomplete typed
+dates return to the previous value when leaving the field; check the displayed date before saving.

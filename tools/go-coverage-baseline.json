@@ -1,0 +1,27 @@
+{
+  "scope": "railkeeper/backend/internal/",
+  "total": 74,
+  "modules": {
+    "api": 54,
+    "application": 78,
+    "authentication": 98,
+    "backup": 83,
+    "credentials": 91,
+    "decoder": 89,
+    "decoderlibrary": 91,
+    "domain": 88,
+    "ecos": 86,
+    "ecosmodel": 95,
+    "infrastructure": 75,
+    "infrastructure/authdata": 76,
+    "infrastructure/backupdata": 79,
+    "infrastructure/ratelimit": 58,
+    "infrastructure/valuationdata": 80,
+    "infrastructure/vehicledata": 81,
+    "revision": 100,
+    "safefetch": 78,
+    "startup": 76,
+    "transfer": 91,
+    "valuation": 94
+  }
+}
