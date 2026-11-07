@@ -1,3 +1,4 @@
+import { invalidatePendingRequests } from "../../shared/requestGeneration";
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 import { api, ApiError, type Vehicle, type VehicleImage } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -25,7 +26,7 @@ export function useVehicleUploads(options: Options) {
   const optionsRef = useRef(options); optionsRef.current = options;
   const [batch, setBatchState] = useState<VehicleUploadBatch | null>(null);
   const batchRef = useRef(batch), busy = useRef(false), generation = useRef(0), alive = useRef(true);
-  useEffect(() => { alive.current = true; return () => { alive.current = false; generation.current++; }; }, []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; invalidatePendingRequests(generation); }; }, []);
   const setBatch = useCallback((action: SetStateAction<VehicleUploadBatch | null>) => {
     const next = typeof action === "function" ? action(batchRef.current) : action;
     batchRef.current = next;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { Database, RefreshCw, Save, Server, X } from "lucide-react";
 import { api, DigitalCenterConnectionResult, DigitalCenterProbeResult, DigitalCenterSettings, ECoSConnectionResult, ECoSLiveStatus, ECoSLocomotiveSummary } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -216,7 +216,7 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
     }
   };
 
-  useEffect(() => {
+  const loadDigitalOnEntry = useEffectEvent(() => {
     if (canManageUsers) {
       api
         .digitalSettings()
@@ -233,7 +233,8 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
         .catch(() => undefined);
       void refreshLiveStatus("idle", false);
     }
-  }, [canManageUsers]);
+  });
+  useEffect(() => { loadDigitalOnEntry(); }, [canManageUsers]);
 
   const openAdapter = (nextProvider: DigitalProvider) => {
     setActiveDialogProvider(nextProvider);
@@ -491,9 +492,10 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
     cs3: "4 s"
   };
 
+  const countConnectedLocomotives = useEffectEvent(() => { void countLocomotives(true); });
   useEffect(() => {
     if (!liveStatus?.connected || !ecosReady || locomotiveSummary || busy !== "idle") return;
-    void countLocomotives(true);
+    countConnectedLocomotives();
   }, [liveStatus?.connected, ecosReady, locomotiveSummary, busy]);
 
   return (

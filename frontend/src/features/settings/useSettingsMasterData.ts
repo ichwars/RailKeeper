@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useEffectEvent, useMemo, useState, type FormEvent } from "react";
 import { api, type MasterDataEntry, type MasterDataInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { useMasterDataBulkSelection } from "./MasterDataBulkSelection";
@@ -59,7 +59,7 @@ export function useSettingsMasterData({
   const masterDescription = (type: string) => t(`settings.master.${type}Desc`);
   const activeDataLabel = masterLabel(activeDataType.type);
   const activeDataDescription = masterDescription(activeDataType.type);
-  const items = itemsByType[activeType] || [];
+  const items = useMemo(() => itemsByType[activeType] || [], [itemsByType, activeType]);
   const loading = Boolean(loadingTypes[activeType]);
   const isSymbolData = activeType === "symbols";
   const isManufacturerData = activeType === "manufacturer";
@@ -86,7 +86,7 @@ export function useSettingsMasterData({
     setMasterDataSort({ key: "name", direction: "asc" });
   }, [activeType]);
 
-  useEffect(() => {
+  const loadVisibleData = useEffectEvent(() => {
     if (activeSettingsTab !== "data" || dataGroup !== "general" || loadedTypes[activeType]) return;
 
     let cancelled = false;
@@ -129,7 +129,8 @@ export function useSettingsMasterData({
     return () => {
       cancelled = true;
     };
-  }, [activeSettingsTab, activeType, dataGroup]);
+  });
+  useEffect(() => loadVisibleData(), [activeSettingsTab, activeType, dataGroup]);
 
   const reloadActiveType = () => {
     masterDataSelection.clear();

@@ -45,7 +45,7 @@ export function useVehicleCVImportController(options: Options) {
       }
       return { ...before, preview, needsReview: false };
     });
-  }, [set]);
+  }, [set, t]);
   const begin = () => {
     const { selected, readonly, saving, workingGroup } = opts.current;
     if (!selected || readonly || saving || busy.current) return null;

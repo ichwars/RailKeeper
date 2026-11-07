@@ -41,10 +41,17 @@ Es gibt keine automatische Verbindung zu Preisportalen oder Cloud-Diensten.
 ## Vor jedem nächsten Schritt
 
 `cd frontend && npm run lint` prüft Produktionscode einschließlich React-Hook-Regeln.
-Die Syntaxwerkzeuge liegen mit kompatiblem TypeScript-Peer in `tools/frontend-lint`;
-die eigentliche Frontend-Typprüfung und der Build verwenden unverändert den Compiler aus
+Die Syntaxwerkzeuge liegen mit Babels TypeScript-/JSX-Parser in `tools/frontend-lint`;
+die eigentliche Frontend-Typprüfung und der Build verwenden den Compiler aus
 `frontend/package.json`. Es gibt keine Peer-Overrides und keine pauschal abgeschaltete
 Hook-Regel. Typgenerierung bleibt separat unter `tools/api-types`.
+
+Die isolierte Lintwerkzeugkette verwendet vorübergehend `minimatch` 11.0.5 als gezieltes
+transitives Sicherheitsupdate für [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+ESLint und seine Konfigurationsbibliothek fordern noch Major 10 an. Die verwendeten
+Glob-APIs und Modul-Exporte bleiben passend; die Werkzeugkette wird unter Node 24 geprüft.
+Diese Überbrückung betrifft keine Peer-Abhängigkeiten oder Laufzeitpakete und entfällt,
+sobald ESLint selbst eine gepatchte Version anfordert.
 
 Strukturänderungen und neue Verhaltensregeln werden getrennt geprüft. Vor Datenänderungen
 werden Backup-Kompatibilität und vollständige Wiederherstellung berücksichtigt.

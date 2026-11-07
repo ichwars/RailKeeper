@@ -1,3 +1,4 @@
+import { invalidatePendingRequests } from "../../shared/requestGeneration";
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 
 import { api, type CreateVehicleRequest, type Vehicle } from "../../shared/api";
@@ -64,7 +65,7 @@ export function useVehicleEditorController({
   const sessionVersion = useRef(0), alive = useRef(true);
   useEffect(() => {
     alive.current = true;
-    return () => { alive.current = false; requestVersion.current++; sessionVersion.current++; };
+    return () => { alive.current = false; invalidatePendingRequests(requestVersion, sessionVersion); };
   }, []);
 
   const captureScope = (session = sessionVersion.current) => {

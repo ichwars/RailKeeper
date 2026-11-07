@@ -5,6 +5,7 @@ WORKDIR /src/frontend
 COPY backend/internal/decoderlibrary/*.json /src/backend/internal/decoderlibrary/
 COPY backend/internal/application/function_symbol_ecos_codes.json /src/backend/internal/application/
 COPY tools/api-types/package.json tools/api-types/package-lock.json /src/tools/api-types/
+COPY tools/frontend-lint/package.json tools/frontend-lint/package-lock.json /src/tools/frontend-lint/
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend ./

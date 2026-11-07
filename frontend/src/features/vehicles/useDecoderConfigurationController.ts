@@ -1,3 +1,4 @@
+import { invalidatePendingRequests } from "../../shared/requestGeneration";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, type DecoderConfigurationContext, type Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -36,7 +37,7 @@ export function useDecoderConfigurationController(options: Options) {
   const comparedCVs = useRef<{ key: string; values: Vehicle["cvValues"]; files: Vehicle["cvFiles"] } | null>(null);
   useEffect(() => {
     setStored(emptyState(key)); writing.current = false;
-    return () => { request.current++; };
+    return () => { invalidatePendingRequests(request); };
   }, [key]);
 
   const load = useCallback(async (compare = false, allowBusy = false) => {

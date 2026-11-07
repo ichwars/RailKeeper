@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, ReactNode, RefObject, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CalendarDays,
@@ -228,9 +228,11 @@ export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
     }
   };
 
-  useEffect(() => { void loadLists(); }, []);
+  const loadInitialLists = useEffectEvent(() => { void loadLists(); });
+  const loadSelectedWorkspace = useEffectEvent((id: string) => { void loadWorkspace(id); });
+  useEffect(() => { loadInitialLists(); }, []);
   useEffect(() => {
-    if (selectedID) void loadWorkspace(selectedID);
+    if (selectedID) loadSelectedWorkspace(selectedID);
     else setWorkspace(null);
   }, [selectedID]);
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { invalidatePendingRequests } from "../../shared/requestGeneration";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type CreateVehicleRequest, type Vehicle } from "../../shared/api";
 import { vehicleSetInputFromForm, vehicleSetMembersFromForm } from "./VehicleCreateWizard";
@@ -34,7 +35,7 @@ export function useVehicleSetController({
   const setSession = useRef(0), setOpen = useRef(false), alive = useRef(true);
   useEffect(() => {
     alive.current = true;
-    return () => { alive.current = false; setSession.current++; };
+    return () => { alive.current = false; invalidatePendingRequests(setSession); };
   }, []);
   const captureVehicleSetScope = (session = setSession.current) =>
     () => alive.current && setOpen.current && setSession.current === session;

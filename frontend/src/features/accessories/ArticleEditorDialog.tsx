@@ -109,6 +109,7 @@ function focusableElements(container: HTMLElement | null): HTMLElement[] {
 
 export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   const { t } = useI18n();
+  const { form, onChange, onTabChange, returnFocusTo } = props;
   const layerRef = useRef<HTMLDivElement | null>(null);
   const viewInitialFocusRef = useRef<HTMLButtonElement | null>(null);
   const articleTypeTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -124,9 +125,9 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   const title = props.mode === "create"
     ? t("accessories.editor.create")
     : props.mode === "edit" ? t("accessories.editor.edit") : t("accessories.editor.view");
-  const configuredArticleTypeLabel = articleTypeLabel(props.form.articleType, props.articleTypeEntries, t);
-  const configuredSubtypeLabel = props.form.subtype
-    ? articleSubtypeLabel(props.form.articleType, props.form.subtype, props.subtypeEntries, t)
+  const configuredArticleTypeLabel = articleTypeLabel(form.articleType, props.articleTypeEntries, t);
+  const configuredSubtypeLabel = form.subtype
+    ? articleSubtypeLabel(form.articleType, form.subtype, props.subtypeEntries, t)
     : "";
   const primaryImageDocument = props.resources.documents.find((document) =>
     document.category === "image" && document.isPrimary);
@@ -157,36 +158,36 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
     if (patch.scale !== undefined) scaleAutoManagedRef.current = false;
     if (patch.keywords !== undefined) keywordsAutoManagedRef.current = false;
     const nextType = patch.articleType;
-    if (!nextType || nextType === props.form.articleType) {
-      props.onChange(patch);
+    if (!nextType || nextType === form.articleType) {
+      onChange(patch);
       return;
     }
-    const compatibleAttributes = compatibleAttributesForType(nextType, props.form.attributes, props.customFields);
+    const compatibleAttributes = compatibleAttributesForType(nextType, form.attributes, props.customFields);
     const compatibleDrafts = compatibleNumberDraftsForType(
-      nextType, props.form.attributeNumberDrafts, props.customFields
+      nextType, form.attributeNumberDrafts, props.customFields
     );
-    const draftCount = Object.values(props.form.attributeNumberDrafts).filter((draft) => draft.trim() !== "").length;
+    const draftCount = Object.values(form.attributeNumberDrafts).filter((draft) => draft.trim() !== "").length;
     const compatibleDraftCount = Object.values(compatibleDrafts).filter((draft) => draft.trim() !== "").length;
-    const discardsValues = props.form.subtype.trim() !== "" ||
-      compatibleAttributes.length !== props.form.attributes.length ||
+    const discardsValues = form.subtype.trim() !== "" ||
+      compatibleAttributes.length !== form.attributes.length ||
       compatibleDraftCount !== draftCount;
     if (discardsValues) {
       setPendingArticleType(nextType);
       return;
     }
-    props.onChange({ ...patch, subtype: "", attributes: compatibleAttributes,
+    onChange({ ...patch, subtype: "", attributes: compatibleAttributes,
       attributeNumberDrafts: compatibleDrafts });
   };
 
   const confirmArticleTypeChange = () => {
     if (!pendingArticleType) return;
-    props.onChange({
+    onChange({
       articleType: pendingArticleType,
       subtype: "",
-      attributes: compatibleAttributesForType(pendingArticleType, props.form.attributes, props.customFields),
+      attributes: compatibleAttributesForType(pendingArticleType, form.attributes, props.customFields),
       attributeNumberDrafts: compatibleNumberDraftsForType(
         pendingArticleType,
-        props.form.attributeNumberDrafts,
+        form.attributeNumberDrafts,
         props.customFields
       )
     });
@@ -195,41 +196,31 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
 
   useEffect(() => {
     if (props.loading || !automationEnabled || automationInitializedRef.current) return;
-    scaleAutoManagedRef.current = !props.form.scale.trim();
-    keywordsAutoManagedRef.current = !props.form.keywords.trim();
+    scaleAutoManagedRef.current = !form.scale.trim();
+    keywordsAutoManagedRef.current = !form.keywords.trim();
     automationInitializedRef.current = true;
-  }, [automationEnabled, props.loading]);
+  }, [automationEnabled, props.loading, form.scale, form.keywords]);
 
   useEffect(() => {
     if (props.loading || !automationEnabled || !automationInitializedRef.current ||
         !scaleAutoManagedRef.current) return;
-    const scale = scaleForGauges(props.form.gauges, props.gaugeEntries || []);
-    if (!scale || scale === props.form.scale) return;
+    const scale = scaleForGauges(form.gauges, props.gaugeEntries || []);
+    if (!scale || scale === form.scale) return;
     lastAutoScaleRef.current = scale;
-    props.onChange({ scale });
-  }, [automationEnabled, props.form.gauges, props.form.scale, props.gaugeEntries, props.loading]);
+    onChange({ scale });
+  }, [automationEnabled, form.gauges, form.scale, props.gaugeEntries, props.loading, onChange]);
 
   useEffect(() => {
     if (props.loading || !automationEnabled || !automationInitializedRef.current ||
         !keywordsAutoManagedRef.current) return;
     const keywords = suggestedArticleKeywords(
-      props.form,
+      form,
       configuredArticleTypeLabel,
       configuredSubtypeLabel
     );
-    if (keywords === props.form.keywords) return;
-    props.onChange({ keywords });
-  }, [
-    props.form.name,
-    props.form.manufacturer,
-    props.form.articleType,
-    props.form.subtype,
-    props.form.keywords,
-    configuredArticleTypeLabel,
-    configuredSubtypeLabel,
-    automationEnabled,
-    props.loading
-  ]);
+    if (keywords === form.keywords) return;
+    onChange({ keywords });
+  }, [form, configuredArticleTypeLabel, configuredSubtypeLabel, automationEnabled, props.loading, onChange]);
 
   useEffect(() => {
     if (props.loading) return;
@@ -239,11 +230,12 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
     initial?.focus();
   }, [props.loading, props.mode]);
 
-  useEffect(() => () => props.returnFocusTo?.focus(), [props.returnFocusTo]);
+  useEffect(() => () => returnFocusTo?.focus(), [returnFocusTo]);
 
+  const validActiveTab = tabs.some((tab) => tab.key === props.activeTab);
   useEffect(() => {
-    if (!tabs.some((tab) => tab.key === props.activeTab)) props.onTabChange("article");
-  }, [props.activeTab, props.hasUsageHistory]);
+    if (!validActiveTab) onTabChange("article");
+  }, [validActiveTab, onTabChange]);
 
   useEffect(() => {
     const activeTab = tabListRef.current?.querySelector<HTMLElement>("[role='tab'][aria-selected='true']");
@@ -300,7 +292,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
           aria-selected={props.activeTab === tab.key} aria-label={tabLabel(tab)}
           disabled={props.saving || confirmationPending}
           className={`${props.activeTab === tab.key ? "active" : ""} ${props.tabErrors[tab.key] ? "has-error" : ""}`.trim()}
-          onClick={() => props.onTabChange(tab.key)}>
+          onClick={() => onTabChange(tab.key)}>
           <span>{tab.label}</span>{props.tabErrors[tab.key] ? <span className="article-tab-error" aria-hidden="true">!</span> : null}
         </button>)}
       </nav>
@@ -308,7 +300,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         {props.loading ? <p className="empty-state">{t("accessories.editor.loading")}</p> : null}
         {!props.loading ? <>
           <div hidden={props.activeTab !== "article"} aria-hidden={props.activeTab !== "article"}>
-            <ArticleCoreTab form={props.form} article={displayedArticle} errors={props.fieldErrors}
+            <ArticleCoreTab form={form} article={displayedArticle} errors={props.fieldErrors}
               disabled={readOnly} articleTypeDisabled={props.customFieldsLoading ||
                 props.articleTypeEntriesLoading || Boolean(props.articleTypeEntriesError)}
               typeDependentDisabled={createTypeConfigurationUnavailable}
@@ -327,14 +319,14 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
               onChange={changeCore} />
           </div>
           <div hidden={props.activeTab !== "stock"} aria-hidden={props.activeTab !== "stock"}>
-            <ArticleStockTab article={props.article} form={props.form} errors={props.fieldErrors}
+            <ArticleStockTab article={props.article} form={form} errors={props.fieldErrors}
               resources={props.resources}
               disabled={readOnly || !props.permissions.canManageStock || props.resourcesStale}
               canReserve={!props.saving && !confirmationPending && props.permissions.canReserve &&
                 !props.resourcesStale && props.mode !== "view"}
               canInstall={!props.saving && !confirmationPending && !props.resourcesStale &&
                 props.permissions.canInstall && props.mode !== "view"}
-              onChange={props.onChange} onChanged={props.onResourcesChanged}
+              onChange={onChange} onChanged={props.onResourcesChanged}
               onDirtyChange={props.onSubdraftDirty} />
           </div>
           <div hidden={props.activeTab !== "purchaseDocuments"} aria-hidden={props.activeTab !== "purchaseDocuments"}>
@@ -344,12 +336,12 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
               onDirtyChange={(dirty) => props.onSubdraftDirty("purchaseDocuments", dirty)} />
           </div>
           <div hidden={props.activeTab !== "subject"} aria-hidden={props.activeTab !== "subject"}>
-            <ArticleSubjectTab form={props.form} disabled={readOnly || createTypeConfigurationUnavailable}
+            <ArticleSubjectTab form={form} disabled={readOnly || createTypeConfigurationUnavailable}
               error={props.fieldErrors.attributes}
               active={props.activeTab === "subject"} customFields={props.customFields}
               articleTypeEntries={props.articleTypeEntries}
               loading={props.customFieldsLoading} loadError={props.customFieldsError}
-              subjectFieldErrors={props.subjectFieldErrors} onChange={props.onChange} />
+              subjectFieldErrors={props.subjectFieldErrors} onChange={onChange} />
           </div>
           {props.hasUsageHistory && props.article ? <div hidden={props.activeTab !== "usageHistory"}
             aria-hidden={props.activeTab !== "usageHistory"}>
@@ -394,10 +386,10 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
           {readOnly ? t("common.close") : t("common.cancel")}
         </button>
         {!readOnly ? <button type="button" className="primary-button"
-          disabled={props.saving || props.loading || (props.form.articleType === "other" &&
+          disabled={props.saving || props.loading || (form.articleType === "other" &&
             (props.customFieldsLoading || Boolean(props.customFieldsError))) ||
             props.coreMasterDataLoading || props.coreMasterDataError ||
-            ((props.mode === "create" || props.article?.articleType !== props.form.articleType) &&
+            ((props.mode === "create" || props.article?.articleType !== form.articleType) &&
               (props.articleTypeEntriesLoading || Boolean(props.articleTypeEntriesError)))}
           onClick={() => void props.onSubmit()}>
           {props.saving ? t("common.saving") : props.mode === "create"
@@ -407,8 +399,8 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
     </section>
     {props.articleSearch?.state.open ? <ArticleSearchDialog
       reviewTarget={t("importReview.target.accessoryDraft")}
-      fieldGroups={accessorySearchFieldGroups(t, props.form.articleType)}
-      currentValue={(key) => currentAccessorySearchValue(props.form, key)}
+      fieldGroups={accessorySearchFieldGroups(t, form.articleType)}
+      currentValue={(key) => currentAccessorySearchValue(form, key)}
       loading={props.articleSearch.state.loading}
       response={props.articleSearch.state.response}
       error={props.articleSearch.state.error}

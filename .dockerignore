@@ -14,6 +14,9 @@ dist
 frontend/dist
 frontend/node_modules
 tools/api-types/node_modules
+tools/frontend-lint/node_modules
+tools/regression/node_modules
+output
 docs/.vitepress/cache
 docs/.vitepress/dist
 docs/node_modules

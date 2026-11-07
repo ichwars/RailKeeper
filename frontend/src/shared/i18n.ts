@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { translations } from "./i18nTranslations";
 
 export type Language = "de" | "en";
@@ -46,9 +46,12 @@ export function useI18n() {
     };
   }, []);
 
+  const t = useCallback((key: string, values?: Record<string, string | number>) =>
+    translate(language, key, values), [language]);
+
   return {
     language,
     setLanguage,
-    t: (key: string, values?: Record<string, string | number>) => translate(language, key, values)
+    t
   };
 }

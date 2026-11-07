@@ -22,10 +22,10 @@ export function VehicleSpeedCurveTab({
 }) {
   const { t } = useI18n();
   const library = useDecoderLibrary();
-  const sourceValues = selected?.cvValues || ecosDraft?.cvValues || [];
   const profiles = useMemo(
-    () => buildSpeedCurveProfiles(sourceValues, t("vehicles.speedCurve.noProfile"), library.profiles, library.inventory),
-    [sourceValues, t, library.profiles, library.inventory]
+    () => buildSpeedCurveProfiles(selected?.cvValues || ecosDraft?.cvValues || [],
+      t("vehicles.speedCurve.noProfile"), library.profiles, library.inventory),
+    [selected?.cvValues, ecosDraft?.cvValues, t, library.profiles, library.inventory]
   );
   const [selectedProfileId, setSelectedProfileId] = useState("");
 

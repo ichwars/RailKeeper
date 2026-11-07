@@ -4,7 +4,7 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "scripts": {
-    "postinstall": "npm ci --prefix ../tools/api-types --ignore-scripts",
+    "postinstall": "npm ci --prefix ../tools/api-types --ignore-scripts && npm ci --prefix ../tools/frontend-lint --ignore-scripts",
     "generate:api": "node ../tools/api-types/node_modules/openapi-typescript/bin/cli.js ../openapi/railkeeper.yaml -o src/generated/api.d.ts --default-non-nullable false",
     "predev": "npm run generate:api",
     "dev": "vite --host 0.0.0.0 --port 3000",
@@ -12,6 +12,7 @@
     "build": "tsc -b && vite build",
     "pretypecheck": "npm run generate:api",
     "typecheck": "tsc -b",
+    "lint": "node --test ../tools/frontend-lint/lint.test.mjs && node ../tools/frontend-lint/node_modules/eslint/bin/eslint.js --config ../tools/frontend-lint/eslint.config.mjs src --max-warnings 0",
     "preview": "vite preview --host 0.0.0.0 --port 3000",
     "pretest": "npm run generate:api",
     "test": "vitest",

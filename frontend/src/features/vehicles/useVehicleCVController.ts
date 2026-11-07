@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 
 import {
   api, ApiError,
@@ -122,11 +122,15 @@ export function useVehicleCVController({
     resetForm();
     imports.commands.reset();
   };
-  useEffect(() => { if (workingGroup) reset(); }, [workingGroup?.ownerKey]);
+  const resetOwner = useEffectEvent(() => { if (workingGroup) reset(); });
+  useEffect(() => { resetOwner(); }, [workingGroup?.ownerKey]);
+  const hasWorkingGroup = Boolean(workingGroup), targetProfile = workingGroup?.target?.profile || "";
+  const targetWorkspaceId = workingGroup?.target?.workspaceId;
+  const targetRevision = workingGroup?.target?.expectedWorkspaceRevision;
   useEffect(() => {
-    if (workingGroup && !editingId) setForm(current => ({ ...current, decoderProfile: workingGroup.target?.profile || "",
-      workspaceId: workingGroup.target?.workspaceId, expectedWorkspaceRevision: workingGroup.target?.expectedWorkspaceRevision }));
-  }, [workingGroup?.target?.workspaceId, workingGroup?.target?.expectedWorkspaceRevision]);
+    if (hasWorkingGroup && !editingId) setForm(current => ({ ...current, decoderProfile: targetProfile,
+      workspaceId: targetWorkspaceId, expectedWorkspaceRevision: targetRevision }));
+  }, [hasWorkingGroup, editingId, targetProfile, targetWorkspaceId, targetRevision]);
 
   const edit = (value: VehicleCVValue) => {
     if (!writable()) return;

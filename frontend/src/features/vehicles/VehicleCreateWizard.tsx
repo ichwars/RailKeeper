@@ -73,7 +73,7 @@ export function VehicleCreateWizard({
         if (active) setSetSchemeLoading(false);
       });
     return () => { active = false; };
-  }, [language]);
+  }, [language, t]);
 
   const updateShared = (patch: Partial<CreateVehicleRequest>) => {
     dispatch({ type: "update-shared", patch });

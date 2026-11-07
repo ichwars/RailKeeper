@@ -18,7 +18,7 @@ export function useVehicleCollectionController() {
       .then(setVehicles)
       .catch((error: Error) => setMessage(error.message))
       .finally(() => setLoading(false));
-  }, [query]);
+  }, [query, setMessage]);
 
   useEffect(() => {
     load();
@@ -58,7 +58,7 @@ export function useVehicleCollectionController() {
         });
       })
       .catch((error: Error) => setMessage(error.message));
-  }, []);
+  }, [setMessage]);
 
   return { vehicles, setVehicles, options, query, setQuery, message: notice.message, messageTone: notice.tone,
     setMessage, setStatusMessage, loading, load };

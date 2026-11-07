@@ -78,13 +78,13 @@ export function AppDateInput({ value = "", onChange, className = "", disabled, r
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(displayDate(value));
   const [floatingStyle, setFloatingStyle] = useState<CSSProperties>({});
-  const selectedDate = fromISODate(value);
+  const selectedDate = useMemo(() => fromISODate(value), [value]);
   const [visibleMonth, setVisibleMonth] = useState(() => selectedDate || new Date());
 
   useEffect(() => {
     setDraft(displayDate(value));
     if (selectedDate) setVisibleMonth(selectedDate);
-  }, [selectedDate?.getTime(), value]);
+  }, [selectedDate, value]);
 
   useEffect(() => {
     if (!open) return;

@@ -31,7 +31,7 @@ export function ECoSStoredCVPanel({ item, onChange, onBusy, externalReading = fa
     alive.current = true;
     return () => { alive.current = false; cancelled.current = true; };
   }, []);
-  const values = item.center.cvs || [];
+  const values = useMemo(() => item.center.cvs || [], [item.center.cvs]);
   const state = item.center.cvRead;
   const checked = state ? state.nextCV - 1 : 0;
   const complete = checked === 1024;
