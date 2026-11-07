@@ -53,8 +53,12 @@ bewahren frühere Werte und Quellen. Beides ersetzt keinen Beleg für ein Decode
 - Fachlich atomare Änderungen behalten einen ausdrücklich benannten Transaktionsbesitzer.
 - Neue oder wesentlich überarbeitete Dateien bleiben möglichst unter 500 Zeilen.
   Funktionen ab etwa 80–120 Zeilen werden auf eine fachlich sinnvolle Zerlegung geprüft.
-- Zuerst werden `ecos.go`, `backup.go`, `importExportHelpers.tsx` und `VehiclesView.tsx`
-  nach Verantwortungen entkoppelt. Dateilänge allein ist kein Qualitätsnachweis.
+- `VehiclesView` zeigt Bestand und Hilfsdialoge, `VehicleEditorHost` verbindet die Reiter
+  mit den vorhandenen Controllern und `useVehicleWorkspace` koordiniert deren Lebensdauer.
+  Die frühere, ausschließlich von ihrem eigenen Test geladene `importExportHelpers.tsx`
+  entfällt. Aktive Transfer-Vorschauen und ECoS-Übernahmen behalten ihre vorhandenen Module.
+  `ecos.go` und `backup.go` werden getrennt nach Verantwortungen entkoppelt.
+  Dateilänge allein ist kein Qualitätsnachweis.
 - TypeScript bleibt strikt; OpenAPI, Backend und generierte Frontendverträge bleiben synchron.
 - Validierung, Parallelkonflikt, Abbruch und technische Fehler bleiben unterscheidbar.
   Eine verlorene Antwort darf keine blinde Wiederholung einer Speicherung auslösen.
