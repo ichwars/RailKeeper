@@ -125,6 +125,13 @@ export async function assertCVDraftWorkflow(page, input, de, reference) {
     await frames("cv-conflict");
     const conflictRow = dialog.locator(".cv-draft-review tbody tr").filter({ hasText: /CV 1 ·/ });
     await conflictRow.getByRole("button", { name: de ? "Diesen CV als neue Entwurfsbasis verwenden" : "Use this CV as the new draft baseline", exact: true }).click();
+    // Comparing reloads values, the working group and the aggregate asynchronously.
+    // Start the write response budget only after that explicit comparison completed.
+    await dialog.locator(".cv-draft-review [role=alert]").waitFor({ state: "hidden" });
+    await page.waitForFunction(() => {
+      const button = document.querySelector(".cv-draft-actions button.primary-button");
+      return button instanceof HTMLButtonElement && !button.disabled;
+    });
     const saved = page.waitForResponse(response => response.url() === endpoint && response.request().method() === "POST");
     await saveDraft().click(); assert.equal((await saved).status(), 200);
     await dialog.locator(".cv-draft-review").waitFor({ state: "hidden" });

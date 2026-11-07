@@ -38,7 +38,11 @@ against the actual Go records, including optional media metadata and inherited s
 
 ## Vehicle editing and persistence
 
-`VehiclesView` composes the existing inventory and editor components. Collection loading, filtering input
+`VehiclesView` renders inventory and auxiliary dialogs; `VehicleEditorHost` maps the existing
+controllers to the editor tabs. `useVehicleWorkspace` connects those controllers once per mounted
+vehicle workspace, retaining their ownership, lifetime and reset order. It adds no request layer or
+second state store. The editor host stays mounted while its dialog opens and closes; its conditional
+dialog keeps the previous mounting behavior. Collection loading, filtering input
 and master-data reads live in `useVehicleCollectionController`; the existing editor controller owns form
 and selection state and refreshes the selected aggregate. `useVehicleSetController` owns set dialog state,
 duplication prefills and creation. Existing function, maintenance, decoder-file and document controllers
@@ -76,6 +80,13 @@ their existing requests remain valid. The database schema and backup format are 
 
 Import previews use shared [source, target, effect and comparison vocabulary](architecture/import-review.md)
 while keeping their specialized parsers and confirmed write boundaries.
+
+The active transfer workspace uses `dataTransferModel`, the backend-owned file parser/preview,
+`transferReviewState` and `useTransferImportConfirmation`. ECoS adoption belongs to the digital-center
+workspace and vehicle adoption controllers. The former `importExportHelpers.tsx` had no production
+importers and was reachable only from its own test. That obsolete parallel implementation and its
+self-tests were removed together. No active parser, route, import format or CV suggestion path was
+replaced. Existing transfer API, review, ECoS and vehicle tests remain the behavior checks.
 
 `SettingsView` composes the existing settings areas and coordinates shared confirmations. Its controllers
 stay mounted across tabs so navigation does not discard pending form state. Existing load points, save
