@@ -35,6 +35,7 @@ describe("CV imports", () => {
 
     expect(preview.rows.map((row) => row.status)).toEqual(["same", "new", "invalid", "invalid", "invalid"]);
     expect(preview.rows.map((row) => row.selected)).toEqual([false, true, false, false, false]);
+    expect(preview.rows.map(row => row.reason)).toEqual([undefined, undefined, "duplicate", "duplicate", "invalid"]);
   });
 
   it("marks an existing CV with a changed value", () => {
@@ -45,6 +46,7 @@ describe("CV imports", () => {
     );
 
     expect(preview.rows[0]).toMatchObject({ status: "changed", selected: true, message: "ändert Wert" });
+    expect(preview.rows[0].changedFields).toEqual(["value"]);
   });
 
   it("validates CV values and function mappings", () => {

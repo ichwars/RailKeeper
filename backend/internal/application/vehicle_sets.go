@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/infrastructure/vehicledata"
 )
 
 const maxVehicleSetMembers = 100
@@ -34,6 +36,10 @@ func (s *VehicleService) CreateSet(
 		preparedMembers[index] = member
 	}
 
+	setID, err := s.creationIdentity(ctx, input.CreationID)
+	if err != nil {
+		return nil, err
+	}
 	for index, member := range preparedMembers {
 		var err error
 		if s.imageLocalizer != nil && len(member.Images) > 0 {
@@ -43,6 +49,7 @@ func (s *VehicleService) CreateSet(
 			}
 		}
 		preparedMembers[index] = member
+		defer s.cleanupLocalizedVehicleImages(ctx, member.Images)
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -50,9 +57,13 @@ func (s *VehicleService) CreateSet(
 		return nil, fmt.Errorf("begin create vehicle set: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if input.CreationID != "" {
+		if err := checkCreationIdentity(ctx, tx, setID); err != nil {
+			return nil, err
+		}
+	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	setID := randomID()
 	setInventoryNumber, err := s.nextVehicleSetInventoryNumber(ctx, tx)
 	if err != nil {
 		return nil, err
@@ -72,6 +83,9 @@ INSERT INTO vehicle_set_members(vehicle_set_id, vehicle_id, position, label)
 VALUES(?, ?, ?, ?)
 `, setID, member.ID, index+1, member.Name); err != nil {
 			return nil, fmt.Errorf("insert vehicle set member: %w", err)
+		}
+		if err := vehicledata.LinkCreatedSetMember(ctx, tx, setID, member.ID); err != nil {
+			return nil, err
 		}
 		member.VehicleSetID = setID
 		member.VehicleSetName = setInput.Name

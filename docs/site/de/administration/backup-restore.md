@@ -4,7 +4,7 @@ description: Sicherung und Wiederherstellung.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-25
+lastReviewed: 2026-11-07
 ---
 
 # Sicherung und Wiederherstellung
@@ -22,6 +22,23 @@ lastReviewed: 2026-10-25
 4. Prüfe vor einem Update, dass eine aktuelle Sicherung vorhanden ist.
 
 Die Anwendungssicherung enthält Bestand, Zubehör, Wartungen, CVs mit Herkunft, Stammdaten, Ausstellungsdaten und gespeicherte Medien. Benutzerkonten, Passwörter, Sitzungen und lokale Systemeinstellungen sind nicht enthalten. Sie ist deshalb keine vollständige Serversicherung.
+
+Format 27 enthält zusätzliche Tabellen für Decoderexemplare, Einbauten, CV-Arbeitsgruppen und
+unveränderliche Teilstände mit eingefrorenen Quellen. Unbekannte Einbaudaten bleiben unbekannt;
+ein Erfassungszeitpunkt ist kein Auslesezeitpunkt. Gesicherte Quellen bleiben auch nach dem Entfernen
+der ursprünglichen CV-Datei erhalten. Vorhandene Altgruppen werden beim Start oder Restore einmalig
+als übernommene Teilstände erhalten, ohne eine Hardwarezuordnung zu erraten. Bereits erfasste Stände
+werden dabei nicht neu geschrieben. Die Übernahme liest Dateien aus dem Uploadbereich der Sicherung;
+Verweise auf andere lokale Bereiche werden vor dem Wiederherstellen abgewiesen.
+
+Wie Format 26 sichert es Artikelrevisionen, Fahrzeug-/Set-Zuordnungen, individuelle Artikelabweichungen
+und den ursprünglichen Zuordnungsmodus. Ungeklärte Katalogvorschläge bleiben beim Wiederherstellen
+erhalten. Aktive Artikelangaben müssen mit der gespeicherten Fahrzeugansicht übereinstimmen.
+Ältere unterstützte Sicherungen einschließlich Format 26 bleiben einlesbar. Ein älteres Programm kann
+das neue Format nicht vollständig wiederherstellen. Ändere deshalb die Formatnummer nicht manuell.
+Bewahre vor einer Datenmodellumstellung zusätzlich eine vollständige konsistente Installation und
+das dazu passende bisherige Programm auf. Nach neuen Eingaben ist diese ältere Kopie kein
+verlustfreier Rückweg.
 
 ## Eine Sicherung zunächst prüfen
 

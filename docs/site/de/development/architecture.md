@@ -4,7 +4,7 @@ description: Architektur und Beiträge.
 audience: developer
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-07
 ---
 
 # Architektur und Beiträge
@@ -29,6 +29,74 @@ Die [Architekturreferenz](https://github.com/ichwars/RailKeeper/blob/main/docs/a
 Installiere die in `backend/go.mod` und den CI-Dateien angegebene Go-/Node-Version. Installiere Frontend-Abhängigkeiten mit `npm ci`, baue mit `npm run build` und starte das Backend aus `backend` mit `go run ./cmd/railkeeper`. Verwende einen eigenen Datenordner für Tests.
 
 Vor einem Pull Request: Go formatieren, `go test ./...` im Backend und `npm run build` im Frontend ausführen. Für betroffene Abläufe gezielte Tests ergänzen. Dokumentationsänderungen benötigen beide Sprachen und `npm run check` unter `docs`.
+
+## Artikelzuordnung prüfen
+
+Admins können über `GET /api/v1/catalog/legacy-backfill` den Zuordnungs- und Abweichungsbericht
+lesen. Er nennt fehlende Beziehungen, Artikelrevisionen und individuelle Abweichungen. Der Abruf
+ändert keine Zuordnung. Ein ausdrücklich gesendetes `POST` auf dieselbe Route ergänzt nur fehlende
+Beziehungen und benötigt den bestehenden CSRF-Schutz. Wiederholungen erzeugen keine zusätzlichen
+Katalogdatensätze oder Befüllungs-Auditeinträge. Bestehende Abweichungen werden nicht automatisch
+korrigiert. Bereits übereinstimmende Zuordnungen verwenden Artikelrevision plus individuelle
+Abweichungen mit einer transaktional gepflegten bisherigen Fahrzeugansicht. Ungeklärte Vorschläge
+bleiben im bisherigen Schreibmodus, ihr ursprünglicher Modus bleibt ebenfalls gespeichert.
+
+Die [Artikelmodell-Referenz](https://github.com/ichwars/RailKeeper/blob/main/docs/architecture/vehicle-catalog.md)
+beschreibt Feldzuordnung, Sicherung und Erhaltungsnachweise. Viewer, Editor und Messe haben keinen
+Zugriff auf diese administrativen Prüfoperationen.
+
+Die gespeicherte Artikelzuordnung eines Fahrzeugs oder Sets ist über
+`GET /api/v1/catalog/{targetType}/{id}` für Viewer, Editor und Admin lesbar (`vehicle` oder `set`).
+Aktuelle Fahrzeugangaben, festgelegte Revision und individuelle Abweichungen bleiben getrennt.
+Der Vergleichstoken erkennt auch einen Revisionswechsel mit gleichen sichtbaren Werten.
+Der Abruf übernimmt keine Vorschläge und ergänzt keine fehlenden Beziehungen.
+
+Editor und Admin bestätigen neue Artikelrevisionen über `POST /catalog/{targetType}/{id}/revisions`
+und vorhandene Revisionen über `POST /catalog/{targetType}/{id}/adoption`, jeweils mit CSRF-Schutz.
+Vergleichstoken und `selectedFields` sind erforderlich; eine leere Auswahl erhält alle gespeicherten
+Werte. Neue Revisionen verwenden eine beim Wiederholen erhaltene 32-stellige Hex-Kennung.
+Bei HTTP 409 den gespeicherten Stand neu vergleichen. Die Anforderung nicht automatisch verändern
+und erneut senden. Bestehende Fahrzeug-/Set-Schreibaufrufe erhalten ihre bisherige Bedeutung.
+
+## Gespeicherte Decoderstände lesen
+
+Viewer, Editor und Admin können `GET /api/v1/vehicles/{id}/decoder-configurations` lesen, ohne
+den Bestand zu ändern. Decoderexemplare, Einbauzeiträume, exakte Arbeitsbezeichnungen und erfasste
+CV-Teilstände bleiben getrennt. Unbekannte Einbaudaten bleiben leer.
+
+`GET /api/v1/decoder-configurations/snapshots` liefert das private Archiv, optional nach der
+historischen `vehicleId` gefiltert. Teilstände und aufbewahrte Originalquellen werden über ihre
+Teilstand-ID abgerufen und bleiben nach Fahrzeuglöschung lesbar. Historische unbekannte CV-Werte
+und einzelne Quellenzeitpunkte bleiben erhalten; der Erfassungszeitpunkt behauptet keine
+vollständige Messung. Fehlende Originalinhalte liefern HTTP 410 statt einer anderen Datei.
+Messe hat keinen Zugriff auf diese Bestandsrouten.
+
+Die [Decodermodell-Referenz](https://github.com/ichwars/RailKeeper/blob/main/docs/architecture/decoder-configurations.md)
+beschreibt Modell und Transaktionsregeln. Der OpenAPI-Vertrag definiert Routen und Antworten.
+
+Editor und Admin bestätigen Exemplare, Ein-/Ausbau, Datumskorrekturen, Arbeitsgruppen, Zuordnungen
+und Teilstände unter `/api/v1/vehicles/{id}/decoder-configurations`. Jeder Befehl verlangt
+CSRF-Schutz, den aktuellen Vergleichsstand und alle dokumentierten Formularfelder. Unbekannte
+Datumsangaben und das Aufheben einer Zuordnung verwenden ausdrücklich null. Neue Datensätze
+behalten beim Wiederholen ihre Anforderungs-ID. Nach HTTP 409 neu laden und prüfen; keine neue
+Kennung erzeugen und automatisch erneut senden. Ein Teilstand enthält gespeicherte CVs und keine
+offenen Browserentwürfe. Frühere Teilstände behalten Hardwarebeschreibung und Fahrzeugzuordnung.
+
+CV-Schreiber und Quelldatei-Uploads können mit `workspaceId` und deren `bindingRevision` als
+`expectedWorkspaceRevision` eine exakte Arbeitsgruppe wählen. Der bisherige Zeilenvergleich bleibt
+ebenfalls erforderlich. Der Server erhält den ursprünglichen Profiltext einschließlich alter
+Leerzeichen und weist geänderte Hardwarezuordnungen/-zustände ab. Aufrufe ohne diesen optionalen
+Kontext behalten ihre bisherige Profilbereinigung. Uploads verwenden dasselbe Paar als Formularfelder.
+
+CV- und Quelldatei-Löschungen akzeptieren dieselben beiden Vergleichsfelder als Queryparameter
+zusammen mit `expectedRevision`, manuelle Stapellöschungen am äußeren Löscheintrag. Eine geänderte
+Hardwarezuordnung weist die gesamte Aktion ab, auch bei unveränderter Zeile. Der genaue gespeicherte
+Profiltext muss zur ausgewählten Gruppe gehören. Altaufrufe ohne diesen Kontext bleiben kompatibel.
+
+Bei bestehenden Stapelwerten vergleichen die äußeren Felder die ursprüngliche Gruppe, während
+`value` das Ziel wählt. Ein Profilwechsel mit Kontext verlangt beide Vergleiche. Ein direkter PUT
+verwendet dieselben Queryfelder für die ursprüngliche Gruppe, mit derselben Zeilenrevision wie
+im JSON. So verschiebt ein vorbereiteter Wechsel keine CVs aus einer inzwischen anders zugeordneten Gruppe.
 
 ## Grenzen erhalten
 

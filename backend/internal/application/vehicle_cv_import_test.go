@@ -63,7 +63,7 @@ func TestCVImportIndexIdentityRollbackHistoryAndBackup(t *testing.T) {
 		t.Fatalf("lost indexed data on restore: %+v %v", stored, err)
 	}
 	// Legacy backups have no index columns and remain restorable as unindexed values.
-	doc.Version = 20
+	setLegacyBackupVersion(doc, 20)
 	doc.Tables["vehicle_cv_values"] = doc.Tables["vehicle_cv_values"][:1]
 	doc.Tables["vehicle_cv_value_history"] = nil
 	delete(doc.Tables["vehicle_cv_values"][0], "index_cv31")

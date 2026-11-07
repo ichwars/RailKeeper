@@ -7,6 +7,8 @@ import { notifyRequestFailure, abstractRequestRoute } from "./apiRequestDiagnost
 import type { components } from "../generated/api";
 import { createAccessoriesAPI } from "./apiAccessories";
 import { createBugReportAPI } from "./apiBugReports";
+import { createVehicleCatalogAPI } from "./apiVehicleCatalog";
+import { createDecoderConfigurationsAPI } from "./apiDecoderConfigurations";
 import type { ECoSImageOptions, ECoSImagePreview, ECoSImageResult } from "./ecosImageModel";
 import type { DecoderLibrary, DecoderLibraryMatch } from "./decoderLibraryModel";
 import type {
@@ -41,6 +43,8 @@ import type {
 
 export * from "./apiAccessories";
 export * from "./apiBugReports";
+export type * from "./apiVehicleCatalog";
+export type * from "./apiDecoderConfigurations";
 export type * from "../features/importExport/dataTransferModel";
 export type * from "../features/digitalCenters/digitalCenterModel";
 
@@ -197,6 +201,8 @@ export type VehicleSetImage = components["schemas"]["VehicleSetImage"];
 export type ECoSDecoderProfileEvidence = components["schemas"]["ECoSDecoderProfileEvidence"];
 
 export type Vehicle = components["schemas"]["Vehicle"];
+export type VehicleCatalogAssignment = components["schemas"]["VehicleCatalogAssignment"];
+export type VehicleCatalogBackfillReport = components["schemas"]["VehicleCatalogBackfillReport"];
 
 export type VehicleSetInput = Pick<CreateVehicleRequest,
   | "name"
@@ -224,6 +230,7 @@ export type VehicleSetInput = Pick<CreateVehicleRequest,
 >;
 
 export type CreateVehicleSetRequest = {
+  creationId?: string;
   set: VehicleSetInput;
   members: CreateVehicleRequest[];
 };
@@ -235,6 +242,7 @@ export type VehicleExternalMapping = components["schemas"]["VehicleExternalMappi
 export type VehicleExternalMappingInput = components["schemas"]["VehicleExternalMappingInput"];
 
 export type VehicleImage = components["schemas"]["VehicleImage"];
+export type VehicleImageCreation = components["schemas"]["VehicleImageCreation"];
 
 export type VehicleImageInput = components["schemas"]["VehicleImageInput"];
 
@@ -267,6 +275,8 @@ export type VehicleCVValue = components["schemas"]["VehicleCVValue"];
 export type VehicleCVValueHistory = components["schemas"]["VehicleCVValueHistory"];
 
 export type VehicleCVValueInput = components["schemas"]["VehicleCVValueInput"];
+
+export type VehicleCVChange = components["schemas"]["VehicleCVChange"];
 
 export type VehicleCVFile = components["schemas"]["VehicleCVFile"];
 
@@ -898,7 +908,24 @@ function digitalCenterSessionSuffix(sessionID?: string) {
   return normalized ? `?sessionId=${encodeURIComponent(normalized)}` : "";
 }
 
+export type VehicleCVWorkspaceComparison = Required<Pick<VehicleCVChange, "workspaceId" | "expectedWorkspaceRevision">>;
+export type VehicleCVDeletionScope = VehicleCVWorkspaceComparison;
+
+function cvComparisonQuery(expectedRevision?: string, scope?: VehicleCVWorkspaceComparison) {
+  const query = new URLSearchParams();
+  if (expectedRevision !== undefined) query.set("expectedRevision", expectedRevision);
+  if (scope !== undefined) {
+    query.set("workspaceId", scope.workspaceId);
+    query.set("expectedWorkspaceRevision", scope.expectedWorkspaceRevision);
+  }
+  return query.size ? `?${query}` : "";
+}
+
 export const api = {
+  ...createDecoderConfigurationsAPI(request),
+  ...createVehicleCatalogAPI(request),
+  catalogBackfillReport: () => request<VehicleCatalogBackfillReport>("/catalog/legacy-backfill"),
+  backfillLegacyCatalog: () => request<VehicleCatalogBackfillReport>("/catalog/legacy-backfill", { method: "POST" }),
   ...createBugReportAPI(request),
   ...createAccessoriesAPI(request),
   dataTransferSummary: () => request<DataTransferSummary>("/data-transfer/summary"),
@@ -1148,7 +1175,7 @@ export const api = {
   vehicles: (query = "") =>
     request<Vehicle[]>(`/vehicles${query ? `?q=${encodeURIComponent(query)}` : ""}`),
   overviewValuation: () => request<OverviewValuation>("/overview/valuation"),
-  createVehicle: (input: CreateVehicleRequest) =>
+  createVehicle: (input: CreateVehicleRequest & { externalMapping?: VehicleExternalMappingInput; creationId?: string }) =>
     request<Vehicle>("/vehicles", {
       method: "POST",
       body: JSON.stringify(input)
@@ -1189,13 +1216,16 @@ export const api = {
     request<void>(`/vehicles/${encodeURIComponent(id)}`, {
       method: "DELETE"
     }),
-  uploadVehicleImage: (vehicleId: string, file: File, title = "", isPrimary = false, maintenanceId = "") => {
+  uploadVehicleImage: (
+    vehicleId: string, file: File, title = "", isPrimary = false, maintenanceId = "", expectedImagesRevision?: string
+  ) => {
     const form = new FormData();
     form.append("file", file);
     form.append("title", title);
     form.append("isPrimary", String(isPrimary));
     form.append("maintenanceId", maintenanceId);
-    return request<VehicleImage>(
+    if (expectedImagesRevision !== undefined) form.append("expectedImagesRevision", expectedImagesRevision);
+    return request<VehicleImageCreation>(
       `/vehicles/${encodeURIComponent(vehicleId)}/images`,
       {
         method: "POST",
@@ -1205,7 +1235,7 @@ export const api = {
     );
   },
   importVehicleImageFromUrl: (vehicleId: string, input: VehicleImageImportInput) =>
-    request<VehicleImage>(
+    request<VehicleImageCreation>(
       `/vehicles/${encodeURIComponent(vehicleId)}/images/import-url`,
       {
         method: "POST",
@@ -1213,8 +1243,8 @@ export const api = {
       },
       { timeoutMs: 30000 }
     ),
-  deleteVehicleImage: (vehicleId: string, imageId: string) =>
-    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/images/${encodeURIComponent(imageId)}`, {
+  deleteVehicleImage: (vehicleId: string, imageId: string, expectedRevision?: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/images/${encodeURIComponent(imageId)}${expectedRevision === undefined ? "" : `?expectedRevision=${encodeURIComponent(expectedRevision)}`}`, {
       method: "DELETE"
     }),
   uploadVehicleAttachment: (vehicleId: string, file: File, category = "", description = "", maintenanceId = "") => {
@@ -1240,8 +1270,8 @@ export const api = {
         body: JSON.stringify(input)
       }
     ),
-  deleteVehicleAttachment: (vehicleId: string, attachmentId: string) =>
-    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/attachments/${encodeURIComponent(attachmentId)}`, {
+  deleteVehicleAttachment: (vehicleId: string, attachmentId: string, expectedRevision?: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/attachments/${encodeURIComponent(attachmentId)}${expectedRevision === undefined ? "" : `?expectedRevision=${encodeURIComponent(expectedRevision)}`}`, {
       method: "DELETE"
     }),
   vehicleAttachmentDownloadUrl: (vehicleId: string, attachmentId: string) =>
@@ -1314,25 +1344,32 @@ export const api = {
     request<{ imported: number }>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/import`, {
       method: "POST", body: JSON.stringify({ values })
     }, { timeoutMs: 30000 }),
+  applyVehicleCVChanges: (vehicleId: string, changes: VehicleCVChange[]) =>
+    request<{ changed: number }>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/changes`, {
+      method: "POST", body: JSON.stringify({ changes })
+    }, { timeoutMs: 30000 }),
   createVehicleCVValue: (vehicleId: string, input: VehicleCVValueInput) =>
     request<VehicleCVValue>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values`, {
       method: "POST",
       body: JSON.stringify(input)
     }),
-  updateVehicleCVValue: (vehicleId: string, cvValueId: string, input: VehicleCVValueInput) =>
-    request<VehicleCVValue>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}`, {
+  updateVehicleCVValue: (vehicleId: string, cvValueId: string, input: VehicleCVValueInput, sourceScope?: VehicleCVWorkspaceComparison) =>
+    request<VehicleCVValue>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}${sourceScope ? cvComparisonQuery(input.expectedRevision, sourceScope) : ""}`, {
       method: "PUT",
       body: JSON.stringify(input)
     }),
-  deleteVehicleCVValue: (vehicleId: string, cvValueId: string) =>
-    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}`, {
+  deleteVehicleCVValue: (vehicleId: string, cvValueId: string, expectedRevision?: string, scope?: VehicleCVDeletionScope) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}${cvComparisonQuery(expectedRevision, scope)}`, {
       method: "DELETE"
     }),
-  uploadVehicleCVFile: (vehicleId: string, file: File, decoderProfile = "", description = "") => {
+  uploadVehicleCVFile: (vehicleId: string, file: File, decoderProfile = "", description = "",
+    workspaceId?: string, expectedWorkspaceRevision?: string) => {
     const form = new FormData();
     form.append("file", file);
     form.append("decoderProfile", decoderProfile);
     form.append("description", description);
+    if (workspaceId !== undefined) form.append("workspaceId", workspaceId);
+    if (expectedWorkspaceRevision !== undefined) form.append("expectedWorkspaceRevision", expectedWorkspaceRevision);
     return request<VehicleCVFile>(
       `/vehicles/${encodeURIComponent(vehicleId)}/cv-files`,
       {
@@ -1354,8 +1391,8 @@ export const api = {
       { timeoutMs: 30000 }
     );
   },
-  deleteVehicleCVFile: (vehicleId: string, cvFileId: string) =>
-    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-files/${encodeURIComponent(cvFileId)}`, {
+  deleteVehicleCVFile: (vehicleId: string, cvFileId: string, expectedRevision?: string, scope?: VehicleCVDeletionScope) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-files/${encodeURIComponent(cvFileId)}${cvComparisonQuery(expectedRevision, scope)}`, {
       method: "DELETE"
     }),
   vehicleCVFileDownloadUrl: (vehicleId: string, cvFileId: string) =>

@@ -1,13 +1,12 @@
 import { useVehicleCollectionController } from "./useVehicleCollectionController";
 import { useVehicleSetController } from "./useVehicleSetController";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { ArticleSearchDialog } from "../../shared/articleSearch/ArticleSearchDialog";
 import { BarcodeSearchDialog } from "../../shared/articleSearch/BarcodeSearchDialog";
 import { currentArticleValue, vehicleArticleSearchGroups, type ArticleFieldKey } from "./articleSearch";
 import {
-  DeleteAttachmentDialog,
   DeleteVehicleDialog,
   ExhibitionAssignmentDialog,
   ImagePreviewDialog,
@@ -15,7 +14,12 @@ import {
   ReportDialog
 } from "./VehicleDialogs";
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
+import { DecoderArchiveDialog } from "./DecoderCVArchive";
+import { useDecoderConfigurationController } from "./useDecoderConfigurationController";
+import type { CVWorkingGroupOptions } from "./cvWorkingGroup";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
+import { VehicleCatalogPanel } from "./VehicleCatalogPanel";
+import { catalogFieldsFrom } from "./vehicleCatalogModel";
 import { VehicleSetEditorDialog } from "./VehicleSetEditorDialog";
 import { VehicleSetSummaryDialog } from "./VehicleSetSummaryDialog";
 
@@ -38,6 +42,9 @@ import { useVehicleMaintenanceController } from "./useVehicleMaintenanceControll
 import { useVehicleSparePartsController } from "./useVehicleSparePartsController";
 import { useVehicleCVController } from "./useVehicleCVController";
 import { useVehicleDecoderFilesController } from "./useVehicleDecoderFilesController";
+import { useVehicleUploads } from "./useVehicleUploads";
+import { useVehicleMediaDeletion } from "./useVehicleMediaDeletion";
+import { VehicleMediaDeleteDialog, VehicleMediaUploadDialog } from "./VehicleMediaDialogs";
 import { useVehicleDocumentsController } from "./useVehicleDocumentsController";
 import { useVehicleOutputController } from "./useVehicleOutputController";
 import { useVehicleFunctionsController } from "./useVehicleFunctionsController";
@@ -47,10 +54,12 @@ import { createVehicleFilterDefinitions, createVehicleInventoryRenderers } from 
 
 export function VehiclesView({ username, roles = ["Editor"] }: { username: string; roles?: string[] }) {
   const { language, t } = useI18n();
-  const { vehicles, setVehicles, options, query, setQuery, message, setMessage, loading, load } =
+  const { vehicles, setVehicles, options, query, setQuery, message, messageTone, setMessage, setStatusMessage, loading, load } =
     useVehicleCollectionController();
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
   const [quickMenuVehicleID, setQuickMenuVehicleID] = useState("");
+  const [archiveOwner, setArchiveOwner] = useState<string | null>(null);
+  const canReadDecoderArchive = roles.some(role => ["Admin", "Editor", "Viewer"].includes(role));
 	const canEditVehicleSets = roles.includes("Admin") || roles.includes("Editor");
 
   const {
@@ -63,6 +72,9 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       activeTab,
       openSections,
       saveAttempted,
+      refreshConflicts,
+      lastSavedAction,
+      sessionKey,
       readonly
     },
     setters: {
@@ -76,8 +88,12 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       setSaveAttempted
     },
     commands: {
+      captureScope,
       update,
       setSelectedDetail,
+      applyIndependentDetail,
+      acknowledgeSavedVehicle,
+      resolveRefreshConflicts,
       updateCategory,
       updateCouplingFront,
       updateCouplingSame,
@@ -96,6 +112,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     onReset: (reason) => {
       clearECoSDraft();
       resetVehicleMedia(reason === "close");
+      mediaUploads.commands.reset();
+      mediaDeletion.commands.reset();
       resetFunctionEdits();
       resetMaintenanceForm();
       resetSparePartForm();
@@ -112,8 +130,33 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       resetSparePartDetail();
       resetCVController();
       resetDecoderFiles();
+    },
+    onDetailRefreshed: (detail, previous) => {
+      refreshVehicleMedia(detail, previous);
+      loadFunctionEdits(detail.functions, detail.id);
+    },
+    onCoreSaved: (detail, previous, phase) => {
+      acknowledgeMediaSaved(detail, previous, phase);
+      loadFunctionEdits(detail.functions, detail.id);
     }
   });
+
+  const decoderConfigurations = useDecoderConfigurationController({
+    ownerKey: `${username}:${sessionKey}`, selected,
+    active: modalOpen && activeTab === "cv" && canReadDecoderArchive,
+    readonly: readonly || !canEditVehicleSets, busy: saving, setBusy: setSaving,
+    captureScope: () => captureScope(sessionKey)
+  });
+  const cvGroupsCovered = useMemo(() => {
+    const profiles = new Set(decoderConfigurations.context?.workspaces.map(group => group.profile));
+    return [...(selected?.cvValues || []), ...(selected?.cvFiles || [])].every(value => profiles.has(value.decoderProfile || ""));
+  }, [decoderConfigurations.context?.workspaces, selected?.cvValues, selected?.cvFiles]);
+  const cvWorkingGroup: CVWorkingGroupOptions = {
+    ownerKey: `${username}:${sessionKey}`, context: decoderConfigurations.context,
+    groups: decoderConfigurations.context?.workspaces, target: decoderConfigurations.activeTarget,
+    ready: Boolean(decoderConfigurations.context && !decoderConfigurations.loading && decoderConfigurations.targetCurrent && cvGroupsCovered),
+    reload: () => decoderConfigurations.load(false, true)
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -152,6 +195,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       reset: resetFunctionEdits,
       loadDetail: loadFunctionEdits,
       mergeDetail: mergeFunctionEdits,
+      supplementFileSuggestions,
       changes: functionChanges,
       acknowledgeSaved: acknowledgeSavedFunctions,
       remove: deleteFunction,
@@ -168,7 +212,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 
   const {
     state: {
-      attachmentDeleteCandidate,
+      mediaConflicts,
       pendingImages: pendingArticleImages,
       previewImage,
       attachmentEdits,
@@ -179,7 +223,6 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     },
     refs: { imageInputRef, attachmentInputRef },
     setters: {
-      setAttachmentDeleteCandidate,
       setPendingImages: setPendingArticleImages,
       setPreviewImage,
       setAttachmentEdits,
@@ -191,6 +234,12 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     commands: {
       reset: resetVehicleMedia,
       loadDetail: loadVehicleMedia,
+      refreshDetail: refreshVehicleMedia,
+      acknowledgeCoreSaved: acknowledgeMediaSaved,
+      acknowledgeImportedImage,
+      acknowledgeImage,
+      removeDeletedImage,
+      resolveConflict: resolveMediaConflict,
       addImages: addPendingImages,
       setPrimaryPendingImage,
       updatePendingImageTitle,
@@ -211,11 +260,23 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     saving,
     setSaving,
     onMessage: setMessage,
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
-    onImageUploadComplete: () => {
-      setCVFileProfile("");
-      setCVFileDescription("");
-    }
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "media"),
+    reloadSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
+    prepareUpload: (...args) => mediaUploads.commands.prepare(...args),
+    prepareDelete: request => mediaDeletion.commands.prepare(request)
+  });
+
+  const refreshSavedMedia = (vehicleId: string, kind: "image" | "attachment" | "decoder") =>
+    refreshSelectedVehicle(vehicleId, kind === "decoder" ? "decoderFiles" : "media", true);
+  const mediaUploads = useVehicleUploads({
+    selected, readonly, saving, workingGroup: cvWorkingGroup, setSaving, onMessage: setMessage, onStatus: setStatusMessage,
+    onImageStored: acknowledgeImage, refreshSaved: refreshSavedMedia,
+    reload: vehicleId => refreshSelectedVehicle(vehicleId, undefined, true)
+  });
+  const mediaDeletion = useVehicleMediaDeletion({
+    selected, readonly, saving, setSaving, onMessage: setMessage, onStatus: setStatusMessage,
+    onImageDeleted: removeDeletedImage, refreshSaved: refreshSavedMedia,
+    reload: vehicleId => refreshSelectedVehicle(vehicleId, undefined, true)
   });
 
   const {
@@ -235,7 +296,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     selected,
     setSaving,
     onMessage: setMessage,
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "maintenance")
   });
 
   const {
@@ -283,7 +344,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     setSaving,
     onMessage: setMessage,
     onOpenSpareParts: () => setActiveTab("spareParts"),
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "spareParts"),
     t
   });
 
@@ -291,7 +352,9 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     state: {
       form: cvForm,
       editingId: editingCVID,
+      manualDraft: manualCVDraft,
       importPreview: cvImportPreview,
+      importNeedsReview: cvImportNeedsReview,
       summary: cvSummary,
       importStats: cvImportStats,
       storedDecoderProfiles,
@@ -305,20 +368,30 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       edit: editCVValue,
       save: saveCVValue,
       remove: deleteCVValue,
+      applyManualDraft,
+      discardManualDraft,
+      discardManualChange,
+      rebaseManualChange,
       exportValues: exportCVValues,
       importValues: importCVValues,
       toggleImportRow: toggleCVImportRow,
       selectImportRows: selectCVImportRows,
       applyImportPreview: applyCVImportPreview,
+      recompareImportPreview: recompareCVImportPreview,
       setImportPreview: setCVImportPreview,
       discardImportPreview: discardCVImportPreview
     }
   } = useVehicleCVController({
     selected,
+    workingGroup: cvWorkingGroup,
+    readonly,
+    saving,
     decoderNumber: form.digitalDecoderNumber || form.dtDecoderNumber || "",
     setSaving,
     onMessage: setMessage,
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "cv"),
+    refreshImportedValues: (vehicleId) => refreshSelectedVehicle(vehicleId, "cv", true),
+    reloadSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
   });
 
   const {
@@ -343,10 +416,20 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     }
   } = useVehicleDecoderFilesController({
     selected,
+    workingGroup: cvWorkingGroup,
+    readonly,
+    saving,
     setSaving,
     onMessage: setMessage,
+    onStatus: setStatusMessage,
     onImportPreview: setCVImportPreview,
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
+    onFunctionSuggestions: (previews) => {
+      const result = supplementFileSuggestions(previews);
+      if (result.applied > 0) setActiveTab("control");
+      return result;
+    },
+    prepareUpload: mediaUploads.commands.prepare,
+    prepareDelete: mediaDeletion.commands.prepare
   });
 
   const {
@@ -369,7 +452,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     selected,
     setSaving,
     onMessage: setMessage,
-    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId, "documents"),
     t
   });
 
@@ -399,6 +482,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       restoreDraft: restoreArticleDraft
     }
   } = useArticleSearchController({
+    targetKey: modalOpen ? `${mode}:${selected?.id || "new"}` : "closed",
     form,
     pendingImageCount: pendingArticleImages.length,
     replaceForm: setForm,
@@ -505,7 +589,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     sortedVehicles,
     selectedVisibleVehicles,
     setVehicles,
-    setSelectedDetail,
+    setSelectedDetail: applyIndependentDetail,
     onMessage: setMessage,
     t
   });
@@ -532,7 +616,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       setAttachmentUploadCategory("");
       setAttachmentUploadDescription("");
       setAttachmentDragActive(false);
-      setAttachmentDeleteCandidate(null);
+      mediaUploads.commands.reset();
+      mediaDeletion.commands.reset();
       setSaveAttempted(false);
       setFunctionEdits(Object.fromEntries(Object.entries(prepared.functionEdits)
         .map(([key, edit]) => [key, { ...edit, dirty: true, modeAssigned: true }])));
@@ -596,11 +681,15 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
   const { submit, confirmDelete } = createVehicleMutationCommands({
     draftOwner: username,
     editor: {
+      captureScope,
       form,
       selected,
       mode,
       setSaving,
-      setSelectedDetail,
+      setSelectedDetail: (detail) => acknowledgeSavedVehicle(detail, form, "complete"),
+      acknowledgeCoreSaved: (detail) => acknowledgeSavedVehicle(detail, form, "core"),
+      hasRefreshConflicts: refreshConflicts.length > 0,
+      reloadSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
       setMode,
       setSaveAttempted,
       setActiveTab,
@@ -610,7 +699,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     validation: {
       missingRequiredLabels: missingRequiredModelFields
     },
-    media: { pendingImages: pendingArticleImages },
+    media: { pendingImages: pendingArticleImages, acknowledgeImportedImage,
+      hasConflicts: mediaConflicts.some(conflict => conflict.kind === "image") },
     spareParts: {
       selectedInputs: selectedFoundSparePartInputs,
       clearSelected: clearSelectedFoundSpareParts
@@ -635,10 +725,11 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     t
   });
   const {
-    selectedVehicleSetID, vehicleSetMode, createPrefill, setCreatePrefill,
+    selectedVehicleSetID, vehicleSetMode, createPrefill, setCreatePrefill, vehicleSetSessionKey, captureVehicleSetScope,
     submitVehicleSet, closeVehicleSetDialog, openVehicleSet, duplicateVehicleSet,
     closeVehicleCreateDialog, duplicateVehicleSetByID, handleVehicleSetUpdated, handleVehicleSetImageChanged, openSetMember
   } = useVehicleSetController({
+    captureScope,
     username, form, pendingArticleImages, setSaving, setSelectedDetail, setMode,
     setActiveTab, closeModal, openCreate, openDetail, vehicles, load, onMessage: setMessage, t
   });
@@ -663,11 +754,14 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 
   return (
     <>
+      {archiveOwner === username && canReadDecoderArchive && <DecoderArchiveDialog onClose={() => setArchiveOwner(null)} />}
       <VehicleInventoryPanel
+        onOpenCVArchive={canReadDecoderArchive ? () => setArchiveOwner(username) : undefined}
         vehicles={vehicles}
         sortedVehicles={sortedVehicles}
         loading={loading}
         message={message}
+        messageTone={messageTone}
         query={query}
         columns={columnPreferences.columns}
         columnWidths={columnPreferences.widths}
@@ -757,6 +851,25 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
           activeTab={activeTab}
           saving={saving}
           message={message}
+          messageTone={messageTone}
+          catalog={selected && mode !== "create" ? <VehicleCatalogPanel key={`${sessionKey}:${selected.id}`}
+            targetType="vehicle" targetId={selected.id} targetName={selected.name}
+            savedFields={catalogFieldsFrom(selected)} readonly={readonly || !canEditVehicleSets} busy={saving}
+            captureScope={() => captureScope(sessionKey)}
+            onSaved={confirmed => refreshSelectedVehicle(selected.id, confirmed ? "catalog" : undefined, true)} /> : undefined}
+          mediaDialogs={<>
+            {mediaUploads.batch && <VehicleMediaUploadDialog batch={mediaUploads.batch}
+              onClose={mediaUploads.commands.close} onConfirm={() => void mediaUploads.commands.confirm()}
+              onReview={() => void mediaUploads.commands.reviewWorkingGroup()}
+              onSkip={mediaUploads.commands.skip} />}
+            {mediaDeletion.candidate && <VehicleMediaDeleteDialog candidate={mediaDeletion.candidate}
+              onClose={mediaDeletion.commands.close} onConfirm={() => void mediaDeletion.commands.confirm()} />}
+          </>}
+          refreshConflicts={refreshConflicts}
+          mediaConflicts={mediaConflicts}
+          onResolveMediaConflict={resolveMediaConflict}
+          lastSavedAction={lastSavedAction}
+          onResolveRefreshConflicts={resolveRefreshConflicts}
           onSubmit={submit}
           onSubmitSet={submitVehicleSet}
           onClose={closeVehicleCreateDialog}
@@ -794,7 +907,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
               ecosDecoderProfile: selected?.ecosDecoderProfile,
               onOpenCV: () => setActiveTab("cv"),
               externalMappings: selected?.externalMappings || [],
-              readonly,
+              readonly: readonly || saving,
               hideAcquisitionDetails: Boolean(selected?.vehicleSetId),
               articleSearchLoading,
               canRunArticleSearch,
@@ -816,12 +929,12 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             },
             functions: {
               selected,
-              canReadECoS: roles.includes("Admin") && !readonly,
+              canReadECoS: roles.includes("Admin") && !readonly && !saving,
               decoderType: form.decoderType,
               draftMode: mode === "create" || Boolean(ecosDraft),
               draftCVValues: ecosDraft?.cvValues,
               draftDecoderProfile: ecosDraft?.source === "ecos" ? ecosDraft.sourceSummary.profile : undefined,
-              readonly,
+              readonly: readonly || saving,
               saving,
               functionImportInputRef,
               configuredFunctionKeys,
@@ -838,17 +951,27 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             speedCurve: { selected, ecosDraft },
             cv: {
               selected,
+              configurations: canReadDecoderArchive ? decoderConfigurations : undefined,
+              canReadArchive: canReadDecoderArchive,
+              archiveOwnerKey: username,
               decoderType: form.decoderType,
               ecosDraft,
-              readonly,
+              readonly: readonly || saving || Boolean(selected && !cvWorkingGroup.ready),
               saving,
               cvImportInputRef,
               cvFileInputRef,
               cvSummary,
               cvImportPreview,
+              cvImportNeedsReview,
+              recompareCVImportPreview,
               cvImportStats,
               cvForm,
               editingCVID,
+              manualDraft: manualCVDraft,
+              applyManualDraft,
+              discardManualDraft,
+              discardManualChange,
+              rebaseManualChange,
               decoderProfileOptions,
               storedDecoderProfiles,
               cvFileProfile,
@@ -878,8 +1001,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             },
             uploads: {
               selected,
-              canTransferToECoS: roles.includes("Admin") && !readonly,
-              readonly,
+              canTransferToECoS: roles.includes("Admin") && !readonly && !saving,
+              readonly: readonly || saving,
               saving,
               imageInputRef,
               attachmentInputRef,
@@ -911,7 +1034,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
               onUpdateAttachmentEdit: updateAttachmentEdit,
               onSaveAttachment: saveAttachment,
               onExtractAttachmentSpareParts: extractAttachmentSpareParts,
-              onDeleteAttachment: setAttachmentDeleteCandidate,
+              onDeleteAttachment: deleteAttachment,
               onSearchDocuments: runUploadDocumentSearch,
               onImportDocument: importFoundDocument,
               onImportSelectedDocuments: importSelectedFoundDocuments,
@@ -921,7 +1044,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             maintenance: {
               selected,
               pendingArticleImages,
-              readonly,
+              readonly: readonly || saving,
               saving,
               maintenanceForm,
               editingMaintenanceID,
@@ -935,7 +1058,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             },
             spareParts: {
               selected,
-              readonly,
+              readonly: readonly || saving,
               saving,
               sparePartForm,
               editingSparePartID,
@@ -963,7 +1086,9 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       )}
 		{vehicleSetMode === "view" && selectedVehicleSetID && (
 			<VehicleSetSummaryDialog
+				key={`${vehicleSetSessionKey}:${selectedVehicleSetID}`}
 				setId={selectedVehicleSetID}
+				captureScope={() => captureVehicleSetScope(vehicleSetSessionKey)}
 				canEdit={canEditVehicleSets}
 				onClose={closeVehicleSetDialog}
 				onUpdated={() => undefined}
@@ -974,15 +1099,19 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 		)}
 		{vehicleSetMode === "edit" && selectedVehicleSetID && canEditVehicleSets && (
 			<VehicleSetEditorDialog
+				key={`${vehicleSetSessionKey}:${selectedVehicleSetID}`}
 				setId={selectedVehicleSetID}
+				captureScope={() => captureVehicleSetScope(vehicleSetSessionKey)}
 				options={options}
 				onClose={closeVehicleSetDialog}
 				onUpdated={handleVehicleSetUpdated}
 				onImageChanged={handleVehicleSetImageChanged}
+				onCatalogChanged={handleVehicleSetImageChanged}
 			/>
 		)}
       {articleSearchOpen && mode !== "create" && (
         <ArticleSearchDialog
+          reviewTarget={t("importReview.target.vehicleDraft")}
           fieldGroups={vehicleArticleSearchGroups(t)}
           currentValue={(key) => currentArticleValue(form, key as ArticleFieldKey)}
           loading={articleSearchLoading}
@@ -1036,13 +1165,6 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
           vehicle={deleteCandidate}
           onClose={() => setDeleteCandidate(null)}
           onConfirm={confirmDelete}
-        />
-      )}
-      {attachmentDeleteCandidate && (
-        <DeleteAttachmentDialog
-          attachment={attachmentDeleteCandidate}
-          onClose={() => setAttachmentDeleteCandidate(null)}
-          onConfirm={() => deleteAttachment(attachmentDeleteCandidate)}
         />
       )}
     </>

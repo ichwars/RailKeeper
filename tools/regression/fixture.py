@@ -105,4 +105,28 @@ def observations(client, fixture):
                  "/api/v1/accessory-products/" + fixture["productId"] + "/stock",
                  "/api/v1/accessory-products/" + fixture["productId"] + "/usage-history",
                  "/api/v1/exhibition-lists/" + fixture["eventId"] + "/workspace"]
-    return {path: client.request("GET", path) for path in endpoints}
+    return {path: record_comparison_projection(client.request("GET", path)) for path in endpoints}
+
+
+def record_comparison_projection(value):
+    """Ignore only new computed vehicle/media/CV revisions in old-to-new API comparisons.
+
+    All stored fields and other entity revisions remain compared. Raw DB/file manifests have no
+    projection; transaction/HTTP tests separately verify these content-derived revision guards.
+    """
+    if isinstance(value, list):
+        return [record_comparison_projection(item) for item in value]
+    if isinstance(value, dict):
+        cv = {"id", "vehicleId", "cvNumber", "value"}.issubset(value)
+        vehicle = {"id", "inventoryNumber", "manufacturer", "name", "gauge", "qrCodeEnabled"}.issubset(value)
+        image = {"id", "vehicleId", "url", "isPrimary", "sortOrder"}.issubset(value)
+        media_file = {"id", "vehicleId", "fileName", "originalName", "sizeBytes"}.issubset(value)
+        computed = {"revision"} if cv or image or media_file else set()
+        if media_file:
+            computed.add("sourceReferenceCount")
+        if vehicle or image:
+            computed.add("imagesRevision")
+        if vehicle:
+            computed.add("revision")
+        return {key: record_comparison_projection(item) for key, item in value.items() if key not in computed}
+    return value

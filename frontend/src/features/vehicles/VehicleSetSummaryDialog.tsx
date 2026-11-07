@@ -4,6 +4,8 @@ import { Copy, Pencil, X } from "lucide-react";
 import { api, type VehicleSet } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { vehicleSetDuplicatePrefill, type VehicleCreatePrefill } from "./vehicleSetDuplicate";
+import { VehicleCatalogPanel } from "./VehicleCatalogPanel";
+import { catalogFieldsFrom } from "./vehicleCatalogModel";
 
 type VehicleSetDialogProps = {
 	setId: string;
@@ -13,6 +15,7 @@ type VehicleSetDialogProps = {
 	onDuplicate: (prefill: VehicleCreatePrefill) => void;
 	onEdit?: (setId: string) => void;
 	onOpenVehicle?: (vehicleId: string) => void;
+	captureScope?: () => () => boolean;
 };
 
 export function VehicleSetSummaryDialog({
@@ -21,7 +24,8 @@ export function VehicleSetSummaryDialog({
 	onClose,
 	onDuplicate,
 	onEdit,
-	onOpenVehicle
+	onOpenVehicle,
+	captureScope
 }: VehicleSetDialogProps) {
 	const { t } = useI18n();
 	const [vehicleSet, setVehicleSet] = useState<VehicleSet | null>(null);
@@ -58,6 +62,8 @@ export function VehicleSetSummaryDialog({
 						{vehicleSet.mainImage && <figure className="vehicle-set-summary-image">
 							<img src={vehicleSet.mainImage.thumbnailUrl || vehicleSet.mainImage.url} alt={vehicleSet.name} />
 						</figure>}
+						<VehicleCatalogPanel targetType="set" targetId={setId} targetName={vehicleSet.name}
+							savedFields={catalogFieldsFrom(vehicleSet)} readonly captureScope={captureScope} />
 						<dl className="detail-grid">
 							<div><dt>{t("vehicle.field.inventoryNumber")}</dt><dd>{vehicleSet.inventoryNumber}</dd></div>
 							<div><dt>{t("vehicle.field.name")}</dt><dd>{vehicleSet.name}</dd></div>

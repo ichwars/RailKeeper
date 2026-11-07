@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 24
+	backupVersion = 27
 )
 
 var (
@@ -99,9 +99,13 @@ var backupTableOrder = []string{
 	"inventory_number_schemes",
 	"file_blobs",
 	"storage_locations",
+	"catalog_articles",
+	"catalog_article_revisions",
 	"vehicle_sets",
 	"vehicles",
 	"vehicle_set_members",
+	"vehicle_article_links",
+	"vehicle_set_article_links",
 	"inventory_number_history",
 	"vehicle_external_mappings",
 	"vehicle_images",
@@ -112,6 +116,11 @@ var backupTableOrder = []string{
 	"vehicle_cv_files",
 	"vehicle_cv_values",
 	"vehicle_cv_value_history",
+	"decoder_instances",
+	"decoder_installations",
+	"decoder_cv_workspaces",
+	"decoder_cv_snapshots",
+	"decoder_cv_snapshot_sources",
 	"accessory_products",
 	"accessory_product_attributes",
 	"accessory_purchases",
@@ -156,6 +165,15 @@ type backupTableVersionPolicy struct {
 }
 
 var backupTableVersions = map[string]backupTableVersionPolicy{
+	"decoder_instances":                        {introduced: 27, required: 27},
+	"decoder_installations":                    {introduced: 27, required: 27},
+	"decoder_cv_workspaces":                    {introduced: 27, required: 27},
+	"decoder_cv_snapshots":                     {introduced: 27, required: 27},
+	"decoder_cv_snapshot_sources":              {introduced: 27, required: 27},
+	"catalog_articles":                         {introduced: 25, required: 25},
+	"catalog_article_revisions":                {introduced: 25, required: 25},
+	"vehicle_article_links":                    {introduced: 25, required: 25},
+	"vehicle_set_article_links":                {introduced: 25, required: 25},
 	"retired_allocation_records":               {introduced: 23, required: 23},
 	"master_data_entries":                      {introduced: 1, required: 1},
 	"master_data_relations":                    {introduced: 1, required: 1},
@@ -308,6 +326,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 			_ = tx.Rollback()
 		}
 	}()
+	if err := suspendVehicleCatalogProjectionTx(ctx, tx); err != nil {
+		return nil, err
+	}
 	articleMasterData, err := readLegacyRestoreArticleMasterData(ctx, tx, doc.Version)
 	if err != nil {
 		return nil, err
@@ -409,6 +430,15 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	}
 
 	if err := retireRestoredLegacyAllocations(ctx, tx); err != nil {
+		return nil, err
+	}
+	if err := backfillVehicleCatalogTx(ctx, tx); err != nil {
+		return nil, err
+	}
+	if err := restoreVehicleCatalogProjectionTx(ctx, tx, doc.Version < 26); err != nil {
+		return nil, err
+	}
+	if err := backfillLegacyDecoderCVTx(ctx, tx, stagedFiles.root); err != nil {
 		return nil, err
 	}
 	uploadsSwap, err := s.replaceUploadsWithStaged(stagedFiles)
@@ -732,6 +762,7 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 			}
 		}
 		item.UnknownColumns = sortedKeys(unknownColumns)
+		result.Errors = append(result.Errors, validateBackupMediaPaths(table, rows)...)
 		if table == "vehicle_functions" {
 			result.Errors = append(result.Errors, validateBackupFunctionFlags(doc.Version, rows)...)
 		}
@@ -739,7 +770,11 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 			result.Errors = append(result.Errors, validateBackupCVProvenance(rows)...)
 		}
 		if len(item.UnknownColumns) > 0 {
-			result.Warnings = append(result.Warnings, fmt.Sprintf("Tabelle %s enthält unbekannte Spalten, die beim Restore ignoriert werden.", table))
+			if isVehicleCatalogBackupTable(table) || isDecoderConfigurationBackupTable(table) {
+				result.Errors = append(result.Errors, fmt.Sprintf("Fachtabelle %s enthält unbekannte Spalten. / Unknown model table columns.", table))
+			} else {
+				result.Warnings = append(result.Warnings, fmt.Sprintf("Tabelle %s enthält unbekannte Spalten, die beim Restore ignoriert werden.", table))
+			}
 		}
 		if table == "accessory_product_attributes" {
 			result.Errors = append(result.Errors,
@@ -772,6 +807,8 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 	if doc.Profiles != nil {
 		result.Errors = append(result.Errors, validateBackupDataTransferProfiles(doc.Profiles)...)
 	}
+	result.Errors = append(result.Errors, validateBackupVehicleCatalog(doc)...)
+	result.Errors = append(result.Errors, validateBackupDecoderConfiguration(doc)...)
 
 	return finishBackupValidation(result), nil
 }

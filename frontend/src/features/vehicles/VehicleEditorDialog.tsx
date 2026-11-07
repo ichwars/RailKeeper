@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ComponentProps, type FormEventHandler } from "react";
+import { useLayoutEffect, useRef, type ComponentProps, type FormEvent, type ReactNode } from "react";
 import { Save, X } from "lucide-react";
 
 import type { Vehicle } from "../../shared/api";
@@ -13,6 +13,11 @@ import { VehicleReadOnlyView } from "./VehicleReadOnlyView";
 import { VehicleSparePartsTab } from "./VehicleSparePartsTab";
 import { VehicleSpeedCurveTab } from "./VehicleSpeedCurveTab";
 import { VehicleUploadsTab } from "./VehicleUploadsTab";
+import { VehicleMediaConflicts } from "./VehicleMediaConflicts";
+import type { MediaDraftConflict } from "./mediaDraftConflicts";
+import { VehicleSaveState } from "./VehicleSaveState";
+import type { VehicleSavedAction } from "./useVehicleEditorController";
+import type { DraftRefreshConflict } from "./vehicleDraftRefresh";
 import type { ModalMode, ModalTab } from "./vehicleViewModel";
 import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
 import type { ArticleSearchController } from "./useArticleSearchController";
@@ -34,9 +39,17 @@ type VehicleEditorDialogProps = {
   activeTab: ModalTab;
   saving: boolean;
   message: string;
+  messageTone?: "error" | "status";
+  mediaDialogs?: ReactNode;
+  catalog?: ReactNode;
+  refreshConflicts?: DraftRefreshConflict[];
+  mediaConflicts?: MediaDraftConflict[];
+  onResolveMediaConflict?: (conflict: MediaDraftConflict, choice: "draft" | "saved") => void;
+  lastSavedAction?: VehicleSavedAction | null;
+  onResolveRefreshConflicts?: (choice: "draft" | "saved") => void;
   tabs: EditorTabs;
-  onSubmit: FormEventHandler<HTMLFormElement>;
-  onSubmitSet: (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>) => Promise<void>;
+  onSubmit: (event: FormEvent<HTMLFormElement>, creationId?: string) => void;
+  onSubmitSet: (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>, creationId?: string) => Promise<void>;
   onClose: () => void;
   onTabChange: (tab: ModalTab) => void;
   onEdit: () => void;
@@ -65,6 +78,14 @@ export function VehicleEditorDialog({
   activeTab,
   saving,
   message,
+  messageTone = "error",
+  mediaDialogs,
+  catalog,
+  refreshConflicts = [],
+  mediaConflicts = [],
+  onResolveMediaConflict = () => undefined,
+  lastSavedAction = null,
+  onResolveRefreshConflicts = () => undefined,
   tabs,
   onSubmit,
   onSubmitSet,
@@ -121,6 +142,7 @@ export function VehicleEditorDialog({
             className="icon-button"
             onClick={onClose}
             aria-label={t("vehicles.close")}
+            disabled={saving}
             title={t("vehicles.close")}
           >
             <X size={18} />
@@ -130,6 +152,7 @@ export function VehicleEditorDialog({
         {mode === "view" && selected ? (
           <VehicleReadOnlyView
             vehicle={selected}
+            catalog={catalog}
             onEdit={onEdit}
             onPrint={onPrint}
             onQr={onQr}
@@ -151,6 +174,10 @@ export function VehicleEditorDialog({
             </nav>
 
             <div className="modal-body" ref={bodyRef}>
+              <VehicleSaveState tab={activeTab} saved={lastSavedAction} conflicts={refreshConflicts}
+                onResolve={onResolveRefreshConflicts} />
+              <VehicleMediaConflicts vehicle={selected} conflicts={mediaConflicts} saving={saving} onResolve={onResolveMediaConflict} />
+              <div className="vehicle-catalog-slot" hidden={activeTab !== "model"}>{catalog}</div>
               {activeTab === "model" && <VehicleModelTab {...tabs.model} />}
               {activeTab === "control" && <VehicleFunctionsTab {...tabs.functions} />}
               {activeTab === "speedCurve" && <VehicleSpeedCurveTab {...tabs.speedCurve} />}
@@ -161,11 +188,12 @@ export function VehicleEditorDialog({
             </div>
 
             <footer className={`modal-actions${activeTab === "control" ? " function-editor-footer" : ""}`}>
-              {message && <p className="form-message">{message}</p>}
-              <button type="button" className="secondary-button" onClick={onClose}>
+              {message && <p className={`form-message${messageTone === "status" ? " is-status" : ""}`}
+                role={messageTone === "status" ? "status" : "alert"}>{message}</p>}
+              <button type="button" className="secondary-button" onClick={onClose} disabled={saving}>
                 {t("vehicles.cancel")}
               </button>
-              <button className="primary-button" disabled={saving}>
+              <button className="primary-button" disabled={saving || refreshConflicts.length > 0 || mediaConflicts.some(conflict => conflict.kind === "image")}>
                 <Save size={16} aria-hidden="true" />
                 {saving
                   ? t("vehicles.saving")
@@ -176,6 +204,7 @@ export function VehicleEditorDialog({
         )}
         </form>
       )}
+      {mediaDialogs}
     </div>
   );
 }
