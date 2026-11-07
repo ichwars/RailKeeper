@@ -2,19 +2,13 @@ package application
 
 import (
 	"context"
-	"crypto/hmac"
 	"crypto/rand"
-	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/subtle"
 	"database/sql"
-	"encoding/base32"
 	"encoding/base64"
-	"encoding/binary"
 	"errors"
 	"fmt"
-	"math"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -38,6 +32,7 @@ type AuthService struct {
 	db          *sql.DB
 	loginLimits *RateLimitService
 	loginWork   chan struct{}
+	now         func() time.Time
 }
 
 const passwordResetTTL = 30 * time.Minute
@@ -151,9 +146,13 @@ type LoginResult struct {
 	Session      SessionView
 }
 
-func NewAuthService(db *sql.DB) *AuthService {
-	dummyLoginHash()
-	return &AuthService{db: db, loginLimits: NewRateLimitService(db), loginWork: make(chan struct{}, 2)}
+func NewAuthService(db *sql.DB, options ...AuthOption) *AuthService {
+	service := &AuthService{db: db, loginLimits: NewRateLimitService(db), loginWork: make(chan struct{}, 2), now: time.Now}
+	for _, option := range options {
+		option(service)
+	}
+	service.loginLimits.now = service.now
+	return service
 }
 
 func (s *AuthService) ListUsers(ctx context.Context) ([]UserView, error) {
@@ -288,7 +287,7 @@ func (s *AuthService) ListSessions(ctx context.Context, limit int) ([]SessionRec
 		   JOIN users ON users.id = sessions.user_id
 		  ORDER BY active DESC, sessions.created_at DESC
 		  LIMIT ?`,
-		time.Now().UTC().Format(time.RFC3339),
+		s.now().UTC().Format(time.RFC3339),
 		limit,
 	)
 	if err != nil {
@@ -320,7 +319,7 @@ func (s *AuthService) RevokeSession(ctx context.Context, actorUserID, sessionID 
 	result, err := s.db.ExecContext(
 		ctx,
 		`UPDATE sessions SET revoked_at=? WHERE id=? AND revoked_at IS NULL`,
-		time.Now().UTC().Format(time.RFC3339),
+		s.now().UTC().Format(time.RFC3339),
 		sessionID,
 	)
 	if err != nil {
@@ -373,7 +372,7 @@ func (s *AuthService) ChangeOwnPassword(ctx context.Context, userID, sessionToke
 	if _, err = tx.ExecContext(
 		ctx,
 		`UPDATE sessions SET revoked_at=? WHERE user_id=? AND token_hash<>? AND revoked_at IS NULL`,
-		time.Now().UTC().Format(time.RFC3339),
+		s.now().UTC().Format(time.RFC3339),
 		userID,
 		hashToken(sessionToken),
 	); err != nil {
@@ -384,158 +383,6 @@ func (s *AuthService) ChangeOwnPassword(ctx context.Context, userID, sessionToke
 	}
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("commit password change: %w", err)
-	}
-	return nil
-}
-
-func (s *AuthService) TwoFactorStatus(ctx context.Context, userID string) (*TwoFactorStatus, error) {
-	var username, secret, enabledAt string
-	var enabled bool
-	if err := s.db.QueryRowContext(
-		ctx,
-		`SELECT username, COALESCE(two_factor_secret, ''), two_factor_enabled, COALESCE(two_factor_enabled_at, '')
-		   FROM users
-		  WHERE id=?`,
-		userID,
-	).Scan(&username, &secret, &enabled, &enabledAt); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrUserNotFound
-		}
-		return nil, fmt.Errorf("read two factor status: %w", err)
-	}
-	return &TwoFactorStatus{
-		Enabled:   enabled,
-		Prepared:  secret != "",
-		EnabledAt: enabledAt,
-		Username:  username,
-	}, nil
-}
-
-func (s *AuthService) PrepareTwoFactor(ctx context.Context, userID string) (*TwoFactorStatus, error) {
-	var username, existingSecret string
-	var enabled bool
-	if err := s.db.QueryRowContext(
-		ctx,
-		`SELECT username, COALESCE(two_factor_secret, ''), two_factor_enabled FROM users WHERE id=?`,
-		userID,
-	).Scan(&username, &existingSecret, &enabled); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrUserNotFound
-		}
-		return nil, fmt.Errorf("read two factor user: %w", err)
-	}
-	if enabled {
-		return s.TwoFactorStatus(ctx, userID)
-	}
-
-	secret := existingSecret
-	if secret == "" {
-		var err error
-		secret, err = generateTOTPSecret()
-		if err != nil {
-			return nil, fmt.Errorf("generate two factor secret: %w", err)
-		}
-		if _, err := s.db.ExecContext(
-			ctx,
-			`UPDATE users SET two_factor_secret=?, two_factor_enabled=0, two_factor_enabled_at=NULL WHERE id=?`,
-			secret,
-			userID,
-		); err != nil {
-			return nil, fmt.Errorf("store two factor secret: %w", err)
-		}
-		if err := s.audit(ctx, userID, "TwoFactorPrepared", "user", userID, "{}"); err != nil {
-			return nil, err
-		}
-	}
-
-	return &TwoFactorStatus{
-		Enabled:    enabled,
-		Prepared:   true,
-		Username:   username,
-		Secret:     secret,
-		OtpauthURL: totpProvisioningURI("RailKeeper", username, secret),
-	}, nil
-}
-
-func (s *AuthService) EnableTwoFactor(ctx context.Context, userID string, input TwoFactorEnableInput) (*TwoFactorStatus, error) {
-	var secret string
-	if err := s.db.QueryRowContext(ctx, `SELECT COALESCE(two_factor_secret, '') FROM users WHERE id=?`, userID).Scan(&secret); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrUserNotFound
-		}
-		return nil, fmt.Errorf("read two factor secret: %w", err)
-	}
-	if secret == "" || !verifyTOTPCode(secret, input.Code, time.Now().UTC()) {
-		_ = s.audit(ctx, userID, "TwoFactorEnableFailed", "user", userID, "{}")
-		return nil, ErrInvalidLogin
-	}
-	now := time.Now().UTC().Format(time.RFC3339)
-	if _, err := s.db.ExecContext(
-		ctx,
-		`UPDATE users SET two_factor_enabled=1, two_factor_enabled_at=? WHERE id=?`,
-		now,
-		userID,
-	); err != nil {
-		return nil, fmt.Errorf("enable two factor: %w", err)
-	}
-	if err := s.audit(ctx, userID, "TwoFactorEnabled", "user", userID, "{}"); err != nil {
-		return nil, err
-	}
-	return s.TwoFactorStatus(ctx, userID)
-}
-
-func (s *AuthService) DisableTwoFactor(ctx context.Context, userID, sessionToken string, input TwoFactorDisableInput) error {
-	var passwordHash, secret string
-	var enabled bool
-	if err := s.db.QueryRowContext(
-		ctx,
-		`SELECT password_hash, COALESCE(two_factor_secret, ''), two_factor_enabled FROM users WHERE id=?`,
-		userID,
-	).Scan(&passwordHash, &secret, &enabled); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return ErrUserNotFound
-		}
-		return fmt.Errorf("read two factor user: %w", err)
-	}
-	if !verifyPassword(input.CurrentPassword, passwordHash) {
-		_ = s.audit(ctx, userID, "TwoFactorDisableFailed", "user", userID, "{}")
-		return ErrInvalidLogin
-	}
-	if enabled && !verifyTOTPCode(secret, input.Code, time.Now().UTC()) {
-		_ = s.audit(ctx, userID, "TwoFactorDisableFailed", "user", userID, "{}")
-		return ErrInvalidLogin
-	}
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin two factor disable: %w", err)
-	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
-	if _, err = tx.ExecContext(
-		ctx,
-		`UPDATE users SET two_factor_secret=NULL, two_factor_enabled=0, two_factor_enabled_at=NULL WHERE id=?`,
-		userID,
-	); err != nil {
-		return fmt.Errorf("disable two factor: %w", err)
-	}
-	if _, err = tx.ExecContext(
-		ctx,
-		`UPDATE sessions SET revoked_at=? WHERE user_id=? AND token_hash<>? AND revoked_at IS NULL`,
-		time.Now().UTC().Format(time.RFC3339),
-		userID,
-		hashToken(sessionToken),
-	); err != nil {
-		return fmt.Errorf("revoke two factor sessions: %w", err)
-	}
-	if err = s.auditTx(ctx, tx, userID, "TwoFactorDisabled", "user", userID, "{}"); err != nil {
-		return err
-	}
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("commit two factor disable: %w", err)
 	}
 	return nil
 }
@@ -568,7 +415,7 @@ func (s *AuthService) CreateUser(ctx context.Context, actorUserID string, input 
 	}
 
 	userID := randomID()
-	now := time.Now().UTC().Format(time.RFC3339)
+	now := s.now().UTC().Format(time.RFC3339)
 	if _, err = tx.ExecContext(
 		ctx,
 		`INSERT INTO users(id, username, email, password_hash, created_at) VALUES(?, ?, ?, ?, ?)`,
@@ -665,7 +512,7 @@ func (s *AuthService) UpdateUser(ctx context.Context, actorUserID, userID string
 			_, err = tx.ExecContext(
 				ctx,
 				`UPDATE sessions SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL`,
-				time.Now().UTC().Format(time.RFC3339),
+				s.now().UTC().Format(time.RFC3339),
 				userID,
 			)
 		}
@@ -745,7 +592,7 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, input PasswordRe
 		return nil, fmt.Errorf("read reset user: %w", err)
 	}
 
-	now := time.Now().UTC()
+	now := s.now().UTC()
 	var resetToken string
 	var tokenHash any
 	var expiresAt any
@@ -824,7 +671,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, input PasswordResetConf
 		return ErrPasswordResetInvalid
 	}
 	expiresAt, err := time.Parse(time.RFC3339, expiresAtText)
-	if err != nil || !time.Now().UTC().Before(expiresAt) {
+	if err != nil || !s.now().UTC().Before(expiresAt) {
 		return ErrPasswordResetInvalid
 	}
 
@@ -843,7 +690,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, input PasswordResetConf
 		}
 	}()
 
-	now := time.Now().UTC().Format(time.RFC3339)
+	now := s.now().UTC().Format(time.RFC3339)
 	if _, err = tx.ExecContext(ctx, `UPDATE users SET password_hash=? WHERE id=?`, nextHash, userID); err != nil {
 		return fmt.Errorf("update reset password: %w", err)
 	}
@@ -978,7 +825,7 @@ func (s *AuthService) Logout(ctx context.Context, sessionToken string) error {
 	if _, err := s.db.ExecContext(
 		ctx,
 		`UPDATE sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL`,
-		time.Now().UTC().Format(time.RFC3339),
+		s.now().UTC().Format(time.RFC3339),
 		hashToken(sessionToken),
 	); err != nil {
 		return fmt.Errorf("revoke session: %w", err)
@@ -999,7 +846,7 @@ func (s *AuthService) sessionUser(ctx context.Context, sessionToken string) (str
 		 FROM sessions
 		 WHERE token_hash=? AND revoked_at IS NULL AND expires_at > ?`,
 		hashToken(sessionToken),
-		time.Now().UTC().Format(time.RFC3339),
+		s.now().UTC().Format(time.RFC3339),
 	).Scan(&userID, &csrfToken); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", "", ErrUnauthorized
@@ -1162,7 +1009,7 @@ func (s *AuthService) audit(ctx context.Context, actorUserID, action, targetType
 		action,
 		targetType,
 		targetID,
-		time.Now().UTC().Format(time.RFC3339),
+		s.now().UTC().Format(time.RFC3339),
 		detailsJSON,
 	); err != nil {
 		return fmt.Errorf("write audit log: %w", err)
@@ -1180,74 +1027,12 @@ func (s *AuthService) auditTx(ctx context.Context, tx *sql.Tx, actorUserID, acti
 		action,
 		targetType,
 		targetID,
-		time.Now().UTC().Format(time.RFC3339),
+		s.now().UTC().Format(time.RFC3339),
 		detailsJSON,
 	); err != nil {
 		return fmt.Errorf("write audit log: %w", err)
 	}
 	return nil
-}
-
-func generateTOTPSecret() (string, error) {
-	bytes := make([]byte, 20)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(bytes), nil
-}
-
-func verifyTOTPCode(secret, code string, now time.Time) bool {
-	normalized := normalizeTOTPCode(code)
-	if len(normalized) != 6 {
-		return false
-	}
-	for offset := int64(-1); offset <= 1; offset++ {
-		expected, err := totpCodeAt(secret, now.Add(time.Duration(offset)*30*time.Second))
-		if err != nil {
-			return false
-		}
-		if subtle.ConstantTimeCompare([]byte(normalized), []byte(expected)) == 1 {
-			return true
-		}
-	}
-	return false
-}
-
-func totpCodeAt(secret string, at time.Time) (string, error) {
-	decoder := base32.StdEncoding.WithPadding(base32.NoPadding)
-	key, err := decoder.DecodeString(strings.ToUpper(strings.TrimSpace(secret)))
-	if err != nil {
-		return "", err
-	}
-	var counter [8]byte
-	binary.BigEndian.PutUint64(counter[:], uint64(at.Unix()/30))
-	mac := hmac.New(sha1.New, key)
-	if _, err := mac.Write(counter[:]); err != nil {
-		return "", err
-	}
-	sum := mac.Sum(nil)
-	offset := sum[len(sum)-1] & 0x0f
-	value := binary.BigEndian.Uint32(sum[offset:offset+4]) & 0x7fffffff
-	code := value % uint32(math.Pow10(6))
-	return fmt.Sprintf("%06d", code), nil
-}
-
-func normalizeTOTPCode(code string) string {
-	code = strings.TrimSpace(code)
-	code = strings.ReplaceAll(code, " ", "")
-	code = strings.ReplaceAll(code, "-", "")
-	return code
-}
-
-func totpProvisioningURI(issuer, account, secret string) string {
-	label := issuer + ":" + account
-	query := url.Values{}
-	query.Set("secret", secret)
-	query.Set("issuer", issuer)
-	query.Set("algorithm", "SHA1")
-	query.Set("digits", "6")
-	query.Set("period", "30")
-	return "otpauth://totp/" + url.PathEscape(label) + "?" + query.Encode()
 }
 
 func randomToken() string {

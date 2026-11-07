@@ -56,7 +56,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginResult
 			_ = s.audit(ctx, userID, "LoginTwoFactorRequired", "user", userID, "{}")
 			return nil, ErrTwoFactorRequired
 		}
-		if !verifyTOTPCode(twoFactorSecret, input.TwoFactorCode, time.Now().UTC()) {
+		if !verifyTOTPCode(twoFactorSecret, input.TwoFactorCode, s.now().UTC()) {
 			_ = s.audit(ctx, userID, "LoginTwoFactorFailed", "user", userID, "{}")
 			return nil, ErrInvalidLogin
 		}
@@ -75,8 +75,8 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginResult
 
 	sessionToken := randomToken()
 	csrfToken := randomToken()
-	expiresAt := time.Now().UTC().Add(12 * time.Hour)
-	now := time.Now().UTC().Format(time.RFC3339)
+	expiresAt := s.now().UTC().Add(12 * time.Hour)
+	now := s.now().UTC().Format(time.RFC3339)
 
 	if _, err := s.db.ExecContext(
 		ctx,

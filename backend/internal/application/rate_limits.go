@@ -8,11 +8,12 @@ import (
 )
 
 type RateLimitService struct {
-	db *sql.DB
+	db  *sql.DB
+	now func() time.Time
 }
 
 func NewRateLimitService(db *sql.DB) *RateLimitService {
-	return &RateLimitService{db: db}
+	return &RateLimitService{db: db, now: time.Now}
 }
 
 func (s *RateLimitService) Reset(ctx context.Context, scope, key string) error {
@@ -30,7 +31,7 @@ func (s *RateLimitService) Allow(ctx context.Context, scope, key string, limit i
 		return true, nil
 	}
 
-	now := time.Now().UTC()
+	now := s.now().UTC()
 	cutoff := now.Add(-window).Format(time.RFC3339Nano)
 
 	tx, err := s.db.BeginTx(ctx, nil)
