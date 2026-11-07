@@ -138,4 +138,19 @@ describe("article revision comparison", () => {
     await userEvent.click(screen.getByRole("button", { name: "Revision erstellen und Auswahl speichern" }));
     expect(create).not.toHaveBeenCalled();
   });
+
+  it("retries a failed saved-view refresh without repeating the confirmed write", async () => {
+    vi.spyOn(api, "catalogContext").mockResolvedValue(context);
+    const create = vi.spyOn(api, "createCatalogRevision").mockResolvedValue(context);
+    const saved = vi.fn().mockRejectedValueOnce(new Error("View unavailable")).mockResolvedValue(undefined);
+    render(<VehicleCatalogPanel {...props} onSaved={saved} />);
+    await open();
+    await userEvent.click(screen.getByRole("button", { name: "Neue Revision entwerfen" }));
+    await userEvent.click(screen.getByRole("button", { name: "Revision erstellen und Auswahl speichern" }));
+    await screen.findByText("Der Artikelstand ist gespeichert. Die Fahrzeugansicht konnte noch nicht aktualisiert werden.");
+    await userEvent.click(screen.getByRole("button", { name: "Gespeicherte Ansicht erneut laden" }));
+    await waitFor(() => expect(saved).toHaveBeenCalledTimes(2));
+    expect(create).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });

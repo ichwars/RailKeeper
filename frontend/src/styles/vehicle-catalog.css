@@ -6,6 +6,11 @@
   background: var(--panel);
 }
 
+.vehicle-catalog-slot {
+  min-inline-size: 0;
+  margin: var(--space-md) 20px 0;
+}
+
 .vehicle-catalog-panel > summary {
   padding: var(--space-md);
   cursor: pointer;

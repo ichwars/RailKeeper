@@ -61,9 +61,12 @@ describe("useVehicleEditorController", () => {
     act(() => result.current.commands.openEdit(vehicle));
     await waitFor(() => expect(result.current.state.selected?.id).toBe(vehicle.id));
     const firstScope = result.current.commands.captureScope();
+    const firstSession = result.current.state.sessionKey;
     act(() => result.current.commands.openEdit(vehicle));
     expect(firstScope()).toBe(false);
-    await waitFor(() => expect(result.current.commands.captureScope()()).toBe(true));
+    expect(result.current.commands.captureScope(firstSession)()).toBe(false);
+    await waitFor(() => expect(result.current.state.sessionKey).toBeGreaterThan(firstSession));
+    expect(result.current.commands.captureScope(result.current.state.sessionKey)()).toBe(true);
     const lastScope = result.current.commands.captureScope(); unmount(); expect(lastScope()).toBe(false);
   });
 

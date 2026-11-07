@@ -23,11 +23,13 @@ export function useVehicleCatalogController({ targetType, targetId, savedFields,
   const [draft, setDraft] = useState<CatalogDraft | null>(null);
   const [comparedFields, setComparedFields] = useState<VehicleCatalogFields | null>(null);
   const [loading, setLoading] = useState(false), [saving, setSaving] = useState(false);
+  const [refreshPending, setRefreshPending] = useState(false);
   const [error, setError] = useState(""), [status, setStatus] = useState("");
   const mounted = useRef(true), request = useRef(0), writing = useRef(false);
   useEffect(() => {
     mounted.current = true;
     setContext(null); setDraft(null); setComparedFields(null); setLoading(false); setSaving(false);
+    setRefreshPending(false);
     setError(""); setStatus(""); writing.current = false;
     return () => { mounted.current = false; request.current++; };
   }, [targetType, targetId]);
@@ -104,7 +106,9 @@ export function useVehicleCatalogController({ targetType, targetId, savedFields,
       if (!isCurrent()) return;
       setContext(result); setDraft(catalogDraftFrom(result)); setComparedFields(savedFields ? { ...savedFields } : null);
       setStatus(t("catalog.saved"));
+      setRefreshPending(true);
       await onSaved?.();
+      if (isCurrent()) setRefreshPending(false);
     } catch (reason) {
       if (!isCurrent()) return;
       setError(acknowledged ? t("catalog.refreshFailed") : reason instanceof ApiError && reason.status === 409
@@ -115,7 +119,22 @@ export function useVehicleCatalogController({ targetType, targetId, savedFields,
     }
   };
 
-  return { context, draft, loading, saving, error, status, stale, alreadyStored, available,
+  const refreshView = async () => {
+    if (!refreshPending || writing.current || busy || loading) return;
+    const isCurrent = capture();
+    if (!isCurrent()) return;
+    setLoading(true); setError("");
+    try {
+      await onSaved?.();
+      if (isCurrent()) setRefreshPending(false);
+    } catch {
+      if (isCurrent()) setError(t("catalog.refreshFailed"));
+    } finally {
+      if (isCurrent()) setLoading(false);
+    }
+  };
+
+  return { context, draft, loading, saving, error, status, stale, alreadyStored, available, refreshPending, refreshView,
     load, chooseRevision, startRevision, discardRevision, updateField, toggleField, confirm,
     updateDraft: (patch: Partial<Pick<CatalogDraft, "note" | "independent">>) => setDraft(current => current ? { ...current, ...patch } : current),
     newConfirmation: () => { setDraft(current => current ? { ...current, identity: newCatalogIdentity() } : current); setError(""); } };

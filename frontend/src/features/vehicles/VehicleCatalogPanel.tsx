@@ -106,6 +106,8 @@ export function VehicleCatalogPanel({ targetName, ...options }: VehicleCatalogOp
             onChange={event => model.updateDraft({ note: event.target.value })} /></label>
         </div>}
         <div className="catalog-actions">
+          {model.refreshPending && <button type="button" className="secondary-button" disabled={disabled}
+            onClick={() => void model.refreshView()}>{t("catalog.refreshView")}</button>}
           <button type="button" className="secondary-button" disabled={disabled} onClick={() => void model.load()}>
             {t("catalog.reload")}
           </button>

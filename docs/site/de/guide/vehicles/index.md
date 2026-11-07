@@ -4,7 +4,7 @@ description: Fahrzeuge suchen, filtern, anlegen, pflegen, ausgeben und sicher l�
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-07
 ---
 
 # Fahrzeugbestand und Grunddaten
@@ -260,6 +260,30 @@ Eine geänderte Inventarnummer muss erneut eindeutig sein. RailKeeper schreibt a
 in die Inventarnummernhistorie und protokolliert die Fahrzeugänderung im Audit-Log. Nach
 erfolgreichem Speichern wird der Bestand neu geladen und der Dialog bleibt im Bearbeitungsmodus.
 Der Server erzwingt die Admin- oder Editor-Berechtigung unabhängig von sichtbaren Schaltflächen.
+
+## Artikelrevisionen gezielt übernehmen
+
+Öffne **Artikelrevisionen** in der Fahrzeugansicht oder im Bearbeitungsdialog unter **Modell**.
+Der Vergleich verwendet gespeicherte Fahrzeugangaben. Viewer können ihn lesen; Admin und Editor
+können eine Auswahl bestätigen.
+
+1. Wähle eine Artikelrevision und vergleiche **Gespeichert** mit **Artikelwert**.
+2. Markiere die Felder, die du übernehmen möchtest. Individuelle Angaben sind zunächst geschützt.
+3. Für eine Korrektur wähle **Neue Revision entwerfen**, bearbeite Artikelwerte und ergänze bei Bedarf
+   eine Notiz. **Als eigenständigen Artikel führen** legt eine eigene Artikelidentität fest.
+4. Bestätige mit **Auswahl jetzt übernehmen** oder **Revision erstellen und Auswahl speichern**.
+
+Diese Bestätigung speichert den Artikelstand sofort für das aktuelle Fahrzeug. Ungewählte Angaben
+bleiben erhalten. Offene Grunddaten-, Funktions-, CV- und Medienentwürfe bleiben im Dialog bestehen.
+**Abbrechen** verwirft diese offenen Entwürfe; eine bereits bestätigte Artikeländerung bleibt gespeichert.
+Ungeklärte ältere Vorschlagswerte werden bei der bewussten Umstellung zusätzlich als Revision erhalten.
+**Erfasst am** nennt den Erfassungszeitpunkt, keinen belegten Quellenzeitpunkt.
+
+Bei einem veralteten Vergleich erhält **Vergleich aktualisieren** deinen Artikelentwurf und die
+Auswahl. Prüfe die neuen gespeicherten Werte vor einer weiteren Bestätigung. Ist eine frühere
+Bestätigung bereits gespeichert, kannst du für eine bewusst weitere Revision eine neue Bestätigung
+beginnen. Falls nur das Nachladen der Ansicht fehlgeschlagen ist, verwende
+**Gespeicherte Ansicht erneut laden**. Das lädt den gespeicherten Stand, ohne erneut zu speichern.
 
 ## QR-Etiketten erstellen
 

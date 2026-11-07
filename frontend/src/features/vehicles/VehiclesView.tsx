@@ -15,6 +15,8 @@ import {
 } from "./VehicleDialogs";
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
+import { VehicleCatalogPanel } from "./VehicleCatalogPanel";
+import { catalogFieldsFrom } from "./vehicleCatalogModel";
 import { VehicleSetEditorDialog } from "./VehicleSetEditorDialog";
 import { VehicleSetSummaryDialog } from "./VehicleSetSummaryDialog";
 
@@ -67,6 +69,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       saveAttempted,
       refreshConflicts,
       lastSavedAction,
+      sessionKey,
       readonly
     },
     setters: {
@@ -823,6 +826,11 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
           saving={saving}
           message={message}
           messageTone={messageTone}
+          catalog={selected && mode !== "create" ? <VehicleCatalogPanel key={`${sessionKey}:${selected.id}`}
+            targetType="vehicle" targetId={selected.id} targetName={selected.name}
+            savedFields={catalogFieldsFrom(selected)} readonly={readonly || !canEditVehicleSets} busy={saving}
+            captureScope={() => captureScope(sessionKey)}
+            onSaved={() => refreshSelectedVehicle(selected.id, "catalog", true)} /> : undefined}
           mediaDialogs={<>
             {mediaUploads.batch && <VehicleMediaUploadDialog batch={mediaUploads.batch}
               onClose={mediaUploads.commands.close} onConfirm={() => void mediaUploads.commands.confirm()}

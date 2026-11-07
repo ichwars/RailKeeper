@@ -8,7 +8,8 @@ import {
   coreSavedDetail, draftValue, reconcileDraft, retainRefreshConflicts, sameDraftValue, type DraftRefreshConflict
 } from "./vehicleDraftRefresh";
 
-export type VehicleSavedAction = "vehicle" | "media" | "cv" | "maintenance" | "spareParts" | "decoderFiles" | "documents";
+export type VehicleSavedAction =
+  "vehicle" | "media" | "cv" | "maintenance" | "spareParts" | "decoderFiles" | "documents" | "catalog";
 
 type OpenSections = {
   model: boolean;
@@ -66,8 +67,7 @@ export function useVehicleEditorController({
     return () => { alive.current = false; requestVersion.current++; sessionVersion.current++; };
   }, []);
 
-  const captureScope = () => {
-    const session = sessionVersion.current;
+  const captureScope = (session = sessionVersion.current) => {
     return () => alive.current && modalOpenRef.current && session === sessionVersion.current;
   };
 
@@ -274,6 +274,7 @@ export function useVehicleEditorController({
       saveAttempted,
       refreshConflicts,
       lastSavedAction,
+      sessionKey: sessionVersion.current,
       readonly: mode === "view"
     },
     setters: {
