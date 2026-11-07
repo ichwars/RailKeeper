@@ -103,6 +103,20 @@ func writeVehicleCVTx(ctx context.Context, tx *sql.Tx, vehicleID string, previou
 	if err := checkCVRevision(previous, input.ExpectedRevision); err != nil {
 		return item, err
 	}
+	if previous == nil {
+		if input.SourceWorkspaceID != "" || input.ExpectedSourceWorkspaceRevision != "" {
+			return item, ErrVehicleValidation
+		}
+	} else {
+		if input.WorkspaceID != "" && previous.DecoderProfile != item.DecoderProfile && input.SourceWorkspaceID == "" {
+			return item, ErrVehicleValidation
+		}
+		if err := checkCVDeletionScopeTx(ctx, tx, vehicleID, previous.DecoderProfile, VehicleCVDeletionInput{
+			ExpectedRevision: input.ExpectedRevision, WorkspaceID: input.SourceWorkspaceID, ExpectedWorkspaceRevision: input.ExpectedSourceWorkspaceRevision,
+		}); err != nil {
+			return item, err
+		}
+	}
 	if item.SourceFileID != "" {
 		var sourceVehicleID string
 		err := tx.QueryRowContext(ctx, `SELECT vehicle_id FROM vehicle_cv_files WHERE id=?`, item.SourceFileID).Scan(&sourceVehicleID)
@@ -171,7 +185,7 @@ func (s *VehicleService) ApplyCVChanges(ctx context.Context, vehicleID string, i
 			(change.ID == "" && (change.Delete || change.ExpectedRevision != "")) {
 			return 0, ErrVehicleValidation
 		}
-		if !change.Delete && (change.WorkspaceID != "" || change.ExpectedWorkspaceRevision != "") {
+		if change.ID == "" && (change.WorkspaceID != "" || change.ExpectedWorkspaceRevision != "") {
 			return 0, ErrVehicleValidation
 		}
 		if change.ID != "" {
@@ -180,7 +194,7 @@ func (s *VehicleService) ApplyCVChanges(ctx context.Context, vehicleID string, i
 		if change.Value != nil {
 			value := cleanVehicleCVValueInput(*change.Value)
 			key := vehicleCVRequestIdentity(value)
-			if !isValidVehicleCVValueInput(value) || seenKeys[key] || value.ExpectedRevision != nil {
+			if !isValidVehicleCVValueInput(value) || seenKeys[key] || value.ExpectedRevision != nil || value.SourceWorkspaceID != "" || value.ExpectedSourceWorkspaceRevision != "" {
 				return 0, ErrVehicleValidation
 			}
 			seenKeys[key] = true
@@ -237,6 +251,7 @@ func (s *VehicleService) ApplyCVChanges(ctx context.Context, vehicleID string, i
 		} else {
 			value := *change.Value
 			value.ExpectedRevision = &change.ExpectedRevision
+			value.SourceWorkspaceID, value.ExpectedSourceWorkspaceRevision = change.WorkspaceID, change.ExpectedWorkspaceRevision
 			if _, err := writeVehicleCVTx(ctx, tx, vehicleID, previous, value, now); err != nil {
 				return 0, err
 			}

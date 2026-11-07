@@ -2966,7 +2966,7 @@ components:
       type: object
       additionalProperties: false
       required: [expectedRevision]
-      description: Existing IDs require their original revision. A new row omits id and uses an empty revision. Delete requires an ID and no value. Optional workspaceId and expectedWorkspaceRevision on a deletion must be supplied together and match the exact row's group and current hardware binding. For value writes, scope belongs inside value. A value cannot move onto another stored identity; no existing row is silently replaced.
+      description: Existing IDs require their original revision. A new row omits id and uses an empty revision. Delete requires an ID and no value. Optional outer workspaceId and expectedWorkspaceRevision compare the original row's exact group and hardware binding; they are invalid for new rows. Value fields select the destination group. Moving a scoped value to a different group also requires the original-group comparison. A value cannot move onto another stored identity; no existing row is silently replaced.
       properties:
         id: {type: string, maxLength: 80}
         expectedRevision: {type: string, pattern: '^([0-9a-f]{64})?$'}
@@ -12123,6 +12123,7 @@ paths:
     put:
       tags: [Vehicles]
       summary: Update a CV value
+      description: JSON working-group fields select the destination. Optional query comparisons identify the original row's group and are required when moving a scoped row to another group. All three query fields must be present together, and the query expectedRevision must equal the JSON row revision. Legacy unscoped requests retain their behavior.
       requestBody:
         required: true
         content:
@@ -12130,6 +12131,16 @@ paths:
             schema:
               $ref: "#/components/schemas/VehicleCVValueInput"
       parameters:
+        - name: expectedRevision
+          in: query
+          schema: {type: string, pattern: '^[0-9a-f]{64}$'}
+        - name: workspaceId
+          in: query
+          description: Original working group, distinct from the destination in JSON.
+          schema: {type: string, minLength: 1}
+        - name: expectedWorkspaceRevision
+          in: query
+          schema: {type: string, pattern: '^[0-9a-f]{64}$'}
         - name: id
           in: path
           required: true
@@ -12147,6 +12158,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VehicleCVValue"
+        "400":
+          description: Invalid or incomplete original/destination working-group comparison
         "409":
           description: Target identity already exists or expected revision does not match
     delete:

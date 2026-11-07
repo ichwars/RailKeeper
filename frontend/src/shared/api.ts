@@ -908,9 +908,10 @@ function digitalCenterSessionSuffix(sessionID?: string) {
   return normalized ? `?sessionId=${encodeURIComponent(normalized)}` : "";
 }
 
-export type VehicleCVDeletionScope = Required<Pick<VehicleCVChange, "workspaceId" | "expectedWorkspaceRevision">>;
+export type VehicleCVWorkspaceComparison = Required<Pick<VehicleCVChange, "workspaceId" | "expectedWorkspaceRevision">>;
+export type VehicleCVDeletionScope = VehicleCVWorkspaceComparison;
 
-function cvDeletionQuery(expectedRevision?: string, scope?: VehicleCVDeletionScope) {
+function cvComparisonQuery(expectedRevision?: string, scope?: VehicleCVWorkspaceComparison) {
   const query = new URLSearchParams();
   if (expectedRevision !== undefined) query.set("expectedRevision", expectedRevision);
   if (scope !== undefined) {
@@ -1352,13 +1353,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input)
     }),
-  updateVehicleCVValue: (vehicleId: string, cvValueId: string, input: VehicleCVValueInput) =>
-    request<VehicleCVValue>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}`, {
+  updateVehicleCVValue: (vehicleId: string, cvValueId: string, input: VehicleCVValueInput, sourceScope?: VehicleCVWorkspaceComparison) =>
+    request<VehicleCVValue>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}${sourceScope ? cvComparisonQuery(input.expectedRevision, sourceScope) : ""}`, {
       method: "PUT",
       body: JSON.stringify(input)
     }),
   deleteVehicleCVValue: (vehicleId: string, cvValueId: string, expectedRevision?: string, scope?: VehicleCVDeletionScope) =>
-    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}${cvDeletionQuery(expectedRevision, scope)}`, {
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}${cvComparisonQuery(expectedRevision, scope)}`, {
       method: "DELETE"
     }),
   uploadVehicleCVFile: (vehicleId: string, file: File, decoderProfile = "", description = "",
@@ -1391,7 +1392,7 @@ export const api = {
     );
   },
   deleteVehicleCVFile: (vehicleId: string, cvFileId: string, expectedRevision?: string, scope?: VehicleCVDeletionScope) =>
-    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-files/${encodeURIComponent(cvFileId)}${cvDeletionQuery(expectedRevision, scope)}`, {
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-files/${encodeURIComponent(cvFileId)}${cvComparisonQuery(expectedRevision, scope)}`, {
       method: "DELETE"
     }),
   vehicleCVFileDownloadUrl: (vehicleId: string, cvFileId: string) =>

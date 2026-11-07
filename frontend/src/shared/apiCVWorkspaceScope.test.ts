@@ -4,6 +4,16 @@ import { api, type VehicleCVValueInput } from "./api";
 describe("explicit CV working group transport", () => {
   afterEach(() => { vi.unstubAllGlobals(); document.cookie = "rk_csrf=; Max-Age=0; path=/"; });
 
+  it("keeps the original comparison in the update query and the selected destination in JSON", async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }); vi.stubGlobal("fetch", fetch);
+    const original = { workspaceId: "source/group", expectedWorkspaceRevision: "a".repeat(64) };
+    const input: VehicleCVValueInput = { cvNumber: 1, value: 7, decoderProfile: "Other", workspaceId: "destination",
+      expectedWorkspaceRevision: "b".repeat(64), expectedRevision: "c".repeat(64) };
+    await api.updateVehicleCVValue("vehicle", "cv", input, original);
+    expect(Object.fromEntries(new URL(fetch.mock.calls[0][0], "http://localhost").searchParams)).toEqual({ expectedRevision: input.expectedRevision, ...original });
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual(input);
+  });
+
   it("compares row and binding in deletions while preserving legacy calls", async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: true, status: 204 }); vi.stubGlobal("fetch", fetch);
     document.cookie = "rk_csrf=scoped-delete-csrf; path=/";

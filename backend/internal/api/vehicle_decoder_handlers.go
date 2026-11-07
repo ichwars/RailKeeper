@@ -57,6 +57,14 @@ func (a *App) updateVehicleCVValue(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
 		return
 	}
+	if r.URL.Query().Has("workspaceId") || r.URL.Query().Has("expectedWorkspaceRevision") || r.URL.Query().Has("expectedRevision") {
+		source, valid := cvDeletionComparison(r)
+		if !valid || source.WorkspaceID == "" || source.ExpectedRevision == nil || input.ExpectedRevision == nil || *source.ExpectedRevision != *input.ExpectedRevision {
+			respondProblem(w, http.StatusBadRequest, "cv_value_invalid", "Invalid original working-group comparison.")
+			return
+		}
+		input.SourceWorkspaceID, input.ExpectedSourceWorkspaceRevision = source.WorkspaceID, source.ExpectedWorkspaceRevision
+	}
 	value, err := a.vehicleService.UpdateCVValue(r.Context(), r.PathValue("id"), r.PathValue("cvValueID"), input)
 	if err != nil {
 		switch {

@@ -90,6 +90,11 @@ CV and source-file deletions accept the same paired query fields together with
 hardware binding rejects the whole operation even when the row itself is unchanged. The exact
 stored profile must match the selected group. Legacy requests without scope remain compatible.
 
+For an existing batch value, those outer fields compare its original group while `value`
+selects the destination. Scoped profile moves require both. A direct PUT uses the same query
+comparison for the original group, with a row revision equal to the JSON revision. This prevents
+a prepared move from removing CVs from an original group whose hardware binding changed.
+
 ## Preserve the boundaries
 
 Roles and protections are enforced by the server. Device data starts as read-only suggestions; writes require an explicitly confirmed preview. CV values remain separate from their meaning: library rules interpret raw data only with documented model, firmware and index context.

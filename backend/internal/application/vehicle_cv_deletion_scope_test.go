@@ -77,9 +77,9 @@ func TestDecoderConfigurationDeletionScopeRejectsChangedBindingAndRollsBackWhole
 	unchanged(t)
 	changed := application.VehicleCVValueInput{CVNumber: other.CVNumber, Value: 99, DecoderProfile: other.DecoderProfile}
 	if _, err := s.ApplyCVChanges(t.Context(), vehicle, application.VehicleCVChangesInput{Changes: []application.VehicleCVChange{
-		{ID: other.ID, ExpectedRevision: other.Revision, Value: &changed, WorkspaceID: group.ID, ExpectedWorkspaceRevision: group.BindingRevision},
+		{ExpectedRevision: "", Value: &changed, WorkspaceID: group.ID, ExpectedWorkspaceRevision: group.BindingRevision},
 	}}); !errors.Is(err, application.ErrVehicleValidation) {
-		t.Fatalf("value change accepted misplaced deletion comparisons: %v", err)
+		t.Fatalf("new value accepted an original working-group comparison: %v", err)
 	}
 	unchanged(t)
 	if _, err := s.ApplyCVChanges(t.Context(), vehicle, application.VehicleCVChangesInput{Changes: []application.VehicleCVChange{

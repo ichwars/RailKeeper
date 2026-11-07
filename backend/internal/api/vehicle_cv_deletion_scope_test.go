@@ -122,4 +122,36 @@ func TestDecoderConfigurationDeletionScopeHTTPPreservesOriginalsAndRejectsIncomp
 	if err != nil || len(remaining) != 1 || remaining[0].DecoderProfile != "Legacy" || remaining[0].Value != 8 {
 		t.Fatal("raw group deletion changed the distinct trimmed group")
 	}
+	empty := ""
+	moving, err := service.CreateCVValue(t.Context(), vehicle.ID, application.VehicleCVValueInput{CVNumber: 2, Value: 7,
+		DecoderProfile: group.Profile, WorkspaceID: group.ID, ExpectedWorkspaceRevision: group.BindingRevision, ExpectedRevision: &empty})
+	if err != nil {
+		t.Fatal(err)
+	}
+	current, err = service.DecoderConfigurationContext(t.Context(), vehicle.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	removed, err := service.RemoveDecoder(t.Context(), vehicle.ID, installation, application.DecoderRemovalInput{ExpectedRevision: current.Revision}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	move := application.VehicleCVValueInput{CVNumber: 2, Value: 9, DecoderProfile: wrong.Profile, WorkspaceID: wrong.ID,
+		ExpectedWorkspaceRevision: wrong.BindingRevision, ExpectedRevision: &moving.Revision}
+	movePath := prefix + "/cv-values/" + moving.ID
+	assertStatus(t, authedJSONRequest(t, router, session, http.MethodPut, movePath, move, true), http.StatusBadRequest)
+	assertProblem(t, authedJSONRequest(t, router, session, http.MethodPut, movePath+query(moving.Revision, group), move, true), http.StatusConflict, "cv_value_conflict")
+	assertStatus(t, authedJSONRequest(t, router, session, http.MethodPut, movePath+query(strings.Repeat("f", 64), group), move, true), http.StatusBadRequest)
+	for _, item := range removed.Workspaces {
+		if item.ID == group.ID {
+			group = item
+		}
+	}
+	result := authedJSONRequest(t, router, session, http.MethodPut, movePath+query(moving.Revision, group), move, true)
+	assertStatus(t, result, http.StatusOK)
+	var moved application.VehicleCVValue
+	decodeResponse(t, result, &moved)
+	if moved.ID != moving.ID || moved.DecoderProfile != wrong.Profile || moved.Value != 9 {
+		t.Fatal("confirmed original/destination comparison did not retain the moved CV identity")
+	}
 }
