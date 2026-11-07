@@ -124,13 +124,13 @@ export function useVehicleCVController({
   };
   const resetOwner = useEffectEvent(() => { if (workingGroup) reset(); });
   useEffect(() => { resetOwner(); }, [workingGroup?.ownerKey]);
-  const hasWorkingGroup = Boolean(workingGroup), targetProfile = workingGroup?.target?.profile || "";
-  const targetWorkspaceId = workingGroup?.target?.workspaceId;
-  const targetRevision = workingGroup?.target?.expectedWorkspaceRevision;
-  useEffect(() => {
-    if (hasWorkingGroup && !editingId) setForm(current => ({ ...current, decoderProfile: targetProfile,
-      workspaceId: targetWorkspaceId, expectedWorkspaceRevision: targetRevision }));
-  }, [hasWorkingGroup, editingId, targetProfile, targetWorkspaceId, targetRevision]);
+  const synchronizeDefaultTarget = useEffectEvent(() => {
+    if (workingGroup && !editingId) setForm(current => ({ ...current, decoderProfile: workingGroup.target?.profile || "",
+      workspaceId: workingGroup.target?.workspaceId, expectedWorkspaceRevision: workingGroup.target?.expectedWorkspaceRevision }));
+  });
+  // Clearing a committed temporary ID preserves the open input; only a changed default is a trigger.
+  useEffect(() => { synchronizeDefaultTarget(); },
+    [workingGroup?.target?.workspaceId, workingGroup?.target?.expectedWorkspaceRevision]);
 
   const edit = (value: VehicleCVValue) => {
     if (!writable()) return;
