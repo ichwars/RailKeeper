@@ -5,15 +5,17 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"railkeeper/backend/internal/backup"
 	"railkeeper/backend/internal/infrastructure/backupdata"
 
-	_ "modernc.org/sqlite"
+	"modernc.org/sqlite"
 )
 
 type faultPlanner struct{ stage string }
@@ -46,7 +48,7 @@ func (op faultOperation) Finish(ctx context.Context, tx *sql.Tx, _ string) error
 }
 
 func TestRestoreFaultsPreserveAllRowsUploadsAndAuthentication(t *testing.T) {
-	for _, stage := range []string{"rows", "finish", "commit"} {
+	for _, stage := range []string{"rows", "finish", "commit", "sqlite-full", "upload-stage"} {
 		t.Run(stage, func(t *testing.T) {
 			root := t.TempDir()
 			db, err := sql.Open("sqlite", filepath.Join(root, "test.db"))
@@ -102,8 +104,36 @@ func TestRestoreFaultsPreserveAllRowsUploadsAndAuthentication(t *testing.T) {
 			if _, exists := before.Profiles[0]["name_key"]; exists {
 				t.Fatal("internal profile key exported")
 			}
-			if _, err := store.Restore(t.Context(), doc); err == nil {
+			if stage == "sqlite-full" {
+				var pages int
+				if err := db.QueryRowContext(t.Context(), `PRAGMA page_count`).Scan(&pages); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := db.ExecContext(t.Context(), fmt.Sprintf("PRAGMA max_page_count=%d", pages)); err != nil {
+					t.Fatal(err)
+				}
+				doc.Tables["vehicles"] = []map[string]any{{"id": strings.Repeat("synthetic-full-", 32768)}}
+			}
+			if stage == "upload-stage" {
+				doc.Files = append(doc.Files,
+					backup.BackupFile{Path: "uploads/conflict", ContentBase64: base64.StdEncoding.EncodeToString([]byte("file"))},
+					backup.BackupFile{Path: "uploads/conflict/child.txt", ContentBase64: base64.StdEncoding.EncodeToString([]byte("blocked child"))})
+			}
+			_, restoreErr := store.Restore(t.Context(), doc)
+			if restoreErr == nil {
 				t.Fatal("injected restore failure succeeded")
+			}
+			if stage == "sqlite-full" {
+				var sqliteErr *sqlite.Error
+				if !errors.As(restoreErr, &sqliteErr) || sqliteErr.Code() != 13 {
+					t.Fatal("expected actual SQLite FULL failure", restoreErr)
+				}
+			}
+			if stage == "upload-stage" {
+				var pathErr *os.PathError
+				if !errors.As(restoreErr, &pathErr) {
+					t.Fatal("expected actual staged-filesystem failure", restoreErr)
+				}
 			}
 			after, err := store.Snapshot(t.Context())
 			if err != nil {

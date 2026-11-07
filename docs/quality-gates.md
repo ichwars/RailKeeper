@@ -47,7 +47,8 @@ modules and coverage below `tools/go-coverage-baseline.json`.
 The measured starting result for this scope was 74.73%. The total floor is 74%, with
 separate floors for every current internal module, including authentication, credentials,
 decoder/CV, backup, transfer, valuation and their storage adapters. Those module floors
-are the rounded-down measured results. They are regression guards, not a declaration that
+are the rounded-down measured results. The subsequently added `buildinfo` module has a
+measured 100% statement floor. They are regression guards, not a declaration that
 uncovered branches or physical-device behavior have been qualified.
 
 ```sh

@@ -83,6 +83,12 @@ class Runtime:
         self.close()
         raise AssertionError("Regression server did not become healthy in 20 seconds")
 
+    def crash(self):
+        if self.container or self.process is None or self.process.poll() is not None:
+            raise ValueError("Only this runner's live native process can be crash-tested")
+        self.process.kill()
+        self.process.wait(timeout=10)
+
     def close(self):
         if self.container:
             # Only this invocation's randomly named container is removed.

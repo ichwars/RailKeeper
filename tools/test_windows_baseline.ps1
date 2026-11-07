@@ -21,6 +21,20 @@ if (-not (Test-Path -LiteralPath (Join-Path $package "RailKeeper.exe"))) {
 }
 New-Item -ItemType Directory -Path $previousSource -Force | Out-Null
 
+# Qualification identity comes from the actual resource-patched executable.
+$identityText = & (Join-Path $package "RailKeeper.exe") version
+if ($LASTEXITCODE -ne 0) { throw "Packaged executable did not report its build identity." }
+$identity = $identityText | ConvertFrom-Json
+$expectedCommit = (& git -C $repo rev-parse HEAD).Trim()
+$expectedGo = "go" + (Get-Content (Join-Path $repo ".go-version") -Raw).Trim()
+if ($identity.build.commit -ne $expectedCommit -or $identity.build.goVersion -ne $expectedGo -or
+    $identity.build.platform -ne "windows/amd64" -or $identity.build.status -notin @("release", "development")) {
+  throw "Packaged executable identity does not match the qualified source/compiler/platform."
+}
+$identityRoot = Join-Path $testRoot "identity"
+New-Item -ItemType Directory -Path $identityRoot -Force | Out-Null
+$identity | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $identityRoot "report.json") -Encoding utf8
+
 # Fetch only the pinned public baseline source. The current checkout is never reset.
 & git -C $repo fetch --no-tags --depth=1 origin $baselineCommit
 if ($LASTEXITCODE -ne 0) { throw "Could not fetch the pinned baseline source." }
@@ -54,12 +68,12 @@ if ($LASTEXITCODE -ne 0) { throw "Preservation comparison tests failed." }
   --binary (Join-Path $package "RailKeeper.exe") `
   --backend $package --static-dir (Join-Path $package "web") `
   --previous-binary $previousBinary --previous-backend (Join-Path $previousSource "backend") `
-  --catalog-backfill --catalog-authority --catalog-writes --decoder-model --decoder-backfill --browser --output (Join-Path $testRoot "run")
+  --expected-commit $expectedCommit --catalog-backfill --catalog-authority --catalog-writes --decoder-model --decoder-backfill --browser --output (Join-Path $testRoot "run")
 if ($LASTEXITCODE -ne 0) { throw "Native Windows upgrade/restore/browser baseline failed." }
 & python (Join-Path $regression "run_valuations.py") `
   --binary (Join-Path $package "RailKeeper.exe") `
   --backend $package --static-dir (Join-Path $package "web") `
-  --browser --output (Join-Path $testRoot "valuations")
+  --expected-commit $expectedCommit --browser --output (Join-Path $testRoot "valuations")
 if ($LASTEXITCODE -ne 0) { throw "Native Windows valuation history/restore/browser checks failed." }
 Write-Host "Native Windows baseline passed. Report: $(Join-Path $testRoot 'run\report.json')"
 Write-Host "Manual valuation checks passed. Report: $(Join-Path $testRoot 'valuations\report.json')"

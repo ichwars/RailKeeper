@@ -8,10 +8,12 @@ import (
 	"sync"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/buildinfo"
 	"railkeeper/backend/internal/valuation"
 )
 
 type Config struct {
+	BuildInfo                   *buildinfo.Info
 	Version                     string
 	UpdateCheckURL              string
 	StaticDir                   string
@@ -54,6 +56,7 @@ type Config struct {
 }
 
 type App struct {
+	buildInfo                   buildinfo.Info
 	version                     string
 	updateCheckURL              string
 	staticDir                   string
@@ -98,6 +101,10 @@ type App struct {
 }
 
 func NewRouter(config Config) http.Handler {
+	info := buildinfo.Current()
+	if config.BuildInfo != nil {
+		info = *config.BuildInfo
+	}
 	if config.Logger == nil {
 		config.Logger = slog.Default()
 	}
@@ -110,6 +117,7 @@ func NewRouter(config Config) http.Handler {
 		trustedProxyPrefixes = nil
 	}
 	app := &App{
+		buildInfo:                   info,
 		version:                     config.Version,
 		updateCheckURL:              config.UpdateCheckURL,
 		staticDir:                   config.StaticDir,

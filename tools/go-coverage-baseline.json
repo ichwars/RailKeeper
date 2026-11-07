@@ -6,6 +6,7 @@
     "application": 78,
     "authentication": 98,
     "backup": 83,
+    "buildinfo": 100,
     "credentials": 91,
     "decoder": 89,
     "decoderlibrary": 91,
