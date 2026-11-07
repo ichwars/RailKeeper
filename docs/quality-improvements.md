@@ -49,6 +49,13 @@ Passwortprüfungen pro Authentifizierungsdienst laufen gleichzeitig; Überlastun
 denselben vorübergehenden HTTP-429-Status. Kontoerstellung oder Passwortänderung folgen
 daraus nicht.
 
+Passwort-Hashes enthalten ihre Argon2id-Parameter und werden mit diesen Werten geprüft.
+Ungültige Formate und unbeschränkte Ressourcenanforderungen werden vor der Ableitung
+abgelehnt. Bisherige reguläre Hashes bleiben unverändert gültig. Ein notwendiges Upgrade
+erfolgt erst nach vollständiger Anmeldung samt zweitem Faktor; stärkere vorhandene
+Parameter werden dabei nicht abgesenkt. Die Standardparameter bleiben bei 64 MiB,
+einer Iteration, Parallelität vier und 32 Byte Schlüssel.
+
 `cd frontend && npm run lint` prüft Produktionscode einschließlich React-Hook-Regeln.
 Die Syntaxwerkzeuge liegen mit Babels TypeScript-/JSX-Parser in `tools/frontend-lint`;
 die eigentliche Frontend-Typprüfung und der Build verwenden den Compiler aus

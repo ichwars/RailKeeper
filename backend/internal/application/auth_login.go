@@ -3,23 +3,15 @@ package application
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
-	"golang.org/x/crypto/argon2"
+	"railkeeper/backend/internal/credentials"
 )
 
-// This public dummy password is never associated with an account. Prepare its hash before serving logins.
-var dummyLoginHash = sync.OnceValue(func() string {
-	salt := []byte("RailKeeper-dummy!")
-	hash := argon2.IDKey([]byte("RailKeeper-unknown-user"), salt, 1, 64*1024, 4, 32)
-	return "$argon2id$v=19$m=65536,t=1,p=4$" + base64.RawStdEncoding.EncodeToString(salt) + "$" +
-		base64.RawStdEncoding.EncodeToString(hash)
-})
+var dummyLoginHash = credentials.DummyHash
 
 func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginResult, error) {
 	username := strings.TrimSpace(input.Username)
@@ -70,6 +62,9 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginResult
 		}
 	}
 
+	if err := s.upgradePassword(ctx, userID, input.Password, passwordHash); err != nil {
+		return nil, err
+	}
 	if err := s.loginLimits.Reset(ctx, "login-account", key); err != nil {
 		return nil, err
 	}

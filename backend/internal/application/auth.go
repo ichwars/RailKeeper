@@ -17,8 +17,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
-	"golang.org/x/crypto/argon2"
 )
 
 var (
@@ -1250,25 +1248,6 @@ func totpProvisioningURI(issuer, account, secret string) string {
 	query.Set("digits", "6")
 	query.Set("period", "30")
 	return "otpauth://totp/" + url.PathEscape(label) + "?" + query.Encode()
-}
-
-func verifyPassword(password, encoded string) bool {
-	parts := strings.Split(encoded, "$")
-	if len(parts) != 6 || parts[1] != "argon2id" {
-		return false
-	}
-
-	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
-	if err != nil {
-		return false
-	}
-	want, err := base64.RawStdEncoding.DecodeString(parts[5])
-	if err != nil {
-		return false
-	}
-
-	got := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
-	return subtle.ConstantTimeCompare(got, want) == 1
 }
 
 func randomToken() string {
