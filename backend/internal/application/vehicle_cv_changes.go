@@ -90,8 +90,12 @@ func beginVehicleCVWrite(ctx context.Context, db *sql.DB, vehicleID string) (*sq
 // All legacy and batch writes validate identity, source ownership and revision in the caller's transaction.
 func writeVehicleCVTx(ctx context.Context, tx *sql.Tx, vehicleID string, previous *vehicledata.CVRecord,
 	input VehicleCVValueInput, now string) (vehicledata.CVRecord, error) {
-	item := cvRecordInput(vehicleID, cleanVehicleCVValueInput(input))
-	if !isValidVehicleCVValueInput(cleanVehicleCVValueInput(input)) {
+	resolved, err := resolveVehicleCVInputTx(ctx, tx, vehicleID, input)
+	item := cvRecordInput(vehicleID, resolved)
+	if err != nil {
+		return item, err
+	}
+	if input.WorkspaceID != "" && input.ExpectedRevision == nil {
 		return item, ErrVehicleValidation
 	}
 	if err := checkCVRevision(previous, input.ExpectedRevision); err != nil {
@@ -170,7 +174,7 @@ func (s *VehicleService) ApplyCVChanges(ctx context.Context, vehicleID string, i
 		}
 		if change.Value != nil {
 			value := cleanVehicleCVValueInput(*change.Value)
-			key := vehicleCVIdentity(value)
+			key := vehicleCVRequestIdentity(value)
 			if !isValidVehicleCVValueInput(value) || seenKeys[key] || value.ExpectedRevision != nil {
 				return 0, ErrVehicleValidation
 			}
@@ -182,6 +186,21 @@ func (s *VehicleService) ApplyCVChanges(ctx context.Context, vehicleID string, i
 		return 0, err
 	}
 	defer func() { _ = tx.Rollback() }()
+	seenTargets := map[string]bool{}
+	for _, change := range input.Changes {
+		if change.Value == nil {
+			continue
+		}
+		value, err := resolveVehicleCVInputTx(ctx, tx, vehicleID, *change.Value)
+		if err != nil {
+			return 0, err
+		}
+		key := vehicleCVIdentity(value)
+		if seenTargets[key] {
+			return 0, ErrVehicleValidation
+		}
+		seenTargets[key] = true
+	}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	for _, change := range input.Changes {
 		var previous *vehicledata.CVRecord

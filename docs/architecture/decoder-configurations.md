@@ -95,6 +95,25 @@ working groups in the same transaction. A profile move touches both exact stored
 changing their identity, adoption origin or confirmed installation. Newly introduced groups have
 origin `manual` and no inferred hardware. Empty groups remain available for deliberate later work.
 
+### Exact scoped CV writes
+
+Clients may opt into `workspaceId` and `expectedWorkspaceRevision` when editing/importing CVs
+or uploading their sources. The binding revision identifies the exact vehicle/group/profile and
+its physical installation/state. It stays stable across ordinary CV edits, so multiple rows can
+commit together. Assignment, removal or a changed group identity invalidate old confirmations.
+Direct scoped writes/imports also require the row's `expectedRevision`; manual batches use the
+existing enclosing change revision.
+
+The server resolves the group inside the write transaction. The submitted profile must match its
+trimmed label, while the stored profile retains its exact original text. Legacy `"A"` and `" A "`
+therefore remain separate even in one batch/import. Mixed scoped/unscoped aliases to the same
+actual CV identity are rejected before any writes. Confirmations are not mutated during import.
+Requests without the optional scope keep their existing trimmed-profile semantics.
+
+Scoped source uploads retain the selected group instead of inferring another profile from a
+filename. Rejected uploads clean up newly unreferenced blobs. Import comparison overhead includes
+both row and binding revisions, while the original 8 MiB business-data budget remains unchanged.
+
 Ordinary writes do not create hidden full snapshots. Existing immutable evidence remains unchanged;
 recording a checkpoint and confirming an installation are separate commands. Restoring an existing
 workspace preserves its metadata and snapshots; older backups still receive legacy adoption.

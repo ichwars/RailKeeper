@@ -2868,7 +2868,7 @@ components:
             $ref: "#/components/schemas/ArticleSearchResult"
     VehicleCVValueInput:
       allOf:
-        - $ref: '#/components/schemas/VehicleCVFields'
+        - $ref: '#/components/schemas/VehicleCVWriteFields'
         - type: object
           properties:
             expectedRevision:
@@ -2876,6 +2876,22 @@ components:
               pattern: '^([0-9a-f]{64})?$'
               writeOnly: true
               description: Optional concurrency check for legacy create/update/import. Empty requires the target identity to be absent; omitted keeps legacy behavior.
+    VehicleCVWriteFields:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/VehicleCVFields'
+      dependentRequired:
+        workspaceId: [expectedWorkspaceRevision]
+        expectedWorkspaceRevision: [workspaceId]
+      properties:
+        workspaceId:
+          type: string
+          minLength: 1
+          description: Optional exact working group in this vehicle. The supplied profile must match its trimmed label; the persisted profile remains unchanged, including legacy whitespace. Scoped direct writes/imports also require expectedRevision; batches use the enclosing change revision.
+        expectedWorkspaceRevision:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: The selected workspace bindingRevision. Rejects a changed profile or hardware installation/state without treating ordinary CV edits in the same batch as binding changes.
     VehicleCVFields:
       type: object
       required: [cvNumber, value]
@@ -2955,7 +2971,7 @@ components:
         id: {type: string, maxLength: 80}
         expectedRevision: {type: string, pattern: '^([0-9a-f]{64})?$'}
         delete: {type: boolean}
-        value: {$ref: '#/components/schemas/VehicleCVFields'}
+        value: {$ref: '#/components/schemas/VehicleCVWriteFields'}
     VehicleCVChangesInput:
       type: object
       additionalProperties: false
@@ -2996,7 +3012,7 @@ components:
         updatedAt: {type: string, format: date-time}
     DecoderCVWorkspace:
       type: object
-      required: [id, vehicleId, profile, origin, installationId, createdAt, updatedAt, valueCount, sourceCount, contentRevision]
+      required: [id, vehicleId, profile, origin, installationId, createdAt, updatedAt, valueCount, sourceCount, contentRevision, bindingRevision]
       properties:
         id: {type: string}
         vehicleId: {type: string}
@@ -3008,6 +3024,7 @@ components:
         valueCount: {type: integer, minimum: 0}
         sourceCount: {type: integer, minimum: 0}
         contentRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        bindingRevision: {type: string, pattern: '^[0-9a-f]{64}$', description: Exact working identity and physical installation/state. Stable across ordinary CV edits.}
     DecoderCVSnapshotSummary:
       type: object
       required: [id, workspaceId, vehicleReferenceId, vehicleName, vehicleInventoryNumber, profile, installationId, kind, scope, note, recordedAt, valueCount]
@@ -12159,6 +12176,23 @@ paths:
     post:
       tags: [Vehicles]
       summary: Upload a decoder CV file for a vehicle
+      description: Editor or Admin and CSRF required. Optional workspaceId and expectedWorkspaceRevision retain the exact selected group and reject a changed physical binding. Without a scope, existing profile/metadata inference remains unchanged. A selected scope overrides filename-derived profile suggestions.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              dependentRequired:
+                workspaceId: [expectedWorkspaceRevision]
+                expectedWorkspaceRevision: [workspaceId]
+              properties:
+                file: {type: string, format: binary}
+                decoderProfile: {type: string}
+                description: {type: string}
+                workspaceId: {type: string, minLength: 1}
+                expectedWorkspaceRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
       parameters:
         - name: id
           in: path
@@ -12172,6 +12206,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VehicleCVFile"
+        "400": {description: Invalid file, working group or profile}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle not found}
+        "409": {description: Working group binding changed before confirmation}
   /vehicles/{id}/cv-files/{cvFileID}:
     delete:
       tags: [Vehicles]

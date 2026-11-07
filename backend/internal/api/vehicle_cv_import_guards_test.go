@@ -75,7 +75,8 @@ func TestCVImportRevisionGuardsRollbackAndRejectReplay(t *testing.T) {
 
 func TestCVImportDataBudgetExcludesOnlyComparisonVersions(t *testing.T) {
 	plain := `{"cvNumber":1,"value":3,"description":"<>&` + string(rune(0x2028)) + `"}`
-	for _, key := range []string{"expectedRevision", "ExpectedRevision", `\u0065xpectedRevision`} {
+	for _, key := range []string{"expectedRevision", "ExpectedRevision", `\u0065xpectedRevision`,
+		"expectedWorkspaceRevision", "ExpectedWorkspaceRevision", `\u0065xpectedWorkspaceRevision`} {
 		guarded := strings.TrimSuffix(plain, "}") + `,"` + key + `":"` + strings.Repeat("a", 64) + `"}`
 		size, err := cvImportDataSize([]json.RawMessage{json.RawMessage(guarded)})
 		if err != nil || size != len(`{"values":[]}`)+len(plain) {

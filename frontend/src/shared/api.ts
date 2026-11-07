@@ -1349,11 +1349,14 @@ export const api = {
     request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}`, {
       method: "DELETE"
     }),
-  uploadVehicleCVFile: (vehicleId: string, file: File, decoderProfile = "", description = "") => {
+  uploadVehicleCVFile: (vehicleId: string, file: File, decoderProfile = "", description = "",
+    workspaceId?: string, expectedWorkspaceRevision?: string) => {
     const form = new FormData();
     form.append("file", file);
     form.append("decoderProfile", decoderProfile);
     form.append("description", description);
+    if (workspaceId !== undefined) form.append("workspaceId", workspaceId);
+    if (expectedWorkspaceRevision !== undefined) form.append("expectedWorkspaceRevision", expectedWorkspaceRevision);
     return request<VehicleCVFile>(
       `/vehicles/${encodeURIComponent(vehicleId)}/cv-files`,
       {

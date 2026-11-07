@@ -79,6 +79,12 @@ request identity on retries. After HTTP 409, reload and review; never generate a
 identity and replay automatically. A checkpoint contains saved CVs and excludes open browser
 drafts. Earlier snapshots retain their original hardware descriptions and vehicle identities.
 
+CV writers and source uploads can select an exact working group with `workspaceId` and its
+`bindingRevision` as `expectedWorkspaceRevision`. Keep the existing per-row comparison as well.
+The server preserves the group's original profile text, including legacy whitespace, and rejects
+a changed hardware association/state. Requests without this optional scope keep their existing
+profile-cleaning semantics. Source uploads use the same pair as multipart fields.
+
 ## Preserve the boundaries
 
 Roles and protections are enforced by the server. Device data starts as read-only suggestions; writes require an explicitly confirmed preview. CV values remain separate from their meaning: library rules interpret raw data only with documented model, firmware and index context.

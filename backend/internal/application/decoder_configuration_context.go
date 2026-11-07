@@ -76,6 +76,11 @@ FROM decoder_cv_workspaces WHERE vehicle_id=? ORDER BY id`, []any{vehicleID}, fu
 		if err := decoderWorkspaceContentTx(ctx, tx, &result.Workspaces[index]); err != nil {
 			return nil, err
 		}
+		_, revision, err := readCVWorkspaceBindingTx(ctx, tx, vehicleID, result.Workspaces[index].ID)
+		if err != nil {
+			return nil, err
+		}
+		result.Workspaces[index].BindingRevision = revision
 	}
 	snapshots, err := readDecoderSnapshotSummaries(ctx, tx, vehicleID)
 	if err != nil {

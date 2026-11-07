@@ -215,6 +215,11 @@ func (s *VehicleService) CreateCVFile(ctx context.Context, vehicleID string, inp
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback() }()
+	profile, err := resolveCVWorkspaceProfileTx(ctx, tx, vehicleID, input.WorkspaceID, input.ExpectedWorkspaceRevision, input.DecoderProfile)
+	if err != nil {
+		return nil, err
+	}
+	input.DecoderProfile = profile
 	now := time.Now().UTC().Format(time.RFC3339)
 	file := VehicleCVFile{
 		ID:             randomID(),

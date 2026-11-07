@@ -82,6 +82,12 @@ behalten beim Wiederholen ihre Anforderungs-ID. Nach HTTP 409 neu laden und prü
 Kennung erzeugen und automatisch erneut senden. Ein Teilstand enthält gespeicherte CVs und keine
 offenen Browserentwürfe. Frühere Teilstände behalten Hardwarebeschreibung und Fahrzeugzuordnung.
 
+CV-Schreiber und Quelldatei-Uploads können mit `workspaceId` und deren `bindingRevision` als
+`expectedWorkspaceRevision` eine exakte Arbeitsgruppe wählen. Der bisherige Zeilenvergleich bleibt
+ebenfalls erforderlich. Der Server erhält den ursprünglichen Profiltext einschließlich alter
+Leerzeichen und weist geänderte Hardwarezuordnungen/-zustände ab. Aufrufe ohne diesen optionalen
+Kontext behalten ihre bisherige Profilbereinigung. Uploads verwenden dasselbe Paar als Formularfelder.
+
 ## Grenzen erhalten
 
 Rollen und Schutzmaßnahmen werden serverseitig geprüft. Gerätedaten beginnen als lesende Vorschläge; Schreibvorgänge benötigen eine bewusst bestätigte Vorschau. CV-Werte bleiben von ihrer Bedeutung getrennt: Bibliotheksregeln erklären Rohdaten nur bei belegtem Modell-, Firmware- und Indexkontext.
