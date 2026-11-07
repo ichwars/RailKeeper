@@ -4,6 +4,11 @@ The baseline protects existing RailKeeper data and workflows during incremental 
 new synthetic installations. It never accepts a production URL, an existing data directory, or a private backup.
 Go and frontend tests remain required; this baseline adds process, restore and browser checks.
 
+On the managed `codex-dev` host, start a complete test command with `codex-test-tmp run --`.
+Temporary copies and browser profiles use its `TMPDIR` on the data disk and are removed afterwards.
+Retain reports and other required evidence in the project's ignored `output/` directory before cleanup.
+Other hosts use their own temporary-directory configuration; this launcher is not a RailKeeper dependency.
+
 ## Feature matrix
 
 `tools/regression/matrix.py` inventories all registered HTTP methods, paths and access declarations.
@@ -132,12 +137,9 @@ This is a cold restore exercise, not a tool for live production backups.
 Without `--previous-binary`, the process check is a restart/restore test. An actual upgrade additionally requires
 a different previous application and its matching migration/seed directory:
 
-```sh
-python3 tools/regression/run_baseline.py --binary output/regression/railkeeper \
-  --previous-binary output/regression/railkeeper-v0.1.22 \
-  --previous-backend /tmp/railkeeper-stage0-previous/backend \
-  --browser --output output/regression-upgrade
-```
+The [complete upgrade command](modernization-rollout.md#einen-eindeutigen-kandidaten-qualifizieren)
+builds the previous application separately and retains its matching migrations for the whole test run.
+It places temporary sources under `TMPDIR` and writes lasting evidence into the project.
 
 The baseline release source is pinned to `debfad6198299052f07220883c1476581be691cc` (v0.1.22).
 The previous binary is built from that revision separately; the current checkout is not reset.

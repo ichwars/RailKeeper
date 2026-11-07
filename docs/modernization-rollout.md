@@ -19,12 +19,14 @@ Dateninhalte, IDs, Beziehungen, CV-Indexseiten, Herkunft, Historien und Datei-Pr
 SQLite-Integrität und Fremdschlüssel werden zusätzlich geprüft. Der aktuelle Referenzlauf
 kann die getrennten Katalog- und Decoderübernahmen einschließen:
 
-Aus dem Repository mit installiertem Go, Node und den
-[Browser-Voraussetzungen](testing-baseline.md#synthetic-reference-collection-and-process-checks):
+Auf `codex-dev` aus dem Repository mit installiertem Go, Node und den
+[Browser-Voraussetzungen](testing-baseline.md#synthetic-reference-collection-and-process-checks).
+Der Starter legt temporäre Quellen und Browserprofile über `TMPDIR` auf der Datenplatte
+ab und räumt sie nach dem Lauf auf. Berichte und Programme bleiben unter `output/` erhalten:
 
 ```bash
-set -euo pipefail
-rk_previous_source="$(mktemp -d /tmp/railkeeper-modernization-source.XXXXXX)"
+codex-test-tmp run -- bash -euo pipefail <<'RK_TEST'
+rk_previous_source="$(mktemp -d "$TMPDIR/railkeeper-modernization-source.XXXXXX")"
 git archive debfad6198299052f07220883c1476581be691cc backend | tar -x -C "$rk_previous_source"
 mkdir -p output/regression
 go -C "$rk_previous_source/backend" build -o "$PWD/output/regression/railkeeper-v0.1.22" ./cmd/railkeeper
@@ -37,7 +39,12 @@ python3 tools/regression/run_baseline.py \
   --catalog-backfill --catalog-authority --catalog-writes \
   --decoder-model --decoder-backfill \
   --browser --output output/regression-modernization
+RK_TEST
 ```
+
+Auf anderen Hosts gilt deren eigene Temp-Konfiguration. Der innere Bash-Block benötigt
+ein gesetztes `TMPDIR` auf einem geeigneten Datenträger; der lokale Starter wird nicht
+als Bestandteil von RailKeeper oder automatisch auf Windows installiert.
 
 Die Pfade müssen auf die separat gebauten, geprüften Programme und deren zugehörige
 Migrationen zeigen. Der Ausgabeordner muss neu sein. Der bestehende Runner nimmt keine
