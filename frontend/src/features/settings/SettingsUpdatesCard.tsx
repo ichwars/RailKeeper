@@ -19,6 +19,7 @@ export function SettingsUpdatesCard({ preferences, general }: { preferences: Set
     return t("settings.updates.status.local");
   };
   const localizedStatusMessage = (message: string) => {
+    if (message === "Lokale RailKeeper-Version gelesen.") return t("settings.updates.message.local");
     if (message.includes("Windows-Systemdrucker")) return t("settings.printer.messageLoaded");
     if (message.includes("Keine Release-Information")) return t("settings.updates.message.noRelease");
     if (message.includes("RailKeeper ist aktuell")) return t("settings.updates.message.current");

@@ -294,6 +294,7 @@ export const deTranslations: Record<string, string> = {
     "settings.updates.status.local": "lokal",
     "settings.updates.status.noRelease": "kein Release",
     "settings.updates.status.offline": "offline",
+    "settings.updates.message.local": "Lokale RailKeeper-Version gelesen.",
     "settings.updates.message.noRelease": "Keine Release-Information verfügbar.",
     "settings.updates.message.current": "RailKeeper ist aktuell.",
     "settings.updates.message.reachable": "RailKeeper ist erreichbar. Aktuelle Version: {version}.",
