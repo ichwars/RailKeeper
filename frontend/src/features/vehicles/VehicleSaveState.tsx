@@ -8,9 +8,10 @@ type Props = {
   saved: VehicleSavedAction | null;
   conflicts: DraftRefreshConflict[];
   onResolve: (choice: "draft" | "saved") => void;
+  scope?: "vehicle" | "set";
 };
 
-export function VehicleSaveState({ tab, saved, conflicts, onResolve }: Props) {
+export function VehicleSaveState({ tab, saved, conflicts, onResolve, scope = "vehicle" }: Props) {
   const { t } = useI18n();
   const timing = tab === "speedCurve" ? "read" : tab === "uploads" ? "media" : tab === "cv" ? "cv"
     : tab === "maintenance" || tab === "spareParts" ? "side" : "draft";
@@ -18,7 +19,7 @@ export function VehicleSaveState({ tab, saved, conflicts, onResolve }: Props) {
     : value === undefined || value === null || value === "" ? t("vehicles.saveState.empty") : String(value);
   return (
     <aside className="vehicle-save-state" aria-label={t("vehicles.saveState.title")}>
-      <p>{t(`vehicles.saveState.${timing}`)}</p>
+      <p>{t(scope === "set" ? `vehicles.set.saveState.${timing}` : `vehicles.saveState.${timing}`)}</p>
       {saved && <p className="vehicle-save-result" role="status">
         {t("vehicles.saveState.saved", { area: t(`vehicles.saveState.area.${saved}`) })}
       </p>}

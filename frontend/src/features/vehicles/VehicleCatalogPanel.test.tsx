@@ -147,7 +147,7 @@ describe("article revision comparison", () => {
     await open();
     await userEvent.click(screen.getByRole("button", { name: "Neue Revision entwerfen" }));
     await userEvent.click(screen.getByRole("button", { name: "Revision erstellen und Auswahl speichern" }));
-    await screen.findByText("Der Artikelstand ist gespeichert. Die Fahrzeugansicht konnte noch nicht aktualisiert werden.");
+    await screen.findByText("Der Artikelstand ist gespeichert. Die Bestandsansicht konnte noch nicht aktualisiert werden.");
     await userEvent.click(screen.getByRole("button", { name: "Gespeicherte Ansicht erneut laden" }));
     await waitFor(() => expect(saved).toHaveBeenCalledTimes(2));
     expect(create).toHaveBeenCalledOnce();

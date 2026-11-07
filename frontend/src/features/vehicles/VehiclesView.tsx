@@ -701,7 +701,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     t
   });
   const {
-    selectedVehicleSetID, vehicleSetMode, createPrefill, setCreatePrefill,
+    selectedVehicleSetID, vehicleSetMode, createPrefill, setCreatePrefill, vehicleSetSessionKey, captureVehicleSetScope,
     submitVehicleSet, closeVehicleSetDialog, openVehicleSet, duplicateVehicleSet,
     closeVehicleCreateDialog, duplicateVehicleSetByID, handleVehicleSetUpdated, handleVehicleSetImageChanged, openSetMember
   } = useVehicleSetController({
@@ -830,7 +830,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             targetType="vehicle" targetId={selected.id} targetName={selected.name}
             savedFields={catalogFieldsFrom(selected)} readonly={readonly || !canEditVehicleSets} busy={saving}
             captureScope={() => captureScope(sessionKey)}
-            onSaved={() => refreshSelectedVehicle(selected.id, "catalog", true)} /> : undefined}
+            onSaved={confirmed => refreshSelectedVehicle(selected.id, confirmed ? "catalog" : undefined, true)} /> : undefined}
           mediaDialogs={<>
             {mediaUploads.batch && <VehicleMediaUploadDialog batch={mediaUploads.batch}
               onClose={mediaUploads.commands.close} onConfirm={() => void mediaUploads.commands.confirm()}
@@ -1056,7 +1056,9 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       )}
 		{vehicleSetMode === "view" && selectedVehicleSetID && (
 			<VehicleSetSummaryDialog
+				key={`${vehicleSetSessionKey}:${selectedVehicleSetID}`}
 				setId={selectedVehicleSetID}
+				captureScope={() => captureVehicleSetScope(vehicleSetSessionKey)}
 				canEdit={canEditVehicleSets}
 				onClose={closeVehicleSetDialog}
 				onUpdated={() => undefined}
@@ -1067,11 +1069,14 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 		)}
 		{vehicleSetMode === "edit" && selectedVehicleSetID && canEditVehicleSets && (
 			<VehicleSetEditorDialog
+				key={`${vehicleSetSessionKey}:${selectedVehicleSetID}`}
 				setId={selectedVehicleSetID}
+				captureScope={() => captureVehicleSetScope(vehicleSetSessionKey)}
 				options={options}
 				onClose={closeVehicleSetDialog}
 				onUpdated={handleVehicleSetUpdated}
 				onImageChanged={handleVehicleSetImageChanged}
+				onCatalogChanged={handleVehicleSetImageChanged}
 			/>
 		)}
       {articleSearchOpen && mode !== "create" && (
