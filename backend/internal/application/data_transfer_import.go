@@ -15,15 +15,17 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"railkeeper/backend/internal/transfer"
 )
 
 const DataTransferMaxUploadBytes int64 = 25 * 1024 * 1024
 
-const DataTransferTargetFingerprintVersion = 2
+const DataTransferTargetFingerprintVersion = transfer.DataTransferTargetFingerprintVersion
 
 var (
-	ErrDataTransferUploadTooLarge = errors.New("data transfer upload exceeds the size limit")
-	ErrDataTransferUploadPath     = errors.New("data transfer upload path is not confined")
+	ErrDataTransferUploadTooLarge = transfer.ErrDataTransferUploadTooLarge
+	ErrDataTransferUploadPath     = transfer.ErrDataTransferUploadPath
 )
 
 type DataTransferPreview struct {
@@ -39,54 +41,14 @@ type DataTransferPreview struct {
 	VehicleSets    []DataTransferVehicleSetPreview `json:"vehicleSets,omitempty"`
 }
 
-type DataTransferPreviewRecord struct {
-	Area              TransferArea    `json:"area"`
-	RecordKey         string          `json:"recordKey"`
-	RowNumber         *int            `json:"rowNumber,omitempty"`
-	Classification    string          `json:"classification"`
-	ProposedAction    string          `json:"proposedAction"`
-	TargetID          string          `json:"targetId,omitempty"`
-	TargetUpdatedAt   string          `json:"targetUpdatedAt,omitempty"`
-	TargetFingerprint string          `json:"targetFingerprint,omitempty"`
-	Data              json.RawMessage `json:"data"`
-}
+type DataTransferPreviewRecord = transfer.DataTransferPreviewRecord
 
 func DataTransferTargetFingerprint(value any) string {
-	return DataTransferTargetFingerprintForVersion(value, DataTransferTargetFingerprintVersion)
+	return transfer.DataTransferTargetFingerprint(value)
 }
 
 func DataTransferTargetFingerprintForVersion(value any, version int) string {
-	fingerprintValue := value
-	switch accessory := value.(type) {
-	case TransferAccessory:
-		fingerprintValue = struct {
-			TransferAccessory
-			FingerprintState TransferAccessoryFingerprintState `json:"fingerprintState"`
-		}{TransferAccessory: accessory, FingerprintState: accessory.FingerprintState}
-	case *TransferAccessory:
-		if accessory != nil {
-			fingerprintValue = struct {
-				TransferAccessory
-				FingerprintState TransferAccessoryFingerprintState `json:"fingerprintState"`
-			}{TransferAccessory: *accessory, FingerprintState: accessory.FingerprintState}
-		}
-	}
-	if version < DataTransferTargetFingerprintVersion {
-		switch vehicle := value.(type) {
-		case TransferVehicle:
-			fingerprintValue = legacyTransferVehicle(vehicle)
-		case *TransferVehicle:
-			if vehicle != nil {
-				fingerprintValue = legacyTransferVehicle(*vehicle)
-			}
-		}
-	}
-	payload, err := json.Marshal(fingerprintValue)
-	if err != nil {
-		return ""
-	}
-	digest := sha256.Sum256(payload)
-	return hex.EncodeToString(digest[:])
+	return transfer.DataTransferTargetFingerprintForVersion(value, version)
 }
 
 type dataTransferImportRepository interface {

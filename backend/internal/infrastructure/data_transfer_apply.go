@@ -11,15 +11,16 @@ import (
 
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/domain"
+	"railkeeper/backend/internal/transfer"
 )
 
 type dataTransferPersistedPreview struct {
-	SourceSHA256       string                                      `json:"sourceSha256"`
-	FingerprintVersion int                                         `json:"fingerprintVersion,omitempty"`
-	Records            []application.DataTransferPreviewRecord     `json:"records"`
-	VehicleSets        []application.DataTransferVehicleSetPreview `json:"vehicleSets,omitempty"`
-	CSVMapping         []application.DataTransferCSVColumnMapping  `json:"csvMapping,omitempty"`
-	VehicleFields      []application.VehicleTransferField          `json:"vehicleFields,omitempty"`
+	SourceSHA256       string                                   `json:"sourceSha256"`
+	FingerprintVersion int                                      `json:"fingerprintVersion,omitempty"`
+	Records            []transfer.DataTransferPreviewRecord     `json:"records"`
+	VehicleSets        []transfer.DataTransferVehicleSetPreview `json:"vehicleSets,omitempty"`
+	CSVMapping         []transfer.DataTransferCSVColumnMapping  `json:"csvMapping,omitempty"`
+	VehicleFields      []application.VehicleTransferField       `json:"vehicleFields,omitempty"`
 }
 
 type dataTransferApplyDB interface {
@@ -42,19 +43,19 @@ type transferVehicleApplyResult struct {
 
 func (repository *DataTransferRepository) ApplyImport(
 	ctx context.Context,
-	job application.DataTransferJob,
+	job transfer.DataTransferJob,
 	actor string,
 ) error {
-	return repository.ApplyImportWithPolicy(ctx, job, actor, application.DataTransferImportPolicy{
+	return repository.ApplyImportWithPolicy(ctx, job, actor, transfer.DataTransferImportPolicy{
 		CanManageExhibitionLists: true,
 	})
 }
 
 func (repository *DataTransferRepository) ApplyImportWithPolicy(
 	ctx context.Context,
-	job application.DataTransferJob,
+	job transfer.DataTransferJob,
 	actor string,
-	policy application.DataTransferImportPolicy,
+	policy transfer.DataTransferImportPolicy,
 ) error {
 	tx, err := repository.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -78,9 +79,9 @@ func (repository *DataTransferRepository) ApplyImportWithPolicy(
 		return err
 	}
 	now := timestamp()
-	completedState := application.TransferJobCompleted
+	completedState := transfer.TransferJobCompleted
 	if job.WarningRecords > 0 || job.ErrorRecords > 0 || result.Skipped > 0 {
-		completedState = application.TransferJobCompletedWithWarnings
+		completedState = transfer.TransferJobCompletedWithWarnings
 	}
 	update, err := tx.ExecContext(ctx, `
 UPDATE data_transfer_jobs
@@ -88,7 +89,7 @@ SET state=?, stage='completed', confirmed_by_user_id=NULLIF(?, ''), confirmed_at
     result_message=?, revision=revision+1, updated_at=?
 WHERE id=? AND direction=? AND state=? AND revision=? AND source_sha256=?`, completedState, actor, now, now,
 		fmt.Sprintf("Imported %d record(s); skipped %d.", result.Applied, result.Skipped), now, job.ID,
-		application.TransferImport, application.TransferJobReady, job.Revision, job.SourceSHA256)
+		transfer.TransferImport, transfer.TransferJobReady, job.Revision, job.SourceSHA256)
 	if err != nil {
 		return fmt.Errorf("complete data transfer import: %w", err)
 	}
@@ -111,10 +112,10 @@ WHERE id=? AND direction=? AND state=? AND revision=? AND source_sha256=?`, comp
 func revalidateTransferPreview(
 	ctx context.Context,
 	tx *sql.Tx,
-	job application.DataTransferJob,
-) (dataTransferPersistedPreview, []application.DataTransferIssue, error) {
-	var direction application.TransferDirection
-	var state application.TransferJobState
+	job transfer.DataTransferJob,
+) (dataTransferPersistedPreview, []transfer.DataTransferIssue, error) {
+	var direction transfer.TransferDirection
+	var state transfer.TransferJobState
 	var revision, totalRecords int
 	var sourceSHA, previewJSON string
 	err := tx.QueryRowContext(ctx, `
@@ -128,7 +129,7 @@ FROM data_transfer_jobs WHERE id=?`, job.ID).Scan(
 	if err != nil {
 		return dataTransferPersistedPreview{}, nil, fmt.Errorf("load data transfer import for apply: %w", err)
 	}
-	if direction != application.TransferImport || state != application.TransferJobReady ||
+	if direction != transfer.TransferImport || state != transfer.TransferJobReady ||
 		revision != job.Revision || sourceSHA == "" || sourceSHA != job.SourceSHA256 {
 		return dataTransferPersistedPreview{}, nil, dataTransferApplyConflict("import preview is stale")
 	}
@@ -177,14 +178,14 @@ func transferApplyIssues(
 	ctx context.Context,
 	db dataTransferApplyDB,
 	jobID string,
-) ([]application.DataTransferIssue, error) {
+) ([]transfer.DataTransferIssue, error) {
 	rows, err := db.QueryContext(ctx, dataTransferIssueSelect+`
 WHERE job_id=? ORDER BY created_at, id`, jobID)
 	if err != nil {
 		return nil, fmt.Errorf("load data transfer issues for apply: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	issues := []application.DataTransferIssue{}
+	issues := []transfer.DataTransferIssue{}
 	for rows.Next() {
 		issue, err := scanDataTransferIssue(rows)
 		if err != nil {
@@ -224,47 +225,47 @@ func validTransferApplyResolution(code, resolution string) bool {
 func currentTransferTargetFingerprints(
 	ctx context.Context,
 	tx *sql.Tx,
-	records []application.DataTransferPreviewRecord,
+	records []transfer.DataTransferPreviewRecord,
 	fingerprintVersion int,
-) (map[application.TransferArea]map[string]string, error) {
-	wanted := map[application.TransferArea]bool{}
+) (map[transfer.TransferArea]map[string]string, error) {
+	wanted := map[transfer.TransferArea]bool{}
 	for _, record := range records {
 		if record.TargetID != "" {
 			wanted[record.Area] = true
 		}
 	}
-	fingerprints := map[application.TransferArea]map[string]string{}
-	if wanted[application.TransferVehicles] {
+	fingerprints := map[transfer.TransferArea]map[string]string{}
+	if wanted[transfer.TransferVehicles] {
 		vehicles, err := transferVehicleSnapshot(ctx, tx)
 		if err != nil {
 			return nil, err
 		}
-		fingerprints[application.TransferVehicles] = map[string]string{}
+		fingerprints[transfer.TransferVehicles] = map[string]string{}
 		for _, vehicle := range vehicles {
-			fingerprints[application.TransferVehicles][vehicle.ID] =
-				application.DataTransferTargetFingerprintForVersion(vehicle, fingerprintVersion)
+			fingerprints[transfer.TransferVehicles][vehicle.ID] =
+				transfer.DataTransferTargetFingerprintForVersion(vehicle, fingerprintVersion)
 		}
 	}
-	if wanted[application.TransferAccessories] {
+	if wanted[transfer.TransferAccessories] {
 		accessories, err := transferAccessorySnapshot(ctx, tx)
 		if err != nil {
 			return nil, err
 		}
-		fingerprints[application.TransferAccessories] = map[string]string{}
+		fingerprints[transfer.TransferAccessories] = map[string]string{}
 		for _, accessory := range accessories {
-			fingerprints[application.TransferAccessories][accessory.ID] =
-				application.DataTransferTargetFingerprintForVersion(accessory, fingerprintVersion)
+			fingerprints[transfer.TransferAccessories][accessory.ID] =
+				transfer.DataTransferTargetFingerprintForVersion(accessory, fingerprintVersion)
 		}
 	}
-	if wanted[application.TransferExhibitionLists] {
+	if wanted[transfer.TransferExhibitionLists] {
 		lists, err := transferExhibitionSnapshot(ctx, tx)
 		if err != nil {
 			return nil, err
 		}
-		fingerprints[application.TransferExhibitionLists] = map[string]string{}
+		fingerprints[transfer.TransferExhibitionLists] = map[string]string{}
 		for _, list := range lists {
-			fingerprints[application.TransferExhibitionLists][list.ID] =
-				application.DataTransferTargetFingerprintForVersion(list, fingerprintVersion)
+			fingerprints[transfer.TransferExhibitionLists][list.ID] =
+				transfer.DataTransferTargetFingerprintForVersion(list, fingerprintVersion)
 		}
 	}
 	return fingerprints, nil
@@ -273,24 +274,24 @@ func currentTransferTargetFingerprints(
 func applyTransferRecords(
 	ctx context.Context,
 	db *sql.Tx,
-	job application.DataTransferJob,
-	records []application.DataTransferPreviewRecord,
-	vehicleSets []application.DataTransferVehicleSetPreview,
-	csvMapping []application.DataTransferCSVColumnMapping,
-	issues []application.DataTransferIssue,
-	policy application.DataTransferImportPolicy,
+	job transfer.DataTransferJob,
+	records []transfer.DataTransferPreviewRecord,
+	vehicleSets []transfer.DataTransferVehicleSetPreview,
+	csvMapping []transfer.DataTransferCSVColumnMapping,
+	issues []transfer.DataTransferIssue,
+	policy transfer.DataTransferImportPolicy,
 ) (dataTransferApplyResult, error) {
 	_, memberPolicies, err := transferVehicleSetApplyPolicies(vehicleSets, issues)
 	if err != nil {
 		return dataTransferApplyResult{}, err
 	}
 	result := dataTransferApplyResult{Vehicles: map[string]transferVehicleApplyResult{}}
-	var csvVehicleTargets map[string]application.TransferVehicle
+	var csvVehicleTargets map[string]transfer.TransferVehicle
 	csvVehicleTargetsLoaded := false
 	for _, record := range records {
 		recordIssues := transferRecordIssues(issues, record)
 		action, skip := transferRecordAction(record, recordIssues)
-		if setPolicy, member := memberPolicies[record.RecordKey]; record.Area == application.TransferVehicles && member {
+		if setPolicy, member := memberPolicies[record.RecordKey]; record.Area == transfer.TransferVehicles && member {
 			switch setPolicy.Action {
 			case "skip":
 				skip = true
@@ -319,22 +320,22 @@ func applyTransferRecords(
 			result.Skipped++
 			continue
 		}
-		if record.Area == application.TransferExhibitionLists && !policy.CanManageExhibitionLists &&
+		if record.Area == transfer.TransferExhibitionLists && !policy.CanManageExhibitionLists &&
 			action != "merge" {
 			return dataTransferApplyResult{}, application.ErrDataTransferForbidden
 		}
 		var err error
 		switch record.Area {
-		case application.TransferVehicles:
-			var existingCSVVehicle *application.TransferVehicle
+		case transfer.TransferVehicles:
+			var existingCSVVehicle *transfer.TransferVehicle
 			if action == "replace" && len(csvMapping) > 0 &&
-				job.PackageVersion != application.DataTransferPackageLegacyVersion {
+				job.PackageVersion != transfer.DataTransferPackageLegacyVersion {
 				if !csvVehicleTargetsLoaded {
 					vehicles, snapshotErr := transferVehicleSnapshot(ctx, db)
 					if snapshotErr != nil {
 						return dataTransferApplyResult{}, snapshotErr
 					}
-					csvVehicleTargets = make(map[string]application.TransferVehicle, len(vehicles))
+					csvVehicleTargets = make(map[string]transfer.TransferVehicle, len(vehicles))
 					for _, vehicle := range vehicles {
 						csvVehicleTargets[vehicle.ID] = vehicle
 					}
@@ -354,9 +355,9 @@ func applyTransferRecords(
 				}
 				result.Vehicles[record.RecordKey] = vehicleResult
 			}
-		case application.TransferAccessories:
+		case transfer.TransferAccessories:
 			err = applyTransferAccessory(ctx, db, record, action)
-		case application.TransferExhibitionLists:
+		case transfer.TransferExhibitionLists:
 			err = applyTransferExhibitionList(ctx, db, record, action, recordIssues)
 		default:
 			err = dataTransferApplyConflict("preview contains an unsupported area")
@@ -373,10 +374,10 @@ func applyTransferRecords(
 }
 
 func transferRecordIssues(
-	issues []application.DataTransferIssue,
-	record application.DataTransferPreviewRecord,
-) []application.DataTransferIssue {
-	matched := []application.DataTransferIssue{}
+	issues []transfer.DataTransferIssue,
+	record transfer.DataTransferPreviewRecord,
+) []transfer.DataTransferIssue {
+	matched := []transfer.DataTransferIssue{}
 	for _, issue := range issues {
 		if issue.Area == record.Area && issue.RecordKey == record.RecordKey &&
 			transferRowNumbersEqual(issue.RowNumber, record.RowNumber) {
@@ -394,8 +395,8 @@ func transferRowNumbersEqual(left, right *int) bool {
 }
 
 func transferRecordAction(
-	record application.DataTransferPreviewRecord,
-	issues []application.DataTransferIssue,
+	record transfer.DataTransferPreviewRecord,
+	issues []transfer.DataTransferIssue,
 ) (string, bool) {
 	action := record.ProposedAction
 	for _, issue := range issues {
@@ -418,13 +419,13 @@ func transferRecordAction(
 func applyTransferVehicle(
 	ctx context.Context,
 	db *sql.Tx,
-	record application.DataTransferPreviewRecord,
+	record transfer.DataTransferPreviewRecord,
 	action string,
 	packageVersion int,
-	csvMapping []application.DataTransferCSVColumnMapping,
-	existingCSVVehicle *application.TransferVehicle,
+	csvMapping []transfer.DataTransferCSVColumnMapping,
+	existingCSVVehicle *transfer.TransferVehicle,
 ) (transferVehicleApplyResult, error) {
-	vehicle := application.TransferVehicle{}
+	vehicle := transfer.TransferVehicle{}
 	if err := json.Unmarshal(record.Data, &vehicle); err != nil {
 		return transferVehicleApplyResult{}, dataTransferApplyConflict("vehicle preview data is invalid")
 	}
@@ -467,7 +468,7 @@ INSERT INTO vehicles(
 		if record.TargetID == "" {
 			return transferVehicleApplyResult{}, dataTransferApplyConflict("vehicle replacement target is missing")
 		}
-		if packageVersion == application.DataTransferPackageLegacyVersion {
+		if packageVersion == transfer.DataTransferPackageLegacyVersion {
 			arguments := transferVehicleArguments(vehicle, now)
 			result, err := db.ExecContext(ctx, `
 UPDATE vehicles SET inventory_number=?, manufacturer=?, article_number=?, article_source_url=?, name=?, gauge=?,
@@ -522,7 +523,7 @@ WHERE id=?`, append(append(arguments[0:62], now), record.TargetID)...)
 	}
 }
 
-func transferVehicleArguments(vehicle application.TransferVehicle, now string) []any {
+func transferVehicleArguments(vehicle transfer.TransferVehicle, now string) []any {
 	return []any{
 		vehicle.InventoryNumber, vehicle.Manufacturer, vehicle.ArticleNumber, vehicle.ArticleSourceURL, vehicle.Name,
 		vehicle.Gauge, vehicle.Epoch, vehicle.RailwayCompany, vehicle.Category, vehicle.Gattung, vehicle.Description,
@@ -546,10 +547,10 @@ func transferVehicleArguments(vehicle application.TransferVehicle, now string) [
 func applyTransferAccessory(
 	ctx context.Context,
 	db *sql.Tx,
-	record application.DataTransferPreviewRecord,
+	record transfer.DataTransferPreviewRecord,
 	action string,
 ) error {
-	accessory := application.TransferAccessory{}
+	accessory := transfer.TransferAccessory{}
 	if err := json.Unmarshal(record.Data, &accessory); err != nil {
 		return dataTransferApplyConflict("accessory preview data is invalid")
 	}
@@ -716,7 +717,7 @@ func prepareTransferAccessoryStock(
 	db *sql.Tx,
 	productID string,
 	strategy domain.AccessoryInventoryStrategy,
-	stock []application.TransferAccessoryStock,
+	stock []transfer.TransferAccessoryStock,
 	now string,
 	validateReservations bool,
 ) ([]preparedTransferAccessoryStock, error) {
@@ -756,7 +757,7 @@ func matchingTransferAccessoryAsset(
 	ctx context.Context,
 	db dataTransferApplyDB,
 	productID string,
-	asset application.TransferAccessoryAsset,
+	asset transfer.TransferAccessoryAsset,
 ) (string, error) {
 	var id string
 	if asset.ID != "" {
@@ -788,7 +789,7 @@ func updateTransferAccessoryAsset(
 	ctx context.Context,
 	db dataTransferApplyDB,
 	assetID string,
-	asset application.TransferAccessoryAsset,
+	asset transfer.TransferAccessoryAsset,
 	locationID string,
 	now string,
 ) error {
@@ -860,11 +861,11 @@ INSERT INTO storage_locations(id, name, created_at, updated_at) VALUES(?, ?, ?, 
 func applyTransferExhibitionList(
 	ctx context.Context,
 	db dataTransferApplyDB,
-	record application.DataTransferPreviewRecord,
+	record transfer.DataTransferPreviewRecord,
 	action string,
-	issues []application.DataTransferIssue,
+	issues []transfer.DataTransferIssue,
 ) error {
-	list := application.TransferExhibitionList{}
+	list := transfer.TransferExhibitionList{}
 	if err := json.Unmarshal(record.Data, &list); err != nil {
 		return dataTransferApplyConflict("exhibition preview data is invalid")
 	}
@@ -950,7 +951,7 @@ func mergeTransferExhibitionEntry(
 	ctx context.Context,
 	db dataTransferApplyDB,
 	listID string,
-	entry application.TransferExhibitionEntry,
+	entry transfer.TransferExhibitionEntry,
 	vehicleID string,
 	now string,
 ) (bool, error) {
@@ -990,7 +991,7 @@ WHERE id=? AND list_id=?`, vehicleID, entry.Owner, entry.ImageURL, entry.Locomot
 	return true, nil
 }
 
-func normalizeTransferExhibitionList(list *application.TransferExhibitionList) {
+func normalizeTransferExhibitionList(list *transfer.TransferExhibitionList) {
 	if strings.TrimSpace(list.EndDate) == "" {
 		list.EndDate = list.Date
 	}
@@ -1004,7 +1005,7 @@ func normalizeTransferExhibitionList(list *application.TransferExhibitionList) {
 		list.Status == application.ExhibitionStatusRunning
 }
 
-func normalizeTransferExhibitionEntry(entry *application.TransferExhibitionEntry) {
+func normalizeTransferExhibitionEntry(entry *transfer.TransferExhibitionEntry) {
 	if strings.TrimSpace(entry.InterfaceName) == "" {
 		entry.InterfaceName = entry.Adapter
 	}
@@ -1016,8 +1017,8 @@ func normalizeTransferExhibitionEntry(entry *application.TransferExhibitionEntry
 func resolveTransferExhibitionVehicle(
 	ctx context.Context,
 	db dataTransferApplyDB,
-	entry application.TransferExhibitionEntry,
-	issues []application.DataTransferIssue,
+	entry transfer.TransferExhibitionEntry,
+	issues []transfer.DataTransferIssue,
 	entryIndex int,
 ) (string, error) {
 	if entry.VehicleID == "" && entry.VehicleInventoryNumber == "" {
@@ -1035,7 +1036,7 @@ func resolveTransferExhibitionVehicle(
 			return "", err
 		}
 	}
-	var issue *application.DataTransferIssue
+	var issue *transfer.DataTransferIssue
 	field := fmt.Sprintf("entries[%d].vehicleReference", entryIndex)
 	for index := range issues {
 		if issues[index].Field == field && (issues[index].Code == "exhibition_vehicle_reference" ||
@@ -1119,7 +1120,7 @@ func requireApplyUpdate(result sql.Result, operation string) error {
 func writeTransferAudit(
 	ctx context.Context,
 	db dataTransferApplyDB,
-	job application.DataTransferJob,
+	job transfer.DataTransferJob,
 	actor string,
 	createdAt string,
 	result dataTransferApplyResult,

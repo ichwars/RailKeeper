@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	"railkeeper/backend/internal/domain"
 )
 
 var (
@@ -205,30 +207,7 @@ type VehicleSetImageInput struct {
 	ThumbnailBlobID string
 }
 
-type VehicleSetInput struct {
-	Name             string `json:"name"`
-	Manufacturer     string `json:"manufacturer"`
-	ArticleNumber    string `json:"articleNumber"`
-	ArticleSourceURL string `json:"articleSourceUrl"`
-	Gauge            string `json:"gauge"`
-	Epoch            string `json:"epoch"`
-	RailwayCompany   string `json:"railwayCompany"`
-	Category         string `json:"category"`
-	Gattung          string `json:"gattung"`
-	Description      string `json:"description"`
-	EAN              string `json:"ean"`
-	ProductionPeriod string `json:"productionPeriod"`
-	ListPrice        string `json:"listPrice"`
-	AcquisitionType  string `json:"acquisitionType"`
-	AcquiredFrom     string `json:"acquiredFrom"`
-	PurchasePrice    string `json:"purchasePrice"`
-	PurchaseDate     string `json:"purchaseDate"`
-	StorageLocation  string `json:"storageLocation"`
-	StorageDetails   string `json:"storageDetails"`
-	Condition        string `json:"condition"`
-	ConditionDetails string `json:"conditionDetails"`
-	Packaging        string `json:"packaging"`
-}
+type VehicleSetInput = domain.VehicleSetInput
 
 type CreateVehicleSetInput struct {
 	CreationID string               `json:"creationId,omitempty"`

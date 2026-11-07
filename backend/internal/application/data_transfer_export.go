@@ -18,15 +18,17 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"railkeeper/backend/internal/transfer"
 )
 
 var (
-	ErrDataTransferArtifactPath      = errors.New("data transfer artifact path is not confined")
-	ErrDataTransferForbidden         = errors.New("data transfer area is forbidden")
-	ErrDataTransferArtifactDeleted   = errors.New("data transfer artifact was deleted")
-	ErrDataTransferConflict          = errors.New("data transfer state conflict")
-	ErrDataTransferOpenUnavailable   = errors.New("opening the data transfer export folder is unavailable")
-	ErrDataTransferExportUnavailable = errors.New("data transfer export repository is unavailable")
+	ErrDataTransferArtifactPath      = transfer.ErrDataTransferArtifactPath
+	ErrDataTransferForbidden         = transfer.ErrDataTransferForbidden
+	ErrDataTransferArtifactDeleted   = transfer.ErrDataTransferArtifactDeleted
+	ErrDataTransferConflict          = transfer.ErrDataTransferConflict
+	ErrDataTransferOpenUnavailable   = transfer.ErrDataTransferOpenUnavailable
+	ErrDataTransferExportUnavailable = transfer.ErrDataTransferExportUnavailable
 )
 
 type DataTransferExportResult struct {

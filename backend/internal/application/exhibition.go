@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/domain"
 )
 
 var (
@@ -17,15 +19,15 @@ var (
 	ErrExhibitionConflicts  = errors.New("exhibition has unresolved conflicts")
 )
 
-type ExhibitionStatus string
+type ExhibitionStatus = domain.ExhibitionStatus
 
 const (
-	ExhibitionStatusDraft     ExhibitionStatus = "draft"
-	ExhibitionStatusOpen      ExhibitionStatus = "open"
-	ExhibitionStatusLocked    ExhibitionStatus = "locked"
-	ExhibitionStatusRunning   ExhibitionStatus = "running"
-	ExhibitionStatusCompleted ExhibitionStatus = "completed"
-	ExhibitionStatusArchived  ExhibitionStatus = "archived"
+	ExhibitionStatusDraft     = domain.ExhibitionStatusDraft
+	ExhibitionStatusOpen      = domain.ExhibitionStatusOpen
+	ExhibitionStatusLocked    = domain.ExhibitionStatusLocked
+	ExhibitionStatusRunning   = domain.ExhibitionStatusRunning
+	ExhibitionStatusCompleted = domain.ExhibitionStatusCompleted
+	ExhibitionStatusArchived  = domain.ExhibitionStatusArchived
 )
 
 type ExhibitionService struct {

@@ -1,14 +1,14 @@
 package infrastructure
 
 import (
-	"context"
+"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
-	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/transfer"
 )
 
 type DataTransferRepository struct {
@@ -21,18 +21,18 @@ func NewDataTransferRepository(db *sql.DB) *DataTransferRepository {
 
 func (repository *DataTransferRepository) CreateProfile(
 	ctx context.Context,
-	profile application.DataTransferProfile,
-) (application.DataTransferProfile, error) {
+	profile transfer.DataTransferProfile,
+) (transfer.DataTransferProfile, error) {
 	areas, err := encodeTransferAreas(profile.Areas)
 	if err != nil {
-		return application.DataTransferProfile{}, err
+		return transfer.DataTransferProfile{}, err
 	}
 	options, err := encodeTransferOptions(profile.Options)
 	if err != nil {
-		return application.DataTransferProfile{}, err
+		return transfer.DataTransferProfile{}, err
 	}
 	now := timestamp()
-	nameKey := application.DataTransferProfileNameKey(profile.Name)
+	nameKey := transfer.DataTransferProfileNameKey(profile.Name)
 	profile.ID = randomID()
 	profile.CreatedAt = now
 	profile.UpdatedAt = now
@@ -46,34 +46,34 @@ INSERT INTO data_transfer_profiles(
 		profile.CreatedByUserID, profile.LastUsedAt, now, now)
 	if err != nil {
 		if isDataTransferProfileNameConflict(err) {
-			return application.DataTransferProfile{}, application.ErrDataTransferConflict
+			return transfer.DataTransferProfile{}, transfer.ErrDataTransferConflict
 		}
-		return application.DataTransferProfile{}, fmt.Errorf("create transfer profile: %w", err)
+		return transfer.DataTransferProfile{}, fmt.Errorf("create transfer profile: %w", err)
 	}
 	created, err := result.RowsAffected()
 	if err != nil {
-		return application.DataTransferProfile{}, fmt.Errorf("read create transfer profile result: %w", err)
+		return transfer.DataTransferProfile{}, fmt.Errorf("read create transfer profile result: %w", err)
 	}
 	if created == 0 {
-		return application.DataTransferProfile{}, application.ErrDataTransferConflict
+		return transfer.DataTransferProfile{}, transfer.ErrDataTransferConflict
 	}
 	return repository.GetProfile(ctx, profile.ID)
 }
 
 func (repository *DataTransferRepository) UpdateProfile(
 	ctx context.Context,
-	profile application.DataTransferProfile,
-) (application.DataTransferProfile, error) {
+	profile transfer.DataTransferProfile,
+) (transfer.DataTransferProfile, error) {
 	areas, err := encodeTransferAreas(profile.Areas)
 	if err != nil {
-		return application.DataTransferProfile{}, err
+		return transfer.DataTransferProfile{}, err
 	}
 	options, err := encodeTransferOptions(profile.Options)
 	if err != nil {
-		return application.DataTransferProfile{}, err
+		return transfer.DataTransferProfile{}, err
 	}
 	enabled := boolToInt(profile.Enabled)
-	nameKey := application.DataTransferProfileNameKey(profile.Name)
+	nameKey := transfer.DataTransferProfileNameKey(profile.Name)
 	result, err := repository.db.ExecContext(ctx, `
 UPDATE data_transfer_profiles
 SET name=?, name_key=?, direction=?, format=?, areas_json=?, options_json=?, enabled=?, last_used_at=NULLIF(?, ''),
@@ -82,24 +82,24 @@ WHERE id=?`, profile.Name, nameKey, profile.Direction, profile.Format, areas, op
 		profile.LastUsedAt, timestamp(), profile.ID)
 	if err != nil {
 		if isDataTransferProfileNameConflict(err) {
-			return application.DataTransferProfile{}, application.ErrDataTransferConflict
+			return transfer.DataTransferProfile{}, transfer.ErrDataTransferConflict
 		}
-		return application.DataTransferProfile{}, fmt.Errorf("update transfer profile: %w", err)
+		return transfer.DataTransferProfile{}, fmt.Errorf("update transfer profile: %w", err)
 	}
 	updated, err := result.RowsAffected()
 	if err != nil {
-		return application.DataTransferProfile{}, fmt.Errorf("read update transfer profile result: %w", err)
+		return transfer.DataTransferProfile{}, fmt.Errorf("read update transfer profile result: %w", err)
 	}
 	if updated == 0 {
 		var exists int
 		if err := repository.db.QueryRowContext(ctx,
 			`SELECT EXISTS(SELECT 1 FROM data_transfer_profiles WHERE id=?)`, profile.ID).Scan(&exists); err != nil {
-			return application.DataTransferProfile{}, fmt.Errorf("check transfer profile: %w", err)
+			return transfer.DataTransferProfile{}, fmt.Errorf("check transfer profile: %w", err)
 		}
 		if exists == 0 {
-			return application.DataTransferProfile{}, fmt.Errorf("update transfer profile: %w", sql.ErrNoRows)
+			return transfer.DataTransferProfile{}, fmt.Errorf("update transfer profile: %w", sql.ErrNoRows)
 		}
-		return application.DataTransferProfile{}, application.ErrDataTransferConflict
+		return transfer.DataTransferProfile{}, transfer.ErrDataTransferConflict
 	}
 	return repository.GetProfile(ctx, profile.ID)
 }
@@ -111,14 +111,14 @@ func isDataTransferProfileNameConflict(err error) bool {
 
 func (repository *DataTransferRepository) ListProfiles(
 	ctx context.Context,
-) ([]application.DataTransferProfile, error) {
+) ([]transfer.DataTransferProfile, error) {
 	rows, err := repository.db.QueryContext(ctx, dataTransferProfileSelect+`
 ORDER BY name COLLATE NOCASE, id`)
 	if err != nil {
 		return nil, fmt.Errorf("list transfer profiles: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	profiles := []application.DataTransferProfile{}
+	profiles := []transfer.DataTransferProfile{}
 	for rows.Next() {
 		profile, err := scanDataTransferProfile(rows)
 		if err != nil {
@@ -135,32 +135,32 @@ ORDER BY name COLLATE NOCASE, id`)
 func (repository *DataTransferRepository) GetProfile(
 	ctx context.Context,
 	id string,
-) (application.DataTransferProfile, error) {
+) (transfer.DataTransferProfile, error) {
 	profile, err := scanDataTransferProfile(repository.db.QueryRowContext(ctx, dataTransferProfileSelect+` WHERE id=?`, id))
 	if errors.Is(err, sql.ErrNoRows) {
-		return application.DataTransferProfile{}, fmt.Errorf("get transfer profile: %w", sql.ErrNoRows)
+		return transfer.DataTransferProfile{}, fmt.Errorf("get transfer profile: %w", sql.ErrNoRows)
 	}
 	if err != nil {
-		return application.DataTransferProfile{}, fmt.Errorf("get transfer profile: %w", err)
+		return transfer.DataTransferProfile{}, fmt.Errorf("get transfer profile: %w", err)
 	}
 	return profile, nil
 }
 
 func (repository *DataTransferRepository) CreateJob(
 	ctx context.Context,
-	job application.DataTransferJob,
-) (application.DataTransferJob, error) {
+	job transfer.DataTransferJob,
+) (transfer.DataTransferJob, error) {
 	areas, err := encodeTransferAreas(job.Areas)
 	if err != nil {
-		return application.DataTransferJob{}, err
+		return transfer.DataTransferJob{}, err
 	}
 	options, err := encodeTransferOptions(job.Options)
 	if err != nil {
-		return application.DataTransferJob{}, err
+		return transfer.DataTransferJob{}, err
 	}
 	preview, err := encodeTransferOptions(job.Preview)
 	if err != nil {
-		return application.DataTransferJob{}, fmt.Errorf("encode transfer preview: %w", err)
+		return transfer.DataTransferJob{}, fmt.Errorf("encode transfer preview: %w", err)
 	}
 	now := timestamp()
 	job.ID = randomID()
@@ -176,26 +176,26 @@ INSERT INTO data_transfer_jobs(
 		areas, options, job.State, job.Stage, job.SourceName, job.SourceSHA256, job.PackageVersion,
 		1, job.TotalRecords, job.ReadyRecords, job.WarningRecords, job.ErrorRecords, preview, job.CreatedByUserID,
 		job.ConfirmedByUserID, job.ConfirmedAt, job.CompletedAt, job.ResultMessage, now, now); err != nil {
-		return application.DataTransferJob{}, fmt.Errorf("create transfer job: %w", err)
+		return transfer.DataTransferJob{}, fmt.Errorf("create transfer job: %w", err)
 	}
 	return repository.GetJob(ctx, job.ID)
 }
 
 func (repository *DataTransferRepository) UpdateJob(
 	ctx context.Context,
-	job application.DataTransferJob,
-) (application.DataTransferJob, error) {
+	job transfer.DataTransferJob,
+) (transfer.DataTransferJob, error) {
 	areas, err := encodeTransferAreas(job.Areas)
 	if err != nil {
-		return application.DataTransferJob{}, err
+		return transfer.DataTransferJob{}, err
 	}
 	options, err := encodeTransferOptions(job.Options)
 	if err != nil {
-		return application.DataTransferJob{}, err
+		return transfer.DataTransferJob{}, err
 	}
 	preview, err := encodeTransferOptions(job.Preview)
 	if err != nil {
-		return application.DataTransferJob{}, fmt.Errorf("encode transfer preview: %w", err)
+		return transfer.DataTransferJob{}, fmt.Errorf("encode transfer preview: %w", err)
 	}
 	result, err := repository.db.ExecContext(ctx, `
 UPDATE data_transfer_jobs
@@ -208,10 +208,10 @@ WHERE id=?`, job.ProfileID, job.ProfileName, job.Direction, job.Format, areas, o
 		job.WarningRecords, job.ErrorRecords, preview, job.ConfirmedByUserID, job.ConfirmedAt, job.CompletedAt,
 		job.ResultMessage, timestamp(), job.ID)
 	if err != nil {
-		return application.DataTransferJob{}, fmt.Errorf("update transfer job: %w", err)
+		return transfer.DataTransferJob{}, fmt.Errorf("update transfer job: %w", err)
 	}
 	if err := requireDataTransferUpdate(result, "update transfer job"); err != nil {
-		return application.DataTransferJob{}, err
+		return transfer.DataTransferJob{}, err
 	}
 	return repository.GetJob(ctx, job.ID)
 }
@@ -219,13 +219,13 @@ WHERE id=?`, job.ProfileID, job.ProfileName, job.Direction, job.Format, areas, o
 func (repository *DataTransferRepository) GetJob(
 	ctx context.Context,
 	id string,
-) (application.DataTransferJob, error) {
+) (transfer.DataTransferJob, error) {
 	job, err := scanDataTransferJob(repository.db.QueryRowContext(ctx, dataTransferJobSelect+` WHERE id=?`, id))
 	if errors.Is(err, sql.ErrNoRows) {
-		return application.DataTransferJob{}, fmt.Errorf("get transfer job: %w", sql.ErrNoRows)
+		return transfer.DataTransferJob{}, fmt.Errorf("get transfer job: %w", sql.ErrNoRows)
 	}
 	if err != nil {
-		return application.DataTransferJob{}, fmt.Errorf("get transfer job: %w", err)
+		return transfer.DataTransferJob{}, fmt.Errorf("get transfer job: %w", err)
 	}
 	return job, nil
 }
@@ -240,8 +240,8 @@ func (repository *DataTransferRepository) DeleteJob(ctx context.Context, id stri
 
 func (repository *DataTransferRepository) ListJobs(
 	ctx context.Context,
-	filter application.DataTransferJobFilter,
-) ([]application.DataTransferJob, error) {
+	filter transfer.DataTransferJobFilter,
+) ([]transfer.DataTransferJob, error) {
 	conditions := []string{"1=1"}
 	arguments := []any{}
 	if filter.ProfileID != "" {
@@ -271,7 +271,7 @@ func (repository *DataTransferRepository) ListJobs(
 		return nil, fmt.Errorf("list transfer jobs: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	jobs := []application.DataTransferJob{}
+	jobs := []transfer.DataTransferJob{}
 	for rows.Next() {
 		job, err := scanDataTransferJob(rows)
 		if err != nil {
@@ -288,7 +288,7 @@ func (repository *DataTransferRepository) ListJobs(
 func (repository *DataTransferRepository) ReplaceIssues(
 	ctx context.Context,
 	jobID string,
-	issues []application.DataTransferIssue,
+	issues []transfer.DataTransferIssue,
 ) error {
 	now := timestamp()
 	err := repository.withTx(ctx, func(tx *sql.Tx) error {
@@ -302,31 +302,31 @@ func (repository *DataTransferRepository) ReplaceIssues(
 
 func (repository *DataTransferRepository) CompareAndUpdateImportJob(
 	ctx context.Context,
-	mutation application.DataTransferImportMutation,
-) (application.DataTransferJob, error) {
+	mutation transfer.DataTransferImportMutation,
+) (transfer.DataTransferJob, error) {
 	job := mutation.Job
 	areas, err := encodeTransferAreas(job.Areas)
 	if err != nil {
-		return application.DataTransferJob{}, err
+		return transfer.DataTransferJob{}, err
 	}
 	options, err := encodeTransferOptions(job.Options)
 	if err != nil {
-		return application.DataTransferJob{}, err
+		return transfer.DataTransferJob{}, err
 	}
 	preview, err := encodeTransferOptions(job.Preview)
 	if err != nil {
-		return application.DataTransferJob{}, fmt.Errorf("encode transfer preview: %w", err)
+		return transfer.DataTransferJob{}, fmt.Errorf("encode transfer preview: %w", err)
 	}
 	profileOptions := ""
 	expectedProfileOptions := ""
 	if mutation.ProfileOptions != nil {
 		profileOptions, err = encodeTransferOptions(mutation.ProfileOptions.Options)
 		if err != nil {
-			return application.DataTransferJob{}, fmt.Errorf("encode transfer profile options: %w", err)
+			return transfer.DataTransferJob{}, fmt.Errorf("encode transfer profile options: %w", err)
 		}
 		expectedProfileOptions, err = encodeTransferOptions(mutation.ProfileOptions.ExpectedOptions)
 		if err != nil {
-			return application.DataTransferJob{}, fmt.Errorf("encode expected transfer profile options: %w", err)
+			return transfer.DataTransferJob{}, fmt.Errorf("encode expected transfer profile options: %w", err)
 		}
 	}
 	now := timestamp()
@@ -340,7 +340,7 @@ SET profile_id=NULLIF(?, ''), profile_name=?, format=?, areas_json=?, options_js
 WHERE id=? AND direction=? AND state=? AND revision=?`, job.ProfileID, job.ProfileName, job.Format, areas, options,
 			job.State, job.Stage, job.SourceName, job.SourceSHA256, job.PackageVersion, job.TotalRecords,
 			job.ReadyRecords, job.WarningRecords, job.ErrorRecords, preview, job.ConfirmedByUserID, job.ConfirmedAt,
-			job.CompletedAt, job.ResultMessage, now, job.ID, application.TransferImport, mutation.ExpectedState,
+			job.CompletedAt, job.ResultMessage, now, job.ID, transfer.TransferImport, mutation.ExpectedState,
 			mutation.ExpectedRevision)
 		if err != nil {
 			return fmt.Errorf("compare and update transfer import job: %w", err)
@@ -358,7 +358,7 @@ WHERE id=? AND direction=? AND state=? AND revision=?`, job.ProfileID, job.Profi
 			if exists == 0 {
 				return fmt.Errorf("compare and update transfer import job: %w", sql.ErrNoRows)
 			}
-			return application.ErrDataTransferConflict
+			return transfer.ErrDataTransferConflict
 		}
 		if mutation.ReplaceIssues {
 			if err := replaceDataTransferIssues(ctx, tx, job.ID, mutation.Issues, now); err != nil {
@@ -378,13 +378,13 @@ WHERE id=? AND updated_at=? AND options_json=?`, profileOptions, now, mutation.P
 				return fmt.Errorf("read transfer profile mapping update result: %w", err)
 			}
 			if updated == 0 {
-				return application.ErrDataTransferConflict
+				return transfer.ErrDataTransferConflict
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		return application.DataTransferJob{}, err
+		return transfer.DataTransferJob{}, err
 	}
 	return repository.GetJob(ctx, job.ID)
 }
@@ -393,7 +393,7 @@ func replaceDataTransferIssues(
 	ctx context.Context,
 	tx *sql.Tx,
 	jobID string,
-	issues []application.DataTransferIssue,
+	issues []transfer.DataTransferIssue,
 	now string,
 ) error {
 	if _, err := tx.ExecContext(ctx, `DELETE FROM data_transfer_job_issues WHERE job_id=?`, jobID); err != nil {
@@ -432,7 +432,7 @@ INSERT INTO data_transfer_job_issues(
 func (repository *DataTransferRepository) ListIssues(
 	ctx context.Context,
 	jobID string,
-) ([]application.DataTransferIssue, error) {
+) ([]transfer.DataTransferIssue, error) {
 	rows, err := repository.db.QueryContext(ctx, dataTransferIssueSelect+`
 WHERE job_id=?
 ORDER BY created_at, id`, jobID)
@@ -440,7 +440,7 @@ ORDER BY created_at, id`, jobID)
 		return nil, fmt.Errorf("list transfer issues: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	issues := []application.DataTransferIssue{}
+	issues := []transfer.DataTransferIssue{}
 	for rows.Next() {
 		issue, err := scanDataTransferIssue(rows)
 		if err != nil {
@@ -456,8 +456,8 @@ ORDER BY created_at, id`, jobID)
 
 func (repository *DataTransferRepository) CreateArtifact(
 	ctx context.Context,
-	artifact application.DataTransferArtifact,
-) (application.DataTransferArtifact, error) {
+	artifact transfer.DataTransferArtifact,
+) (transfer.DataTransferArtifact, error) {
 	artifact.ID = randomID()
 	artifact.CreatedAt = timestamp()
 	result, err := repository.db.ExecContext(ctx, `
@@ -470,21 +470,21 @@ WHERE NOT EXISTS(
 		artifact.DisplayName, artifact.MIMEType, artifact.SizeBytes, artifact.SHA256, artifact.DeletedAt,
 		artifact.CreatedAt, artifact.JobID)
 	if err != nil {
-		return application.DataTransferArtifact{}, fmt.Errorf("create transfer artifact: %w", err)
+		return transfer.DataTransferArtifact{}, fmt.Errorf("create transfer artifact: %w", err)
 	}
 	affected, err := result.RowsAffected()
 	if err != nil {
-		return application.DataTransferArtifact{}, fmt.Errorf("read transfer artifact creation result: %w", err)
+		return transfer.DataTransferArtifact{}, fmt.Errorf("read transfer artifact creation result: %w", err)
 	}
 	if affected != 1 {
-		return application.DataTransferArtifact{}, application.ErrDataTransferConflict
+		return transfer.DataTransferArtifact{}, transfer.ErrDataTransferConflict
 	}
 	return artifact, nil
 }
 
 func (repository *DataTransferRepository) ListArtifacts(
 	ctx context.Context,
-) ([]application.DataTransferArtifact, error) {
+) ([]transfer.DataTransferArtifact, error) {
 	rows, err := repository.db.QueryContext(ctx, `
 SELECT id, job_id, relative_path, display_name, mime_type, size_bytes, sha256,
        COALESCE(deleted_at, ''), created_at
@@ -494,9 +494,9 @@ ORDER BY created_at DESC, id DESC`)
 		return nil, fmt.Errorf("list transfer artifacts: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	artifacts := []application.DataTransferArtifact{}
+	artifacts := []transfer.DataTransferArtifact{}
 	for rows.Next() {
-		artifact := application.DataTransferArtifact{}
+		artifact := transfer.DataTransferArtifact{}
 		if err := rows.Scan(
 			&artifact.ID, &artifact.JobID, &artifact.RelativePath, &artifact.DisplayName, &artifact.MIMEType,
 			&artifact.SizeBytes, &artifact.SHA256, &artifact.DeletedAt, &artifact.CreatedAt,
@@ -514,29 +514,29 @@ ORDER BY created_at DESC, id DESC`)
 func (repository *DataTransferRepository) ClaimExportJob(
 	ctx context.Context,
 	id string,
-) (application.DataTransferJob, error) {
+) (transfer.DataTransferJob, error) {
 	result, err := repository.db.ExecContext(ctx, `
 UPDATE data_transfer_jobs
 SET state=?, stage='snapshot', revision=revision+1, updated_at=?
-WHERE id=? AND direction=? AND state=?`, application.TransferJobRunning, timestamp(), id,
-		application.TransferExport, application.TransferJobDraft)
+WHERE id=? AND direction=? AND state=?`, transfer.TransferJobRunning, timestamp(), id,
+		transfer.TransferExport, transfer.TransferJobDraft)
 	if err != nil {
-		return application.DataTransferJob{}, fmt.Errorf("claim transfer export job: %w", err)
+		return transfer.DataTransferJob{}, fmt.Errorf("claim transfer export job: %w", err)
 	}
 	affected, err := result.RowsAffected()
 	if err != nil {
-		return application.DataTransferJob{}, fmt.Errorf("read transfer export claim result: %w", err)
+		return transfer.DataTransferJob{}, fmt.Errorf("read transfer export claim result: %w", err)
 	}
 	if affected == 0 {
 		var exists int
 		if err := repository.db.QueryRowContext(ctx,
 			`SELECT EXISTS(SELECT 1 FROM data_transfer_jobs WHERE id=?)`, id).Scan(&exists); err != nil {
-			return application.DataTransferJob{}, fmt.Errorf("check transfer export job: %w", err)
+			return transfer.DataTransferJob{}, fmt.Errorf("check transfer export job: %w", err)
 		}
 		if exists == 0 {
-			return application.DataTransferJob{}, fmt.Errorf("claim transfer export job: %w", sql.ErrNoRows)
+			return transfer.DataTransferJob{}, fmt.Errorf("claim transfer export job: %w", sql.ErrNoRows)
 		}
-		return application.DataTransferJob{}, application.ErrDataTransferConflict
+		return transfer.DataTransferJob{}, transfer.ErrDataTransferConflict
 	}
 	return repository.GetJob(ctx, id)
 }
@@ -578,21 +578,21 @@ type dataTransferRowScanner interface {
 	Scan(...any) error
 }
 
-func scanDataTransferProfile(scanner dataTransferRowScanner) (application.DataTransferProfile, error) {
-	profile := application.DataTransferProfile{}
+func scanDataTransferProfile(scanner dataTransferRowScanner) (transfer.DataTransferProfile, error) {
+	profile := transfer.DataTransferProfile{}
 	var areas, options string
 	var enabled int
 	if err := scanner.Scan(&profile.ID, &profile.Name, &profile.Direction, &profile.Format, &areas, &options,
 		&enabled, &profile.CreatedByUserID, &profile.LastUsedAt, &profile.CreatedAt, &profile.UpdatedAt); err != nil {
-		return application.DataTransferProfile{}, err
+		return transfer.DataTransferProfile{}, err
 	}
 	decodedAreas, err := decodeTransferAreas(areas)
 	if err != nil {
-		return application.DataTransferProfile{}, err
+		return transfer.DataTransferProfile{}, err
 	}
 	decodedOptions, err := decodeTransferOptions(options)
 	if err != nil {
-		return application.DataTransferProfile{}, err
+		return transfer.DataTransferProfile{}, err
 	}
 	profile.Areas = decodedAreas
 	profile.Options = decodedOptions
@@ -600,27 +600,27 @@ func scanDataTransferProfile(scanner dataTransferRowScanner) (application.DataTr
 	return profile, nil
 }
 
-func scanDataTransferJob(scanner dataTransferRowScanner) (application.DataTransferJob, error) {
-	job := application.DataTransferJob{}
+func scanDataTransferJob(scanner dataTransferRowScanner) (transfer.DataTransferJob, error) {
+	job := transfer.DataTransferJob{}
 	var areas, options, preview string
 	if err := scanner.Scan(&job.ID, &job.ProfileID, &job.ProfileName, &job.Direction, &job.Format, &areas, &options,
 		&job.State, &job.Stage, &job.SourceName, &job.SourceSHA256, &job.PackageVersion, &job.Revision, &job.TotalRecords,
 		&job.ReadyRecords, &job.WarningRecords, &job.ErrorRecords, &preview, &job.CreatedByUserID,
 		&job.ConfirmedByUserID, &job.ConfirmedAt, &job.CompletedAt, &job.ResultMessage, &job.CreatedAt,
 		&job.UpdatedAt); err != nil {
-		return application.DataTransferJob{}, err
+		return transfer.DataTransferJob{}, err
 	}
 	decodedAreas, err := decodeTransferAreas(areas)
 	if err != nil {
-		return application.DataTransferJob{}, err
+		return transfer.DataTransferJob{}, err
 	}
 	decodedOptions, err := decodeTransferOptions(options)
 	if err != nil {
-		return application.DataTransferJob{}, err
+		return transfer.DataTransferJob{}, err
 	}
 	decodedPreview, err := decodeTransferOptions(preview)
 	if err != nil {
-		return application.DataTransferJob{}, fmt.Errorf("decode transfer preview: %w", err)
+		return transfer.DataTransferJob{}, fmt.Errorf("decode transfer preview: %w", err)
 	}
 	job.Areas = decodedAreas
 	job.Options = decodedOptions
@@ -628,13 +628,13 @@ func scanDataTransferJob(scanner dataTransferRowScanner) (application.DataTransf
 	return job, nil
 }
 
-func scanDataTransferIssue(scanner dataTransferRowScanner) (application.DataTransferIssue, error) {
-	issue := application.DataTransferIssue{}
+func scanDataTransferIssue(scanner dataTransferRowScanner) (transfer.DataTransferIssue, error) {
+	issue := transfer.DataTransferIssue{}
 	var rowNumber sql.NullInt64
 	if err := scanner.Scan(&issue.ID, &issue.JobID, &issue.Area, &issue.RecordKey, &rowNumber, &issue.Field,
 		&issue.Severity, &issue.Code, &issue.Message, &issue.ProposedResolution, &issue.SelectedResolution,
 		&issue.CreatedAt, &issue.UpdatedAt); err != nil {
-		return application.DataTransferIssue{}, err
+		return transfer.DataTransferIssue{}, err
 	}
 	if rowNumber.Valid {
 		value := int(rowNumber.Int64)
@@ -643,9 +643,9 @@ func scanDataTransferIssue(scanner dataTransferRowScanner) (application.DataTran
 	return issue, nil
 }
 
-func encodeTransferAreas(areas []application.TransferArea) (string, error) {
+func encodeTransferAreas(areas []transfer.TransferArea) (string, error) {
 	if areas == nil {
-		areas = []application.TransferArea{}
+		areas = []transfer.TransferArea{}
 	}
 	payload, err := json.Marshal(areas)
 	if err != nil {
@@ -654,13 +654,13 @@ func encodeTransferAreas(areas []application.TransferArea) (string, error) {
 	return string(payload), nil
 }
 
-func decodeTransferAreas(payload string) ([]application.TransferArea, error) {
-	areas := []application.TransferArea{}
+func decodeTransferAreas(payload string) ([]transfer.TransferArea, error) {
+	areas := []transfer.TransferArea{}
 	if err := json.Unmarshal([]byte(payload), &areas); err != nil {
 		return nil, fmt.Errorf("decode transfer areas: %w", err)
 	}
 	if areas == nil {
-		return []application.TransferArea{}, nil
+		return []transfer.TransferArea{}, nil
 	}
 	return areas, nil
 }
@@ -713,4 +713,4 @@ func (repository *DataTransferRepository) withTx(ctx context.Context, work func(
 	return nil
 }
 
-var _ application.DataTransferRepository = (*DataTransferRepository)(nil)
+var _ transfer.DataTransferRepository = (*DataTransferRepository)(nil)
