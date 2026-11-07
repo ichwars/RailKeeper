@@ -16,6 +16,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Test release publication guards
         run: python3 .github/scripts/test_release_workflow.py
+      - name: Test Compose security configuration
+        run: python3 .github/scripts/test_compose_security.py
+      - name: Test disposable pilot bootstrap
+        run: python3 -m unittest discover -s tools -p test_strix_pilot.py
 
   backend:
     name: Backend tests
