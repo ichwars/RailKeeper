@@ -15,7 +15,7 @@
 }
 
 .decoder-archive-filterbar label { flex: 1; min-inline-size: 0; display: grid; gap: var(--space-xs); }
-.decoder-archive input { inline-size: 100%; min-block-size: 44px; font-size: var(--font-size-lg); font-weight: var(--font-weight-normal); }
+.decoder-archive input { inline-size: 100%; min-block-size: 44px; font-size: var(--font-size-lg); font-weight: var(--font-weight-regular); }
 .decoder-archive .secondary-button, .decoder-archive-pages button { min-block-size: 44px; }
 .decoder-archive-pages { margin-block: var(--space-md); color: var(--muted); font-size: var(--font-size-sm); }
 .decoder-archive-layout { display: grid; grid-template-columns: minmax(220px, 28%) minmax(0, 1fr); gap: var(--space-md); align-items: start; }
@@ -82,4 +82,42 @@
   .decoder-archive-layer { padding: 0; }
   .decoder-archive-dialog { inline-size: 100%; max-block-size: 100dvh; border-radius: 0; }
   .decoder-archive-detail-head > button, .decoder-archive-source > a { inline-size: 100%; justify-content: center; }
+}
+
+.decoder-configurations { min-inline-size: 0; }
+.decoder-configurations-intro, .decoder-command > p { font-size: var(--font-size-lg); line-height: var(--line-height-normal); }
+.decoder-configurations-toolbar, .decoder-command-actions, .decoder-record-actions, .decoder-instance-pages {
+  display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center;
+}
+.vehicle-edit-modal .decoder-configurations :is(button, input, .app-select-trigger, summary) { min-block-size: 44px; }
+.vehicle-edit-modal .decoder-configurations :is(input, textarea), .decoder-configurations .app-field-help { font-size: var(--font-size-lg); font-weight: var(--font-weight-regular); }
+.decoder-command { margin-block: var(--space-lg); padding: var(--space-lg); border: 1px solid var(--line); border-radius: var(--radius-md); }
+.decoder-command h4 { margin-block: 0 var(--space-sm); }
+.decoder-command-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: var(--space-lg); align-items: start; }
+.decoder-command-fields > .app-text-area { grid-column: 1 / -1; }
+.decoder-command-select { display: grid; gap: var(--space-sm); }
+.decoder-command-actions { margin-block-start: var(--space-lg); }
+.decoder-command-conflict { border-block-start: 1px solid var(--line); padding-block: var(--space-md); }
+.decoder-command-conflict dd { white-space: pre-wrap; overflow-wrap: anywhere; }
+.decoder-installations h4 { display: flex; align-items: center; gap: var(--space-sm); }
+.decoder-installation, .decoder-working-group, .decoder-instance {
+  display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap;
+  gap: var(--space-lg); padding-block: var(--space-lg); border-block-start: 1px solid var(--line);
+}
+.decoder-installation > div:first-child, .decoder-working-group > div:first-child, .decoder-instance > div:first-child { flex: 1 1 240px; min-inline-size: 0; overflow-wrap: anywhere; }
+.decoder-configurations small { display: block; margin-block-start: var(--space-xs); color: var(--muted); font-size: var(--font-size-sm); }
+.decoder-configurations dl { display: flex; flex-wrap: wrap; gap: var(--space-lg); }
+.decoder-configurations dt { color: var(--muted); font-size: var(--font-size-sm); }
+.decoder-configurations dd { margin: var(--space-xs) 0 0; }
+.decoder-record-notes { white-space: pre-wrap; }
+.decoder-record-id { overflow-wrap: anywhere; font-size: var(--font-size-sm); color: var(--muted); }
+.decoder-instance-pool { margin-block-start: var(--space-lg); }
+.decoder-instance-pool > summary { cursor: pointer; padding-block: var(--space-sm); }
+.decoder-instance-pages { justify-content: end; margin-block: var(--space-sm); }
+.decoder-instance-pages > span { margin-inline-end: auto; }
+
+@media (max-width: 600px) {
+  .decoder-command { padding: var(--space-md); }
+  .decoder-command-actions, .decoder-record-actions { inline-size: 100%; }
+  .decoder-command-actions > button, .decoder-record-actions > button { flex: 1 1 100%; justify-content: center; }
 }

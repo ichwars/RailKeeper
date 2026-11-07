@@ -19,6 +19,7 @@ None of these exercises programs a decoder.
 | Fill F0/F1/F3 together and protect manual details | [Apply function keys](functions-walkthrough) |
 | Look up a model or source | [Decoder library](decoder-library) |
 | Read recorded values, histories and originals | [CV archive](cv-archive) |
+| Record decoder units, installations and working group assignments | [Decoder units and installations](decoder-installations) |
 | Understand manufacturer and firmware limits | [Model notes](decoder-model-notes) |
 | Read formats, raw-value rules and edge cases | [Technical reference](decoder-cv-reference) |
 

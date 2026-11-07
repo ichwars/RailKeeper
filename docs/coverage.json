@@ -86,6 +86,18 @@
       "screenshot": "cv-archive"
     },
     {
+      "id": "vehicle-decoder-installations",
+      "audience": "user",
+      "status": "documented",
+      "englishPath": "guide/vehicles/decoder-installations.md",
+      "germanPath": "de/guide/vehicles/decoder-installations.md",
+      "labelDE": "Decoderexemplare und Einbauten",
+      "labelEN": "Decoder units and installations",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-11-07",
+      "screenshot": "decoder-installations"
+    },
+    {
       "id": "vehicle-search-spares",
       "audience": "user",
       "status": "documented",
@@ -317,6 +329,7 @@
       "vehicles.barcode": "vehicle-search-spares",
       "vehicles.cv": "vehicle-decoder-cv",
       "decoderConfig": "vehicle-decoder-archive",
+      "decoderManage": "vehicle-decoder-installations",
       "vehicles.functionMode": "vehicle-decoder-cv",
       "vehicles.functionType": "vehicle-decoder-cv",
       "vehicles.functions": "vehicle-decoder-cv",
@@ -363,7 +376,7 @@
       "/api/v1/vehicles/{id}/functions": "vehicle-decoder-cv",
       "/api/v1/vehicles/{id}/cv-values": "vehicle-decoder-cv",
       "/api/v1/vehicles/{id}/cv-files": "vehicle-decoder-cv",
-      "/api/v1/vehicles/{id}/decoder-configurations": "development-architecture",
+      "/api/v1/vehicles/{id}/decoder-configurations": "vehicle-decoder-installations",
       "/api/v1/decoder-configurations": "vehicle-decoder-archive",
       "/api/v1/cv-files": "vehicle-decoder-cv",
       "/api/v1/article-search": "vehicle-search-spares",
