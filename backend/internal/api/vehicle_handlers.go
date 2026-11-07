@@ -19,16 +19,29 @@ func (a *App) listVehicles(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, vehicles)
 }
 
+type createVehicleRequest struct {
+	application.CreateVehicleInput
+	CreationID      string                               `json:"creationId,omitempty"`
+	ExternalMapping *application.VehicleExternalMapInput `json:"externalMapping,omitempty"`
+}
+
 func (a *App) createVehicle(w http.ResponseWriter, r *http.Request) {
-	var input application.CreateVehicleInput
+	var input createVehicleRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
 		return
 	}
 
-	vehicle, err := a.vehicleService.Create(r.Context(), input, actorUserID(r))
+	vehicle, err := a.vehicleService.CreateWithOptions(r.Context(), input.CreateVehicleInput,
+		application.VehicleCreationOptions{CreationID: input.CreationID, ExternalMapping: input.ExternalMapping}, actorUserID(r))
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleCreationConflict):
+			respondProblem(w, http.StatusConflict, "vehicle_creation_conflict", "This creation is already stored. Reload inventory and review its existing result.")
+		case errors.Is(err, application.ErrVehicleCreationIdentity):
+			respondProblem(w, http.StatusBadRequest, "vehicle_creation_identity", "Creation identity must be 32 lowercase hexadecimal characters.")
+		case errors.Is(err, application.ErrVehicleExternalMappingConflict):
+			respondProblem(w, http.StatusConflict, "external_mapping_conflict", "This source is already assigned to a vehicle. Reload and review the existing assignment before adopting it again.")
 		case errors.Is(err, application.ErrVehicleFunctionValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_function_validation", "Function changes are invalid.")
 		case errors.Is(err, application.ErrVehicleFunctionConflict):
@@ -62,6 +75,10 @@ func (a *App) createVehicleSet(w http.ResponseWriter, r *http.Request) {
 	vehicleSet, err := a.vehicleService.CreateSet(r.Context(), input, actorUserID(r))
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleCreationConflict):
+			respondProblem(w, http.StatusConflict, "vehicle_creation_conflict", "This creation is already stored. Reload inventory and review its existing result.")
+		case errors.Is(err, application.ErrVehicleCreationIdentity):
+			respondProblem(w, http.StatusBadRequest, "vehicle_creation_identity", "Creation identity must be 32 lowercase hexadecimal characters.")
 		case errors.Is(err, application.ErrVehicleSetValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_set_validation",
 				"Set name, manufacturer, gauge, category, subtype and between 2 and 100 members are required.")
@@ -154,6 +171,13 @@ func (a *App) updateVehicle(w http.ResponseWriter, r *http.Request) {
 	vehicle, err := a.vehicleService.Update(r.Context(), r.PathValue("id"), input, actorUserID(r))
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleConflict):
+			respondProblem(w, http.StatusConflict, "vehicle_conflict", "Vehicle data changed. Compare the current vehicle before saving the retained draft.")
+		case errors.Is(err, application.ErrVehicleImageConflict):
+			respondProblem(w, http.StatusConflict, "vehicle_image_conflict", "Vehicle images changed. Compare the current images before saving the retained draft.")
+		case errors.Is(err, application.ErrVehicleImageInUse):
+			respondProblem(w, http.StatusConflict, "image_in_use", "Unlink maintenance images before removing them.")
+
 		case errors.Is(err, application.ErrVehicleFunctionValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_function_validation", "Function changes are invalid.")
 		case errors.Is(err, application.ErrVehicleFunctionConflict):

@@ -36,24 +36,30 @@ type ImageMetadata struct {
 	ThumbnailBlobID string
 	MaintenanceID   string
 	CreatedAt       string
+	SortOrder       int
+	Position        int
 }
 
 func ExistingImages(ctx context.Context, tx *sql.Tx, vehicleID string) (map[string]ImageMetadata, error) {
 	rows, err := tx.QueryContext(ctx, `
-SELECT id, url, COALESCE(file_name, ''), COALESCE(mime_type, ''), COALESCE(storage_path, ''), COALESCE(thumbnail_path, ''), COALESCE(blob_id, ''), COALESCE(thumbnail_blob_id, ''), COALESCE(maintenance_id, ''), created_at
+SELECT id, url, COALESCE(file_name, ''), COALESCE(mime_type, ''), COALESCE(storage_path, ''), COALESCE(thumbnail_path, ''), COALESCE(blob_id, ''), COALESCE(thumbnail_blob_id, ''), COALESCE(maintenance_id, ''), created_at, sort_order
 FROM vehicle_images
 WHERE vehicle_id=?
+ORDER BY is_primary DESC, sort_order ASC, created_at ASC
 `, vehicleID)
 	if err != nil {
 		return nil, fmt.Errorf("list existing vehicle image metadata: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 	out := map[string]ImageMetadata{}
+	position := 0
 	for rows.Next() {
 		var meta ImageMetadata
-		if err := rows.Scan(&meta.ID, &meta.URL, &meta.FileName, &meta.MimeType, &meta.StoragePath, &meta.ThumbnailPath, &meta.BlobID, &meta.ThumbnailBlobID, &meta.MaintenanceID, &meta.CreatedAt); err != nil {
+		if err := rows.Scan(&meta.ID, &meta.URL, &meta.FileName, &meta.MimeType, &meta.StoragePath, &meta.ThumbnailPath, &meta.BlobID, &meta.ThumbnailBlobID, &meta.MaintenanceID, &meta.CreatedAt, &meta.SortOrder); err != nil {
 			return nil, fmt.Errorf("scan existing vehicle image metadata: %w", err)
 		}
+		meta.Position = position
+		position++
 		out[meta.ID] = meta
 		out[meta.URL] = meta
 	}

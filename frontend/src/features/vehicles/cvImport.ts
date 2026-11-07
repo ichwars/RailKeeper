@@ -1,8 +1,10 @@
 import { validCVExportTimestamp } from "./cvProvenance";
-import { VehicleCVFilePreview, VehicleCVValue, VehicleCVValueInput, VehicleFunctionInput } from "../../shared/api";
+import { VehicleCVFilePreview, VehicleCVValue, VehicleCVValueInput, VehicleFunctionInput, type DecoderCVWorkspace } from "../../shared/api";
+import type { CVWorkingTarget } from "./cvWorkingGroup";
 
 export type FunctionMappingImport = VehicleFunctionInput & { functionKey: string };
 export type CVImportStatus = "new" | "changed" | "same" | "invalid";
+export type CVImportChangeField = "value" | "description" | "category" | "protocol" | "sourceFileId" | "sourceLine" | "sourceExportedAt";
 export type CVImportRow = {
   id: string;
   input: VehicleCVValueInput;
@@ -10,15 +12,24 @@ export type CVImportRow = {
   status: CVImportStatus;
   selected: boolean;
   message: string;
+  reason?: "invalid" | "duplicate";
+  changedFields?: CVImportChangeField[];
+  sourceProfile?: string;
 };
 export type CVImportPreview = {
   fileName: string;
   vehicleId?: string;
   rows: CVImportRow[];
+  workingTarget?: CVWorkingTarget | null;
+  workingGroupLabels?: string[];
+  previousWorkingGroupLabels?: string[];
 };
 export type CVFileUploadPreview = {
   files: File[];
   previews: VehicleCVFilePreview[];
+  workingTarget?: CVWorkingTarget | null;
+  workingGroups?: DecoderCVWorkspace[];
+  workingGroupLabels?: Record<string, string>;
 };
 
 export const functionKeys = Array.from({ length: 32 }, (_, index) => `F${index}`);
@@ -64,7 +75,7 @@ export function isValidFunctionMapping(value: FunctionMappingImport) {
 }
 
 export function cvValueKey(value: Pick<VehicleCVValueInput, "cvNumber" | "decoderProfile" | "indexCV31" | "indexCV32">) {
-  return `${Number(value.cvNumber)}::${(value.decoderProfile || "").trim()}::${value.indexCV31 ?? "base"}::${value.indexCV32 ?? "base"}`;
+  return `${Number(value.cvNumber)}::${value.decoderProfile || ""}::${value.indexCV31 ?? "base"}::${value.indexCV32 ?? "base"}`;
 }
 
 function normalizeCVText(value?: string) {
@@ -72,16 +83,21 @@ function normalizeCVText(value?: string) {
 }
 
 function cvImportChanges(existing: VehicleCVValue, input: VehicleCVValueInput) {
-  const changes = [];
-  if (Number(existing.value) !== Number(input.value)) changes.push("Wert");
-  if (normalizeCVText(existing.description) !== normalizeCVText(input.description)) changes.push("Beschreibung");
-  if (normalizeCVText(existing.category) !== normalizeCVText(input.category)) changes.push("Kategorie");
-  if (normalizeCVText(existing.protocol) !== normalizeCVText(input.protocol)) changes.push("Protokoll");
-  if (normalizeCVText(existing.sourceFileId) !== normalizeCVText(input.sourceFileId)) changes.push("Quelldatei");
-  if (input.sourceLine != null && existing.sourceLine !== input.sourceLine) changes.push("Originalzeile");
-  if (input.sourceExportedAt && existing.sourceExportedAt !== input.sourceExportedAt) changes.push("Exportdatum");
+  const changes: CVImportChangeField[] = [];
+  if (Number(existing.value) !== Number(input.value)) changes.push("value");
+  if (normalizeCVText(existing.description) !== normalizeCVText(input.description)) changes.push("description");
+  if (normalizeCVText(existing.category) !== normalizeCVText(input.category)) changes.push("category");
+  if (normalizeCVText(existing.protocol) !== normalizeCVText(input.protocol)) changes.push("protocol");
+  if (normalizeCVText(existing.sourceFileId) !== normalizeCVText(input.sourceFileId)) changes.push("sourceFileId");
+  if (input.sourceLine != null && existing.sourceLine !== input.sourceLine) changes.push("sourceLine");
+  if (input.sourceExportedAt && existing.sourceExportedAt !== input.sourceExportedAt) changes.push("sourceExportedAt");
   return changes;
 }
+
+const legacyChangeLabels: Record<CVImportChangeField, string> = {
+  value: "Wert", description: "Beschreibung", category: "Kategorie", protocol: "Protokoll",
+  sourceFileId: "Quelldatei", sourceLine: "Originalzeile", sourceExportedAt: "Exportdatum"
+};
 
 export function buildCVImportPreview(fileName: string, values: VehicleCVValueInput[], existingValues: VehicleCVValue[]): CVImportPreview {
   const existing = new Map(existingValues.map((entry) => [cvValueKey(entry), entry]));
@@ -93,6 +109,7 @@ export function buildCVImportPreview(fileName: string, values: VehicleCVValueInp
         id: `${index}-${key}`,
         input,
         status: "invalid" as CVImportStatus,
+        reason: "invalid" as const,
         selected: false,
         message: "ungültig"
       };
@@ -102,6 +119,7 @@ export function buildCVImportPreview(fileName: string, values: VehicleCVValueInp
         id: `${index}-${key}`,
         input,
         status: "invalid" as CVImportStatus,
+        reason: "duplicate" as const,
         selected: false,
         message: "doppelt im Import"
       };
@@ -133,8 +151,9 @@ export function buildCVImportPreview(fileName: string, values: VehicleCVValueInp
       input,
       existing: match,
       status: "changed" as CVImportStatus,
+      changedFields: changes,
       selected: true,
-      message: `ändert ${changes.join(", ")}`
+      message: `ändert ${changes.map(field => legacyChangeLabels[field]).join(", ")}`
     };
   });
   return { fileName, rows };

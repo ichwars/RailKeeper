@@ -18,7 +18,7 @@ from client import Client, setup
 from fixture import observations, seed
 from matrix import inventory
 from preservation import (
-    assert_same, backup_manifest, digest, expected_fresh_restore, installation_manifest, vehicle_edit_manifest,
+    assert_same, backup_manifest, digest, expected_backup_upgrade, expected_fresh_restore, installation_manifest, vehicle_edit_manifest,
 )
 from runtime import Runtime
 
@@ -31,9 +31,10 @@ def role_checks(client, fixture):
         actor.login(credentials)
         actor.request("GET", "/api/v1/vehicles", expected=403 if role == "Messe" else 200)
         actor.request("GET", "/api/v1/users", expected=403)
-        actor.request("POST", "/api/v1/vehicles", {}, expected=403 if role != "Editor" else 400)
+        # Permission-only probes have no body to consume after an early rejection.
+        actor.request("POST", "/api/v1/vehicles", expected=403 if role != "Editor" else 400)
         actor.request("GET", "/api/v1/exhibition-lists", expected=200 if role == "Messe" else 403)
-    client.request("POST", "/api/v1/vehicles", {}, expected=403, csrf=False)
+    client.request("POST", "/api/v1/vehicles", expected=403, csrf=False)
     Client(int(client.base.rsplit(":", 1)[1])).request("GET", "/api/v1/vehicles", expected=401)
 
 
@@ -105,31 +106,11 @@ def run(args):
         fixture = seed(client)
         role_checks(client, fixture)
         passed("reference-fixture-and-role-csrf-boundaries")
-        before_browser = None
-        if args.browser:
-            before_browser = client.request("GET", "/api/v1/backup/export")
-            result = subprocess.run(["node", str(Path(__file__).with_name("browser.mjs"))],
-                                    input=json.dumps({"base": client.base, "credentials": credentials,
-                                                      "fixture": fixture, "output": str(root / "browser")}),
-                                    text=True, capture_output=True, timeout=300)
-            if result.returncode:
-                raise AssertionError("Browser baseline failed: " + result.stderr[-2500:])
-            passed("browser-login-navigation-edit-cancel-and-save")
         settings = client.request("PUT", "/api/v1/profile/settings",
                                   {"settings": {"railkeeper.settings.defaultView": "vehicles"}})
         if settings["settings"].get("railkeeper.settings.defaultView") != "vehicles":
             raise AssertionError("Reference user preference was not persisted")
         backup = client.request("GET", "/api/v1/backup/export")
-        if before_browser is not None:
-            for name, document in (("before", before_browser), ("after", backup)):
-                (root / f"browser-{name}-export.json").write_text(json.dumps(document), encoding="utf-8")
-            before_edit = vehicle_edit_manifest(before_browser, fixture["vehicleId"])
-            after_edit = vehicle_edit_manifest(backup, fixture["vehicleId"])
-            assert_same(before_edit["tables"], after_edit["tables"], "Unrelated table data after browser edit")
-            assert_same({key: value for key, value in before_edit.items() if key != "tables"},
-                        {key: value for key, value in after_edit.items() if key != "tables"},
-                        "Unrelated backup data after browser edit")
-            passed("browser-edit-preserves-all-other-reference-data")
         baseline = backup_manifest(backup)
         observed = observations(client, fixture)
         verify_media(client, fixture)
@@ -152,7 +133,15 @@ def run(args):
             "category": "Wagen", "gattung": "Reisezugwagen"}, 201)
         restore(client, backup)
         client.request("GET", "/api/v1/vehicles/" + marker["id"], expected=404)
-        assert_same(baseline, backup_manifest(client.request("GET", "/api/v1/backup/export")), "In-place restore")
+        restored_backup = client.request("GET", "/api/v1/backup/export")
+        if args.catalog_backfill and (previous_backend / "migrations/0074_vehicle_catalog_legacy.sql").is_file():
+            assert_same(backup_manifest(expected_backup_upgrade(backup, restored_backup["version"], restored_backup,
+                        args.catalog_authority, args.decoder_model,
+                        args.decoder_backfill and (previous_backend / "migrations/0077_decoder_legacy_workspaces.sql").is_file())),
+                        backup_manifest(restored_backup), "In-place restore with legacy catalog backfill")
+            backup, baseline = restored_backup, backup_manifest(restored_backup)
+        else:
+            assert_same(baseline, backup_manifest(restored_backup), "In-place restore")
         assert_same(observed, observations(client, fixture), "In-place API observations")
         passed("app-restore-replaces-post-backup-marker-and-preserves-reference")
 
@@ -164,15 +153,16 @@ def run(args):
             if settings["settings"].get("railkeeper.settings.defaultView") != "overview":
                 raise AssertionError("Target-local user preference was not persisted")
             before = installation_manifest(target.data_dir)["tables"]
-            expected = backup_manifest(expected_fresh_restore(
-                backup, target.client.request("GET", "/api/v1/backup/export"),
-                {user["id"] for user in target.client.request("GET", "/api/v1/users")},
-            ))
+            local_backup = target.client.request("GET", "/api/v1/backup/export")
+            local_users = {user["id"] for user in target.client.request("GET", "/api/v1/users")}
             restore(target.client, backup)
+            restored_backup = target.client.request("GET", "/api/v1/backup/export")
+            expected = backup_manifest(expected_fresh_restore(backup, local_backup, local_users,
+                restored_backup if args.catalog_backfill else None, args.catalog_authority, args.decoder_model, args.decoder_backfill))
             after = installation_manifest(target.data_dir)["tables"]
             for table in ("users", "roles", "user_roles", "app_settings", "user_settings"):
                 assert_same(before[table], after[table], "Local installation " + table)
-            assert_same(expected, backup_manifest(target.client.request("GET", "/api/v1/backup/export")), "Fresh app restore")
+            assert_same(expected, backup_manifest(restored_backup), "Fresh app restore")
             assert_same(observed, observations(target.client, fixture), "Fresh restore API observations")
             verify_media(target.client, fixture)
             target.client.login(recovery)
@@ -180,6 +170,48 @@ def run(args):
             if [user["username"] for user in users] != ["restore-owner"]:
                 raise AssertionError("App restore imported installation users")
             passed("fresh-app-restore-preserves-target-login-and-all-reference-data")
+
+            if args.catalog_writes:
+                from catalog import exercise_catalog_writes
+                before_catalog = exercise_catalog_writes(target.client, fixture["vehicleId"])
+                restore(target.client, before_catalog)
+                assert_same(backup_manifest(before_catalog),
+                            backup_manifest(target.client.request("GET", "/api/v1/backup/export")),
+                            "Catalog command backup round trip")
+
+            if args.browser:
+                before_browser = target.client.request("GET", "/api/v1/backup/export")
+                result = subprocess.run(["node", str(Path(__file__).with_name("browser.mjs"))],
+                                        input=json.dumps({"base": target.client.base, "credentials": recovery,
+                                                          "fixture": fixture, "output": str(root / "browser")}),
+                                        text=True, capture_output=True, timeout=300)
+                if result.returncode:
+                    raise AssertionError("Target browser baseline failed: " + result.stderr[-2500:])
+                passed("browser-login-navigation-edit-cancel-and-save")
+                after_browser = target.client.request("GET", "/api/v1/backup/export")
+                for name, document in (("before", before_browser), ("after", after_browser)):
+                    (root / f"browser-{name}-export.json").write_text(json.dumps(document), encoding="utf-8")
+                before_edit = vehicle_edit_manifest(before_browser, fixture["vehicleId"])
+                after_edit = vehicle_edit_manifest(after_browser, fixture["vehicleId"])
+                assert_same(before_edit["tables"], after_edit["tables"], "Unrelated table data after browser edit")
+                assert_same({key: value for key, value in before_edit.items() if key != "tables"},
+                            {key: value for key, value in after_edit.items() if key != "tables"},
+                            "Unrelated backup data after browser edit")
+                passed("browser-edit-preserves-all-other-reference-data")
+
+            if args.browser:
+                result = subprocess.run(["node", str(Path(__file__).with_name("editor-boundaries.mjs"))],
+                                        input=json.dumps({"base": target.client.base, "credentials": recovery,
+                                                          "fixture": fixture, "output": str(root / "editor-browser")}),
+                                        text=True, capture_output=True, timeout=180)
+                if result.returncode:
+                    raise AssertionError("Editor save boundaries failed: " + result.stderr[-2500:])
+                final_backup = target.client.request("GET", "/api/v1/backup/export")
+                validation = target.client.upload("/api/v1/backup/validate", "after-editor.json",
+                                                  json.dumps(final_backup).encode(), "application/json", expected=200)
+                if not validation["compatible"]:
+                    raise AssertionError("Editor writes left an incompatible backup or catalog projection")
+                passed("target-browser-confirmed-action-preserves-drafts-and-cancel")
 
     # The source process has exited. Its main DB and WAL plus every stored file form a cold backup.
     original = installation_manifest(source_data)
@@ -204,12 +236,17 @@ def run(args):
                      "data_transfer_jobs", "data_transfer_artifacts"):
             assert_same(original["tables"][name], startup_tables[name], "Installation startup " + name)
         target.client.login(credentials)
-        assert_same(baseline, backup_manifest(target.client.request("GET", "/api/v1/backup/export")), "Installation startup")
+        upgraded = target.client.request("GET", "/api/v1/backup/export")
+        assert_same(backup_manifest(expected_backup_upgrade(backup, upgraded["version"],
+                    upgraded if args.catalog_backfill else None, args.catalog_authority, args.decoder_model, args.decoder_backfill)),
+                    backup_manifest(upgraded), "Installation startup")
         assert_same(observed, observations(target.client, fixture), "Installation API observations")
         verify_media(target.client, fixture)
         verify_artifact(target.client, fixture)
         passed("restored-installation-startup-login-and-reference-workflows")
     report["backupVersion"] = backup["version"]
+    report["targetBackupVersion"] = upgraded["version"]
+    report["catalogWritesVerified"] = args.catalog_writes
     report["freshRestorePolicies"] = ["keep target bundled workshop symbols", "clear missing local profile creator"]
     report["tables"] = {name: {"count": item["count"], "sha256": digest(item)}
                         for name, item in original["tables"].items()}
@@ -233,8 +270,15 @@ if __name__ == "__main__":
     parser.add_argument("--previous-backend", type=Path)
     parser.add_argument("--output", type=Path, required=True, help="New directory; existing paths are refused")
     parser.add_argument("--browser", action="store_true")
+    parser.add_argument("--catalog-backfill", action="store_true", help="Verify the separately checked legacy catalog backfill")
+    parser.add_argument("--catalog-authority", action="store_true", help="Verify the checked catalog authority conversion")
+    parser.add_argument("--catalog-writes", action="store_true", help="Verify explicit catalog field selection and rejected replays")
+    parser.add_argument("--decoder-model", action="store_true", help="Verify the additive decoder configuration schema")
+    parser.add_argument("--decoder-backfill", action="store_true", help="Verify complete legacy CV groups, histories and sources")
     parser.add_argument("--image", help="Optional existing image on a rootless local Docker test daemon")
     arguments = parser.parse_args()
+    if arguments.decoder_backfill and not all((arguments.decoder_model, arguments.catalog_backfill, arguments.catalog_authority)):
+        parser.error("--decoder-backfill requires --decoder-model --catalog-backfill --catalog-authority")
     for field in ("binary", "backend", "static_dir", "previous_binary", "previous_backend"):
         value = getattr(arguments, field)
         if value is not None:

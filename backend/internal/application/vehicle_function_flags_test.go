@@ -83,7 +83,7 @@ func TestFunctionFlagBackupCurrentAndLegacyRestore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if doc.Version != 24 {
+	if doc.Version != 27 {
 		t.Fatal(doc.Version)
 	}
 	if _, err = backup.Import(ctx, doc); err != nil {
@@ -93,7 +93,7 @@ func TestFunctionFlagBackupCurrentAndLegacyRestore(t *testing.T) {
 	if f.Inverted == nil || !*f.Inverted || f.DirectionDependent == nil || *f.DirectionDependent {
 		t.Fatalf("current restore changed flags %#v", f)
 	}
-	doc.Version = 23
+	setLegacyBackupVersion(doc, 23)
 	for _, row := range doc.Tables["vehicle_functions"] {
 		row["direction_dependent"] = int64(1)
 		delete(row, "inverted")
@@ -106,7 +106,7 @@ func TestFunctionFlagBackupCurrentAndLegacyRestore(t *testing.T) {
 	if f.Inverted != nil || f.DirectionDependent != nil || f.LegacyDirectionDependent == nil || !*f.LegacyDirectionDependent {
 		t.Fatalf("legacy restore guessed flags %#v", f)
 	}
-	doc.Version = 24
+	setLegacyBackupVersion(doc, 24)
 	doc.Tables["vehicle_functions"][0]["inverted"] = map[string]any{"bad": true}
 	validation, err := backup.Validate(ctx, doc)
 	if err != nil {

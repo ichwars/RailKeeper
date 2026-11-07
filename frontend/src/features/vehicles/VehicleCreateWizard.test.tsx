@@ -8,7 +8,8 @@ import { VehicleCreateWizard, vehicleSetMembersFromForm } from "./VehicleCreateW
 import {
   createVehicleCreateWizardState,
   emptyVehicleSetMemberDraft,
-  saveVehicleCreateDraft
+  saveVehicleCreateDraft,
+  loadVehicleCreateDraft
 } from "./vehicleCreateWizardState";
 import type { VehicleSetMemberDraft } from "./vehicleCreateWizardState";
 import type { ArticleSearchController } from "./useArticleSearchController";
@@ -51,6 +52,28 @@ describe("VehicleCreateWizard set safeguards", () => {
     vi.spyOn(api, "inventoryNumberSchemes").mockResolvedValue([]);
   });
 
+  it("reuses one creation identity on retry, persists it with the draft and gives a new draft another identity", async () => {
+    const user = userEvent.setup(), submit = vi.fn();
+    const props = { model, saving: false, message: "", draftOwner: "tester", articleSearchController,
+      onSubmitSingle: submit, onSubmitSet: vi.fn(), onClose: vi.fn() };
+    const first = render(<VehicleCreateWizard {...props} />);
+    await user.click(screen.getByRole("button", { name: "Weiter zu Artikeldaten" }));
+    await user.click(screen.getByRole("button", { name: "Weiter zu Fahrzeugdetails" }));
+    await user.click(screen.getByRole("button", { name: "Anlegen" }));
+    await user.click(screen.getByRole("button", { name: "Anlegen" }));
+    const id = submit.mock.calls[0][1];
+    expect(id).toMatch(/^[0-9a-f]{32}$/); expect(submit.mock.calls[1][1]).toBe(id);
+    await user.click(screen.getByRole("button", { name: "Entwurf speichern" }));
+    const saved = loadVehicleCreateDraft("tester");
+    expect(saved.kind).toBe("loaded"); if (saved.kind === "loaded") expect(saved.state.creationId).toBe(id);
+    first.unmount();
+    render(<VehicleCreateWizard {...props} />);
+    await user.click(screen.getByRole("button", { name: "Weiter zu Artikeldaten" }));
+    await user.click(screen.getByRole("button", { name: "Weiter zu Fahrzeugdetails" }));
+    await user.click(screen.getByRole("button", { name: "Anlegen" }));
+    expect(submit.mock.calls[2][1]).not.toBe(id);
+  });
+
   it("disables set creation for an ECoS draft", () => {
     render(<VehicleCreateWizard model={model} saving={false} message="" setCreationDisabled
       draftOwner="tester"
@@ -58,6 +81,19 @@ describe("VehicleCreateWizard set safeguards", () => {
       onSubmitSingle={vi.fn()} onSubmitSet={vi.fn()} onClose={vi.fn()} />);
 
     expect(screen.getByRole("radio", { name: /Set/ })).toBeDisabled();
+  });
+
+  it("keeps the restored set creation identity across repeated confirmations", async () => {
+    const id = "c".repeat(32), submitSet = vi.fn().mockResolvedValue(undefined), user = userEvent.setup();
+    saveVehicleCreateDraft({ ...createVehicleCreateWizardState(model.form), kind: "set", step: "details", activeDetailsTab: "set", creationId: id }, "tester");
+    render(<VehicleCreateWizard model={model} saving={false} message="" draftOwner="tester"
+      articleSearchController={articleSearchController} onSubmitSingle={vi.fn()}
+      onSubmitSet={submitSet} onClose={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: /Entwurf fortsetzen/ }));
+    await user.click(screen.getByRole("button", { name: "Set anlegen" }));
+    await user.click(screen.getByRole("button", { name: "Set anlegen" }));
+    expect(submitSet).toHaveBeenCalledTimes(2);
+    expect(submitSet.mock.calls.map(call => call[2])).toEqual([id, id]);
   });
 
   it("synchronizes a resumed draft with the parent form", async () => {

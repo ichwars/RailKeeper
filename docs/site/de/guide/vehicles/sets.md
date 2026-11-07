@@ -4,7 +4,7 @@ description: Ein Wagenset anlegen und ändern.
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-07
 ---
 
 # Ein Wagenset anlegen und ändern
@@ -51,7 +51,24 @@ unterschiedlichen Fahrzeugnummern. Diese gemeinsame Änderung wurde in der Demo 
 | Darstellung des Sets | Upload im Setdialog |
 | Bilder eines Wagens | Uploads des betreffenden Fahrzeugs |
 
-## 4. Zusammengehörige Daten übertragen
+## 4. Artikelrevisionen vergleichen und übernehmen
+
+Die Setansicht zeigt unter **Artikelrevisionen** die gespeicherten Setangaben und ihre Artikelbasis.
+Wähle **Bearbeiten**, um unter **Allgemein** eine Revision oder einen neuen Artikelentwurf zu prüfen.
+Markiere nur die Felder, die du jetzt übernehmen möchtest. Individuelle Angaben bleiben zunächst geschützt.
+Die Bestätigung speichert ausschließlich den Artikelstand des Sets, ohne Mitgliedsfahrzeuge zu ändern.
+
+Offene Setangaben und der Artikelentwurf bleiben beim Wechsel zu **Upload** erhalten.
+Ändert die Bestätigung ein Feld, das du selbst gerade bearbeitest, zeigt der Dialog beide Werte.
+Wähle ausdrücklich die gespeicherten Werte oder deinen Entwurf, bevor du die Setangaben speicherst.
+**Abbrechen** verwirft offene Setangaben; bestätigte Artikel- und Bildaktionen bleiben gespeichert.
+
+Nach einem unbekannten Speicherergebnis oder fehlgeschlagenem Nachladen bleibt **Speichern** gesperrt.
+**Gespeicherte Ansicht erneut laden** liest den aktuellen Setstand, ohne die Bestätigung zu wiederholen.
+Prüfe danach gegebenenfalls den Artikelvergleich erneut.
+[Auswahl und Artikelrevisionen](./index#artikelrevisionen-gezielt-übernehmen).
+
+## 5. Zusammengehörige Daten übertragen
 
 Ein CSV-/JSON-Transfer kann die Setstruktur übertragen, enthält aber keine Medien und nicht alle
 Fahrzeug-Unterdaten. Für einen vollständigen kompatiblen Umzug verwende eine Anwendungssicherung.

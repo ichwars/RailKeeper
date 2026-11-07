@@ -1,34 +1,61 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { api, type Vehicle, type VehicleCVFile, type VehicleCVValueInput } from "../../shared/api";
+import { api, type Vehicle, type VehicleCVDeletionScope, type VehicleCVFile, type VehicleCVFilePreview, type VehicleCVValueInput } from "../../shared/api";
+import { useI18n } from "../../shared/i18n";
 import {
   buildCVImportPreview,
-  isValidFunctionMapping,
   type CVFileUploadPreview,
   type CVImportPreview
 } from "./cvImport";
 import { readCVImportFile } from "./cvFileImport";
 import { isBlockedCVFile } from "./vehicleFiles";
+import { maxVehicleUploadFiles, type VehicleUploadKind, type VehicleUploadMetadata } from "./vehicleUploadBatch";
+import { cvDeletionScope, cvWorkingGroupLabel, type CVWorkingGroupOptions } from "./cvWorkingGroup";
+import { workingCVImportPreview } from "./cvWorkingGroupPreview";
 
 type UseVehicleDecoderFilesControllerOptions = {
   selected: Vehicle | null;
+  readonly: boolean;
+  saving: boolean;
+  workingGroup?: CVWorkingGroupOptions;
   setSaving: (saving: boolean) => void;
   onMessage: (message: string) => void;
+  onStatus: (message: string) => void;
   onImportPreview: (preview: CVImportPreview) => void;
-  refreshSelectedVehicle: (vehicleId?: string) => Promise<void>;
+  onFunctionSuggestions: (previews: VehicleCVFilePreview[]) => { applied: number; blocked: string[] };
+  prepareUpload: (kind: VehicleUploadKind, files: File[], metadata: VehicleUploadMetadata, confirmed?: boolean) => boolean;
+  prepareDelete: (request: { kind: "decoder"; record: VehicleCVFile; scope?: VehicleCVDeletionScope; scopeLabel?: string }) => void;
 };
 
 export function useVehicleDecoderFilesController({
   selected,
+  readonly,
+  saving,
+  workingGroup,
   setSaving,
   onMessage,
+  onStatus,
   onImportPreview,
-  refreshSelectedVehicle
+  onFunctionSuggestions,
+  prepareUpload,
+  prepareDelete
 }: UseVehicleDecoderFilesControllerOptions) {
+  const { t } = useI18n();
   const [fileProfile, setFileProfile] = useState("");
   const [fileDescription, setFileDescription] = useState("");
   const [uploadPreview, setUploadPreview] = useState<CVFileUploadPreview | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const scopeKey = `${workingGroup?.ownerKey || ""}:${selected?.id || ""}`;
+  const scope = useRef(scopeKey); scope.current = scopeKey;
+  const version = useRef(0), previewOwner = useRef("");
+  const canUsePreview = () => !readonly && !saving && selected && scope.current === previewOwner.current && (!workingGroup || workingGroup.ready);
+  const targetKey = `${workingGroup?.target?.workspaceId || ""}:${workingGroup?.target?.expectedWorkspaceRevision || ""}`;
+  const appliedTarget = useRef(targetKey);
+  useEffect(() => {
+    if (workingGroup && !uploadPreview && appliedTarget.current !== targetKey) {
+      appliedTarget.current = targetKey; setFileProfile(workingGroup.target?.profile || "");
+    }
+  }, [targetKey, Boolean(uploadPreview)]);
 
   const previewStats = useMemo(() => ({
     cvValues: uploadPreview?.previews.reduce(
@@ -42,43 +69,59 @@ export function useVehicleDecoderFilesController({
   }), [uploadPreview]);
 
   const reset = () => {
+    version.current++;
+    previewOwner.current = "";
     setFileProfile("");
     setFileDescription("");
     setUploadPreview(null);
   };
+  useEffect(() => { if (workingGroup) reset(); }, [workingGroup?.ownerKey]);
 
   const uploadFiles = async (files: FileList | null) => {
-    if (!selected || !files || files.length === 0) return;
+    if (!selected || readonly || saving || !files || files.length === 0) return;
+    if (workingGroup && !workingGroup.ready) { onMessage(t("cvScope.loadFailed")); return; }
     const uploadFiles = Array.from(files);
+    if (uploadFiles.length > maxVehicleUploadFiles) {
+      onMessage(t("vehicles.mediaUpload.limit", { count: maxVehicleUploadFiles })); return;
+    }
     const blocked = uploadFiles.find(isBlockedCVFile);
     if (blocked) {
-      onMessage(
-        `${blocked.name} ist als CV-Datei nicht erlaubt. ` +
-        "Erlaubt sind JSON, CSV, TXT, XML, Z21, ESU, ESUX, LokProgrammer und ZIP."
-      );
+      onMessage(t("vehicles.mediaUpload.invalid.decoder", { name: blocked.name }));
       return;
     }
     setSaving(true);
     onMessage("");
+    const request = ++version.current, requestScope = scope.current;
+    const target = workingGroup?.target ? { ...workingGroup.target } : null;
+    const groups = workingGroup?.groups?.map(group => ({ ...group }));
+    const labels = groups ? Object.fromEntries(groups.map(group => [group.id, cvWorkingGroupLabel(workingGroup?.context, group.id, group.profile, t)])) : undefined;
     try {
-      setUploadPreview({ files: uploadFiles, previews: await Promise.all(uploadFiles.map(api.previewVehicleCVFile)) });
+      const previews = await Promise.all(uploadFiles.map(api.previewVehicleCVFile));
+      if (version.current !== request || scope.current !== requestScope) return;
+      previewOwner.current = requestScope;
+      if (target) setFileProfile(target.profile);
+      setUploadPreview({ files: uploadFiles, previews, ...(workingGroup ? { workingTarget: target, workingGroups: groups, workingGroupLabels: labels } : {}) });
     } catch (error) {
-      onMessage(error instanceof Error ? error.message : String(error));
+      if (version.current === request && scope.current === requestScope) onMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setSaving(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (version.current === request) {
+        setSaving(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
     }
   };
 
   const applyFirstSuggestion = () => {
+    if (!canUsePreview()) return;
     const suggestion = uploadPreview?.previews.find((preview) => preview.hasMetadata);
     if (!suggestion) return;
-    if (suggestion.suggestedDecoderProfile) setFileProfile(suggestion.suggestedDecoderProfile);
+    if (suggestion.suggestedDecoderProfile && !uploadPreview?.workingTarget) setFileProfile(suggestion.suggestedDecoderProfile);
     if (suggestion.suggestedDescription) setFileDescription(suggestion.suggestedDescription);
   };
 
   const previewValuesForImport = async () => {
-    if (!selected || !uploadPreview) return;
+    if (!canUsePreview() || !selected || !uploadPreview) return;
+    const request = ++version.current, vehicleId = selected.id, requestScope = scope.current;
     setSaving(true);
     onMessage("");
     try {
@@ -93,95 +136,50 @@ export function useVehicleDecoderFilesController({
         }));
       }));
       const values = batches.flat();
-      const preview = buildCVImportPreview("Decoder-Datei-Vorschau", values, selected.cvValues || []);
+      if (version.current !== request || scope.current !== requestScope) return;
+      const preview = uploadPreview.workingGroups
+        ? workingCVImportPreview("Decoder-Datei-Vorschau", values, selected.cvValues || [], uploadPreview.workingGroups, uploadPreview.workingTarget || null)
+        : buildCVImportPreview("Decoder-Datei-Vorschau", values, selected.cvValues || []);
       if (!preview.rows.some((row) => row.status !== "invalid")) {
         onMessage("Keine gültigen CV-Werte in der Decoder-Vorschau gefunden.");
         return;
       }
-      onImportPreview({ ...preview, vehicleId: selected.id });
-      onMessage(`${values.length} erkannte CV-Werte für die Prüfung vorbereitet.`);
+      onImportPreview({ ...preview, ...(uploadPreview.workingGroups ? { workingGroupLabels: [...new Set(preview.rows.flatMap(row =>
+        row.input.workspaceId && uploadPreview.workingGroupLabels?.[row.input.workspaceId] ? [uploadPreview.workingGroupLabels[row.input.workspaceId]] : []))] } : {}), vehicleId });
+      onStatus(t("vehicles.mediaUpload.cvPrepared", { count: values.length }));
     } catch (error) {
-      onMessage(error instanceof Error ? error.message : String(error));
+      if (version.current === request && scope.current === requestScope) onMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setSaving(false);
+      if (version.current === request) setSaving(false);
     }
   };
 
   const applyFunctionSuggestions = () => {
-    if (!selected || !uploadPreview) return;
-    const mappings = uploadPreview.previews.flatMap((preview) =>
-      (preview.suggestedFunctions || []).map((mapping) => ({
-        functionKey: mapping.functionKey,
-        name: mapping.name || "",
-        symbolKey: "",
-        functionType: mapping.functionType || "standard",
-        mode: "dauer",
-        directionDependent: selected.functions?.find(row => row.functionKey === mapping.functionKey)?.directionDependent ?? null,
-        inverted: selected.functions?.find(row => row.functionKey === mapping.functionKey)?.inverted ?? null,
-        legacyDirectionDependent: selected.functions?.find(row => row.functionKey === mapping.functionKey)?.legacyDirectionDependent ?? null,
-        flagsVersion: 2,
-        notes: preview.fileName
-      }))
-    );
-    const valid = Array.from(new Map(
-      mappings.filter(isValidFunctionMapping).map((mapping) => [mapping.functionKey, mapping])
-    ).values());
-    if (valid.length === 0) {
-      onMessage("Keine gültigen Funktionstasten in der Decoder-Vorschau gefunden.");
-      return;
-    }
-    setSaving(true);
-    onMessage("");
-    (async () => {
-      for (const row of valid) {
-        await api.updateVehicleFunction(selected.id, row.functionKey, {
-          name: row.name || "",
-          symbolKey: row.symbolKey || "",
-          functionType: row.functionType || "standard",
-          mode: row.mode || "dauer",
-          directionDependent: row.directionDependent ?? null,
-          inverted: row.inverted ?? null,
-          legacyDirectionDependent: row.legacyDirectionDependent ?? null,
-          flagsVersion: row.flagsVersion ?? 2,
-          notes: row.notes || ""
-        });
-      }
-    })()
-      .then(() => refreshSelectedVehicle(selected.id))
-      .then(() => onMessage(
-        `${valid.length} Funktionstaste${valid.length === 1 ? "" : "n"} aus der Decoder-Vorschau übernommen.`
-      ))
-      .catch((error: Error) => onMessage(error.message))
-      .finally(() => setSaving(false));
+    if (!canUsePreview() || !uploadPreview) return;
+    const result = onFunctionSuggestions(uploadPreview.previews);
+    onStatus(t("vehicles.functions.fileDraft", { count: result.applied }) + (result.blocked.length
+      ? " " + t("vehicles.functions.fileBlocked", { keys: result.blocked.join(", ") }) : ""));
   };
 
   const confirmUpload = () => {
-    if (!selected || !uploadPreview) return;
-    const uploadFiles = uploadPreview.files;
-    setSaving(true);
-    onMessage("");
-    (async () => {
-      for (const file of uploadFiles) {
-        await api.uploadVehicleCVFile(selected.id, file, fileProfile, fileDescription);
-      }
-    })()
-      .then(() => refreshSelectedVehicle(selected.id))
-      .then(() => {
-        setUploadPreview(null);
-        onMessage(`${uploadFiles.length} CV-Datei${uploadFiles.length === 1 ? "" : "en"} gespeichert.`);
-      })
-      .catch((error: Error) => onMessage(error.message))
-      .finally(() => setSaving(false));
+    if (!canUsePreview() || !uploadPreview) return;
+    const target = uploadPreview.workingTarget;
+    const profile = target?.profile ?? fileProfile;
+    const comparison = target ? { workspaceId: target.workspaceId, expectedWorkspaceRevision: target.expectedWorkspaceRevision }
+      : cvDeletionScope(profile, uploadPreview.workingGroups);
+    if (prepareUpload("decoder", uploadPreview.files, { decoderProfile: profile, description: fileDescription,
+      ...comparison, ...(comparison ? { workingGroupLabel: uploadPreview.workingGroupLabels?.[comparison.workspaceId] ||
+        cvWorkingGroupLabel(workingGroup?.context, comparison.workspaceId, profile, t) } : {}) }, true)) {
+      setUploadPreview(null);
+    }
   };
 
   const remove = (file: VehicleCVFile) => {
-    if (!selected) return;
-    setSaving(true);
-    onMessage("");
-    api.deleteVehicleCVFile(selected.id, file.id)
-      .then(() => refreshSelectedVehicle(selected.id))
-      .catch((error: Error) => onMessage(error.message))
-      .finally(() => setSaving(false));
+    if (!selected || readonly || saving) return;
+    if (workingGroup && !workingGroup.ready) { onMessage(t("cvScope.loadFailed")); return; }
+    const comparison = cvDeletionScope(file.decoderProfile, workingGroup?.groups);
+    prepareDelete({ kind: "decoder", record: file, ...(comparison ? { scope: comparison,
+      scopeLabel: cvWorkingGroupLabel(workingGroup?.context, comparison.workspaceId, file.decoderProfile, t) } : {}) });
   };
 
   return {

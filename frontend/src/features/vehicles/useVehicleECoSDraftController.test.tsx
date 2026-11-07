@@ -7,6 +7,8 @@ import type { DigitalCenterWorkItem } from "../digitalCenters/digitalCenterModel
 import { useVehicleECoSDraftController } from "./useVehicleECoSDraftController";
 import { ecosVehicleDraftStorageKey } from "./vehicleViewModel";
 import { api } from "../../shared/api";
+import { vehicleFixture } from "../../test/fixtures/vehicles";
+import type { Vehicle } from "../../shared/api";
 
 const cs3Item: DigitalCenterWorkItem = {
   id: "item-77", sessionId: "session-1", centerObjectId: "77", vehicleId: "",
@@ -92,5 +94,33 @@ describe("useVehicleECoSDraftController", () => {
     }));
     expect(window.sessionStorage.getItem(ecosVehicleDraftStorageKey)).toBeNull();
     expect(window.location.pathname + window.location.search).toBe("/vehicles");
+  });
+
+  it.each(["clear", "unmount", "failure"])("retains a pending update source and ignores late completion after %s", async reason => {
+    const draft = { ...buildDigitalCenterVehicleDraft(cs3Item, "cs3"), mode: "update", targetVehicleId: "vehicle-1" };
+    const stored = JSON.stringify(draft); window.sessionStorage.setItem(ecosVehicleDraftStorageKey, stored);
+    let finish!: (vehicle: Vehicle) => void, fail!: (error: Error) => void;
+    const read = vi.spyOn(api, "vehicle").mockReturnValue(new Promise((resolve, reject) => { finish = resolve; fail = reject; }));
+    const options = { onOpenCreate: vi.fn(), onOpenUpdate: vi.fn(), onFinishOpen: vi.fn(), onMessage: vi.fn(), t: (key: string) => key };
+    const hook = renderHook(() => useVehicleECoSDraftController({ ...options }));
+    hook.rerender(); expect(read).toHaveBeenCalledOnce();
+    expect(window.sessionStorage.getItem(ecosVehicleDraftStorageKey)).toBe(stored);
+    if (reason === "clear") act(() => hook.result.current.commands.clear());
+    if (reason === "unmount") hook.unmount();
+    await act(async () => { if (reason === "failure") fail(new Error("Unavailable")); else finish(vehicleFixture()); });
+    expect(options.onOpenUpdate).not.toHaveBeenCalled();
+    expect(options.onFinishOpen).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem(ecosVehicleDraftStorageKey)).toBe(stored);
+  });
+
+  it("opens a prepared update once and only then consumes its stored source", async () => {
+    const draft = { ...buildDigitalCenterVehicleDraft(cs3Item, "cs3"), mode: "update", targetVehicleId: "vehicle-1" };
+    window.sessionStorage.setItem(ecosVehicleDraftStorageKey, JSON.stringify(draft));
+    vi.spyOn(api, "vehicle").mockResolvedValue(vehicleFixture());
+    const options = { onOpenCreate: vi.fn(), onOpenUpdate: vi.fn(), onFinishOpen: vi.fn(), onMessage: vi.fn(), t: (key: string) => key };
+    renderHook(() => useVehicleECoSDraftController(options), { wrapper: StrictMode });
+    await waitFor(() => expect(options.onOpenUpdate).toHaveBeenCalledOnce());
+    expect(options.onFinishOpen).toHaveBeenCalledOnce();
+    expect(window.sessionStorage.getItem(ecosVehicleDraftStorageKey)).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { useState } from "react";
 
-import { api, type CreateVehicleRequest, type ExhibitionEntry, type Vehicle } from "../../shared/api";
+import { api, ApiError, type CreateVehicleRequest, type ExhibitionEntry, type Vehicle } from "../../shared/api";
 import {
   buildBrandedQrPngDataUrl,
   buildQrSvg,
@@ -178,9 +178,13 @@ export function useVehicleOutputController({
     }
   };
 
-  const updateVehicleExhibitionFlag = (vehicle: Vehicle, exhibition: boolean) => {
+  const updateVehicleExhibitionFlag = async (vehicle: Vehicle, exhibition: boolean) => {
     onMessage("");
-    return api.updateVehicle(vehicle.id, { ...vehicleToForm(vehicle), exhibition }).then((updated) => {
+    const current = await api.vehicle(vehicle.id);
+    if (!current.revision) throw new Error(t("vehicles.mediaConflict.missingRevision"));
+    return api.updateVehicle(vehicle.id, {
+      ...vehicleToForm(current), exhibition, images: undefined, expectedRevision: current.revision
+    }).then((updated) => {
       const nextVehicle = {
         ...updated,
         images: updated.images ?? vehicle.images,
@@ -190,6 +194,11 @@ export function useVehicleOutputController({
       setVehicles((current) => current.map((item) => (item.id === nextVehicle.id ? nextVehicle : item)));
       if (selected?.id === nextVehicle.id) setSelectedDetail(nextVehicle);
       return nextVehicle;
+    }).catch(error => {
+      if (error instanceof ApiError && error.code === "vehicle_conflict") {
+        throw new Error(t("vehicles.mediaConflict.changed"));
+      }
+      throw error;
     });
   };
 

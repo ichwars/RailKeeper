@@ -4,7 +4,7 @@ description: Decoder, functions, and CV data.
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-07
 ---
 
 # Decoder, functions, and CV data
@@ -18,6 +18,8 @@ None of these exercises programs a decoder.
 | Check model, firmware and identification | [Identify a decoder](decoder-identification) |
 | Fill F0/F1/F3 together and protect manual details | [Apply function keys](functions-walkthrough) |
 | Look up a model or source | [Decoder library](decoder-library) |
+| Read recorded values, histories and originals | [CV archive](cv-archive) |
+| Record decoder units, installations and working group assignments | [Decoder units and installations](decoder-installations) |
 | Understand manufacturer and firmware limits | [Model notes](decoder-model-notes) |
 | Read formats, raw-value rules and edge cases | [Technical reference](decoder-cv-reference) |
 
@@ -31,8 +33,9 @@ None of these exercises programs a decoder.
 4. **Save changes**: Save the vehicle and function draft together.
 5. Reopen the vehicle and check results and provenance.
 
-CV imports and file actions save their own data and may reload the vehicle. Deliberately save
-or discard other drafts first. **Cancel** does not undo an already completed CV import.
+Manual CV changes are first **staged in the CV draft** and committed together with **Save CV draft**.
+CV imports and file actions save their own data. Pending vehicle, function and CV drafts survive the
+following refresh. **Cancel** does not undo a completed import or a previously saved CV draft.
 
 ## When information remains unknown
 

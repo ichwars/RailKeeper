@@ -1,6 +1,8 @@
 import { AlertTriangle, CheckCircle2, CircleAlert } from "lucide-react";
 
-import type { Language } from "../../shared/i18n";
+import { translate, type Language } from "../../shared/i18n";
+import { ImportReviewStatus } from "../../shared/ImportReview";
+import { transferReviewState } from "./transferReviewState";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import type {
   DataTransferIssue,
@@ -51,6 +53,7 @@ export function TransferReviewTable({ busy, issues, language, onResolve, records
           <tr>
             <th>{copy.area}</th>
             <th>{copy.record}</th>
+            <th>{translate(language, "importReview.sourceValues")}</th>
             <th>{copy.status}</th>
             <th>{copy.action}</th>
             <th>{copy.issue}</th>
@@ -73,6 +76,7 @@ export function TransferReviewTable({ busy, issues, language, onResolve, records
                     {record.rowNumber ? <small>{copy.row} {record.rowNumber}</small> : null}
                   </span>
                 </td>
+                <td><ImportReviewStatus state={transferReviewState(record, issues)} language={language} /></td>
                 <td>
                   <span className={`transfer-review-status ${record.classification}`}>
                     <Icon size={15} aria-hidden="true" />

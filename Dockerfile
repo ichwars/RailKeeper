@@ -35,6 +35,7 @@ COPY --from=backend-build /out/railkeeper /usr/local/bin/railkeeper
 COPY --from=frontend-build /src/frontend/dist /app/web
 COPY --chown=railkeeper:railkeeper backend/migrations /app/migrations
 COPY --chown=railkeeper:railkeeper backend/seeds /app/seeds
+RUN chmod -R a+rX /app
 USER railkeeper
 ENV RAILKEEPER_ADDR=:8080 \
   RAILKEEPER_DATA_DIR=/data \
