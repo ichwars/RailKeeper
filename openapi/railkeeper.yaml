@@ -5342,6 +5342,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "429":
+          description: IP or account login budget exhausted, or password verification is busy
+          headers:
+            Retry-After:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /auth/logout:
     post:
       tags: [Auth]

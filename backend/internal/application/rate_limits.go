@@ -15,6 +15,16 @@ func NewRateLimitService(db *sql.DB) *RateLimitService {
 	return &RateLimitService{db: db}
 }
 
+func (s *RateLimitService) Reset(ctx context.Context, scope, key string) error {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM rate_limit_attempts WHERE scope=? AND key=?`, scope, key); err != nil {
+		return fmt.Errorf("reset rate limit: %w", err)
+	}
+	return nil
+}
+
 func (s *RateLimitService) Allow(ctx context.Context, scope, key string, limit int, window time.Duration) (allowed bool, err error) {
 	if s == nil || s.db == nil || limit <= 0 {
 		return true, nil

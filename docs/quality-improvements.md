@@ -40,6 +40,15 @@ Es gibt keine automatische Verbindung zu Preisportalen oder Cloud-Diensten.
 
 ## Vor jedem nächsten Schritt
 
+Anmeldungen behalten die bestehende IP-Begrenzung. Zusätzlich gilt pro exakt getrimmter
+Anmeldekennung ein Datenbankbudget von zehn Versuchen in fünf Minuten. Eine vollständig
+erfolgreiche Anmeldung leert nur das eigene Budget. Abgewiesene weitere Versuche verlängern
+das Fenster nicht. Gespeichert wird der SHA-256-Schlüssel der Kennung. Eine vorbereitete
+Dummy-Passwortprüfung behandelt unbekannte Konten ebenfalls mit Argon2id. Höchstens zwei
+Passwortprüfungen pro Authentifizierungsdienst laufen gleichzeitig; Überlastung liefert
+denselben vorübergehenden HTTP-429-Status. Kontoerstellung oder Passwortänderung folgen
+daraus nicht.
+
 `cd frontend && npm run lint` prüft Produktionscode einschließlich React-Hook-Regeln.
 Die Syntaxwerkzeuge liegen mit Babels TypeScript-/JSX-Parser in `tools/frontend-lint`;
 die eigentliche Frontend-Typprüfung und der Build verwenden den Compiler aus

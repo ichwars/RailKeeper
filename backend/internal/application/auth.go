@@ -33,10 +33,13 @@ var (
 	ErrLastAdmin            = errors.New("last admin cannot be removed")
 	ErrPasswordResetInvalid = errors.New("password reset token invalid")
 	ErrTwoFactorRequired    = errors.New("two factor code required")
+	ErrLoginThrottled       = errors.New("login temporarily limited")
 )
 
 type AuthService struct {
-	db *sql.DB
+	db          *sql.DB
+	loginLimits *RateLimitService
+	loginWork   chan struct{}
 }
 
 const passwordResetTTL = 30 * time.Minute
@@ -151,7 +154,8 @@ type LoginResult struct {
 }
 
 func NewAuthService(db *sql.DB) *AuthService {
-	return &AuthService{db: db}
+	dummyLoginHash()
+	return &AuthService{db: db, loginLimits: NewRateLimitService(db), loginWork: make(chan struct{}, 2)}
 }
 
 func (s *AuthService) ListUsers(ctx context.Context) ([]UserView, error) {
@@ -884,72 +888,6 @@ func (s *AuthService) ResetPassword(ctx context.Context, input PasswordResetConf
 		return fmt.Errorf("commit password reset: %w", err)
 	}
 	return nil
-}
-
-func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginResult, error) {
-	username := strings.TrimSpace(input.Username)
-
-	var userID, storedUsername, passwordHash, twoFactorSecret string
-	var twoFactorEnabled bool
-	err := s.db.QueryRowContext(
-		ctx,
-		`SELECT id, username, password_hash, COALESCE(two_factor_secret, ''), two_factor_enabled FROM users WHERE username=?`,
-		username,
-	).Scan(&userID, &storedUsername, &passwordHash, &twoFactorSecret, &twoFactorEnabled)
-	if err != nil || !verifyPassword(input.Password, passwordHash) {
-		_ = s.audit(ctx, "", "LoginFailed", "user", username, "{}")
-		return nil, ErrInvalidLogin
-	}
-	if twoFactorEnabled {
-		if strings.TrimSpace(input.TwoFactorCode) == "" {
-			_ = s.audit(ctx, userID, "LoginTwoFactorRequired", "user", userID, "{}")
-			return nil, ErrTwoFactorRequired
-		}
-		if !verifyTOTPCode(twoFactorSecret, input.TwoFactorCode, time.Now().UTC()) {
-			_ = s.audit(ctx, userID, "LoginTwoFactorFailed", "user", userID, "{}")
-			return nil, ErrInvalidLogin
-		}
-	}
-
-	roles, err := s.roles(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	sessionToken := randomToken()
-	csrfToken := randomToken()
-	expiresAt := time.Now().UTC().Add(12 * time.Hour)
-	now := time.Now().UTC().Format(time.RFC3339)
-
-	if _, err := s.db.ExecContext(
-		ctx,
-		`INSERT INTO sessions(id, user_id, token_hash, csrf_token, expires_at, created_at)
-		 VALUES(?, ?, ?, ?, ?, ?)`,
-		randomID(),
-		userID,
-		hashToken(sessionToken),
-		csrfToken,
-		expiresAt.Format(time.RFC3339),
-		now,
-	); err != nil {
-		return nil, fmt.Errorf("create session: %w", err)
-	}
-
-	if err := s.audit(ctx, userID, "Login", "user", userID, "{}"); err != nil {
-		return nil, err
-	}
-
-	return &LoginResult{
-		SessionToken: sessionToken,
-		CSRFToken:    csrfToken,
-		ExpiresAt:    expiresAt,
-		Session: SessionView{
-			Username:         storedUsername,
-			Roles:            roles,
-			CSRFToken:        csrfToken,
-			TwoFactorEnabled: twoFactorEnabled,
-		},
-	}, nil
 }
 
 func (s *AuthService) CurrentSession(ctx context.Context, sessionToken string) (*SessionView, error) {
