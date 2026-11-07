@@ -14,6 +14,7 @@ import (
 	"railkeeper/backend/internal/api"
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/infrastructure"
+	"railkeeper/backend/internal/infrastructure/authdata"
 	"railkeeper/backend/internal/startup"
 )
 
@@ -225,7 +226,7 @@ func buildApplicationHandler(
 	}
 
 	accessoryRepository := infrastructure.NewAccessoryRepository(database)
-	authService := application.NewAuthService(database)
+	authService := application.NewAuthService(database, application.WithLoginStore(authdata.NewStore(database)))
 	setupService := application.NewSetupService(database)
 	setupRequired, err := setupService.SetupRequired(ctx)
 	if err != nil {
