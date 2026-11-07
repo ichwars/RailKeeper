@@ -83,6 +83,14 @@ map and a stable client identity. Unknown fields, null catalog values and traili
 before any write. A 409 response requires reloading and reviewing the saved assignment; clients do
 not automatically repeat a changed confirmation. Public vehicle/set write contracts remain unchanged.
 
+The frontend comparison widget separates saved inventory values, revision fields and the explicit
+selection. Individual overrides start protected. Its local article draft, note and operation identity
+survive failed confirmations and comparison refreshes. A known saved identity requires a deliberate
+new confirmation before another revision can be created. Mounted/request/editor-scope guards reject
+late responses and prevent writes after the scope closes. Input Enter and incomplete article fields
+do not submit or block the enclosing inventory form. Integration with a vehicle/set editor refreshes
+the saved aggregate through its existing draft reconciliation.
+
 `tools/regression/verify_upgrade.py` rehearses the schema on a separate copy of a marked synthetic
 cold reference backup. It compares every existing table and stored file, permits only the four new
 empty tables and appended migration-ledger rows, and checks the automatic SQLite snapshot against

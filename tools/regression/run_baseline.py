@@ -31,9 +31,10 @@ def role_checks(client, fixture):
         actor.login(credentials)
         actor.request("GET", "/api/v1/vehicles", expected=403 if role == "Messe" else 200)
         actor.request("GET", "/api/v1/users", expected=403)
-        actor.request("POST", "/api/v1/vehicles", {}, expected=403 if role != "Editor" else 400)
+        # Permission-only probes have no body to consume after an early rejection.
+        actor.request("POST", "/api/v1/vehicles", expected=403 if role != "Editor" else 400)
         actor.request("GET", "/api/v1/exhibition-lists", expected=200 if role == "Messe" else 403)
-    client.request("POST", "/api/v1/vehicles", {}, expected=403, csrf=False)
+    client.request("POST", "/api/v1/vehicles", expected=403, csrf=False)
     Client(int(client.base.rsplit(":", 1)[1])).request("GET", "/api/v1/vehicles", expected=401)
 
 
