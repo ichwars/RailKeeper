@@ -161,7 +161,7 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 	}
 	data, err := io.ReadAll(io.LimitReader(file, a.maxAttachmentBytes+1))
 	if err != nil || int64(len(data)) > a.maxAttachmentBytes {
-		respondProblem(w, http.StatusBadRequest, "cv_file_too_large", "Die Datei ist zu gro?.")
+		respondProblem(w, http.StatusBadRequest, "cv_file_too_large", "Die Datei ist zu groß.")
 		return
 	}
 	if len(data) == 0 {
@@ -182,17 +182,31 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decoderProfile, description := applyESUXMetadata(originalName, data, r.FormValue("decoderProfile"), r.FormValue("description"))
+	workspaceID := r.FormValue("workspaceId")
+	if workspaceID != "" {
+		decoderProfile = r.FormValue("decoderProfile")
+	}
 	cvFile, err := a.vehicleService.CreateCVFile(r.Context(), vehicleID, application.VehicleCVFileInput{
-		FileName:       storageName,
-		OriginalName:   originalName,
-		Description:    description,
-		DecoderProfile: decoderProfile,
-		MimeType:       mimeType,
-		SizeBytes:      int64(len(data)),
-		BlobID:         blobID,
+		WorkspaceID:               workspaceID,
+		ExpectedWorkspaceRevision: r.FormValue("expectedWorkspaceRevision"),
+		FileName:                  storageName,
+		OriginalName:              originalName,
+		Description:               description,
+		DecoderProfile:            decoderProfile,
+		MimeType:                  mimeType,
+		SizeBytes:                 int64(len(data)),
+		BlobID:                    blobID,
 	})
 	if err != nil {
 		a.deleteFileBlobIfUnreferenced(r.Context(), blobID)
+		if errors.Is(err, application.ErrVehicleCVConflict) {
+			respondProblem(w, http.StatusConflict, "cv_file_conflict", "The working group changed. Reload it before confirming the upload again.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "cv_file_profile_invalid", "The working group or profile does not belong to this vehicle.")
+			return
+		}
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
 			return

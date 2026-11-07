@@ -66,7 +66,9 @@ FEATURES = {
         "tests": ["backend/internal/application/decoder_hardware_changes_test.go",
                   "backend/internal/application/decoder_workspace_changes_test.go",
                   "backend/internal/api/decoder_configuration_reads_test.go",
-                  "backend/internal/api/decoder_configuration_writes_test.go"],
+                  "backend/internal/api/decoder_configuration_writes_test.go",
+                  "backend/internal/application/vehicle_cv_workspace_scope_test.go",
+                  "backend/internal/api/vehicle_cv_workspace_scope_test.go"],
     },
     "functions-cv": {
         "prefixes": ["/vehicles/{id}/functions", "/vehicles/{id}/cv-values", "/vehicles/{id}/cv-files", "/cv-files", "/decoder-library"],

@@ -12,7 +12,7 @@ import (
 )
 
 const maxCVImportDataBytes = 8 * 1024 * 1024
-const maxCVImportRevisionBytes = application.MaxVehicleCVImportValues * (64 + len(`"expectedRevision":""`) + 1)
+const maxCVImportRevisionBytes = application.MaxVehicleCVImportValues * (128 + len(`"expectedRevision":"","expectedWorkspaceRevision":""`) + 2)
 
 func (a *App) importVehicleCVValues(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxCVImportDataBytes+maxCVImportRevisionBytes))
@@ -91,7 +91,7 @@ func cvImportDataSize(rows []json.RawMessage) (int, error) {
 			return 0, err
 		}
 		for key := range fields {
-			if strings.EqualFold(key, "expectedRevision") {
+			if strings.EqualFold(key, "expectedRevision") || strings.EqualFold(key, "expectedWorkspaceRevision") {
 				delete(fields, key)
 			}
 		}

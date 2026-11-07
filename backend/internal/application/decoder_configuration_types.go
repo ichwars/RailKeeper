@@ -55,6 +55,7 @@ type DecoderCVWorkspace struct {
 	ValueCount      int     `json:"valueCount"`
 	SourceCount     int     `json:"sourceCount"`
 	ContentRevision string  `json:"contentRevision"`
+	BindingRevision string  `json:"bindingRevision"`
 }
 
 type DecoderCVSnapshotSummary struct {

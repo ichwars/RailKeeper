@@ -24,21 +24,34 @@ func (s *VehicleService) ImportCVValues(ctx context.Context, vehicleID string, i
 		return 0, ErrVehicleValidation
 	}
 	seen := map[string]bool{}
+	values := make([]VehicleCVValueInput, len(input.Values))
 	for i, value := range input.Values {
 		value = cleanVehicleCVValueInput(value)
-		key := vehicleCVIdentity(value)
+		key := vehicleCVRequestIdentity(value)
 		if !isValidVehicleCVValueInput(value) || seen[key] {
 			return 0, ErrVehicleValidation
 		}
-		seen[key], input.Values[i] = true, value
+		seen[key], values[i] = true, value
 	}
 	tx, err := beginVehicleCVWrite(ctx, s.db, vehicleID)
 	if err != nil {
 		return 0, err
 	}
 	defer func() { _ = tx.Rollback() }()
+	seenTargets := map[string]bool{}
+	for index, value := range values {
+		resolved, err := resolveVehicleCVInputTx(ctx, tx, vehicleID, value)
+		if err != nil {
+			return 0, err
+		}
+		key := vehicleCVIdentity(resolved)
+		if seenTargets[key] {
+			return 0, ErrVehicleValidation
+		}
+		seenTargets[key], values[index] = true, resolved
+	}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
-	for _, value := range input.Values {
+	for _, value := range values {
 		if err := importCVValueTx(ctx, tx, vehicleID, value, now); err != nil {
 			return 0, err
 		}

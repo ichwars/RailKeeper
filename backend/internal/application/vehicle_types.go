@@ -482,18 +482,20 @@ type VehicleCVValueHistory struct {
 }
 
 type VehicleCVValueInput struct {
-	ExpectedRevision *string `json:"expectedRevision,omitempty"`
-	CVNumber         int     `json:"cvNumber"`
-	IndexCV31        *int    `json:"indexCV31,omitempty"`
-	IndexCV32        *int    `json:"indexCV32,omitempty"`
-	Value            int     `json:"value"`
-	Description      string  `json:"description"`
-	Category         string  `json:"category"`
-	Protocol         string  `json:"protocol"`
-	DecoderProfile   string  `json:"decoderProfile"`
-	SourceFileID     string  `json:"sourceFileId"`
-	SourceLine       *int    `json:"sourceLine,omitempty"`
-	SourceExportedAt string  `json:"sourceExportedAt,omitempty"`
+	ExpectedRevision          *string `json:"expectedRevision,omitempty"`
+	WorkspaceID               string  `json:"workspaceId,omitempty"`
+	ExpectedWorkspaceRevision string  `json:"expectedWorkspaceRevision,omitempty"`
+	CVNumber                  int     `json:"cvNumber"`
+	IndexCV31                 *int    `json:"indexCV31,omitempty"`
+	IndexCV32                 *int    `json:"indexCV32,omitempty"`
+	Value                     int     `json:"value"`
+	Description               string  `json:"description"`
+	Category                  string  `json:"category"`
+	Protocol                  string  `json:"protocol"`
+	DecoderProfile            string  `json:"decoderProfile"`
+	SourceFileID              string  `json:"sourceFileId"`
+	SourceLine                *int    `json:"sourceLine,omitempty"`
+	SourceExportedAt          string  `json:"sourceExportedAt,omitempty"`
 }
 
 type VehicleCVFile struct {
@@ -514,14 +516,16 @@ type VehicleCVFile struct {
 }
 
 type VehicleCVFileInput struct {
-	FileName       string
-	OriginalName   string
-	Description    string
-	DecoderProfile string
-	MimeType       string
-	SizeBytes      int64
-	StoragePath    string
-	BlobID         string
+	WorkspaceID               string
+	ExpectedWorkspaceRevision string
+	FileName                  string
+	OriginalName              string
+	Description               string
+	DecoderProfile            string
+	MimeType                  string
+	SizeBytes                 int64
+	StoragePath               string
+	BlobID                    string
 }
 
 type CreateVehicleInput struct {
