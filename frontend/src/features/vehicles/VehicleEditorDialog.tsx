@@ -41,6 +41,7 @@ type VehicleEditorDialogProps = {
   message: string;
   messageTone?: "error" | "status";
   mediaDialogs?: ReactNode;
+  catalog?: ReactNode;
   refreshConflicts?: DraftRefreshConflict[];
   mediaConflicts?: MediaDraftConflict[];
   onResolveMediaConflict?: (conflict: MediaDraftConflict, choice: "draft" | "saved") => void;
@@ -79,6 +80,7 @@ export function VehicleEditorDialog({
   message,
   messageTone = "error",
   mediaDialogs,
+  catalog,
   refreshConflicts = [],
   mediaConflicts = [],
   onResolveMediaConflict = () => undefined,
@@ -150,6 +152,7 @@ export function VehicleEditorDialog({
         {mode === "view" && selected ? (
           <VehicleReadOnlyView
             vehicle={selected}
+            catalog={catalog}
             onEdit={onEdit}
             onPrint={onPrint}
             onQr={onQr}
@@ -174,6 +177,7 @@ export function VehicleEditorDialog({
               <VehicleSaveState tab={activeTab} saved={lastSavedAction} conflicts={refreshConflicts}
                 onResolve={onResolveRefreshConflicts} />
               <VehicleMediaConflicts vehicle={selected} conflicts={mediaConflicts} saving={saving} onResolve={onResolveMediaConflict} />
+              <div className="vehicle-catalog-slot" hidden={activeTab !== "model"}>{catalog}</div>
               {activeTab === "model" && <VehicleModelTab {...tabs.model} />}
               {activeTab === "control" && <VehicleFunctionsTab {...tabs.functions} />}
               {activeTab === "speedCurve" && <VehicleSpeedCurveTab {...tabs.speedCurve} />}

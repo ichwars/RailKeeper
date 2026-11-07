@@ -90,6 +90,10 @@ new confirmation before another revision can be created. Mounted/request/editor-
 late responses and prevent writes after the scope closes. Input Enter and incomplete article fields
 do not submit or block the enclosing inventory form. Integration with a vehicle/set editor refreshes
 the saved aggregate through its existing draft reconciliation.
+The vehicle dialog keeps the widget mounted across tabs and keys it to the editor session, including
+reopening the same vehicle. An acknowledged write followed by a failed aggregate read offers a
+separate read-only refresh retry. That retry preserves every open form draft and sends no second
+catalog confirmation.
 
 `tools/regression/verify_upgrade.py` rehearses the schema on a separate copy of a marked synthetic
 cold reference backup. It compares every existing table and stored file, permits only the four new
