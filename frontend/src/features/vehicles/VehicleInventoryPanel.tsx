@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
+  Archive,
   BadgeCheck,
   Copy,
   Eye,
@@ -54,6 +55,7 @@ type InventoryPanelProps = {
   sortedVehicles: Vehicle[];
   loading: boolean;
   message: string;
+  messageTone?: "error" | "status";
   query: string;
   columns: readonly VehicleTableColumn[];
   columnWidths: TableColumnWidths<VehicleTableColumn>;
@@ -101,6 +103,7 @@ type InventoryPanelProps = {
   onCreate: () => void;
   onReload: () => void;
   onOpenReport: () => void;
+  onOpenCVArchive?: () => void;
   onQueryChange: (value: string) => void;
   onToggleColumn: (column: VehicleTableColumn) => void;
   onMoveColumn: (column: VehicleTableColumn, direction: VehicleColumnMove) => void;
@@ -138,6 +141,7 @@ export function VehicleInventoryPanel({
   sortedVehicles,
   loading,
   message,
+  messageTone = "error",
   query,
   columns,
   columnWidths,
@@ -166,6 +170,7 @@ export function VehicleInventoryPanel({
   onCreate,
   onReload,
   onOpenReport,
+  onOpenCVArchive,
   onQueryChange,
   onToggleColumn,
   onMoveColumn,
@@ -315,6 +320,8 @@ export function VehicleInventoryPanel({
                 onMove={onMoveColumn}
                 onReset={onResetColumns}
               />
+              {onOpenCVArchive && <button type="button" className="icon-button decoder-archive-open" onClick={onOpenCVArchive}
+                aria-label={t("decoderConfig.archive")} title={t("decoderConfig.archive")}><Archive size={16} /></button>}
               <button type="button" className="icon-button" onClick={onOpenReport} aria-label={t("vehicles.report.open")} title={t("vehicles.report.open")} disabled={loading || vehicles.length === 0}>
                 <Printer size={16} />
               </button>
@@ -446,7 +453,8 @@ export function VehicleInventoryPanel({
           </div>
         </div>
 
-        {message && <p className="form-message">{message}</p>}
+        {message && <p className={`form-message${messageTone === "status" ? " is-status" : ""}`}
+          role={messageTone === "status" ? "status" : "alert"}>{message}</p>}
 
         {!loading && sortedVehicles.length > 0 ? (
           <VehicleInventoryMobileList

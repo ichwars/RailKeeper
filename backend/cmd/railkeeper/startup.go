@@ -227,6 +227,9 @@ func buildApplicationHandler(
 	accessoryRepository := infrastructure.NewAccessoryRepository(database)
 	authService := application.NewAuthService(database)
 	vehicleService := application.NewVehicleService(database)
+	if err := application.BackfillLegacyDecoderCV(ctx, database, paths.BlobDataDir); err != nil {
+		return nil, fmt.Errorf("adopt legacy decoder working state: %w", err)
+	}
 	ecosService := application.NewECoSService()
 	digitalCenterService := application.NewDigitalCenterService()
 	settingsService := application.NewSettingsService(database)

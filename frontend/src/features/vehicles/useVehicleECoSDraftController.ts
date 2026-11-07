@@ -41,13 +41,15 @@ export function useVehicleECoSDraftController({
   const [draft, setDraft] = useState<ECoSVehicleDraftPayload | null>(null);
   const [unclearFields, setUnclearFields] = useState<Set<ECoSRequiredField>>(() => new Set());
   const draftRequest = useRef(0);
+  const pendingRawDraft = useRef<string | null>(null);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
-    return () => { alive.current = false; draftRequest.current += 1; };
+    return () => { alive.current = false; draftRequest.current += 1; pendingRawDraft.current = null; };
   }, []);
 
   const clear = () => {
+    draftRequest.current++;
     setDraft(null);
     setUnclearFields(new Set());
   };
@@ -68,7 +70,9 @@ export function useVehicleECoSDraftController({
     draft && unclearFields.has(field) ? "ecos-unclear-field" : ""
   );
 
-  const openPreparedDraft = useCallback((nextDraft: ECoSVehicleDraftPayload) => {
+  const openPreparedDraft = useCallback((nextDraft: ECoSVehicleDraftPayload, onPrepared: () => void, request: number) => {
+    const isCurrent = () => alive.current && request === draftRequest.current;
+    if (!isCurrent()) return;
     const images: PendingArticleImage[] = [];
     const mergeImages = (current: PendingArticleImage[]) => current;
     const functionEdits: FunctionEditState = Object.fromEntries((nextDraft.functionValues || []).map((item) => [
@@ -103,11 +107,13 @@ export function useVehicleECoSDraftController({
       setDraft(nextDraft);
       setUnclearFields(new Set(nextDraft.unclearFields));
       onFinishOpen(nextDraft);
+      onPrepared();
     };
 
     if (nextDraft.mode === "update" && nextDraft.targetVehicleId) {
       api.vehicle(nextDraft.targetVehicleId)
         .then((detail) => {
+          if (!isCurrent()) return;
           onOpenUpdate(detail, {
             form: applyDraftValues(vehicleToForm(detail)),
             images,
@@ -116,7 +122,7 @@ export function useVehicleECoSDraftController({
           });
           finish();
         })
-        .catch((error: Error) => onMessage(error.message));
+        .catch((error: Error) => { if (isCurrent()) onMessage(error.message); });
       return;
     }
 
@@ -132,23 +138,20 @@ export function useVehicleECoSDraftController({
   const openDraft = useCallback((nextDraft: ECoSVehicleDraftPayload, onPrepared: () => void) => {
     const request = ++draftRequest.current;
     if (nextDraft.source !== "ecos" || nextDraft.mode !== "create" || !nextDraft.ecosFunctions?.functions.length) {
-      onPrepared();
-      openPreparedDraft(nextDraft);
+      openPreparedDraft(nextDraft, onPrepared, request);
       return;
     }
     Promise.all([api.masterData("symbols", true), api.decoderLibrary()])
       .then(([symbols, library]) => {
         if (alive.current && request === draftRequest.current) {
           const prepared = supplementECoSFunctionDraft(nextDraft, symbols, library, t);
-          onPrepared();
-          openPreparedDraft(prepared);
+          openPreparedDraft(prepared, onPrepared, request);
         }
       })
       .catch(() => {
         if (alive.current && request === draftRequest.current) {
           const prepared = supplementECoSFunctionDraft(nextDraft, [], null, t);
-          onPrepared();
-          openPreparedDraft(prepared);
+          openPreparedDraft(prepared, onPrepared, request);
           onMessage(t("decoderLibrary.loadFailed"));
         }
       });
@@ -156,12 +159,14 @@ export function useVehicleECoSDraftController({
 
   useEffect(() => {
     const rawDraft = window.sessionStorage.getItem(ecosVehicleDraftStorageKey);
-    if (!rawDraft) return;
+    if (!rawDraft || pendingRawDraft.current === rawDraft) return;
+    pendingRawDraft.current = rawDraft;
     // Keep asynchronous preparations available across StrictMode replay or unmount.
     const consume = () => {
       if (window.sessionStorage.getItem(ecosVehicleDraftStorageKey) === rawDraft) {
         window.sessionStorage.removeItem(ecosVehicleDraftStorageKey);
       }
+      if (pendingRawDraft.current === rawDraft) pendingRawDraft.current = null;
     };
 
     try {

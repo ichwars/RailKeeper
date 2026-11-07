@@ -1772,6 +1772,14 @@ components:
       required: [id, inventoryNumber, manufacturer, name, gauge, digital, dtDecoder, exhibitionReady, exhibition, abcBrakes,
         couplingSame, driveEnabled, headlightsEnabled, lightingEnabled, soundGeneratorEnabled, smokeGeneratorEnabled, qrCodeEnabled, createdAt, updatedAt]
       properties:
+        revision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          readOnly: true
+        imagesRevision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          readOnly: true
         ecosDecoderProfile:
           $ref: "#/components/schemas/ECoSDecoderProfileEvidence"
         id:
@@ -1955,10 +1963,30 @@ components:
         updatedAt:
           type: string
           format: date-time
+    CreateMappedVehicleRequest:
+      allOf:
+        - $ref: "#/components/schemas/CreateVehicleRequest"
+      type: object
+      properties:
+        creationId:
+          type: string
+          pattern: "^[0-9a-f]{32}$"
+          description: Optional stable identity for one creation intent. Becomes the vehicle ID; replay while a vehicle or set with that identity exists returns 409 without another creation. Use a fresh identity for an intentionally new draft. Omission retains legacy allocation.
+        externalMapping:
+          description: Optional source identity saved atomically with a new vehicle. An existing owner rejects the entire creation with 409; repeating a lost response cannot create another vehicle. Omit for ordinary vehicle creation. Never writes to a device.
+          $ref: "#/components/schemas/VehicleExternalMappingInput"
     CreateVehicleRequest:
       type: object
       required: [manufacturer, name, gauge]
       properties:
+        expectedRevision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          writeOnly: true
+        expectedImagesRevision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          writeOnly: true
         inventoryNumber:
           type: string
         manufacturer:
@@ -2229,6 +2257,10 @@ components:
       type: object
       required: [set, members]
       properties:
+        creationId:
+          type: string
+          pattern: "^[0-9a-f]{32}$"
+          description: Optional stable creation intent identity, used as the set ID. Repeating this identity is rejected atomically before inventory allocation or members are stored. A new intentional set needs a fresh identity; omission retains legacy allocation.
         set:
           $ref: "#/components/schemas/VehicleSetInput"
         members:
@@ -2363,6 +2395,10 @@ components:
       type: object
       required: [id, vehicleId, url, isPrimary, sortOrder, createdAt]
       properties:
+        revision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          readOnly: true
         id:
           type: string
         vehicleId:
@@ -2385,6 +2421,17 @@ components:
         createdAt:
           type: string
           format: date-time
+    VehicleImageCreation:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/VehicleImage"
+      required: [imagesRevision]
+      properties:
+        imagesRevision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          readOnly: true
+          description: Complete image collection revision from the same committed creation snapshot.
     VehicleImageInput:
       type: object
       required: [url]
@@ -2405,6 +2452,10 @@ components:
       type: object
       required: [id, vehicleId, fileName, originalName, sizeBytes, createdAt, updatedAt]
       properties:
+        revision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          readOnly: true
         id:
           type: string
         vehicleId:
@@ -2433,6 +2484,7 @@ components:
       type: object
       required: [url]
       properties:
+        expectedImagesRevision: {type: string, pattern: "^[0-9a-f]{64}$", writeOnly: true}
         url: {type: string}
         title: {type: string}
         sourceUrl: {type: string}
@@ -2451,6 +2503,10 @@ components:
     VehicleAttachmentUpdateRequest:
       type: object
       properties:
+        expectedRevision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          writeOnly: true
         maintenanceId: {type: string}
         description:
           type: string
@@ -2540,6 +2596,16 @@ components:
       type: object
       required: [id, vehicleId, fileName, originalName, sizeBytes, createdAt, updatedAt]
       properties:
+        sourceReferenceCount:
+          type: integer
+          minimum: 0
+          readOnly: true
+          description: Number of current CV source links in the same snapshot as revision; omission means zero.
+        revision:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          readOnly: true
+          description: Content and current source-reference revision for a confirmed deletion.
         id: {type: string}
         vehicleId: {type: string}
         fileName: {type: string}
@@ -2801,6 +2867,32 @@ components:
           items:
             $ref: "#/components/schemas/ArticleSearchResult"
     VehicleCVValueInput:
+      allOf:
+        - $ref: '#/components/schemas/VehicleCVWriteFields'
+        - type: object
+          properties:
+            expectedRevision:
+              type: string
+              pattern: '^([0-9a-f]{64})?$'
+              writeOnly: true
+              description: Optional concurrency check for legacy create/update/import. Empty requires the target identity to be absent; omitted keeps legacy behavior.
+    VehicleCVWriteFields:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/VehicleCVFields'
+      dependentRequired:
+        workspaceId: [expectedWorkspaceRevision]
+        expectedWorkspaceRevision: [workspaceId]
+      properties:
+        workspaceId:
+          type: string
+          minLength: 1
+          description: Optional exact working group in this vehicle. The supplied profile must match its trimmed label; the persisted profile remains unchanged, including legacy whitespace. Scoped direct writes/imports also require expectedRevision; batches use the enclosing change revision.
+        expectedWorkspaceRevision:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: The selected workspace bindingRevision. Rejects a changed profile or hardware installation/state without treating ordinary CV edits in the same batch as binding changes.
+    VehicleCVFields:
       type: object
       required: [cvNumber, value]
       description: A CV belongs to a vehicle and an exact trimmed decoder profile. Both index fields must be omitted/null for unindexed values, or supplied together for CVs 257-512. Zero is a valid index and differs from no index. Protocol is descriptive and is not part of the unique key.
@@ -2849,12 +2941,17 @@ components:
           description: Valid local calendar timestamp from the source export (YYYY-MM-DDTHH:mm:ss). No timezone is inferred. Missing provenance is preserved on updates/imports.
     VehicleCVValue:
       allOf:
-        - $ref: "#/components/schemas/VehicleCVValueInput"
+        - $ref: "#/components/schemas/VehicleCVFields"
         - type: object
           required: [id, vehicleId, createdAt, updatedAt]
           properties:
             id:
               type: string
+            revision:
+              type: string
+              pattern: '^[0-9a-f]{64}$'
+              readOnly: true
+              description: Revision of the complete persisted CV record, including its exact profile/index identity and provenance.
             vehicleId:
               type: string
             createdAt:
@@ -2865,6 +2962,237 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/VehicleCVValueHistory"
+    VehicleCVChange:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision]
+      description: Existing IDs require their original revision. A new row omits id and uses an empty revision. Delete requires an ID and no value. Optional outer workspaceId and expectedWorkspaceRevision compare the original row's exact group and hardware binding; they are invalid for new rows. Value fields select the destination group. Moving a scoped value to a different group also requires the original-group comparison. A value cannot move onto another stored identity; no existing row is silently replaced.
+      properties:
+        id: {type: string, maxLength: 80}
+        expectedRevision: {type: string, pattern: '^([0-9a-f]{64})?$'}
+        delete: {type: boolean}
+        value: {$ref: '#/components/schemas/VehicleCVWriteFields'}
+        workspaceId: {type: string, minLength: 1}
+        expectedWorkspaceRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+    VehicleCVChangesInput:
+      type: object
+      additionalProperties: false
+      required: [changes]
+      properties:
+        changes:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: {$ref: '#/components/schemas/VehicleCVChange'}
+    DecoderInstance:
+      type: object
+      required: [id, label, manufacturer, model, serialNumber, notes, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        label: {type: string}
+        manufacturer: {type: string}
+        model: {type: string}
+        serialNumber: {type: string}
+        notes: {type: string}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    DecoderInstallation:
+      type: object
+      required: [id, decoderId, vehicleId, vehicleReferenceId, vehicleName, vehicleInventoryNumber, state, installedAt, removedAt, notes, recordedAt, updatedAt]
+      properties:
+        id: {type: string}
+        decoderId: {type: string}
+        vehicleId: {type: [string, 'null']}
+        vehicleReferenceId: {type: string}
+        vehicleName: {type: string}
+        vehicleInventoryNumber: {type: string}
+        state: {type: string, enum: [installed, removed, unresolved]}
+        installedAt: {type: [string, 'null'], format: date}
+        removedAt: {type: [string, 'null'], format: date}
+        notes: {type: string}
+        recordedAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    DecoderCVWorkspace:
+      type: object
+      required: [id, vehicleId, profile, origin, installationId, createdAt, updatedAt, valueCount, sourceCount, contentRevision, bindingRevision]
+      properties:
+        id: {type: string}
+        vehicleId: {type: string}
+        profile: {type: string, description: Exact stored working label. Legacy whitespace is preserved.}
+        origin: {type: string, enum: [legacy, manual]}
+        installationId: {type: [string, 'null']}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+        valueCount: {type: integer, minimum: 0}
+        sourceCount: {type: integer, minimum: 0}
+        contentRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        bindingRevision: {type: string, pattern: '^[0-9a-f]{64}$', description: Exact working identity and physical installation/state. Stable across ordinary CV edits.}
+    DecoderCVSnapshotSummary:
+      type: object
+      required: [id, workspaceId, vehicleReferenceId, vehicleName, vehicleInventoryNumber, profile, installationId, kind, scope, note, recordedAt, valueCount]
+      properties:
+        id: {type: string}
+        workspaceId: {type: string}
+        vehicleReferenceId: {type: string}
+        vehicleName: {type: string}
+        vehicleInventoryNumber: {type: string}
+        profile: {type: string}
+        installationId: {type: [string, 'null']}
+        kind: {type: string, enum: [legacy, manual, file_import, station_import, checkpoint]}
+        scope: {type: string, enum: [partial_working_state]}
+        note: {type: string}
+        recordedAt: {type: string, format: date-time}
+        valueCount: {type: integer, minimum: 0}
+    DecoderConfigurationContext:
+      type: object
+      required: [vehicleId, vehicleName, inventoryNumber, instances, installations, workspaces, snapshots, revision]
+      properties:
+        vehicleId: {type: string}
+        vehicleName: {type: string}
+        inventoryNumber: {type: string}
+        instances:
+          type: array
+          description: Known physical decoder inventory, including available instances and instances installed in other vehicles.
+          items: {$ref: '#/components/schemas/DecoderInstance'}
+        installations:
+          type: array
+          description: Installation episodes across the inventory. Use vehicleId and state to identify the current vehicle's active installations.
+          items: {$ref: '#/components/schemas/DecoderInstallation'}
+        workspaces:
+          type: array
+          items: {$ref: '#/components/schemas/DecoderCVWorkspace'}
+        snapshots:
+          type: array
+          items: {$ref: '#/components/schemas/DecoderCVSnapshotSummary'}
+        revision: {type: string, pattern: '^[0-9a-f]{64}$'}
+    DecoderRecordedCVValue:
+      type: object
+      description: Historical evidence, including original raw profiles and unknown integer values. These fields are not validated programming commands. Missing index pages differ from page 0/0.
+      required: [id, vehicleId, cvNumber, value, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        vehicleId: {type: string}
+        cvNumber: {type: integer}
+        value: {type: integer}
+        indexCV31: {type: [integer, 'null']}
+        indexCV32: {type: [integer, 'null']}
+        decoderProfile: {type: string}
+        description: {type: string}
+        category: {type: string}
+        protocol: {type: string}
+        sourceFileId: {type: string}
+        sourceLine: {type: [integer, 'null']}
+        sourceExportedAt: {type: string}
+        createdAt: {type: string}
+        updatedAt: {type: string}
+        revision: {type: string, readOnly: true}
+        history:
+          type: array
+          items: {$ref: '#/components/schemas/VehicleCVValueHistory'}
+    DecoderCVSnapshotPayload:
+      type: object
+      required: [values]
+      properties:
+        values:
+          type: array
+          items: {$ref: '#/components/schemas/DecoderRecordedCVValue'}
+    DecoderSnapshotHardware:
+      type: object
+      required: [decoderId, decoderLabel, manufacturer, model, serialNumber, installationId, installationState, installedAt, removedAt]
+      properties:
+        decoderId: {type: string}
+        decoderLabel: {type: string}
+        manufacturer: {type: string}
+        model: {type: string}
+        serialNumber: {type: string}
+        installationId: {type: string}
+        installationState: {type: string, enum: [installed, removed, unresolved]}
+        installedAt: {type: [string, 'null'], format: date}
+        removedAt: {type: [string, 'null'], format: date}
+    DecoderCVSnapshotSource:
+      type: object
+      required: [sourceFileId, metadata, contentState]
+      properties:
+        sourceFileId: {type: string}
+        metadata: {$ref: '#/components/schemas/VehicleCVFile'}
+        contentState: {type: string, enum: [stored, unavailable]}
+    DecoderCVSnapshot:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/DecoderCVSnapshotSummary'
+      required: [payload, hardware, sources]
+      properties:
+        payload: {$ref: '#/components/schemas/DecoderCVSnapshotPayload'}
+        hardware:
+          oneOf:
+            - {type: 'null'}
+            - {$ref: '#/components/schemas/DecoderSnapshotHardware'}
+        sources:
+          type: array
+          items: {$ref: '#/components/schemas/DecoderCVSnapshotSource'}
+    DecoderInstanceInput:
+      type: object
+      additionalProperties: false
+      required: [id, expectedRevision, label, manufacturer, model, serialNumber, notes]
+      description: Complete explicit instance edit. New instances require a new 32-character lowercase hexadecimal ID; updates retain the existing ID. Text limits apply to UTF-8 bytes.
+      properties:
+        id: {type: string, minLength: 1}
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        label: {type: string, minLength: 1, maxLength: 160}
+        manufacturer: {type: string, maxLength: 160}
+        model: {type: string, maxLength: 160}
+        serialNumber: {type: string, maxLength: 160}
+        notes: {type: string, maxLength: 4000}
+    DecoderInstallationInput:
+      type: object
+      additionalProperties: false
+      required: [id, expectedRevision, decoderId, installedAt, notes]
+      properties:
+        id: {type: string, pattern: '^[0-9a-f]{32}$'}
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        decoderId: {type: string, minLength: 1}
+        installedAt: {type: [string, 'null'], format: date}
+        notes: {type: string, maxLength: 4000}
+    DecoderRemovalInput:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision, removedAt, note]
+      properties:
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        removedAt: {type: [string, 'null'], format: date}
+        note: {type: string, maxLength: 2000, description: Appended to existing episode notes.}
+    DecoderInstallationDatesInput:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision, installedAt, removedAt]
+      properties:
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        installedAt: {type: [string, 'null'], format: date}
+        removedAt: {type: [string, 'null'], format: date}
+    DecoderCVWorkspaceInput:
+      type: object
+      additionalProperties: false
+      required: [id, expectedRevision, profile]
+      properties:
+        id: {type: string, pattern: '^[0-9a-f]{32}$'}
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        profile: {type: string, minLength: 1, maxLength: 160, description: New trimmed working label with at most 160 UTF-8 bytes. Does not identify hardware.}
+    DecoderCVCheckpointInput:
+      type: object
+      additionalProperties: false
+      required: [id, expectedRevision, note]
+      properties:
+        id: {type: string, pattern: '^[0-9a-f]{32}$'}
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        note: {type: string, maxLength: 2000}
+    DecoderCVAssignmentInput:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision, installationId, snapshotId]
+      properties:
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        installationId: {type: [string, 'null'], description: Active installation in this vehicle, or explicit null to clear the current association.}
+        snapshotId: {type: string, pattern: '^[0-9a-f]{32}$', description: Stable identity of the checkpoint retained before changing the association.}
     DecoderText:
       type: object
       required: [de, en]
@@ -3221,9 +3549,9 @@ components:
             required: [cvNumber, value]
             properties:
               sourceLine:
-                $ref: "#/components/schemas/VehicleCVValueInput/properties/sourceLine"
+                $ref: "#/components/schemas/VehicleCVFields/properties/sourceLine"
               sourceExportedAt:
-                $ref: "#/components/schemas/VehicleCVValueInput/properties/sourceExportedAt"
+                $ref: "#/components/schemas/VehicleCVFields/properties/sourceExportedAt"
               indexCV31:
                 type: [integer, 'null']
                 minimum: 0
@@ -3268,6 +3596,129 @@ components:
               type: integer
             dataUrl:
               type: string
+    VehicleCatalogFields:
+      type: object
+      additionalProperties: false
+      required: [name, manufacturer, articleNumber, articleSourceUrl, gauge, epoch, railwayCompany, category, gattung, description, ean, productionPeriod, listPrice]
+      properties:
+        name: {type: string}
+        manufacturer: {type: string}
+        articleNumber: {type: string}
+        articleSourceUrl: {type: string}
+        gauge: {type: string}
+        epoch: {type: string}
+        railwayCompany: {type: string}
+        category: {type: string}
+        gattung: {type: string}
+        description: {type: string}
+        ean: {type: string}
+        productionPeriod: {type: string}
+        listPrice: {type: string}
+    VehicleCatalogOverrides:
+      type: object
+      additionalProperties: false
+      properties:
+        name: {type: string}
+        manufacturer: {type: string}
+        articleNumber: {type: string}
+        articleSourceUrl: {type: string}
+        gauge: {type: string}
+        epoch: {type: string}
+        railwayCompany: {type: string}
+        category: {type: string}
+        gattung: {type: string}
+        description: {type: string}
+        ean: {type: string}
+        productionPeriod: {type: string}
+        listPrice: {type: string}
+    VehicleCatalogRevision:
+      type: object
+      required: [id, articleId, revisionNumber, fields, note, createdAt]
+      properties:
+        id: {type: string}
+        articleId: {type: string}
+        revisionNumber: {type: integer, minimum: 1}
+        fields: {$ref: '#/components/schemas/VehicleCatalogFields'}
+        note: {type: string}
+        createdAt: {type: string, format: date-time}
+    VehicleCatalogContext:
+      type: object
+      required: [targetType, targetId, currentFields, authority, overrides, revisions, revision]
+      properties:
+        targetType: {type: string, enum: [vehicle, set]}
+        targetId: {type: string}
+        currentFields: {$ref: '#/components/schemas/VehicleCatalogFields'}
+        authority: {type: string, enum: [unlinked, legacy, catalog]}
+        sourceAuthority: {type: string, enum: [legacy, catalog]}
+        pinned: {$ref: '#/components/schemas/VehicleCatalogRevision'}
+        overrides: {$ref: '#/components/schemas/VehicleCatalogOverrides'}
+        revisions:
+          type: array
+          items: {$ref: '#/components/schemas/VehicleCatalogRevision'}
+        revision: {type: string, pattern: '^[0-9a-f]{64}$'}
+    VehicleCatalogRevisionInput:
+      type: object
+      additionalProperties: false
+      required: [id, expectedRevision, fields, selectedFields]
+      properties:
+        id: {type: string, pattern: '^[0-9a-f]{32}$'}
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        fields: {$ref: '#/components/schemas/VehicleCatalogFields'}
+        note: {type: string, maxLength: 2000}
+        independent: {type: boolean, default: false}
+        selectedFields:
+          type: array
+          uniqueItems: true
+          maxItems: 13
+          description: Explicit selection; an empty array pins the revision while preserving every saved field.
+          items:
+            type: string
+            enum: [name, manufacturer, articleNumber, articleSourceUrl, gauge, epoch, railwayCompany, category, gattung, description, ean, productionPeriod, listPrice]
+    VehicleCatalogAdoptionInput:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision, revisionId, selectedFields]
+      properties:
+        expectedRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+        revisionId: {type: string, minLength: 1}
+        selectedFields:
+          type: array
+          uniqueItems: true
+          maxItems: 13
+          description: Explicit selection; an empty array pins the revision while preserving every saved field.
+          items:
+            type: string
+            enum: [name, manufacturer, articleNumber, articleSourceUrl, gauge, epoch, railwayCompany, category, gattung, description, ean, productionPeriod, listPrice]
+    VehicleCatalogAssignment:
+      type: object
+      required: [targetType, targetId, name, authority, overrideFields, differentFields]
+      properties:
+        targetType: {type: string, enum: [vehicle, set]}
+        targetId: {type: string}
+        name: {type: string}
+        setId: {type: string}
+        articleId: {type: string}
+        revisionId: {type: string}
+        authority: {type: string, enum: [unlinked, legacy, catalog]}
+        overrideFields:
+          type: array
+          items: {type: string}
+        differentFields:
+          type: array
+          description: Fields whose pinned catalog representation differs from authoritative legacy values; never silently corrected by backfill.
+          items: {type: string}
+    VehicleCatalogBackfillReport:
+      type: object
+      required: [vehicles, sets, linkedVehicles, linkedSets, differentRepresentations, assignments]
+      properties:
+        vehicles: {type: integer, minimum: 0}
+        sets: {type: integer, minimum: 0}
+        linkedVehicles: {type: integer, minimum: 0}
+        linkedSets: {type: integer, minimum: 0}
+        differentRepresentations: {type: integer, minimum: 0}
+        assignments:
+          type: array
+          items: {$ref: '#/components/schemas/VehicleCatalogAssignment'}
     BackupImportResult:
       type: object
       required: [restoredTables, restoredRows, restoredFiles]
@@ -8074,12 +8525,13 @@ paths:
                   $ref: "#/components/schemas/Vehicle"
     post:
       tags: [Vehicles]
+      summary: Create a vehicle, optionally binding an import source atomically
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateVehicleRequest"
+              $ref: "#/components/schemas/CreateMappedVehicleRequest"
       responses:
         "201":
           description: Vehicle created
@@ -8089,6 +8541,12 @@ paths:
                 $ref: "#/components/schemas/Vehicle"
         "400":
           description: Invalid vehicle data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Inventory number or source identity already assigned, or a function conflict
           content:
             application/json:
               schema:
@@ -8381,6 +8839,11 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateVehicleRequest"
       responses:
+        "409":
+          description: The confirmed revision changed; no requested changes were stored.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "200":
           description: Vehicle updated
           content:
@@ -8480,6 +8943,11 @@ paths:
             schema:
               $ref: "#/components/schemas/VehicleAttachmentUpdateRequest"
       responses:
+        "409":
+          description: The confirmed revision changed; no requested changes were stored.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "200":
           description: Attachment updated
           content:
@@ -8495,6 +8963,11 @@ paths:
     delete:
       tags: [Vehicles]
       parameters:
+        - name: expectedRevision
+          in: query
+          required: false
+          description: Optional revision of the confirmed media record; omitted by legacy clients.
+          schema: {type: string, pattern: "^[0-9a-f]{64}$"}
         - name: id
           in: path
           required: true
@@ -8506,6 +8979,11 @@ paths:
           schema:
             type: string
       responses:
+        "409":
+          description: The confirmed revision changed; no requested changes were stored.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "204":
           description: Attachment deleted
         "404":
@@ -9425,6 +9903,376 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/decoder-configurations:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    get:
+      summary: Read physical decoders and saved CV working groups
+      description: Viewer, Editor or Admin. Reads one consistent context without changing any data. Model names do not infer physical identity. Unknown installation dates remain null.
+      responses:
+        "200":
+          description: Current decoder comparison
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "401": {description: Authentication required}
+        "403": {description: Inventory role required}
+        "404": {description: Vehicle not found}
+  /vehicles/{id}/decoder-configurations/instances:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    post:
+      summary: Confirm a distinct physical decoder instance
+      description: Editor or Admin and CSRF required. A current context revision and a new stable instance ID prevent stale or duplicate confirmations. Matching models never merge instances. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderInstanceInput'}
+      responses:
+        "201":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid or incomplete explicit edit}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle not found}
+        "409": {description: Stale comparison or instance identity already saved}
+  /vehicles/{id}/decoder-configurations/instances/{decoderID}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+      - {name: decoderID, in: path, required: true, schema: {type: string}}
+    put:
+      summary: Correct the description of an existing physical decoder
+      description: Editor or Admin and CSRF required. Requires a current context revision and every instance field, including empty optional text. The body ID must match the path. Earlier snapshot hardware descriptions remain unchanged. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderInstanceInput'}
+      responses:
+        "200":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid or incomplete explicit edit}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle or instance not found}
+        "409": {description: Stale comparison}
+  /vehicles/{id}/decoder-configurations/installations:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    post:
+      summary: Confirm a new decoder installation episode
+      description: Editor or Admin and CSRF required. An instance may have at most one active installation. Unknown installation dates require explicit null. Does not assign CV groups or change the vehicle's descriptive decoder type. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderInstallationInput'}
+      responses:
+        "201":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid installation or date}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle or instance not found}
+        "409": {description: Stale comparison, duplicate identity or already installed instance}
+  /vehicles/{id}/decoder-configurations/installations/{installationID}/removal:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+      - {name: installationID, in: path, required: true, schema: {type: string}}
+    post:
+      summary: Confirm removal without rewriting previous CV evidence
+      description: Editor or Admin and CSRF required. Unknown removal dates require explicit null. Retains the installation episode and appends the supplied note. Existing CV groups and snapshots retain their identities. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderRemovalInput'}
+      responses:
+        "200":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid dates or note}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Installation does not belong to this vehicle}
+        "409": {description: Stale comparison or episode already removed}
+  /vehicles/{id}/decoder-configurations/installations/{installationID}/dates:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+      - {name: installationID, in: path, required: true, schema: {type: string}}
+    put:
+      summary: Correct known installation and removal dates explicitly
+      description: Editor or Admin and CSRF required. Both nullable date fields are required. Dates must be valid and chronological; a removal date requires a removed episode. Earlier snapshot descriptions remain unchanged. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderInstallationDatesInput'}
+      responses:
+        "200":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid dates or state}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Installation does not belong to this vehicle}
+        "409": {description: Stale comparison}
+  /vehicles/{id}/decoder-configurations/workspaces:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    post:
+      summary: Create an empty named CV working group
+      description: Editor or Admin and CSRF required. A new stable group identity and a distinct trimmed label create an unassigned manual workspace. No CVs, hardware or measurement history are inferred. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderCVWorkspaceInput'}
+      responses:
+        "201":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid working label or identity}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle not found}
+        "409": {description: Stale comparison or group identity/label already exists}
+  /vehicles/{id}/decoder-configurations/workspaces/{workspaceID}/assignment:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+      - {name: workspaceID, in: path, required: true, schema: {type: string}}
+    put:
+      summary: Confirm or clear a working group's physical installation
+      description: Editor or Admin and CSRF required. First retains a checkpoint of the previous working state and hardware, then changes only the current association. A new association must be an active installation in this vehicle. Never rewrites CV labels or old snapshots. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderCVAssignmentInput'}
+      responses:
+        "200":
+          description: Saved decoder context
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid or foreign installation}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle or group not found}
+        "409": {description: Stale comparison, unchanged association or snapshot identity already saved}
+  /vehicles/{id}/decoder-configurations/workspaces/{workspaceID}/checkpoints:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+      - {name: workspaceID, in: path, required: true, schema: {type: string}}
+    post:
+      summary: Record the saved CV working group as an immutable partial state
+      description: Editor or Admin and CSRF required. Captures saved CVs, actual histories and available sources atomically with audit. Unsaved browser drafts are excluded. The recording time does not claim a complete measurement or a common source export time. Maximum request size 64 KiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecoderCVCheckpointInput'}
+      responses:
+        "201":
+          description: Saved decoder context including the new snapshot summary
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "400": {description: Invalid checkpoint identity or note}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle or group not found}
+        "409": {description: Stale comparison or checkpoint identity already saved}
+  /decoder-configurations/snapshots:
+    get:
+      summary: List immutable partial CV working states
+      description: Viewer, Editor or Admin. Historical vehicle labels and inventory numbers remain available after vehicle deletion. This list does not include CV payloads or internal storage references.
+      parameters:
+        - name: vehicleId
+          in: query
+          required: false
+          schema: {type: string}
+          description: Optional historical vehicle ID, including deleted inventory.
+      responses:
+        "200":
+          description: Archived partial working states, most recently recorded first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/DecoderCVSnapshotSummary'}
+        "401": {description: Authentication required}
+        "403": {description: Inventory role required}
+  /decoder-configurations/snapshots/{snapshotID}:
+    parameters:
+      - name: snapshotID
+        in: path
+        required: true
+        schema: {type: string}
+    get:
+      summary: Read a complete recorded partial CV working state
+      description: Viewer, Editor or Admin. Preserves unknown historic values, raw profiles, individual source timestamps and real value histories. The recording time is not a measurement/export time. No current vehicle is required. Unassigned hardware is null; missing originals remain explicitly unavailable.
+      responses:
+        "200":
+          description: Immutable recorded evidence and original source metadata
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderCVSnapshot'}
+        "401": {description: Authentication required}
+        "403": {description: Inventory role required}
+        "404": {description: Snapshot not found}
+  /decoder-configurations/snapshots/{snapshotID}/sources/{sourceID}/download:
+    parameters:
+      - name: snapshotID
+        in: path
+        required: true
+        schema: {type: string}
+      - name: sourceID
+        in: path
+        required: true
+        schema: {type: string}
+    get:
+      summary: Download a retained original CV source privately
+      description: Viewer, Editor or Admin. Reads only the source blob retained by this snapshot. Remains available after deleting the live file, workspace or vehicle. Never substitutes another live file or reads a supplied filesystem path.
+      responses:
+        "200":
+          description: Original bytes as an attachment
+          content:
+            application/octet-stream:
+              schema: {type: string, format: binary}
+        "401": {description: Authentication required}
+        "403": {description: Inventory role required}
+        "404": {description: Snapshot source not found}
+        "410": {description: Original content was recorded as unavailable}
+  /catalog/{targetType}/{id}:
+    parameters:
+      - name: targetType
+        in: path
+        required: true
+        schema: {type: string, enum: [vehicle, set]}
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    get:
+      summary: Read the saved catalog assignment and immutable revisions
+      description: Viewer, Editor or Admin. Reads one consistent comparison including current saved fields, pinned revision, individual overrides and unresolved proposals. Does not fill relationships or adopt values. The comparison revision also guards assignment changes with identical visible values.
+      responses:
+        "200":
+          description: Saved catalog comparison
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VehicleCatalogContext'}
+        "400":
+          description: Invalid target type
+        "403":
+          description: Inventory role required
+        "404":
+          description: Target not found
+  /catalog/{targetType}/{id}/revisions:
+    parameters:
+      - name: targetType
+        in: path
+        required: true
+        schema: {type: string, enum: [vehicle, set]}
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    post:
+      summary: Create and explicitly assign an immutable catalog revision
+      description: Editor or Admin and CSRF required. A current catalog comparison and explicit field selection protect existing data. Unselected owned values and other targets remain unchanged. Legacy proposals are retained as immutable revisions before activation. Request limit is 1 MiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VehicleCatalogRevisionInput'}
+      responses:
+        "201":
+          description: Confirmed saved assignment
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VehicleCatalogContext'}
+        "400":
+          description: Invalid confirmation or JSON
+        "403":
+          description: Editor or Admin and CSRF required
+        "404":
+          description: Target or own-article revision not found
+        "409":
+          description: Comparison changed or revision identity already saved; reload and review before another confirmation
+  /catalog/{targetType}/{id}/adoption:
+    parameters:
+      - name: targetType
+        in: path
+        required: true
+        schema: {type: string, enum: [vehicle, set]}
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    post:
+      summary: Adopt selected fields from a revision of the existing article
+      description: Editor or Admin and CSRF required. A current catalog comparison and explicit field selection protect existing data. Unselected owned values and other targets remain unchanged. Legacy proposals are retained as immutable revisions before activation. Request limit is 1 MiB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VehicleCatalogAdoptionInput'}
+      responses:
+        "200":
+          description: Confirmed saved assignment
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VehicleCatalogContext'}
+        "400":
+          description: Invalid confirmation or JSON
+        "403":
+          description: Editor or Admin and CSRF required
+        "404":
+          description: Target or own-article revision not found
+        "409":
+          description: Comparison changed or revision identity already saved; reload and review before another confirmation
+  /catalog/legacy-backfill:
+    get:
+      summary: Report catalog assignments without changing inventory
+      description: Admin only. Shows unlinked entities, pinned revisions, individual overrides and differences. Legacy fields remain authoritative during backfill.
+      responses:
+        "200":
+          description: Current mapping and difference report
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VehicleCatalogBackfillReport'}
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Problem'}
+    post:
+      summary: Complete missing legacy catalog assignments atomically
+      description: Admin and CSRF required. Reuses known set membership; identical manufacturer/article numbers never merge independent vehicles. Existing links, revisions and legacy inventory fields remain unchanged. Repeating a completed backfill adds no rows or audit events.
+      responses:
+        "200":
+          description: Completed mapping and difference report
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VehicleCatalogBackfillReport'}
+        "403":
+          description: Admin role and CSRF token required
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Problem'}
   /backup/export:
     get:
       tags: [Backup]
@@ -10742,9 +11590,31 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+                title: {type: string}
+                sourceUrl: {type: string}
+                maintenanceId: {type: string}
+                isPrimary: {type: boolean}
+                expectedImagesRevision: {type: string, pattern: "^[0-9a-f]{64}$"}
       responses:
+        "409":
+          description: The image collection changed; no image was stored and the existing primary was preserved.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "201":
-          description: Uploaded image
+          description: Uploaded image and committed collection revision
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/VehicleImageCreation"}
         "403":
           description: Editor role required
           content:
@@ -10767,6 +11637,11 @@ paths:
           application/json:
             schema: {$ref: "#/components/schemas/VehicleImageImportInput"}
       responses:
+        "409":
+          description: The image collection changed; no image was stored and the existing primary was preserved.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "201":
           description: Image imported
         "400":
@@ -10778,6 +11653,11 @@ paths:
       tags: [Vehicles]
       summary: Delete a vehicle image
       parameters:
+        - name: expectedRevision
+          in: query
+          required: false
+          description: Optional revision of the confirmed media record; omitted by legacy clients.
+          schema: {type: string, pattern: "^[0-9a-f]{64}$"}
         - name: id
           in: path
           required: true
@@ -10789,6 +11669,11 @@ paths:
           schema:
             type: string
       responses:
+        "409":
+          description: The confirmed revision changed; no requested changes were stored.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "204":
           description: Image deleted
         "403":
@@ -11148,11 +12033,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VehicleCVValue"
+        "409":
+          description: Target identity already exists or expected revision does not match
   /vehicles/{id}/cv-values/import:
     post:
       tags: [Vehicles]
       summary: Import a reviewed selection of CV values atomically
-      description: Requires Editor or Admin and CSRF. Upserts by vehicle, exact decoder profile, CV number and index pair. Duplicate input keys, unknown field names, missing/null values and foreign source attachments are rejected. All selected values and value histories commit together, or the entire import rolls back. Request limit 8 MiB. This stores inventory data and never writes to a decoder.
+      description: Requires Editor or Admin and CSRF. Upserts by vehicle, exact decoder profile, CV number and index pair. Duplicate input keys, unknown field names, missing/null values and foreign source attachments are rejected. Optional expectedRevision on each value pins an observed row or confirms absence with an empty string. All selected values and value histories commit together, or the entire import rolls back. Business-data limit remains 8 MiB; bounded overhead for up to 10000 comparison revisions is allowed separately. This stores inventory data and never writes to a decoder.
       parameters:
         - name: id
           in: path
@@ -11190,12 +12077,53 @@ paths:
           description: Role or CSRF check failed
         "404":
           description: Vehicle not found
+        "409":
+          description: An optional expected revision is stale; no values or histories changed
         "500":
           description: Import failed and all changes rolled back
+  /vehicles/{id}/cv-values/changes:
+    post:
+      tags: [Vehicles]
+      summary: Save a bounded manual CV draft atomically
+      description: Editor or Admin and CSRF required. Maximum 500 explicit changes and 2 MiB. Exact profile, CV number and nullable index pair identify a CV. Revisions and source ownership are checked inside the transaction; a stale revision, identity collision or invalid row rolls back every value and history change. New rows are create-only, so retrying an acknowledged or unacknowledged draft cannot create duplicate identities. No physical decoder is written.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/VehicleCVChangesInput'}
+      responses:
+        "200":
+          description: Every requested change was saved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [changed]
+                properties:
+                  changed: {type: integer, minimum: 1, maximum: 500}
+        "400":
+          description: Invalid draft, unknown fields, missing values/revision, foreign source, incomplete index pair or exceeded limits
+        "403":
+          description: Role or CSRF check failed
+        "404":
+          description: Vehicle not found
+        "409":
+          description: Stale or missing CV revision, or target identity already occupied; no changes saved
+        "500":
+          description: Saving failed; every change was rolled back
   /vehicles/{id}/cv-values/{cvValueID}:
     put:
       tags: [Vehicles]
       summary: Update a CV value
+      description: JSON working-group fields select the destination. Optional query comparisons identify the original row's group and are required when moving a scoped row to another group. All three query fields must be present together, and the query expectedRevision must equal the JSON row revision. Legacy unscoped requests retain their behavior.
       requestBody:
         required: true
         content:
@@ -11203,6 +12131,16 @@ paths:
             schema:
               $ref: "#/components/schemas/VehicleCVValueInput"
       parameters:
+        - name: expectedRevision
+          in: query
+          schema: {type: string, pattern: '^[0-9a-f]{64}$'}
+        - name: workspaceId
+          in: query
+          description: Original working group, distinct from the destination in JSON.
+          schema: {type: string, minLength: 1}
+        - name: expectedWorkspaceRevision
+          in: query
+          schema: {type: string, pattern: '^[0-9a-f]{64}$'}
         - name: id
           in: path
           required: true
@@ -11220,10 +12158,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VehicleCVValue"
+        "400":
+          description: Invalid or incomplete original/destination working-group comparison
+        "409":
+          description: Target identity already exists or expected revision does not match
     delete:
       tags: [Vehicles]
       summary: Delete a CV value
+      description: Optional working-group comparisons guard against a changed hardware binding. workspaceId and expectedWorkspaceRevision require each other and expectedRevision. All comparisons are checked in the deletion transaction. Omission retains the legacy contract.
       parameters:
+        - name: expectedRevision
+          in: query
+          description: Optional revision guard. Omission retains the existing request behavior.
+          schema: {type: string, pattern: '^[0-9a-f]{64}$'}
+        - name: workspaceId
+          in: query
+          schema: {type: string, minLength: 1}
+        - name: expectedWorkspaceRevision
+          in: query
+          schema: {type: string, pattern: '^[0-9a-f]{64}$'}
         - name: id
           in: path
           required: true
@@ -11237,10 +12190,31 @@ paths:
       responses:
         "204":
           description: CV value deleted
+        "400":
+          description: Invalid or incomplete row/working-group comparison
+        "409":
+          description: Row or hardware binding is stale; the CV was not deleted
   /vehicles/{id}/cv-files:
     post:
       tags: [Vehicles]
       summary: Upload a decoder CV file for a vehicle
+      description: Editor or Admin and CSRF required. Optional workspaceId and expectedWorkspaceRevision retain the exact selected group and reject a changed physical binding. Without a scope, existing profile/metadata inference remains unchanged. A selected scope overrides filename-derived profile suggestions.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              dependentRequired:
+                workspaceId: [expectedWorkspaceRevision]
+                expectedWorkspaceRevision: [workspaceId]
+              properties:
+                file: {type: string, format: binary}
+                decoderProfile: {type: string}
+                description: {type: string}
+                workspaceId: {type: string, minLength: 1}
+                expectedWorkspaceRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
       parameters:
         - name: id
           in: path
@@ -11254,11 +12228,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VehicleCVFile"
+        "400": {description: Invalid file, working group or profile}
+        "403": {description: Editor or Admin and CSRF required}
+        "404": {description: Vehicle not found}
+        "409": {description: Working group binding changed before confirmation}
   /vehicles/{id}/cv-files/{cvFileID}:
     delete:
       tags: [Vehicles]
       summary: Delete a decoder CV file
+      description: Optional workspaceId and expectedWorkspaceRevision require each other and expectedRevision. The file must belong to that exact working group. Its revision and hardware binding are checked in the same transaction before deletion. Omission retains legacy behavior.
       parameters:
+        - name: expectedRevision
+          in: query
+          required: false
+          schema: {type: string, pattern: "^[0-9a-f]{64}$"}
+        - name: workspaceId
+          in: query
+          schema: {type: string, minLength: 1}
+        - name: expectedWorkspaceRevision
+          in: query
+          schema: {type: string, pattern: '^[0-9a-f]{64}$'}
         - name: id
           in: path
           required: true
@@ -11270,6 +12259,13 @@ paths:
           schema:
             type: string
       responses:
+        "400":
+          description: Invalid or incomplete file/working-group comparison
+        "409":
+          description: The file, source references or hardware binding changed; nothing was deleted.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "204":
           description: CV file deleted
   /vehicles/{id}/cv-files/{cvFileID}/download:

@@ -4,7 +4,7 @@ description: Create and edit a coach set.
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-07
 ---
 
 # Create and edit a coach set
@@ -51,7 +51,23 @@ numbers. This shared change was actually saved in the demo.
 | Set presentation image | Set dialog Upload |
 | Individual coach images | That vehicle's Uploads |
 
-## 4. Transfer related data
+## 4. Compare and adopt catalog revisions
+
+The set view shows saved set details and their article basis under **Article revisions**.
+Select **Edit** to review a revision or draft a new article in **General**. Select only the fields
+you want to adopt now. Individual values are initially protected. Confirmation saves the set's
+article revision without changing its member vehicles.
+
+Unsaved set details and the article draft survive switching to **Upload**. If confirmation changes
+a field you are also editing, the dialog shows both values. Explicitly choose the saved values or
+your draft before saving set details. **Cancel** discards unsaved set details; confirmed article
+and image actions remain saved.
+
+After an unknown save result or a failed refresh, **Save** remains disabled. **Reload the saved view**
+reads the current set without repeating confirmation. Refresh the article comparison afterwards
+if necessary. [Field selection and article revisions](./index#adopt-selected-article-revision-values).
+
+## 5. Transfer related data
 
 CSV/JSON transfer can carry set structure, but contains no media and not all vehicle subrecords.
 For a complete compatible move, use an application backup.

@@ -1,13 +1,16 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { X } from "lucide-react";
 
-import { api, type CreateVehicleRequest, type MasterDataEntry, type VehicleSet } from "../../shared/api";
+import { type MasterDataEntry, type VehicleSet } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { VehicleOwnershipFields } from "./VehicleFormFields";
 import { VehicleSetMainImageEditor } from "./VehicleSetMainImageEditor";
-import { vehicleSetInputFromForm } from "./VehicleCreateWizard";
-import { emptyOptions, emptyVehicle, gattungenForCategory, type MasterDataOptions } from "./vehicleViewModel";
+import { emptyOptions, gattungenForCategory, type MasterDataOptions } from "./vehicleViewModel";
+import { VehicleCatalogPanel } from "./VehicleCatalogPanel";
+import { catalogFieldsFrom } from "./vehicleCatalogModel";
+import { VehicleSaveState } from "./VehicleSaveState";
+import { useVehicleSetEditorController } from "./useVehicleSetEditorController";
 
 type VehicleSetEditorDialogProps = {
 	setId: string;
@@ -15,17 +18,11 @@ type VehicleSetEditorDialogProps = {
 	onClose: () => void;
 	onUpdated: (set: VehicleSet) => void;
 	onImageChanged?: (set: VehicleSet) => void;
+	onCatalogChanged?: (set: VehicleSet) => Promise<void>;
+	captureScope?: () => () => boolean;
 };
 
 type SetEditorTab = "general" | "upload";
-
-function formFromSet(set: VehicleSet): CreateVehicleRequest {
-	return {
-		...emptyVehicle,
-		...set,
-		inventoryNumber: ""
-	};
-}
 
 function selectOptions(entries: MasterDataEntry[], currentValue: string, emptyLabel: string): ReactNode {
 	const hasCurrentValue = entries.some((entry) => entry.label === currentValue);
@@ -47,42 +44,18 @@ export function VehicleSetEditorDialog({
 	options = emptyOptions,
 	onClose,
 	onUpdated,
-	onImageChanged
+	onImageChanged,
+	onCatalogChanged,
+	captureScope
 }: VehicleSetEditorDialogProps) {
 	const { t } = useI18n();
-	const [form, setForm] = useState<CreateVehicleRequest>(emptyVehicle);
-	const [vehicleSet, setVehicleSet] = useState<VehicleSet | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [saving, setSaving] = useState(false);
-	const [error, setError] = useState("");
+	const model = useVehicleSetEditorController({ setId, onUpdated, onCatalogChanged, captureScope });
+	const { form, vehicleSet, loading, saving, error, update } = model;
 	const [activeTab, setActiveTab] = useState<SetEditorTab>("general");
 	const filteredGattungen = gattungenForCategory(options, form.category);
-	const update = (patch: Partial<CreateVehicleRequest>) => {
-		setForm((current) => ({ ...current, ...patch }));
-	};
-
-	useEffect(() => {
-		let active = true;
-		api.vehicleSet(setId)
-			.then((set) => { if (active) { setVehicleSet(set); setForm(formFromSet(set)); } })
-			.catch((reason: Error) => { if (active) setError(reason.message); })
-			.finally(() => { if (active) setLoading(false); });
-		return () => { active = false; };
-	}, [setId]);
-
 	const submit = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
-		setSaving(true);
-		setError("");
-		try {
-			const updated = await api.updateVehicleSet(setId, vehicleSetInputFromForm(form));
-			setVehicleSet(updated);
-			onUpdated(updated);
-		} catch (reason) {
-			setError(reason instanceof Error ? reason.message : t("vehicles.set.updateFailed"));
-		} finally {
-			setSaving(false);
-		}
+		await model.save();
 	};
 
 	return (
@@ -108,6 +81,17 @@ export function VehicleSetEditorDialog({
 				<div className="modal-body vehicle-set-dialog-body">
 					{loading && <p>{t("vehicles.set.loading")}</p>}
 					{error && <p className="error-text" role="alert">{error}</p>}
+					{!loading && vehicleSet && <>
+						<VehicleSaveState scope="set" tab={activeTab === "general" ? "model" : "uploads"}
+							saved={model.catalogSaved ? "catalog" : null} conflicts={model.conflicts}
+							onResolve={model.resolveConflicts} />
+						{model.catalogSaving && <p role="status">{t("catalog.awaitSetRefresh")}</p>}
+						<div hidden={activeTab !== "general"}>
+							<VehicleCatalogPanel targetType="set" targetId={setId} targetName={vehicleSet.name}
+								savedFields={catalogFieldsFrom(vehicleSet)} busy={saving} captureScope={captureScope}
+								onSaved={model.refreshCatalog} onPendingChange={model.changeCatalogSaving} />
+						</div>
+					</>}
 					{!loading && activeTab === "general" && (
 						<div id="vehicle-set-panel-general" role="tabpanel" aria-labelledby="vehicle-set-tab-general"
 							className="vehicle-create-detail-groups vehicle-form">
@@ -172,9 +156,9 @@ export function VehicleSetEditorDialog({
 						<div id="vehicle-set-panel-upload" role="tabpanel" aria-labelledby="vehicle-set-tab-upload">
 							<VehicleSetMainImageEditor vehicleSet={vehicleSet}
 								onChange={(updated) => {
-									setVehicleSet(updated);
+									model.accept(updated);
 									onImageChanged?.(updated);
-								}} onError={setError} />
+								}} onError={model.setError} />
 						</div>
 					)}
 				</div>
@@ -183,7 +167,7 @@ export function VehicleSetEditorDialog({
 						<>
 							<button type="button" className="secondary-button" onClick={onClose}>{t("common.cancel")}</button>
 							<button type="submit" className="primary-button"
-								disabled={loading || saving}>{t("common.save")}</button>
+								disabled={loading || saving || model.catalogSaving || model.conflicts.length > 0}>{t("common.save")}</button>
 						</>
 					) : (
 						<button type="button" className="secondary-button" onClick={onClose}>{t("common.close")}</button>

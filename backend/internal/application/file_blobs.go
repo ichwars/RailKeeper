@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -39,6 +38,13 @@ func (s *FileBlobService) Store(ctx context.Context, data []byte) (string, error
 	if s == nil || s.db == nil {
 		return "", errors.New("file blob service is not configured")
 	}
+	return storeFileBlob(ctx, s.db, data)
+}
+
+// Snapshot sources must be stored in their caller's transaction as well.
+func storeFileBlob(ctx context.Context, writer interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}, data []byte) (string, error) {
 	if len(data) == 0 {
 		return "", errors.New("file blob is empty")
 	}
@@ -56,7 +62,7 @@ func (s *FileBlobService) Store(ctx context.Context, data []byte) (string, error
 		Data:           compressed,
 		CreatedAt:      time.Now().UTC().Format(time.RFC3339),
 	}
-	if _, err := s.db.ExecContext(ctx, `
+	if _, err := writer.ExecContext(ctx, `
 INSERT INTO file_blobs(id, original_size, compressed_size, compression, sha256, data, created_at)
 VALUES(?, ?, ?, ?, ?, ?, ?)
 `, blob.ID, blob.OriginalSize, blob.CompressedSize, blob.Compression, blob.SHA256, blob.Data, blob.CreatedAt); err != nil {
@@ -97,22 +103,16 @@ func (s *FileBlobService) DeleteIfUnreferenced(ctx context.Context, id string) e
 	if id == "" {
 		return nil
 	}
-	var count int
-	if err := s.db.QueryRowContext(ctx, `
-SELECT
-  (SELECT COUNT(*) FROM vehicle_images WHERE blob_id=? OR thumbnail_blob_id=?) +
-  (SELECT COUNT(*) FROM vehicle_attachments WHERE blob_id=?) +
-  (SELECT COUNT(*) FROM vehicle_cv_files WHERE blob_id=?) +
-  (SELECT COUNT(*) FROM accessory_documents WHERE file_blob_id=?)
-  + (SELECT COUNT(*) FROM vehicle_sets WHERE set_image_blob_id=? OR set_image_thumbnail_blob_id=?)
-`, id, id, id, id, id, id, id).Scan(&count); err != nil {
-		return fmt.Errorf("count file blob references: %w", err)
-	}
-	if count > 0 {
-		return nil
-	}
-	if _, err := s.db.ExecContext(ctx, `DELETE FROM file_blobs WHERE id=?`, id); err != nil {
-		return fmt.Errorf("delete file blob: %w", err)
+	if _, err := s.db.ExecContext(ctx, `
+DELETE FROM file_blobs WHERE id=?
+AND NOT EXISTS (SELECT 1 FROM vehicle_images WHERE blob_id=? OR thumbnail_blob_id=?)
+AND NOT EXISTS (SELECT 1 FROM vehicle_attachments WHERE blob_id=?)
+AND NOT EXISTS (SELECT 1 FROM vehicle_cv_files WHERE blob_id=?)
+AND NOT EXISTS (SELECT 1 FROM accessory_documents WHERE file_blob_id=?)
+AND NOT EXISTS (SELECT 1 FROM vehicle_sets WHERE set_image_blob_id=? OR set_image_thumbnail_blob_id=?)
+AND NOT EXISTS (SELECT 1 FROM decoder_cv_snapshot_sources WHERE blob_id=?)
+`, id, id, id, id, id, id, id, id, id); err != nil {
+		return fmt.Errorf("delete unreferenced file blob: %w", err)
 	}
 	return nil
 }
@@ -198,11 +198,33 @@ WHERE COALESCE(%s, '')='' AND COALESCE(%s, '')<>''
 }
 
 func (s *FileBlobService) readConfinedDataFile(relativePath string) ([]byte, error) {
-	fullPath, err := confinedDataPath(s.dataDir, relativePath)
+	relativePath, err := portableBackupMediaPath(relativePath)
 	if err != nil {
 		return nil, err
 	}
-	data, err := os.ReadFile(fullPath)
+	root, err := os.OpenRoot(s.dataDir)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = root.Close() }()
+	info, err := root.Lstat("uploads")
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return nil, ErrBackupPath
+	}
+	uploads, err := root.OpenRoot("uploads")
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = uploads.Close() }()
+	file, err := uploads.Open(strings.TrimPrefix(relativePath, "uploads/"))
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = file.Close() }()
+	data, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}
@@ -239,20 +261,4 @@ func decompressBlobData(data []byte, compression string) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unsupported blob compression %q", compression)
 	}
-}
-
-func confinedDataPath(dataDir, relativePath string) (string, error) {
-	base, err := filepath.Abs(dataDir)
-	if err != nil {
-		return "", err
-	}
-	target := filepath.Join(base, filepath.FromSlash(filepath.ToSlash(relativePath)))
-	absTarget, err := filepath.Abs(target)
-	if err != nil {
-		return "", err
-	}
-	if absTarget != base && !strings.HasPrefix(absTarget, base+string(os.PathSeparator)) {
-		return "", errors.New("path escapes data directory")
-	}
-	return absTarget, nil
 }

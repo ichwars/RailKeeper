@@ -423,11 +423,13 @@
 .vehicle-set-editor-dialog {
 	grid-template-rows: auto auto minmax(0, 1fr) auto;
 	width: min(920px, 100%);
+	container-type: inline-size;
 }
 
 .vehicle-set-summary-dialog {
   grid-template-rows: auto minmax(0, 1fr) auto;
   width: min(920px, 100%);
+  container-type: inline-size;
 }
 
 .vehicle-set-editor-tabs {
@@ -436,6 +438,20 @@
 
 .vehicle-set-dialog-body {
   padding: 16px 20px 20px;
+}
+
+.vehicle-set-dialog-body > .vehicle-save-state {
+  margin: 0 0 var(--space-md);
+}
+
+@container (max-width: 820px) {
+  .vehicle-modal.vehicle-set-editor-dialog button, .vehicle-modal.vehicle-set-summary-dialog button,
+  .vehicle-set-editor-dialog input:not([type="checkbox"]), .vehicle-set-editor-dialog .checkbox-field {
+    min-block-size: 44px;
+  }
+  .vehicle-modal.vehicle-set-editor-dialog .icon-button, .vehicle-modal.vehicle-set-summary-dialog .icon-button {
+    min-inline-size: 44px;
+  }
 }
 
 .vehicle-set-main-image-section {

@@ -37,6 +37,7 @@ type dataTransferApplyResult struct {
 type transferVehicleApplyResult struct {
 	ID              string
 	InventoryNumber string
+	Created         bool `json:"-"`
 }
 
 func (repository *DataTransferRepository) ApplyImport(
@@ -461,7 +462,7 @@ INSERT INTO vehicles(
 		if err != nil {
 			return transferVehicleApplyResult{}, err
 		}
-		return transferVehicleApplyResult{ID: vehicleID, InventoryNumber: vehicle.InventoryNumber}, nil
+		return transferVehicleApplyResult{ID: vehicleID, InventoryNumber: vehicle.InventoryNumber, Created: true}, nil
 	case "replace":
 		if record.TargetID == "" {
 			return transferVehicleApplyResult{}, dataTransferApplyConflict("vehicle replacement target is missing")
