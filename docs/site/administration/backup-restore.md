@@ -26,7 +26,9 @@ Application backups include inventory, accessories, maintenance, CVs and provena
 Format 27 adds tables for physical decoders, installations, CV working groups and immutable partial
 states with frozen sources. Unknown installation dates stay unknown; recording time is not a readout
 time. Frozen sources remain available after the original CV file is removed. This schema extension
-prepares the related workflows.
+adopts existing legacy groups once during startup or restore, without guessing hardware identity.
+Previously captured states are not rewritten. Original files come from the backup's upload area;
+references to other local directories are rejected before destructive restore.
 
 Like format 26, it preserves article revisions, vehicle/set relationships, individual catalog overrides and
 the original assignment mode. Restore retains unresolved catalog proposals. Active article fields

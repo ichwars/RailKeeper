@@ -1,8 +1,9 @@
 # Decoder installations and recorded CV working states
 
 Migration `0076_decoder_configuration_model.sql` adds five tables without changing existing
-vehicle, CV, source-file or history rows. This schema/backup package prepares later adoption and
-commands; it does not yet add an inventory workflow or infer a decoder from a profile name.
+vehicle, CV, source-file or history rows. Migration `0077_decoder_legacy_workspaces.sql` seeds
+exact legacy working groups. Startup then records their available evidence after file-blob migration.
+No physical decoder is inferred from a profile name; authoring workflows follow separately.
 
 ## Authority and identity
 
@@ -55,7 +56,8 @@ installations, invalid dates, malformed snapshot evidence and missing frozen blo
 historical vehicle references independently of currently existing inventory. Format numbers must
 not be lowered to bypass these checks. Supported formats 1 through 26 remain readable.
 
-The five tables are initially empty. Before schema migration, retain an app export, a consistent
+Schema 76 introduces empty tables; schema 77 and initialization adopt existing CV/file groups.
+Before schema migration, retain an app export, a consistent
 full installation and its matching previous binary. Rehearse on an isolated copy and compare every
 existing table/file plus the automatic pre-migration SQLite snapshot. Once new decoder data is
 used, an older program or export format cannot represent it losslessly. Use a compatible repair
@@ -76,5 +78,16 @@ Source content is reused from existing blobs or copied from a confined source di
 the same transaction. An insertion failure rolls back source blobs, snapshots and new groups
 together. Missing originals can reuse unambiguous archived bytes, including identical content
 under different blob identities. Contradictory or unreadable originals remain unresolved.
-The engine is prepared separately from its startup/restore activation; normal CV writes and
-the existing application workflows remain unchanged in this preparation package.
+Startup activates this engine before exposing the application. Restore completes missing legacy
+groups and their evidence inside its existing transaction, before replacing uploads and committing.
+Its source root is the newly staged backup, never the old installation. Missing originals stay
+unavailable even if the old installation contains a file with the same name. Existing captured
+snapshots and explicitly provided hardware assignments retain their identities and timestamps.
+
+Local filesystem sources are confined to the upload directory using `os.Root`. Directory symlinks
+cannot escape that boundary. Legacy Windows separators are normalized only when reading; stored
+path text remains unchanged. Active filesystem references outside uploads fail backup preflight
+before destructive restore. Canonical blob references do not reread obsolete filesystem paths.
+
+Normal CV writes still use the existing authoritative working rows. The separate writer/UI stage
+will maintain their working-group metadata and add deliberate capture/installation commands.

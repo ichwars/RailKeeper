@@ -438,6 +438,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	if err := restoreVehicleCatalogProjectionTx(ctx, tx, doc.Version < 26); err != nil {
 		return nil, err
 	}
+	if err := backfillLegacyDecoderCVTx(ctx, tx, stagedFiles.root); err != nil {
+		return nil, err
+	}
 	uploadsSwap, err := s.replaceUploadsWithStaged(stagedFiles)
 	if err != nil {
 		return nil, err

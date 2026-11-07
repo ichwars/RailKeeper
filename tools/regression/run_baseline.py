@@ -136,7 +136,8 @@ def run(args):
         restored_backup = client.request("GET", "/api/v1/backup/export")
         if args.catalog_backfill and (previous_backend / "migrations/0074_vehicle_catalog_legacy.sql").is_file():
             assert_same(backup_manifest(expected_backup_upgrade(backup, restored_backup["version"], restored_backup,
-                        args.catalog_authority, args.decoder_model)),
+                        args.catalog_authority, args.decoder_model,
+                        args.decoder_backfill and (previous_backend / "migrations/0077_decoder_legacy_workspaces.sql").is_file())),
                         backup_manifest(restored_backup), "In-place restore with legacy catalog backfill")
             backup, baseline = restored_backup, backup_manifest(restored_backup)
         else:
@@ -157,7 +158,7 @@ def run(args):
             restore(target.client, backup)
             restored_backup = target.client.request("GET", "/api/v1/backup/export")
             expected = backup_manifest(expected_fresh_restore(backup, local_backup, local_users,
-                restored_backup if args.catalog_backfill else None, args.catalog_authority, args.decoder_model))
+                restored_backup if args.catalog_backfill else None, args.catalog_authority, args.decoder_model, args.decoder_backfill))
             after = installation_manifest(target.data_dir)["tables"]
             for table in ("users", "roles", "user_roles", "app_settings", "user_settings"):
                 assert_same(before[table], after[table], "Local installation " + table)
@@ -237,7 +238,7 @@ def run(args):
         target.client.login(credentials)
         upgraded = target.client.request("GET", "/api/v1/backup/export")
         assert_same(backup_manifest(expected_backup_upgrade(backup, upgraded["version"],
-                    upgraded if args.catalog_backfill else None, args.catalog_authority, args.decoder_model)),
+                    upgraded if args.catalog_backfill else None, args.catalog_authority, args.decoder_model, args.decoder_backfill)),
                     backup_manifest(upgraded), "Installation startup")
         assert_same(observed, observations(target.client, fixture), "Installation API observations")
         verify_media(target.client, fixture)
@@ -273,8 +274,11 @@ if __name__ == "__main__":
     parser.add_argument("--catalog-authority", action="store_true", help="Verify the checked catalog authority conversion")
     parser.add_argument("--catalog-writes", action="store_true", help="Verify explicit catalog field selection and rejected replays")
     parser.add_argument("--decoder-model", action="store_true", help="Verify the additive decoder configuration schema")
+    parser.add_argument("--decoder-backfill", action="store_true", help="Verify complete legacy CV groups, histories and sources")
     parser.add_argument("--image", help="Optional existing image on a rootless local Docker test daemon")
     arguments = parser.parse_args()
+    if arguments.decoder_backfill and not all((arguments.decoder_model, arguments.catalog_backfill, arguments.catalog_authority)):
+        parser.error("--decoder-backfill requires --decoder-model --catalog-backfill --catalog-authority")
     for field in ("binary", "backend", "static_dir", "previous_binary", "previous_backend"):
         value = getattr(arguments, field)
         if value is not None:

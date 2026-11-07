@@ -26,7 +26,10 @@ Die Anwendungssicherung enthält Bestand, Zubehör, Wartungen, CVs mit Herkunft,
 Format 27 enthält zusätzliche Tabellen für Decoderexemplare, Einbauten, CV-Arbeitsgruppen und
 unveränderliche Teilstände mit eingefrorenen Quellen. Unbekannte Einbaudaten bleiben unbekannt;
 ein Erfassungszeitpunkt ist kein Auslesezeitpunkt. Gesicherte Quellen bleiben auch nach dem Entfernen
-der ursprünglichen CV-Datei erhalten. Diese Schemaerweiterung bereitet die zugehörigen Arbeitsabläufe vor.
+der ursprünglichen CV-Datei erhalten. Vorhandene Altgruppen werden beim Start oder Restore einmalig
+als übernommene Teilstände erhalten, ohne eine Hardwarezuordnung zu erraten. Bereits erfasste Stände
+werden dabei nicht neu geschrieben. Die Übernahme liest Dateien aus dem Uploadbereich der Sicherung;
+Verweise auf andere lokale Bereiche werden vor dem Wiederherstellen abgewiesen.
 
 Wie Format 26 sichert es Artikelrevisionen, Fahrzeug-/Set-Zuordnungen, individuelle Artikelabweichungen
 und den ursprünglichen Zuordnungsmodus. Ungeklärte Katalogvorschläge bleiben beim Wiederherstellen
