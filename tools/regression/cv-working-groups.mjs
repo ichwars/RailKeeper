@@ -45,11 +45,21 @@ export async function assertCVWorkingGroups(page, input, de, { actor, csrfToken 
   await confirm.click(); await page.waitForFunction(profile => document.querySelector('.cv-manual-editor input[placeholder]')?.value === profile, profileB);
   const draft = editor.locator(".cv-draft-review"); await draft.locator("strong").filter({ hasText: profileA }).waitFor();
   const applyDraft = draft.getByRole("button", { name: de ? "CV-Entwurf speichern" : "Save CV draft", exact: true });
+  await editor.locator(".cv-values-table tbody tr").filter({ has: page.getByRole("cell", { name: /^CV 25/ }) })
+    .getByRole("button", { name: de ? "CV bearbeiten" : "Edit CV", exact: true }).click();
+  assert.equal(await profileInput.inputValue(), profileA);
+  await applyDraft.click(); await draft.waitFor({ state: "hidden" });
+  if (!await form.evaluate(element => element.open)) await form.locator("summary").click();
+  assert.equal(await profileInput.inputValue(), profileA);
+  await form.getByRole("spinbutton", { name: "CV-Nr.", exact: true }).fill("28");
+  await form.getByRole("button", { name: de ? "Im CV-Entwurf vormerken" : "Stage in CV draft", exact: true }).click();
   await applyDraft.click(); await draft.waitFor({ state: "hidden" });
   let current = await read(path);
   assert.equal(current.cvValues.find(value => value.cvNumber === 25).decoderProfile, profileA);
+  assert.equal(current.cvValues.find(value => value.cvNumber === 28).decoderProfile, profileA);
   assert.deepEqual(current.cvValues.filter(value => value.cvNumber === 1), before.cvValues);
   checks.push(`${language}:explicit-default-and-staged-target-retained`);
+  checks.push(`${language}:committed-temporary-row-retains-open-nondefault-target`);
 
   await activate(profileA);
   await editor.locator('input[type="file"][accept=".json,.csv,.txt"]').setInputFiles({ name: "original-profile.json", mimeType: "application/json",

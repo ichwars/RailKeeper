@@ -218,5 +218,5 @@ describe("sequential catalogue-wide reference audit", () => {
     }
     expect(inventory.models).toHaveLength(599); expect(covered).toBe(580); expect(gaps).toBe(19);
     expect(hintsCount).toBeGreaterThan(60000);
-  });
+  }, 30_000); // Exhaustive bounded scan across 599 models under coverage on shared CI workers.
 });
