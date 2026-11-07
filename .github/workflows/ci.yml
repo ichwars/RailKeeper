@@ -62,6 +62,9 @@ jobs:
       - name: Test frontend
         working-directory: frontend
         run: npm run test:coverage
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
 
   frontend-build:
     name: Frontend build

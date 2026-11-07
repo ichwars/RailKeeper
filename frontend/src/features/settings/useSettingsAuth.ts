@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useEffectEvent, useState, type FormEvent } from "react";
 import {
   api, type AuditLogEntry, type Role, type Session, type SessionRecord, type UserAccount
 } from "../../shared/api";
@@ -223,17 +223,19 @@ export function useSettingsAuth({ username, activeSettingsTab, requestConfirmati
     loadCurrentSession();
   }, [username]);
 
-  useEffect(() => {
-    if (activeSettingsTab !== "auth" || !canManageUsers) return;
+  const loadAdminOnEntry = useEffectEvent(() => {
     loadUsersAndRoles();
     loadAuditLog();
     loadSessions();
     loadSMTPSettings();
+  });
+  const loadTwoFactorOnEntry = useEffectEvent(() => loadTwoFactorStatus());
+  useEffect(() => {
+    if (activeSettingsTab === "auth" && canManageUsers) loadAdminOnEntry();
   }, [activeSettingsTab, canManageUsers]);
 
   useEffect(() => {
-    if (activeSettingsTab !== "auth") return;
-    loadTwoFactorStatus();
+    if (activeSettingsTab === "auth") loadTwoFactorOnEntry();
   }, [activeSettingsTab]);
 
   return {

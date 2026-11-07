@@ -1,3 +1,4 @@
+import { invalidatePendingRequests } from "../../shared/requestGeneration";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type VehicleCatalogContext, type VehicleCatalogFields } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -34,7 +35,7 @@ export function useVehicleCatalogController({ targetType, targetId, savedFields,
     setRefreshPending(false);
     confirmedWrite.current = false;
     setError(""); setStatus(""); writing.current = false;
-    return () => { mounted.current = false; request.current++; };
+    return () => { mounted.current = false; invalidatePendingRequests(request); };
   }, [targetType, targetId]);
 
   const capture = () => {

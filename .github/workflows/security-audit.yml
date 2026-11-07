@@ -9,6 +9,8 @@ on:
       - frontend/package-lock.json
       - docs/package.json
       - docs/package-lock.json
+      - tools/api-types/package*.json
+      - tools/frontend-lint/package*.json
       - .github/workflows/security-audit.yml
       - .github/scripts/test_security_audit_workflow.py
   schedule:
@@ -53,6 +55,8 @@ jobs:
           cache-dependency-path: |
             frontend/package-lock.json
             docs/package-lock.json
+            tools/api-types/package-lock.json
+            tools/frontend-lint/package-lock.json
       - name: Install frontend and documentation dependencies
         run: |
           npm ci --prefix frontend
@@ -61,8 +65,9 @@ jobs:
         shell: bash
         run: |
           status=0
-          for directory in frontend docs; do
-            if ! (cd "$directory" && npm audit --include=dev --audit-level=high) > "$RUNNER_TEMP/npm-audit-$directory.txt" 2>&1; then
+          for directory in frontend docs tools/api-types tools/frontend-lint; do
+            report_name="${directory//\//-}"
+            if ! (cd "$directory" && npm audit --include=dev --audit-level=high) > "$RUNNER_TEMP/npm-audit-$report_name.txt" 2>&1; then
               echo "::error::npm dependency audit failed in $directory. Re-run npm audit there for details."
               status=1
             fi

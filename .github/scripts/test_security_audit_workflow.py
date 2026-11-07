@@ -17,12 +17,13 @@ def audit_script():
 
 
 class SecurityAuditWorkflowTests(unittest.TestCase):
-    def test_audits_both_projects_and_propagates_failures(self):
-        for failures in [[], ['frontend'], ['docs'], ['frontend', 'docs']]:
+    def test_audits_all_projects_and_propagates_failures(self):
+        projects = ['frontend', 'docs', 'tools/api-types', 'tools/frontend-lint']
+        for failures in [[], *[[name] for name in projects], projects]:
             with self.subTest(failures=failures), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
-                for name in ['frontend', 'docs', 'bin', 'reports']:
-                    (root / name).mkdir()
+                for name in [*projects, 'bin', 'reports']:
+                    (root / name).mkdir(parents=True)
                 npm = root / 'bin/npm'
                 npm.write_text('''#!/usr/bin/env python3
 import json
@@ -31,7 +32,7 @@ from pathlib import Path
 import sys
 
 assert sys.argv[1:] == ['audit', '--include=dev', '--audit-level=high']
-project = Path.cwd().name
+project = Path.cwd().relative_to(Path(os.environ['AUDIT_ROOT'])).as_posix()
 with Path(os.environ['AUDIT_CALLS']).open('a') as calls:
     calls.write(project + '\\n')
 print('private audit details')
@@ -41,14 +42,16 @@ sys.exit(1 if project in json.loads(os.environ['AUDIT_FAILURES']) else 0)
                 calls = root / 'calls.txt'
                 environment = dict(os.environ, PATH=f'{root / "bin"}:{os.environ["PATH"]}',
                                    RUNNER_TEMP=str(root / 'reports'), AUDIT_CALLS=str(calls),
+                                   AUDIT_ROOT=str(root),
                                    AUDIT_FAILURES=json.dumps(failures))
                 result = subprocess.run(['bash', '-e', '-o', 'pipefail', '-c', audit_script()],
                                         cwd=root, env=environment, capture_output=True,
                                         text=True, check=False)
                 self.assertEqual(result.returncode, 1 if failures else 0, result.stderr)
-                self.assertEqual(calls.read_text().splitlines(), ['frontend', 'docs'])
-                for name in ['frontend', 'docs']:
-                    self.assertEqual((root / 'reports' / f'npm-audit-{name}.txt').read_text(),
+                self.assertEqual(calls.read_text().splitlines(), projects)
+                for name in projects:
+                    report_name = name.replace('/', '-')
+                    self.assertEqual((root / 'reports' / f'npm-audit-{report_name}.txt').read_text(),
                                      'private audit details\n')
                     self.assertEqual(f'audit failed in {name}' in result.stdout, name in failures)
                 self.assertNotIn('private audit details', result.stdout + result.stderr)

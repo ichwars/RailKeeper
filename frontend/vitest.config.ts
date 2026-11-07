@@ -14,16 +14,19 @@ export default defineConfig({
     restoreMocks: true,
     clearMocks: true,
     unstubGlobals: true,
-    maxWorkers: 1,
+    pool: "threads",
+    maxWorkers: 2,
     coverage: {
       provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.test.{ts,tsx}", "src/generated/**", "src/test/**", "src/**/*.d.ts"],
       reporter: ["text", "json", "html"],
       reportsDirectory: "./coverage",
       thresholds: {
-        statements: 20,
-        branches: 15,
-        functions: 15,
-        lines: 20
+        statements: 74,
+        branches: 69,
+        functions: 68,
+        lines: 76
       }
     }
   }

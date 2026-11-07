@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { api, type InventoryNumberScheme, type VersionInfo } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import type { SettingsTab } from "./settingsModel";
@@ -34,11 +34,13 @@ export function useSettingsGeneral(
     loadInventorySchemes();
   }, [activeSettingsTab, inventorySchemes.length, inventorySchemesLoading]);
 
-  useEffect(() => {
-    if (activeSettingsTab !== "general") return;
+  const loadGeneralOnEntry = useEffectEvent(() => {
     loadVersionInfo();
     loadStorageUsage();
     loadSystemPrinters();
+  });
+  useEffect(() => {
+    if (activeSettingsTab === "general") loadGeneralOnEntry();
   }, [activeSettingsTab]);
 
   const loadVersionInfo = (forceCheck = false, includeBeta = betaUpdates) => {

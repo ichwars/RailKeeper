@@ -232,18 +232,19 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   }, [localizedError, setError, setLoadingArea, workspaceText]);
 
   useEffect(() => {
+    const pending = requestsRef.current;
     mountedRef.current = true;
     void loadWorkspace();
     return () => {
       mountedRef.current = false;
       readSessionIDRef.current = null;
-      requestsRef.current.workspace += 1;
-      requestsRef.current.live += 1;
-      requestsRef.current.read += 1;
-      requestsRef.current.worklist += 1;
-      requestsRef.current.detail += 1;
-      requestsRef.current.messages += 1;
-      requestsRef.current.write += 1;
+      pending.workspace += 1;
+      pending.live += 1;
+      pending.read += 1;
+      pending.worklist += 1;
+      pending.detail += 1;
+      pending.messages += 1;
+      pending.write += 1;
     };
   }, [loadWorkspace]);
 

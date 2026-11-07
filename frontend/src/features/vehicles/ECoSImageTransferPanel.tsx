@@ -1,3 +1,4 @@
+import { invalidatePendingRequests } from "../../shared/requestGeneration";
 import { useEffect, useRef, useState } from "react";
 import { CircleCheck, Send, TriangleAlert } from "lucide-react";
 import { api, ApiError } from "../../shared/api";
@@ -47,7 +48,7 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
 
   useEffect(() => {
     alive.current = true;
-    return () => { alive.current = false; revision.current++; };
+    return () => { alive.current = false; invalidatePendingRequests(revision); };
   }, []);
   useEffect(() => {
     if (!preview) return;

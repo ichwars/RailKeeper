@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 
 import {
   api, ApiError,
@@ -122,11 +122,15 @@ export function useVehicleCVController({
     resetForm();
     imports.commands.reset();
   };
-  useEffect(() => { if (workingGroup) reset(); }, [workingGroup?.ownerKey]);
-  useEffect(() => {
+  const resetOwner = useEffectEvent(() => { if (workingGroup) reset(); });
+  useEffect(() => { resetOwner(); }, [workingGroup?.ownerKey]);
+  const synchronizeDefaultTarget = useEffectEvent(() => {
     if (workingGroup && !editingId) setForm(current => ({ ...current, decoderProfile: workingGroup.target?.profile || "",
       workspaceId: workingGroup.target?.workspaceId, expectedWorkspaceRevision: workingGroup.target?.expectedWorkspaceRevision }));
-  }, [workingGroup?.target?.workspaceId, workingGroup?.target?.expectedWorkspaceRevision]);
+  });
+  // Clearing a committed temporary ID preserves the open input; only a changed default is a trigger.
+  useEffect(() => { synchronizeDefaultTarget(); },
+    [workingGroup?.target?.workspaceId, workingGroup?.target?.expectedWorkspaceRevision]);
 
   const edit = (value: VehicleCVValue) => {
     if (!writable()) return;

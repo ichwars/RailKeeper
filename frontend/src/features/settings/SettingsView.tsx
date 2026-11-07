@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useEffect, useEffectEvent, useState } from "react";
 import { useI18n } from "../../shared/i18n";
 import { SettingsAppearanceTab } from "./SettingsAppearanceTab";
 import { SettingsArticleSearchCard } from "./SettingsArticleSearchCard";
@@ -41,9 +41,10 @@ export function SettingsView({ username }: { username: string }) {
     clearMasterDataSearch: masterData.clearMasterDataSearch,
     loadStorageUsage
   });
+  const loadStorageOnEntry = useEffectEvent(() => loadStorageUsage());
   useEffect(() => {
     if (activeSettingsTab !== "data" || storageUsage || storageLoading) return;
-    loadStorageUsage();
+    loadStorageOnEntry();
   }, [activeSettingsTab, storageUsage, storageLoading]);
   const confirmSettingsAction = () => {
     const action = confirmDialog?.onConfirm;

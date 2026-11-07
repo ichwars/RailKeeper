@@ -22,8 +22,9 @@ export function useArticleReviewGuard(scope: string, onScopeChange: () => void) 
     if (previousScope.current !== scope) { previousScope.current = scope; reset.current(); }
   }, [scope]);
   useEffect(() => {
-    current.current.live = true;
-    return () => { current.current.live = false; current.current.version++; };
+    const review = current.current;
+    review.live = true;
+    return () => { review.live = false; review.version++; };
   }, []);
   const available = () => current.current.live && current.current.scope === scope;
   const active = (version: number | null) => version !== null && available() && current.current.version === version;

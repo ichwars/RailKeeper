@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 
 import { api, type Vehicle, type VehicleCVDeletionScope, type VehicleCVFile, type VehicleCVFilePreview, type VehicleCVValueInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -51,11 +51,13 @@ export function useVehicleDecoderFilesController({
   const canUsePreview = () => !readonly && !saving && selected && scope.current === previewOwner.current && (!workingGroup || workingGroup.ready);
   const targetKey = `${workingGroup?.target?.workspaceId || ""}:${workingGroup?.target?.expectedWorkspaceRevision || ""}`;
   const appliedTarget = useRef(targetKey);
+  const hasWorkingGroup = Boolean(workingGroup), hasPreview = Boolean(uploadPreview);
+  const targetProfile = workingGroup?.target?.profile || "";
   useEffect(() => {
-    if (workingGroup && !uploadPreview && appliedTarget.current !== targetKey) {
-      appliedTarget.current = targetKey; setFileProfile(workingGroup.target?.profile || "");
+    if (hasWorkingGroup && !hasPreview && appliedTarget.current !== targetKey) {
+      appliedTarget.current = targetKey; setFileProfile(targetProfile);
     }
-  }, [targetKey, Boolean(uploadPreview)]);
+  }, [targetKey, hasPreview, targetProfile, hasWorkingGroup]);
 
   const previewStats = useMemo(() => ({
     cvValues: uploadPreview?.previews.reduce(
@@ -75,7 +77,8 @@ export function useVehicleDecoderFilesController({
     setFileDescription("");
     setUploadPreview(null);
   };
-  useEffect(() => { if (workingGroup) reset(); }, [workingGroup?.ownerKey]);
+  const resetOwner = useEffectEvent(() => { if (workingGroup) reset(); });
+  useEffect(() => { resetOwner(); }, [workingGroup?.ownerKey]);
 
   const uploadFiles = async (files: FileList | null) => {
     if (!selected || readonly || saving || !files || files.length === 0) return;

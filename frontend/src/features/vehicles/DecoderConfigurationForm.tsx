@@ -10,8 +10,9 @@ import { useEffect, useRef } from "react";
 export function DecoderConfigurationForm({ controller: model }: { controller: DecoderConfigurationController }) {
   const { t } = useI18n(), { context, draft } = model;
   const section = useRef<HTMLElement>(null);
+  const draftId = draft?.id, draftKind = draft?.kind;
   useEffect(() => {
-    if (!draft) return;
+    if (draftId === undefined || draftKind === undefined) return;
     const invoker = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const container = section.current;
     container?.scrollIntoView?.({ block: "nearest" });
@@ -21,7 +22,7 @@ export function DecoderConfigurationForm({ controller: model }: { controller: De
         queueMicrotask(() => { if (invoker?.isConnected) invoker.focus(); });
       }
     };
-  }, [draft?.id, draft?.kind]);
+  }, [draftId, draftKind]);
   if (!context || !draft) return null;
   const disabled = model.busy || model.loading || model.saving || model.readonly;
   const valid = decoderDraftValid(draft, context), instance = context.instances.find(value => value.id === draft.decoderId);

@@ -25,6 +25,24 @@ const callbacks = () => ({ setSaving: vi.fn(), onMessage: vi.fn(), onStatus: vi.
 describe("confirmed working groups across independent CV actions", () => {
   afterEach(() => vi.restoreAllMocks());
 
+  it("retains the open nondefault target when a committed temporary draft ID is cleared", async () => {
+    const selected = vehicleFixture({ cvValues: [] }), cb = callbacks();
+    vi.spyOn(api, "applyVehicleCVChanges").mockResolvedValue({ changed: 1 });
+    const { result } = renderHook(() => useVehicleCVController({ ...cb, selected,
+      decoderNumber: "", workingGroup: working() }));
+    act(() => result.current.commands.updateForm({ cvNumber: 2, value: 7, decoderProfile: b.profile }));
+    act(() => result.current.commands.save());
+    act(() => result.current.commands.edit(result.current.state.manualDraft.values[0]));
+    expect(result.current.state.form).toMatchObject({ decoderProfile: b.profile, workspaceId: b.id });
+    await act(() => result.current.commands.applyManualDraft());
+    expect(result.current.state.form).toMatchObject({ decoderProfile: b.profile, workspaceId: b.id,
+      expectedWorkspaceRevision: b.bindingRevision, cvNumber: 2, value: 7 });
+    act(() => result.current.commands.save());
+    expect(result.current.state.manualDraft.changes[0].value).toMatchObject({
+      decoderProfile: b.profile, workspaceId: b.id, expectedWorkspaceRevision: b.bindingRevision
+    });
+  });
+
   it("retains staged and open original targets when the new-input default changes", async () => {
     const stored = cvValueFixture({ decoderProfile: a.profile });
     const selected = vehicleFixture({ cvValues: [stored] }), cb = callbacks();

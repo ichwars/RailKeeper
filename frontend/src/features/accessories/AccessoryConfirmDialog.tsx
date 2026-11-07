@@ -55,7 +55,7 @@ export function AccessoryConfirmDialog({ action, onClose }: {
       const returnTarget = explicitTarget || invokerRef.current;
       if (returnTarget?.isConnected) returnTarget.focus();
     };
-  }, [isOpen]);
+  }, [isOpen, action?.returnFocusRef, action?.successReturnFocusRef]);
 
   if (!action) return null;
 

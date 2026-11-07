@@ -61,21 +61,22 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
     }
   };
 
+  const { actions, loading, loadSession, readData } = workspace;
   useEffect(() => {
-    if (returnReadStartedRef.current || workspace.loading.workspace) return;
+    if (returnReadStartedRef.current || loading.workspace) return;
     const search = new URLSearchParams(window.location.search);
     const sessionID = search.get("sessionId")?.trim();
     if (!sessionID) return;
     if (search.get("review") === "backup" || !search.get("objectId")?.trim()) {
       returnReadStartedRef.current = true;
-      void workspace.loadSession(sessionID).catch(() => undefined);
+      void loadSession(sessionID).catch(() => undefined);
       return;
     }
-    if (!workspace.actions.canRead) return;
+    if (!actions.canRead) return;
     returnReadStartedRef.current = true;
     window.history.replaceState(null, "", "/digital-centers");
-    void workspace.readData().catch(() => undefined);
-  }, [workspace.actions.canRead, workspace.loadSession, workspace.loading.workspace, workspace.readData]);
+    void readData().catch(() => undefined);
+  }, [actions.canRead, loadSession, loading.workspace, readData]);
 
   return (
     <section className="digital-centers-workspace" data-can-administer={roles.includes("Admin")}>

@@ -142,7 +142,7 @@ export function TransferImportDialog({
       setMappingAccepted(false);
       setError(copy.confirmConflictRecovery);
     }
-  }, [initialJob?.id, initialRequiresReupload, language]);
+  }, [initialJob?.id, initialRequiresReupload, language, copy.confirmConflictRecovery]);
 
   function requestProfileChange(nextProfileId: string) {
     if (confirmation.blocked) return;

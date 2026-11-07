@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, renderHook } from "@testing-library/react";
 
 import {
   languageChangedEvent,
   languageSettingKey,
   readLanguage,
   setLanguage,
-  translate
+  translate,
+  useI18n
 } from "./i18n";
 
 describe("i18n", () => {
@@ -32,6 +34,16 @@ describe("i18n", () => {
 
   it("interpolates translated values", () => {
     expect(translate("de", "common.roles", { count: 3 })).toBe("3 Rollen");
+  });
+
+  it("keeps the translator stable until the language changes", () => {
+    const { result, rerender } = renderHook(() => useI18n());
+    const initial = result.current.t;
+    rerender();
+    expect(result.current.t).toBe(initial);
+    act(() => setLanguage("en"));
+    expect(result.current.t).not.toBe(initial);
+    expect(result.current.t("common.roles", { count: 3 })).toBe("3 roles");
   });
 
   it("returns the key when no translation exists", () => {
