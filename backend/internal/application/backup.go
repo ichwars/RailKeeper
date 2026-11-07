@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 26
+	backupVersion = 27
 )
 
 var (
@@ -116,6 +116,11 @@ var backupTableOrder = []string{
 	"vehicle_cv_files",
 	"vehicle_cv_values",
 	"vehicle_cv_value_history",
+	"decoder_instances",
+	"decoder_installations",
+	"decoder_cv_workspaces",
+	"decoder_cv_snapshots",
+	"decoder_cv_snapshot_sources",
 	"accessory_products",
 	"accessory_product_attributes",
 	"accessory_purchases",
@@ -160,6 +165,11 @@ type backupTableVersionPolicy struct {
 }
 
 var backupTableVersions = map[string]backupTableVersionPolicy{
+	"decoder_instances":                        {introduced: 27, required: 27},
+	"decoder_installations":                    {introduced: 27, required: 27},
+	"decoder_cv_workspaces":                    {introduced: 27, required: 27},
+	"decoder_cv_snapshots":                     {introduced: 27, required: 27},
+	"decoder_cv_snapshot_sources":              {introduced: 27, required: 27},
 	"catalog_articles":                         {introduced: 25, required: 25},
 	"catalog_article_revisions":                {introduced: 25, required: 25},
 	"vehicle_article_links":                    {introduced: 25, required: 25},
@@ -756,8 +766,8 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 			result.Errors = append(result.Errors, validateBackupCVProvenance(rows)...)
 		}
 		if len(item.UnknownColumns) > 0 {
-			if isVehicleCatalogBackupTable(table) {
-				result.Errors = append(result.Errors, fmt.Sprintf("Katalogtabelle %s enthält unbekannte Spalten. / Unknown catalog table columns.", table))
+			if isVehicleCatalogBackupTable(table) || isDecoderConfigurationBackupTable(table) {
+				result.Errors = append(result.Errors, fmt.Sprintf("Fachtabelle %s enthält unbekannte Spalten. / Unknown model table columns.", table))
 			} else {
 				result.Warnings = append(result.Warnings, fmt.Sprintf("Tabelle %s enthält unbekannte Spalten, die beim Restore ignoriert werden.", table))
 			}
@@ -794,6 +804,7 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 		result.Errors = append(result.Errors, validateBackupDataTransferProfiles(doc.Profiles)...)
 	}
 	result.Errors = append(result.Errors, validateBackupVehicleCatalog(doc)...)
+	result.Errors = append(result.Errors, validateBackupDecoderConfiguration(doc)...)
 
 	return finishBackupValidation(result), nil
 }

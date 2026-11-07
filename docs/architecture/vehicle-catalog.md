@@ -116,15 +116,15 @@ row/field change independently, rejects repeated/stale confirmations without cha
 the complete original app export before continuing the browser checks. Unselected data and every
 other table/file remain part of the exact comparison.
 
-Backup format 26 includes all four tables and the original-authority marker. Preflight validates complete revision
+Backup format 27 retains all four format-26 tables and the original-authority marker. Preflight validates complete revision
 fields, overrides, revision numbering, origin, timestamps and relationships against the backup itself.
 Missing required tables, unknown catalog columns, dangling links and manually lowered format numbers
 are incompatible. Active catalog relationships must exactly compose their legacy projection.
-Formats 1–25 remain supported; missing catalog relationships are backfilled only
+Formats 1–26 remain supported; missing catalog relationships are backfilled only
 from the restored legacy representations. Restore suspends exactly the six projection triggers
 inside its transaction, imports the complete inventory/catalog, converts old authority markers and
 reinstates the triggers before commit. Failure rolls back both data and trigger definitions. Format
-26 preserves its supplied markers without reclassification. Local authentication remains outside
+26 or newer preserves its supplied markers without reclassification. Local authentication remains outside
 application backups.
 
 Before migration, retain a consistent full installation, application export and matching old binary.

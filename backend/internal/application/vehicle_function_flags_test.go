@@ -83,7 +83,7 @@ func TestFunctionFlagBackupCurrentAndLegacyRestore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if doc.Version != 26 {
+	if doc.Version != 27 {
 		t.Fatal(doc.Version)
 	}
 	if _, err = backup.Import(ctx, doc); err != nil {

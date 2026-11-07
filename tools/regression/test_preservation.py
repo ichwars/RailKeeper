@@ -13,6 +13,26 @@ from preservation import (
 
 
 class PreservationTests(unittest.TestCase):
+    def test_decoder_schema_only_adds_five_empty_tables_and_retains_every_old_row(self):
+        from decoder import TABLES
+        original = {"format": "railkeeper-backup", "version": 26,
+                    "tables": {"vehicle_cv_values": [{"id": "cv", "decoder_profile": " Raw ", "index_cv31": None}]}}
+        expected = expected_backup_upgrade(original, 27, decoder_model=True)
+        self.assertEqual(expected["version"], 27)
+        self.assertEqual(expected["tables"]["vehicle_cv_values"], original["tables"]["vehicle_cv_values"])
+        self.assertEqual(set(expected["tables"]) - set(original["tables"]), set(TABLES))
+        self.assertTrue(all(expected["tables"][table] == [] for table in TABLES))
+        self.assertEqual(original["version"], 26)
+        with self.assertRaises(AssertionError):
+            expected_backup_upgrade(original, 27)
+        with self.assertRaises(AssertionError):
+            expected_backup_upgrade(original, 28, decoder_model=True)
+
+    def test_decoder_upgrade_does_not_accept_unknown_or_accidentally_prefilled_data(self):
+        original = {"version": 26, "tables": {"decoder_instances": [{"id": "unexpected"}]}}
+        with self.assertRaises(AssertionError):
+            expected_backup_upgrade(original, 27, decoder_model=True)
+
     def test_catalog_schema_upgrade_only_adds_known_empty_tables(self):
         original = {"format": "railkeeper-backup", "version": 24, "tables": {"vehicles": [{"id": "same", "name": "Keep"}]}}
         expected = expected_backup_upgrade(original, 25)

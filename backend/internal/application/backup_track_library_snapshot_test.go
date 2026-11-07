@@ -23,8 +23,8 @@ func TestBackupVersionFourteenRestoresLegacyTrackGeometrySnapshots(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 26 {
-		t.Fatalf("expected version 26 export, got %d", backup.Version)
+	if backup.Version != 27 {
+		t.Fatalf("expected version 27 export, got %d", backup.Version)
 	}
 	legacy := cloneBackupWithoutTrackGeometrySnapshots(backup)
 	if _, err := service.Import(ctx, legacy); err != nil {

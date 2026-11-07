@@ -23,10 +23,15 @@ lastReviewed: 2026-11-07
 
 Die Anwendungssicherung enthält Bestand, Zubehör, Wartungen, CVs mit Herkunft, Stammdaten, Ausstellungsdaten und gespeicherte Medien. Benutzerkonten, Passwörter, Sitzungen und lokale Systemeinstellungen sind nicht enthalten. Sie ist deshalb keine vollständige Serversicherung.
 
-Format 26 sichert Artikelrevisionen, Fahrzeug-/Set-Zuordnungen, individuelle Artikelabweichungen
+Format 27 enthält zusätzliche Tabellen für Decoderexemplare, Einbauten, CV-Arbeitsgruppen und
+unveränderliche Teilstände mit eingefrorenen Quellen. Unbekannte Einbaudaten bleiben unbekannt;
+ein Erfassungszeitpunkt ist kein Auslesezeitpunkt. Gesicherte Quellen bleiben auch nach dem Entfernen
+der ursprünglichen CV-Datei erhalten. Diese Schemaerweiterung bereitet die zugehörigen Arbeitsabläufe vor.
+
+Wie Format 26 sichert es Artikelrevisionen, Fahrzeug-/Set-Zuordnungen, individuelle Artikelabweichungen
 und den ursprünglichen Zuordnungsmodus. Ungeklärte Katalogvorschläge bleiben beim Wiederherstellen
 erhalten. Aktive Artikelangaben müssen mit der gespeicherten Fahrzeugansicht übereinstimmen.
-Ältere unterstützte Sicherungen einschließlich Format 25 bleiben einlesbar. Ein älteres Programm kann
+Ältere unterstützte Sicherungen einschließlich Format 26 bleiben einlesbar. Ein älteres Programm kann
 das neue Format nicht vollständig wiederherstellen. Ändere deshalb die Formatnummer nicht manuell.
 Bewahre vor einer Datenmodellumstellung zusätzlich eine vollständige konsistente Installation und
 das dazu passende bisherige Programm auf. Nach neuen Eingaben ist diese ältere Kopie kein
