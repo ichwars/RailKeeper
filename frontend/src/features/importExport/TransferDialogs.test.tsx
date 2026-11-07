@@ -768,6 +768,48 @@ describe("data transfer operational dialogs", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it.each([
+    new TypeError("Lost reply"), new ApiError("Already completed", "conflict", 409),
+    new ApiError("Lost gateway reply", "gateway", 503)
+  ])("reads the completed job after an uncertain or conflicting confirmation: %s", async (failure) => {
+    const user = userEvent.setup();
+    const ready = jobFixture({ ...previewFixture.job, format: "railkeeper-json", state: "ready",
+      revision: 3, preview: { records: previewFixture.records } });
+    const completed = { ...ready, state: "completed" as const, revision: 4 };
+    const confirm = vi.fn().mockRejectedValue(failure), refresh = vi.fn().mockResolvedValue({ job: completed,
+      issues: [], artifacts: [] }), cancel = vi.fn();
+    render(<TransferImportDialog initialJob={ready} initialDetails={{ job: ready, issues: [], artifacts: [] }}
+      initialRequiresReupload={false} language="de" profiles={[]} onConfirm={confirm} onRefreshJob={refresh}
+      onClose={vi.fn()} onCancelJob={cancel} onCreateJob={vi.fn()} onResolve={vi.fn()} onUpload={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "1 Datensatz importieren" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("bereits abgeschlossen");
+    expect(screen.queryByRole("button", { name: "1 Datensatz importieren" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Auftrag abbrechen" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Importdatei")).toBeDisabled();
+    expect(confirm).toHaveBeenCalledExactlyOnceWith(ready.id, 3);
+    expect(refresh).toHaveBeenCalledExactlyOnceWith(ready.id);
+    expect(cancel).not.toHaveBeenCalled();
+  });
+
+  it("keeps an unknown outcome blocked until a read succeeds, without another confirmation", async () => {
+    const user = userEvent.setup();
+    const ready = jobFixture({ ...previewFixture.job, format: "railkeeper-json", state: "ready",
+      preview: { records: previewFixture.records } });
+    const confirm = vi.fn().mockRejectedValue(new TypeError("Lost reply"));
+    const refresh = vi.fn().mockRejectedValueOnce(new TypeError("Offline"))
+      .mockResolvedValueOnce({ job: { ...ready, state: "completed", revision: ready.revision + 1 }, issues: [], artifacts: [] });
+    render(<TransferImportDialog initialJob={ready} initialDetails={{ job: ready, issues: [], artifacts: [] }}
+      initialRequiresReupload={false} language="en" profiles={[]} onConfirm={confirm} onRefreshJob={refresh}
+      onClose={vi.fn()} onCancelJob={vi.fn()} onCreateJob={vi.fn()} onResolve={vi.fn()} onUpload={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Import 1 record" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("outcome is still uncertain");
+    expect(screen.getByLabelText("Import file")).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Cancel job" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Check job status" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("already completed");
+    expect(confirm).toHaveBeenCalledOnce(); expect(refresh).toHaveBeenCalledTimes(2);
+  });
+
   it("requires a fresh upload after a confirm conflict", async () => {
     const user = userEvent.setup();
     vi.mocked(api.confirmDataTransferImport).mockRejectedValueOnce(new ApiError("revision", "conflict", 409));

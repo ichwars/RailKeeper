@@ -71,6 +71,9 @@ func TestLegacyBackupRestoreRetiresAllocationsOnceAndKeepsArchive(t *testing.T) 
 		t.Fatal(err)
 	}
 	legacy.Version = 22
+	for _, table := range []string{"catalog_articles", "catalog_article_revisions", "vehicle_article_links", "vehicle_set_article_links"} {
+		delete(legacy.Tables, table)
+	}
 	delete(legacy.Tables, "retired_allocation_records")
 	validation, err := service.Validate(t.Context(), legacy)
 	if err != nil || !validation.Compatible || len(validation.Warnings) == 0 {
@@ -84,7 +87,7 @@ func TestLegacyBackupRestoreRetiresAllocationsOnceAndKeepsArchive(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if current.Version != 24 || len(current.Tables["retired_allocation_records"]) != 4 {
+	if current.Version != 27 || len(current.Tables["retired_allocation_records"]) != 4 {
 		t.Fatalf("archive absent from current backup: version %d", current.Version)
 	}
 	for range 2 {

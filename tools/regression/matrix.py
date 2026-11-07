@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ROUTES_SHA256 = "cae085fbfa4ae00906babdd05e3ca85ccbbbd677f1f9d89ccf4f6be6e2abae53"
+ROUTES_SHA256 = "5b00e214da7e473514c7f876385ac20077632c6ffa1f3ec903784f50393a8829"
 
 # Longest matching prefix wins. New top-level areas must be classified explicitly.
 FEATURES = {
@@ -44,11 +44,31 @@ FEATURES = {
         "storage": "vehicle_images, vehicle_attachments, file_blobs and referenced files",
         "tests": ["backend/internal/application/vehicles_test.go", "backend/internal/application/backup_test.go"],
     },
+    "vehicle-catalog": {
+        "prefixes": ["/catalog"],
+        "ui": "Artikelzuordnung/Revisionsvergleich sowie Admin-Befüllungsbericht",
+        "storage": "catalog_articles, catalog_article_revisions, vehicle_article_links, vehicle_set_article_links",
+        "tests": ["backend/internal/application/vehicle_catalog_backfill_test.go",
+                  "backend/internal/application/vehicle_catalog_changes_test.go",
+                  "backend/internal/api/vehicle_catalog_handlers_test.go",
+                  "backend/internal/api/vehicle_catalog_write_handlers_test.go"],
+    },
     "workshop": {
         "prefixes": ["/vehicles/{id}/maintenance", "/vehicles/{id}/spare-parts"],
         "ui": "Wartung, Zustand, Ersatzteile und Dokumentauswertung",
         "storage": "vehicle_maintenance, vehicle_spare_parts",
         "tests": ["backend/internal/application/vehicles_test.go", "backend/internal/application/backup_test.go"],
+    },
+    "decoder-configurations": {
+        "prefixes": ["/vehicles/{id}/decoder-configurations", "/decoder-configurations"],
+        "ui": "Decoderexemplare, Einbauzeiträume, CV-Arbeitsgruppen und privates Teilstandarchiv",
+        "storage": "decoder_instances, decoder_installations, decoder_cv_workspaces, decoder_cv_snapshots, decoder_cv_snapshot_sources",
+        "tests": ["backend/internal/application/decoder_hardware_changes_test.go",
+                  "backend/internal/application/decoder_workspace_changes_test.go",
+                  "backend/internal/api/decoder_configuration_reads_test.go",
+                  "backend/internal/api/decoder_configuration_writes_test.go",
+                  "backend/internal/application/vehicle_cv_workspace_scope_test.go",
+                  "backend/internal/api/vehicle_cv_workspace_scope_test.go"],
     },
     "functions-cv": {
         "prefixes": ["/vehicles/{id}/functions", "/vehicles/{id}/cv-values", "/vehicles/{id}/cv-files", "/cv-files", "/decoder-library"],

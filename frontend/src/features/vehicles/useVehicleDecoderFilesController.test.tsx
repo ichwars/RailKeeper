@@ -1,8 +1,8 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api, type VehicleCVFilePreview } from "../../shared/api";
-import { cvFileFixture, functionFixture, vehicleFixture } from "../../test/fixtures/vehicles";
+import { cvFileFixture, vehicleFixture } from "../../test/fixtures/vehicles";
 import { useVehicleDecoderFilesController } from "./useVehicleDecoderFilesController";
 
 function fileList(...files: File[]) {
@@ -28,19 +28,40 @@ function renderController() {
   const setSaving = vi.fn();
   const onMessage = vi.fn();
   const onImportPreview = vi.fn();
-  const refreshSelectedVehicle = vi.fn().mockResolvedValue(undefined);
+  const onFunctionSuggestions = vi.fn().mockReturnValue({ applied: 1, blocked: [] });
+  const prepareUpload = vi.fn().mockReturnValue(true), prepareDelete = vi.fn(), onStatus = vi.fn();
   const hook = renderHook(() => useVehicleDecoderFilesController({
-    selected: vehicleFixture(),
+    selected: vehicleFixture(), readonly: false, saving: false, onStatus,
     setSaving,
     onMessage,
     onImportPreview,
-    refreshSelectedVehicle
+    onFunctionSuggestions,
+    prepareUpload, prepareDelete
   }));
-  return { ...hook, setSaving, onMessage, onImportPreview, refreshSelectedVehicle };
+  return { ...hook, setSaving, onMessage, onImportPreview, onFunctionSuggestions, prepareUpload, prepareDelete, onStatus };
 }
 
 describe("useVehicleDecoderFilesController", () => {
   beforeEach(() => vi.restoreAllMocks());
+
+  it("ignores late preview results and confirmed suggestions from another vehicle", async () => {
+    let complete!: (value: VehicleCVFilePreview) => void;
+    vi.spyOn(api, "previewVehicleCVFile").mockReturnValue(new Promise(resolve => { complete = resolve; }));
+    const prepareUpload = vi.fn(), onFunctionSuggestions = vi.fn(), onImportPreview = vi.fn();
+    const { result, rerender } = renderHook(({ selected }) => useVehicleDecoderFilesController({
+      selected, readonly: false, saving: false, setSaving: vi.fn(), onMessage: vi.fn(), onStatus: vi.fn(),
+      prepareUpload, prepareDelete: vi.fn(), onFunctionSuggestions, onImportPreview
+    }), { initialProps: { selected: vehicleFixture() } });
+    let pending!: Promise<void>;
+    act(() => { pending = result.current.commands.uploadFiles(fileList(new File(["x"], "decoder.esux"))); });
+    rerender({ selected: vehicleFixture({ id: "other" }) });
+    await act(async () => { complete(preview); await pending; });
+    expect(result.current.state.uploadPreview).toBeNull();
+    act(() => result.current.commands.confirmUpload());
+    act(() => result.current.commands.applyFunctionSuggestions());
+    expect(prepareUpload).not.toHaveBeenCalled(); expect(onFunctionSuggestions).not.toHaveBeenCalled();
+    expect(onImportPreview).not.toHaveBeenCalled();
+  });
 
   it("previews files and applies detected metadata", async () => {
     vi.spyOn(api, "previewVehicleCVFile").mockResolvedValue(preview);
@@ -55,10 +76,10 @@ describe("useVehicleDecoderFilesController", () => {
     expect(result.current.state.fileDescription).toBe("BR 106 Decoderprojekt");
   });
 
-  it("prepares CV values and imports valid function suggestions", async () => {
+  it("prepares CV values and sends function suggestions to the draft without writes", async () => {
     vi.spyOn(api, "previewVehicleCVFile").mockResolvedValue(preview);
-    vi.spyOn(api, "updateVehicleFunction").mockResolvedValue(functionFixture());
-    const { result, onImportPreview, refreshSelectedVehicle } = renderController();
+    const updateFunction = vi.spyOn(api, "updateVehicleFunction");
+    const { result, onImportPreview, onFunctionSuggestions, prepareUpload, prepareDelete, onStatus, onMessage } = renderController();
     const file = new File(["decoder"], "decoder.esux", { type: "application/octet-stream" });
 
     await act(() => result.current.commands.uploadFiles(fileList(file)));
@@ -69,34 +90,28 @@ describe("useVehicleDecoderFilesController", () => {
     }));
 
     act(() => result.current.commands.applyFunctionSuggestions());
-    await waitFor(() => expect(api.updateVehicleFunction).toHaveBeenCalledWith(
-      "vehicle-1",
-      "F0",
-      expect.objectContaining({ name: "Licht", functionType: "licht" })
-    ));
-    expect(refreshSelectedVehicle).toHaveBeenCalledWith("vehicle-1");
+    expect(onFunctionSuggestions).toHaveBeenCalledWith([preview]);
+    expect(updateFunction).not.toHaveBeenCalled();
+    expect(prepareUpload).not.toHaveBeenCalled();
+    expect(onStatus).toHaveBeenLastCalledWith(expect.stringContaining("Entwurf"));
   });
 
   it("uploads and removes stored decoder files", async () => {
     vi.spyOn(api, "previewVehicleCVFile").mockResolvedValue(preview);
     vi.spyOn(api, "uploadVehicleCVFile").mockResolvedValue(cvFileFixture());
     vi.spyOn(api, "deleteVehicleCVFile").mockResolvedValue(undefined);
-    const { result, refreshSelectedVehicle } = renderController();
+    const { result, prepareUpload, prepareDelete } = renderController();
     const file = new File(["decoder"], "decoder.esux", { type: "application/octet-stream" });
 
     await act(() => result.current.commands.uploadFiles(fileList(file)));
     act(() => result.current.commands.updateFileProfile("ESU LokPilot 5"));
     act(() => result.current.commands.confirmUpload());
-    await waitFor(() => expect(api.uploadVehicleCVFile).toHaveBeenCalledWith(
-      "vehicle-1",
-      file,
-      "ESU LokPilot 5",
-      ""
-    ));
-
+    expect(prepareUpload).toHaveBeenCalledWith("decoder", [file], { decoderProfile: "ESU LokPilot 5", description: "" }, true);
+    expect(api.uploadVehicleCVFile).not.toHaveBeenCalled();
+    expect(result.current.state.uploadPreview).toBeNull();
     act(() => result.current.commands.remove(cvFileFixture()));
-    await waitFor(() => expect(api.deleteVehicleCVFile).toHaveBeenCalledWith("vehicle-1", "cv-file-1"));
-    expect(refreshSelectedVehicle).toHaveBeenCalledTimes(2);
+    expect(prepareDelete).toHaveBeenCalledWith({ kind: "decoder", record: cvFileFixture() });
+    expect(api.deleteVehicleCVFile).not.toHaveBeenCalled();
   });
 
   it("keeps detected row and preview profiles separate from the file-storage profile", async () => {

@@ -1,4 +1,5 @@
 @import "../styles/base.css";
+@import "../styles/import-review.css";
 @import "../styles/settings.css";
 @import "../styles/overview.css";
 @import "../styles/overview-dashboard.css";
@@ -10,10 +11,14 @@
 @import "../styles/vehicle-detail.css";
 @import "../styles/vehicle-create-wizard.css";
 @import "../styles/vehicle-dialogs.css";
+@import "../styles/article-review.css";
 @import "../styles/vehicle-uploads.css";
 @import "../styles/vehicle-functions-cv-maintenance.css";
 @import "../styles/vehicle-cv-indexed.css";
 @import "../styles/vehicle-image-preview.css";
+@import "../styles/vehicle-save-state.css";
+@import "../styles/vehicle-catalog.css";
+@import "../styles/cv-draft.css";
 @import "../styles/exhibition.css";
 @import "../styles/accessories.css";
 @import "../styles/article-overview.css";
@@ -25,6 +30,7 @@
 @import "../styles/vehicle-inventory-responsive.css";
 
 @import "../styles/vehicle-decoder.css";
+@import "../styles/decoder-configurations.css";
 @import "../styles/vehicle-digital.css";
 
 @import "../styles/vehicle-cv-explained.css";

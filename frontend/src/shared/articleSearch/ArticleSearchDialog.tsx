@@ -7,6 +7,7 @@ import {
   type ArticleSearchResult
 } from "../api";
 import { useI18n } from "../i18n";
+import { ImportReviewContext, ImportReviewStatus } from "../ImportReview";
 import { useModalDialogLayer } from "../ui/useModalDialogLayer";
 import {
   articleFieldStatus,
@@ -20,6 +21,7 @@ import {
 function previewImageUrl(image?: { url: string; thumbnailUrl?: string }) {
   return image?.thumbnailUrl || image?.url || "";
 }
+const reviewStates = { empty: "new", same: "same", conflict: "changed" } as const;
 
 export function ArticleSearchDialog({
   fieldGroups,
@@ -29,6 +31,7 @@ export function ArticleSearchDialog({
   error,
   selectedFields,
   selectedImages,
+  reviewTarget,
   canSelectField,
   onApply,
   onClose,
@@ -42,6 +45,7 @@ export function ArticleSearchDialog({
   error: string;
   selectedFields: Record<string, boolean>;
   selectedImages: Record<string, boolean>;
+  reviewTarget?: string;
   canSelectField?: (key: string, value: string) => boolean;
   onApply: (result: ArticleSearchResult) => void;
   onClose: () => void;
@@ -116,7 +120,7 @@ export function ArticleSearchDialog({
 
         <div className="article-dialog-state">
           {loading && <p className="empty-state compact">{t("vehicles.articleSearch.loading")}</p>}
-          {error && <p className="form-message">{error}</p>}
+          {error && <p className="form-message" role="alert">{error}</p>}
           {!loading && !error && response && response.results.length === 0 && (
             <p className="empty-state compact">{t("vehicles.articleSearch.empty")}</p>
           )}
@@ -130,13 +134,18 @@ export function ArticleSearchDialog({
             const resultImage = visibleImages[0];
             return (
               <article key={resultKey} className="article-result-card article-result-table-card">
+                <ImportReviewContext source={result.url} target={reviewTarget || t("importReview.target.recordDraft")}
+                  effect={t("importReview.effect.article")} total={selectableKeys.length}
+                  selected={selectableKeys.filter(key => selectedFields[articleSelectionKey(result, key, index)] &&
+                    (canSelectField?.(key, result.fields[key].value) ?? true)).length} />
                 <header>
                   {resultImage && (
                     <img className="article-result-thumb" src={previewImageUrl(resultImage)} alt="" onError={() => markImageFailed(resultImage.url)} />
                   )}
                   <div>
                     <strong>{result.title}</strong>
-                    <span>{result.source} - {Object.keys(result.fields).length} Felder - Trefferwert {result.score}</span>
+                    <span>{result.source} · {t("importReview.article.fields", { count: Object.keys(result.fields).length })}
+                      {" · "}{t("importReview.article.score", { score: result.score })}</span>
                     <span className={`article-detail-trace ${result.trace?.detailLoaded ? "loaded" : result.trace?.error ? "failed" : "skipped"}`}>
                       {result.trace?.detailLoaded
                         ? t("vehicles.articleSearch.detailLoaded", { fields: result.trace.detailFields, images: result.trace.detailImages })
@@ -195,52 +204,60 @@ export function ArticleSearchDialog({
                     return (
                       <section key={group.key} className="article-field-group">
                         <h3>{group.label}</h3>
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>{t("vehicles.articleSearch.apply")}</th>
-                              <th>{t("vehicles.articleSearch.field")}</th>
-                              <th>{t("vehicles.articleSearch.current")}</th>
-                              <th>{t("vehicles.articleSearch.found")}</th>
-                              <th>{t("vehicles.articleSearch.status")}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {rows.map(({ key, field }) => {
-                              const current = currentValue(key);
-                              const status = articleFieldStatus(current, field.value);
-                              const foundDisplay = key === "articleSourceUrl" ? sourceDisplayName(field.value) : field.value;
-                              const currentDisplay = key === "articleSourceUrl" && current ? sourceDisplayName(current) : current;
-                              const selectionKey = articleSelectionKey(result, key, index);
-                              const selectable = canSelectField?.(key, field.value) ?? true;
-                              return (
-                                <tr key={key} className={status === "conflict" ? "conflict" : ""}>
-                                  <td>
-                                    <input
-                                      type="checkbox"
-                                      checked={Boolean(selectedFields[selectionKey])}
-                                      disabled={!selectable}
-                                      onChange={(event) => onToggleField(result, index, key, event.target.checked)}
-                                    />
-                                  </td>
-                                  <td><strong>{articleFieldLabel(key, field.label)}</strong></td>
-                                  <td>{currentDisplay || "-"}</td>
-                                  <td>
-                                    {key === "articleSourceUrl" && field.value ? (
-                                      <a className="inline-source-link" href={field.value} target="_blank" rel="noreferrer" title={field.value}>
-                                        {foundDisplay || t("vehicles.articleSearch.source")}
-                                        <ExternalLink size={13} aria-hidden="true" />
-                                      </a>
-                                    ) : (
-                                      foundDisplay || "-"
-                                    )}
-                                  </td>
-                                  <td><span className={`article-status ${status}`}>{t(`vehicles.articleSearch.status.${status}`)}</span></td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                        <p className="article-field-scroll-hint">{t("importReview.article.scroll")}</p>
+                        <div className="article-field-table-scroll" role="region" tabIndex={0}
+                          aria-label={t("importReview.article.table", { title: result.title, group: group.label })}>
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>{t("vehicles.articleSearch.apply")}</th>
+                                <th>{t("vehicles.articleSearch.field")}</th>
+                                <th>{t("vehicles.articleSearch.current")}</th>
+                                <th>{t("vehicles.articleSearch.found")}</th>
+                                <th>{t("vehicles.articleSearch.status")}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.map(({ key, field }) => {
+                                const current = currentValue(key);
+                                const status = articleFieldStatus(current, field.value);
+                                const foundDisplay = key === "articleSourceUrl" ? sourceDisplayName(field.value) : field.value;
+                                const currentDisplay = key === "articleSourceUrl" && current ? sourceDisplayName(current) : current;
+                                const selectionKey = articleSelectionKey(result, key, index);
+                                const selectable = canSelectField?.(key, field.value) ?? true;
+                                return (
+                                  <tr key={key} className={status === "conflict" ? "conflict" : ""}>
+                                    <td>
+                                      <label className="article-field-toggle">
+                                        <input
+                                          type="checkbox"
+                                          aria-label={`${t("vehicles.articleSearch.apply")}: ${articleFieldLabel(key, field.label)}`}
+                                          checked={Boolean(selectedFields[selectionKey])}
+                                          disabled={!selectable}
+                                          onChange={(event) => onToggleField(result, index, key, event.target.checked)}
+                                        />
+                                      </label>
+                                    </td>
+                                    <td><strong>{articleFieldLabel(key, field.label)}</strong></td>
+                                    <td>{currentDisplay || "-"}</td>
+                                    <td>
+                                      {key === "articleSourceUrl" && field.value ? (
+                                        <a className="inline-source-link" href={field.value} target="_blank" rel="noreferrer" title={field.value}>
+                                          {foundDisplay || t("vehicles.articleSearch.source")}
+                                          <ExternalLink size={13} aria-hidden="true" />
+                                        </a>
+                                      ) : (
+                                        foundDisplay || "-"
+                                      )}
+                                    </td>
+                                    <td><ImportReviewStatus state={!selectable ? "excluded"
+                                      : result.conflicts?.includes(key) ? "unclear" : reviewStates[status]} /></td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </section>
                     );
                   })}

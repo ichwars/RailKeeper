@@ -4,7 +4,7 @@ description: Upload, organize, preview, download, and safely remove vehicle imag
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-06
 ---
 
 # Vehicle images and attachments
@@ -33,12 +33,16 @@ WebP. The default server limit is 10 MB per image; an operator can configure a s
 browser checks the selected extension, and the server also checks the file size and detected MIME
 type.
 
-RailKeeper uploads selected images sequentially. When the vehicle initially has no image, every
-request in a multi-file upload marks its image as main. The last successfully uploaded file is
-therefore the main image. Earlier successful files stay stored if a later file fails; remaining
-later files are not attempted in that run. Reload or reopen the vehicle before retrying. Compare
-the refreshed image list and main image, then upload only files that are still missing. Image upload
-is immediate, so it does not wait for the vehicle's **Save changes** action.
+Select at most 20 images per operation. Review the vehicle, files and maintenance link in the
+confirmation. Only **Save selected files** starts the upload. Cancelling before that stores nothing.
+Files are saved sequentially. If the image draft initially has no image, the last successfully
+saved image remains primary.
+
+Results distinguish **Saved**, **Rejected**, **Not attempted**, **Skipped** and **Response unknown**.
+After a rejection, skip that file and continue remaining files if appropriate. Acknowledged files
+are never resubmitted. For an unknown response, check the refreshed file list before selecting a
+missing file again. Concurrent image changes block the old confirmation; review the list and select
+only missing images again. Saved files remain stored when the vehicle editor is cancelled.
 
 ## Organize image metadata
 
@@ -90,10 +94,9 @@ Use **Upload attachment** to select one or more files, or drag files into **Drop
 the vehicle has been saved. The category and note selected before uploading apply to every file in
 that upload. With **Category automatically**, RailKeeper determines a category for each file.
 
-Attachment batches are sequential. A successful earlier file remains stored if a later file fails,
-and RailKeeper does not attempt later files in that run. Reload or reopen the vehicle, compare the
-stored attachment list, and upload only files that are still missing. Stored attachments show their
-original name, category, MIME type, and size.
+Attachments also require confirmation, with at most 20 files and the captured metadata. Their
+results and resume action follow the same rules as image uploads. Acknowledged files remain stored.
+Selecting files or successfully uploading images retains pending decoder-file profile and note fields.
 
 ## Attachment formats, limits, and categories
 
@@ -117,9 +120,17 @@ Automatic categorization uses this priority, with the first matching rule winnin
 7. Any other allowed file: `Sonstiges`.
 
 You can edit the category and note for each stored attachment. These changes persist only through
-that row's save action, not through the vehicle's **Save changes** action. Saving an attachment row
-reloads the vehicle and discards other unsaved media edits. Save pending image metadata first, then
-edit and save one attachment row before changing another.
+that row's save action, not through the vehicle's **Save changes** action. The refresh preserves pending
+vehicle, function, image and other attachment drafts. **Cancel** discards those pending fields and
+retains independent actions that have already been saved.
+
+## Compare concurrent changes
+
+If someone saves newer values, your draft is retained. A comparison shows your fields and the stored
+values. Explicitly choose which side to keep for conflicting fields. This includes competing primary
+images and image orders. Untouched fields are refreshed. Resolve image conflicts before **Save changes**;
+resolve attachment conflicts before that attachment's separate save. Pending fields for media removed
+elsewhere remain visible for review and can be explicitly discarded.
 
 ## Preview, open, and download attachments
 
@@ -131,10 +142,10 @@ the browser, or keep a local copy.
 
 ## Delete images and attachments
 
-Removing a stored image is immediate and has no extra confirmation. If it is the main image,
-RailKeeper promotes the next image in sorted order. A linked image must first be unlinked and saved.
-Removing an attachment opens a confirmation dialog. Confirm only after checking the original file
-name. If deletion fails, reload the record and do not assume the file or metadata was removed.
+Images and attachments are removed only after **Delete saved file?** confirmation. Review the
+vehicle and file name. A file changed in the meantime requires a new confirmation after refreshing
+the list. A linked image must first be unlinked and saved. Removing the primary image promotes the
+next image in sorted order. Confirmed deletions remain effective when the vehicle editor is cancelled.
 
 ## Roles, storage, and backup boundaries
 
@@ -158,7 +169,7 @@ editing maintenance records remain specialist boundaries that are not explained 
 | No images or attachments | Use the empty-state upload action after checking the correct vehicle. |
 | Format is not allowed | Choose one of the listed formats. The rejected file is not stored. |
 | File is empty or too large | Correct or reduce the file, taking the server limit into account. |
-| Batch upload partly fails | Earlier files remain stored. Reload the vehicle, compare the refreshed list, then upload only files that are still missing. |
+| Batch upload partly fails | Review per-file results, skip rejected files if appropriate and continue remaining files. Check unknown responses in the file list first. |
 | Image metadata does not save | Keep the editor open, read the error, and use **Save changes** again. |
 | Linked image cannot be removed | Choose **No maintenance**, save the vehicle, then remove the image. |
 | Preview is unavailable | Download the file or open it with an appropriate local program. |

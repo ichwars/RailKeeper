@@ -233,6 +233,33 @@ func TestDataTransferConfirmRouteRequiresTrueAndAppliesReadyPreview(t *testing.T
 	if count != 1 {
 		t.Fatalf("confirmed vehicle count = %d, want 1", count)
 	}
+	for _, revision := range []int{preview.Job.Revision, job.Revision} {
+		repeated := authedJSONRequest(t, router, editor, http.MethodPost,
+			"/api/v1/data-transfer/jobs/"+job.ID+"/confirm",
+			map[string]any{"confirm": true, "expectedRevision": revision}, true)
+		assertProblem(t, repeated, http.StatusConflict, "data_transfer_conflict")
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM vehicles WHERE inventory_number='RK-CONFIRM'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("repeated confirmation created %d vehicles, want 1", count)
+	}
+	var audits int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM audit_logs WHERE target_id=? AND action='data_transfer.import_applied'`, job.ID).Scan(&audits); err != nil {
+		t.Fatal(err)
+	}
+	if audits != 1 {
+		t.Fatalf("repeated confirmation changed import audit count to %d", audits)
+	}
+	status := authedJSONRequest(t, router, editor, http.MethodGet,
+		"/api/v1/data-transfer/jobs/"+job.ID, nil, false)
+	assertStatus(t, status, http.StatusOK)
+	var details application.DataTransferJobDetails
+	decodeResponse(t, status, &details)
+	if details.Job.State != application.TransferJobCompleted || details.Job.Revision != job.Revision {
+		t.Fatalf("job recovery lost completed state: %#v", details.Job)
+	}
 }
 
 func TestDataTransferImportRoutesEnforceMesseAreaScope(t *testing.T) {

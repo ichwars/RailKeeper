@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { VehicleCVValuesTable } from "./VehicleCVValuesTable";
 import { Pencil, Printer, QrCode } from "lucide-react";
 import { Vehicle } from "../../shared/api";
@@ -60,12 +61,14 @@ function VehicleViewSection({ title, fields, t }: { title: string; fields: Vehic
 
 export function VehicleReadOnlyView({
   vehicle,
+  catalog,
   onEdit,
   onPrint,
   onQr,
   onPreviewImage
 }: {
   vehicle: Vehicle;
+  catalog?: ReactNode;
   onEdit: () => void;
   onPrint: () => void;
   onQr: () => void;
@@ -115,6 +118,7 @@ export function VehicleReadOnlyView({
         </div>
       </section>
 
+      {catalog}
       <div className="vehicle-view-grid">
         <VehicleViewSection
           title={t("vehicles.product.title")}

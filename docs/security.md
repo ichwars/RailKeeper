@@ -30,7 +30,9 @@ RailKeeper is intended for local-first and small self-hosted installations. This
 - configurable allowed attachment extensions via `RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS`
 - executable attachment extension blocklist
 - server-side MIME detection for attachments
-- attachment storage path confinement to the configured data directory
+- filesystem media sources confined to the upload directory with `os.Root`, including symlink boundaries
+- active image, thumbnail, attachment and CV-file paths checked before destructive backup restore;
+  historical Windows separators are normalized only for reading, without changing stored path text
 - Windows Standalone stores persistent data outside the replaceable program directory by default
 - legacy Windows data migration uses verified manifests, SQLite-consistent snapshots, link and
   reparse-point rejection, atomic promotion, and an unchanged retained source

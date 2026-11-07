@@ -67,7 +67,7 @@ VALUES(?, ?, 'VehicleDeleted', 'vehicle', ?, ?, '{}')
 	return nil
 }
 
-func (s *VehicleService) get(ctx context.Context, id string) (*Vehicle, error) {
+func readVehicleCore(ctx context.Context, query queryRower, id string) (*Vehicle, error) {
 	var vehicle Vehicle
 	var digital int
 	var dtDecoder int
@@ -83,7 +83,7 @@ func (s *VehicleService) get(ctx context.Context, id string) (*Vehicle, error) {
 	var qrCodeEnabled int
 	var maximumSpeed sql.NullInt64
 	var setSummary VehicleSetSummary
-	if err := s.db.QueryRowContext(ctx, `
+	if err := query.QueryRowContext(ctx, `
 SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESCE(article_source_url, ''), name, gauge,
        COALESCE(epoch, ''), COALESCE(railway_company, ''), COALESCE(category, ''), COALESCE(gattung, ''),
        COALESCE(description, ''), COALESCE(series, ''), COALESCE(vehicle_number, ''),
@@ -223,11 +223,22 @@ WHERE id=?
 		setSummary.Position = vehicle.VehicleSetPosition
 		vehicle.VehicleSet = &setSummary
 	}
+	vehicle.Revision = vehicleCoreRevision(vehicle)
+	return &vehicle, nil
+}
+
+func (s *VehicleService) get(ctx context.Context, id string) (*Vehicle, error) {
+	vehicle, err := readVehicleCore(ctx, s.db, id)
+	if err != nil {
+		return nil, err
+	}
+
 	images, err := s.loadVehicleImages(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	vehicle.Images = images
+	vehicle.ImagesRevision = vehicleImagesRevision(images)
 	if vehicle.VehicleSet != nil {
 		_, _, _, mainImage, err := s.resolveSetMainImage(ctx, vehicle.VehicleSet.ID)
 		if err != nil {
@@ -266,5 +277,5 @@ WHERE id=?
 	}
 	vehicle.CVFiles = cvFiles
 
-	return &vehicle, nil
+	return vehicle, nil
 }

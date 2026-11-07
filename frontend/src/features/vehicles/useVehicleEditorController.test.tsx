@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { api } from "../../shared/api";
+import { api, type Vehicle } from "../../shared/api";
 import { vehicleFixture } from "../../test/fixtures/vehicles";
 import { emptyOptions } from "./vehicleViewModel";
 import { useVehicleEditorController } from "./useVehicleEditorController";
@@ -10,6 +10,8 @@ function renderController() {
   const onMessage = vi.fn();
   const onReset = vi.fn();
   const onDetailLoaded = vi.fn();
+  const onDetailRefreshed = vi.fn();
+  const onCoreSaved = vi.fn();
   const onFormChange = vi.fn();
   const onCollectionChanged = vi.fn();
   const hook = renderHook(() => useVehicleEditorController({
@@ -17,13 +19,24 @@ function renderController() {
     onMessage,
     onReset,
     onDetailLoaded,
+    onDetailRefreshed,
+    onCoreSaved,
     onFormChange,
     onCollectionChanged
   }));
-  return { ...hook, onMessage, onReset, onDetailLoaded, onFormChange, onCollectionChanged };
+  return { ...hook, onMessage, onReset, onDetailLoaded, onDetailRefreshed, onCoreSaved, onFormChange, onCollectionChanged };
 }
 
 describe("useVehicleEditorController", () => {
+  it("retains the stable identity of React-compatible setters", () => {
+    const { result } = renderController();
+    const setters = result.current.setters;
+    act(() => result.current.commands.update({ name: "Changed" }));
+    expect(result.current.setters.setForm).toBe(setters.setForm);
+    expect(result.current.setters.setSelected).toBe(setters.setSelected);
+    expect(result.current.setters.setModalOpen).toBe(setters.setModalOpen);
+  });
+
   it("owns the create and close lifecycle", () => {
     const { result, onMessage, onReset } = renderController();
 
@@ -35,6 +48,26 @@ describe("useVehicleEditorController", () => {
     expect(result.current.state.modalOpen).toBe(false);
     expect(onReset).toHaveBeenLastCalledWith("close");
     expect(onMessage).toHaveBeenLastCalledWith("");
+  });
+
+  it("invalidates old save scopes on close, reopening the same target and unmount", async () => {
+    const { result, unmount } = renderController(), vehicle = vehicleFixture();
+    vi.spyOn(api, "vehicle").mockResolvedValue(vehicle);
+    act(() => result.current.commands.openCreate());
+    const createScope = result.current.commands.captureScope();
+    expect(createScope()).toBe(true);
+    act(() => { result.current.setters.setSaving(true); result.current.commands.closeModal(); });
+    expect(createScope()).toBe(false); expect(result.current.state.saving).toBe(false);
+    act(() => result.current.commands.openEdit(vehicle));
+    await waitFor(() => expect(result.current.state.selected?.id).toBe(vehicle.id));
+    const firstScope = result.current.commands.captureScope();
+    const firstSession = result.current.state.sessionKey;
+    act(() => result.current.commands.openEdit(vehicle));
+    expect(firstScope()).toBe(false);
+    expect(result.current.commands.captureScope(firstSession)()).toBe(false);
+    await waitFor(() => expect(result.current.state.sessionKey).toBeGreaterThan(firstSession));
+    expect(result.current.commands.captureScope(result.current.state.sessionKey)()).toBe(true);
+    const lastScope = result.current.commands.captureScope(); unmount(); expect(lastScope()).toBe(false);
   });
 
   it("loads a vehicle into edit mode", async () => {
@@ -67,12 +100,77 @@ describe("useVehicleEditorController", () => {
     const vehicle = vehicleFixture();
     const refreshed = vehicleFixture({ name: "Refreshed" });
     vi.spyOn(api, "vehicle").mockResolvedValueOnce(vehicle).mockResolvedValueOnce(refreshed);
-    const { result, onCollectionChanged, onDetailLoaded } = renderController();
+    const { result, onCollectionChanged, onDetailRefreshed } = renderController();
     act(() => result.current.commands.openEdit(vehicle, "uploads"));
     await waitFor(() => expect(result.current.state.modalOpen).toBe(true));
     await act(() => result.current.commands.refreshSelectedVehicle());
     expect(result.current.state).toMatchObject({ selected: refreshed, mode: "edit", activeTab: "uploads" });
-    expect(onDetailLoaded).toHaveBeenLastCalledWith(refreshed);
+    expect(onDetailRefreshed).toHaveBeenLastCalledWith(refreshed, vehicle);
     expect(onCollectionChanged).toHaveBeenCalledOnce();
+  });
+
+  it("keeps typing during a side-action refresh while adopting untouched server fields", async () => {
+    const vehicle = vehicleFixture(), refreshed = vehicleFixture({ description: "Stored note" });
+    let finish: ((value: Vehicle) => void) | undefined;
+    const response = new Promise<Vehicle>(resolve => { finish = resolve; });
+    vi.spyOn(api, "vehicle").mockResolvedValueOnce(vehicle).mockReturnValueOnce(response);
+    const { result, onReset, onDetailLoaded } = renderController();
+    act(() => result.current.commands.openEdit(vehicle));
+    await waitFor(() => expect(result.current.state.modalOpen).toBe(true));
+    let pending: Promise<void> | undefined;
+    act(() => { pending = result.current.commands.refreshSelectedVehicle(vehicle.id, "media"); });
+    act(() => result.current.commands.update({ name: "Still typing" }));
+    await act(async () => { finish?.(refreshed); await pending; });
+    expect(result.current.state.form).toMatchObject({ name: "Still typing", description: "Stored note" });
+    expect(result.current.state.lastSavedAction).toBe("media");
+    expect(onDetailLoaded).toHaveBeenCalledOnce();
+    expect(onReset).not.toHaveBeenCalled();
+  });
+
+  it("retains conflicting fields across repeated refreshes until explicitly resolved", async () => {
+    const vehicle = vehicleFixture(), stored = vehicleFixture({ name: "Other editor" });
+    vi.spyOn(api, "vehicle").mockResolvedValueOnce(vehicle).mockResolvedValue(stored);
+    const { result } = renderController();
+    act(() => result.current.commands.openEdit(vehicle));
+    await waitFor(() => expect(result.current.state.modalOpen).toBe(true));
+    act(() => result.current.commands.update({ name: "My draft" }));
+    await act(() => result.current.commands.refreshSelectedVehicle());
+    await act(() => result.current.commands.refreshSelectedVehicle());
+    expect(result.current.state.refreshConflicts).toEqual([{ field: "name", local: "My draft", saved: "Other editor" }]);
+    act(() => result.current.commands.resolveRefreshConflicts("saved"));
+    expect(result.current.state.form.name).toBe("Other editor");
+    expect(result.current.state.refreshConflicts).toEqual([]);
+  });
+
+  it("ignores a response arriving after the editor was closed", async () => {
+    const vehicle = vehicleFixture();
+    let finish: ((value: Vehicle) => void) | undefined;
+    const response = new Promise<Vehicle>(resolve => { finish = resolve; });
+    vi.spyOn(api, "vehicle").mockResolvedValueOnce(vehicle).mockReturnValueOnce(response);
+    const { result, onDetailRefreshed } = renderController();
+    act(() => result.current.commands.openEdit(vehicle));
+    await waitFor(() => expect(result.current.state.modalOpen).toBe(true));
+    const pending = result.current.commands.refreshSelectedVehicle();
+    act(() => result.current.commands.closeModal());
+    await act(async () => { finish?.(vehicle); await pending; });
+    expect(result.current.state).toMatchObject({ selected: null, modalOpen: false });
+    expect(result.current.state.form.name).toBe("");
+    expect(onDetailRefreshed).not.toHaveBeenCalled();
+  });
+
+  it("acknowledges cleared core fields without dropping independent records", async () => {
+    const original = vehicleFixture({ description: "Before" });
+    vi.spyOn(api, "vehicle").mockResolvedValue(original);
+    const { result, onCoreSaved } = renderController();
+    act(() => result.current.commands.openEdit(original));
+    await waitFor(() => expect(result.current.state.modalOpen).toBe(true));
+    act(() => result.current.commands.update({ description: "" }));
+    const submitted = result.current.state.form;
+    const response = vehicleFixture({ description: undefined, cvValues: undefined, images: undefined });
+    act(() => result.current.commands.acknowledgeSavedVehicle(response, submitted, "core"));
+    expect(result.current.state.form.description).toBe("");
+    expect(result.current.state.selected?.cvValues).toEqual(original.cvValues);
+    expect(result.current.state.selected?.images).toBeUndefined();
+    expect(onCoreSaved).toHaveBeenCalledOnce();
   });
 });

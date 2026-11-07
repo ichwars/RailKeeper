@@ -195,6 +195,15 @@ func (a *App) updateVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 	attachment, err := a.vehicleService.UpdateAttachment(r.Context(), r.PathValue("id"), r.PathValue("attachmentID"), input)
 	if err != nil {
+		if errors.Is(err, application.ErrVehicleAttachmentConflict) {
+			respondProblem(w, http.StatusConflict, "attachment_conflict", "Attachment data changed. Compare the current attachment before saving the retained draft.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "attachment_invalid", "Invalid attachment metadata or expected revision.")
+			return
+		}
+
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "attachment_not_found", "Attachment not found.")
 			return
@@ -207,8 +216,21 @@ func (a *App) updateVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) deleteVehicleAttachment(w http.ResponseWriter, r *http.Request) {
-	attachment, err := a.vehicleService.DeleteAttachment(r.Context(), r.PathValue("id"), r.PathValue("attachmentID"))
+	var expected []string
+	if r.URL.Query().Has("expectedRevision") {
+		expected = []string{r.URL.Query().Get("expectedRevision")}
+	}
+	attachment, err := a.vehicleService.DeleteAttachment(r.Context(), r.PathValue("id"), r.PathValue("attachmentID"), expected...)
 	if err != nil {
+		if errors.Is(err, application.ErrVehicleAttachmentConflict) {
+			respondProblem(w, http.StatusConflict, "attachment_conflict", "Media changed. Compare the current record before confirming deletion again.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "attachment_invalid", "Invalid expected revision.")
+			return
+		}
+
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "attachment_not_found", "Attachment not found.")
 			return
@@ -217,9 +239,7 @@ func (a *App) deleteVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusInternalServerError, "attachment_delete_failed", "Beilage konnte nicht gelöscht werden.")
 		return
 	}
-	if fullPath, err := confinedDataPath(a.dataDir, attachment.StoragePath); err == nil {
-		_ = os.Remove(fullPath)
-	}
+	a.removeVehicleMediaFileIfUnreferenced(r.Context(), attachment.StoragePath)
 	a.deleteFileBlobIfUnreferenced(r.Context(), attachment.BlobID)
 	w.WriteHeader(http.StatusNoContent)
 }

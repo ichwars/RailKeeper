@@ -5,6 +5,7 @@ import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { useDecoderLibrary } from "../../shared/DecoderLibraryProvider";
 import type { ECoSDecoderProfileEvidence } from "../../shared/api";
+import { decoderProfileLabel } from "./decoderProfileLabel";
 
 export function useDecoderProfile(values: DecoderCV[], decoderType = "", ecosProfile?: ECoSDecoderProfileEvidence) {
   const library = useDecoderLibrary();
@@ -23,7 +24,7 @@ export function DecoderProfileSelect({ profiles, profile, setProfile }: {
   return <label className="decoder-profile-select">{t("vehicle.field.decoderProfile")}
     <AppSelect value={profile} onChange={(event) => setProfile(event.target.value)}>
       {!profiles.length && <option value="">{t("vehicles.cv.noProfile")}</option>}
-      {profiles.map((value) => <option key={value} value={value}>{value || t("vehicles.cv.noProfile")}</option>)}
+      {profiles.map((value) => <option key={value} value={value}>{decoderProfileLabel(value, t("vehicles.cv.noProfile"))}</option>)}
     </AppSelect>
   </label>;
 }

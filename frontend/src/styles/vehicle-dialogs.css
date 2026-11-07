@@ -1,4 +1,35 @@
 /* Vehicle article search, barcode, QR and report dialog styles. */
+.confirm-layer.vehicle-media-action-layer { z-index: 180; }
+.vehicle-media-action-dialog {
+  display: flex;
+  flex-direction: column;
+  inline-size: min(42rem, calc(100vw - 2 * var(--space-md)));
+  max-block-size: calc(100dvh - 2 * var(--space-md));
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  color: var(--text);
+  gap: var(--space-md);
+}
+.vehicle-media-action-dialog .form-head { margin: 0; min-inline-size: 0; gap: var(--space-sm); }
+.vehicle-media-action-dialog h2 { white-space: normal; overflow-wrap: anywhere; }
+.vehicle-media-action-content { min-block-size: 0; overflow: auto; overflow-wrap: anywhere; }
+.vehicle-media-action-content:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.vehicle-media-action-content p { margin-block: 0 var(--space-sm); line-height: var(--line-height-copy); }
+.vehicle-media-action-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-sm); }
+.vehicle-media-action-buttons button { white-space: normal; }
+.vehicle-media-action-buttons .primary-button { background: var(--accent-strong); color: var(--panel); }
+.vehicle-media-upload-items { padding: 0; margin: 0; list-style: none; }
+.vehicle-media-upload-items li { padding-block: var(--space-sm); border-block-start: 1px solid var(--line); }
+.vehicle-media-upload-items li > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-sm); }
+.vehicle-media-upload-items li > div span { color: var(--muted); }
+.vehicle-media-action-warning { padding: var(--space-sm); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.form-message.is-status { color: var(--accent-strong); }
+@media (max-width: 860px) {
+  .vehicle-media-action-dialog button { min-block-size: 44px; min-inline-size: 44px; }
+  .vehicle-media-action-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 .article-search-box,
 .upload-head {
   display: flex;

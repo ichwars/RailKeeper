@@ -27,8 +27,8 @@ INSERT INTO plan_free_objects(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 24 || len(backup.Tables["plan_free_objects"]) != 1 {
-		t.Fatalf("expected version 24 free-object export, got version=%d rows=%d",
+	if backup.Version != 27 || len(backup.Tables["plan_free_objects"]) != 1 {
+		t.Fatalf("expected version 27 free-object export, got version=%d rows=%d",
 			backup.Version, len(backup.Tables["plan_free_objects"]))
 	}
 	if _, err := db.ExecContext(ctx, `DELETE FROM plan_free_objects`); err != nil {
@@ -49,7 +49,7 @@ SELECT shape_json, version FROM plan_free_objects WHERE id='free-label'`).
 	}
 
 	legacy := *backup
-	legacy.Version = 12
+	setLegacyBackupVersion(&legacy, 12)
 	legacy.Tables = make(map[string][]map[string]any, len(backup.Tables)-1)
 	for table, rows := range backup.Tables {
 		if table != "plan_free_objects" {

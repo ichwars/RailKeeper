@@ -8,7 +8,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"os"
 	"time"
 
 	"railkeeper/backend/internal/application"
@@ -37,6 +36,8 @@ func (a *App) createVehicleCVValue(w http.ResponseWriter, r *http.Request) {
 	value, err := a.vehicleService.CreateCVValue(r.Context(), r.PathValue("id"), input)
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleCVConflict):
+			respondProblem(w, http.StatusConflict, "cv_value_conflict", "CV data changed or the target identity already exists.")
 		case errors.Is(err, application.ErrVehicleValidation):
 			respondProblem(w, http.StatusBadRequest, "cv_value_invalid", "CV-Nummer muss 1-1024 und Wert 0-255 sein.")
 		case errors.Is(err, application.ErrVehicleNotFound):
@@ -56,9 +57,19 @@ func (a *App) updateVehicleCVValue(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
 		return
 	}
+	if r.URL.Query().Has("workspaceId") || r.URL.Query().Has("expectedWorkspaceRevision") || r.URL.Query().Has("expectedRevision") {
+		source, valid := cvDeletionComparison(r)
+		if !valid || source.WorkspaceID == "" || source.ExpectedRevision == nil || input.ExpectedRevision == nil || *source.ExpectedRevision != *input.ExpectedRevision {
+			respondProblem(w, http.StatusBadRequest, "cv_value_invalid", "Invalid original working-group comparison.")
+			return
+		}
+		input.SourceWorkspaceID, input.ExpectedSourceWorkspaceRevision = source.WorkspaceID, source.ExpectedWorkspaceRevision
+	}
 	value, err := a.vehicleService.UpdateCVValue(r.Context(), r.PathValue("id"), r.PathValue("cvValueID"), input)
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleCVConflict):
+			respondProblem(w, http.StatusConflict, "cv_value_conflict", "CV data changed or the target identity already exists.")
 		case errors.Is(err, application.ErrVehicleValidation):
 			respondProblem(w, http.StatusBadRequest, "cv_value_invalid", "CV-Nummer muss 1-1024 und Wert 0-255 sein.")
 		case errors.Is(err, application.ErrVehicleNotFound):
@@ -73,7 +84,20 @@ func (a *App) updateVehicleCVValue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) deleteVehicleCVValue(w http.ResponseWriter, r *http.Request) {
-	if _, err := a.vehicleService.DeleteCVValue(r.Context(), r.PathValue("id"), r.PathValue("cvValueID")); err != nil {
+	input, valid := cvDeletionComparison(r)
+	if !valid {
+		respondProblem(w, http.StatusBadRequest, "cv_value_invalid", "Invalid CV deletion comparison.")
+		return
+	}
+	if _, err := a.vehicleService.DeleteCVValueCompared(r.Context(), r.PathValue("id"), r.PathValue("cvValueID"), input); err != nil {
+		if errors.Is(err, application.ErrVehicleCVConflict) {
+			respondProblem(w, http.StatusConflict, "cv_value_conflict", "CV data changed. The CV was not deleted.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "cv_value_invalid", "Invalid expected revision.")
+			return
+		}
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "cv_value_not_found", "CV value not found.")
 			return
@@ -146,7 +170,7 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 	}
 	data, err := io.ReadAll(io.LimitReader(file, a.maxAttachmentBytes+1))
 	if err != nil || int64(len(data)) > a.maxAttachmentBytes {
-		respondProblem(w, http.StatusBadRequest, "cv_file_too_large", "Die Datei ist zu gro?.")
+		respondProblem(w, http.StatusBadRequest, "cv_file_too_large", "Die Datei ist zu groß.")
 		return
 	}
 	if len(data) == 0 {
@@ -167,17 +191,31 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decoderProfile, description := applyESUXMetadata(originalName, data, r.FormValue("decoderProfile"), r.FormValue("description"))
+	workspaceID := r.FormValue("workspaceId")
+	if workspaceID != "" {
+		decoderProfile = r.FormValue("decoderProfile")
+	}
 	cvFile, err := a.vehicleService.CreateCVFile(r.Context(), vehicleID, application.VehicleCVFileInput{
-		FileName:       storageName,
-		OriginalName:   originalName,
-		Description:    description,
-		DecoderProfile: decoderProfile,
-		MimeType:       mimeType,
-		SizeBytes:      int64(len(data)),
-		BlobID:         blobID,
+		WorkspaceID:               workspaceID,
+		ExpectedWorkspaceRevision: r.FormValue("expectedWorkspaceRevision"),
+		FileName:                  storageName,
+		OriginalName:              originalName,
+		Description:               description,
+		DecoderProfile:            decoderProfile,
+		MimeType:                  mimeType,
+		SizeBytes:                 int64(len(data)),
+		BlobID:                    blobID,
 	})
 	if err != nil {
 		a.deleteFileBlobIfUnreferenced(r.Context(), blobID)
+		if errors.Is(err, application.ErrVehicleCVConflict) {
+			respondProblem(w, http.StatusConflict, "cv_file_conflict", "The working group changed. Reload it before confirming the upload again.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "cv_file_profile_invalid", "The working group or profile does not belong to this vehicle.")
+			return
+		}
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
 			return
@@ -190,8 +228,22 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) deleteVehicleCVFile(w http.ResponseWriter, r *http.Request) {
-	file, err := a.vehicleService.DeleteCVFile(r.Context(), r.PathValue("id"), r.PathValue("cvFileID"))
+	input, valid := cvDeletionComparison(r)
+	if !valid {
+		respondProblem(w, http.StatusBadRequest, "cv_file_invalid", "Invalid CV file deletion comparison.")
+		return
+	}
+	file, err := a.vehicleService.DeleteCVFileCompared(r.Context(), r.PathValue("id"), r.PathValue("cvFileID"), input)
 	if err != nil {
+		if errors.Is(err, application.ErrVehicleCVFileConflict) {
+			respondProblem(w, http.StatusConflict, "cv_file_conflict", "The CV file or its source references changed. Review before confirming deletion again.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "cv_file_invalid", "Invalid expected revision.")
+			return
+		}
+
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "cv_file_not_found", "CV file not found.")
 			return
@@ -200,9 +252,7 @@ func (a *App) deleteVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusInternalServerError, "cv_file_delete_failed", "CV-Datei konnte nicht gelöscht werden.")
 		return
 	}
-	if fullPath, err := confinedDataPath(a.dataDir, file.StoragePath); err == nil {
-		_ = os.Remove(fullPath)
-	}
+	a.removeVehicleMediaFileIfUnreferenced(r.Context(), file.StoragePath)
 	a.deleteFileBlobIfUnreferenced(r.Context(), file.BlobID)
 	w.WriteHeader(http.StatusNoContent)
 }

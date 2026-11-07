@@ -48,20 +48,59 @@ function renderController(readOnly = false) {
   };
   const updateForm = vi.fn();
   const addImages = vi.fn();
-  const hook = renderHook(() => useAccessoryArticleSearchController({
-    form,
-    readOnly,
+  const hook = renderHook(({ form, readOnly, targetKey }) => useAccessoryArticleSearchController({
+    form, readOnly, targetKey,
     pendingImageCount: 0,
     manufacturers: entries("manufacturer", "tillig", "Tillig"),
     gauges: entries("gauge", "tt", "TT"),
     updateForm,
     addImages
-  }));
-  return { ...hook, updateForm, addImages };
+  }), { initialProps: { form, readOnly, targetKey: "first" } });
+  return { ...hook, form, updateForm, addImages };
 }
 
 describe("useAccessoryArticleSearchController", () => {
   beforeEach(() => window.localStorage.clear());
+
+  it("ignores a pending result after switching the article or entering read-only mode", async () => {
+    let complete!: (value: { query: string; results: ArticleSearchResult[] }) => void;
+    const request = vi.spyOn(api, "articleSearch").mockReturnValue(new Promise(resolve => { complete = resolve; }));
+    const { result, form, rerender, updateForm } = renderController();
+    const old = result.current.commands;
+    act(() => old.run()); rerender({ form, readOnly: true, targetKey: "other" });
+    act(() => old.run()); expect(request).toHaveBeenCalledOnce();
+    await act(async () => { complete({ query: "old", results: [searchResult] }); });
+    expect(result.current.state).toMatchObject({ open: false, response: null, loading: false });
+    act(() => old.applyResult(searchResult)); expect(updateForm).not.toHaveBeenCalled();
+  });
+
+  it("keeps changed target fields and selected images untouched until the field is selected again", async () => {
+    vi.spyOn(api, "articleSearch").mockResolvedValue({ query: "source", results: [searchResult] });
+    const { result, form, rerender, updateForm, addImages } = renderController();
+    act(() => result.current.commands.run()); await waitFor(() => expect(result.current.state.loading).toBe(false));
+    act(() => { result.current.commands.toggleField(searchResult, 0, "name", true);
+      result.current.commands.toggleImage(searchResult, 0, searchResult.images![0], true); });
+    const old = result.current.commands;
+    rerender({ form: { ...form, name: "Own newer name" }, readOnly: false, targetKey: "first" });
+    act(() => old.applyResult(searchResult));
+    expect(updateForm).not.toHaveBeenCalled(); expect(addImages).not.toHaveBeenCalled();
+    expect(result.current.state.error).toContain("abgewählt");
+    expect(result.current.state.selectedFields[articleSelectionKey(searchResult, "name", 0)]).toBe(false);
+    act(() => result.current.commands.toggleField(searchResult, 0, "name", true));
+    act(() => result.current.commands.applyResult(searchResult));
+    expect(updateForm).toHaveBeenCalledExactlyOnceWith({ name: "Gerades Gleis" });
+    expect(addImages).toHaveBeenCalledOnce();
+  });
+
+  it("uses the exact suggestion for repeated URLs and rejects duplicate confirmation", async () => {
+    const second = { ...searchResult, title: "Other variant", fields: { name: { label: "Name", value: "Other variant", confidence: 1 } } };
+    vi.spyOn(api, "articleSearch").mockResolvedValue({ query: "source", results: [searchResult, second] });
+    const { result, updateForm } = renderController();
+    act(() => result.current.commands.run()); await waitFor(() => expect(result.current.state.loading).toBe(false));
+    act(() => result.current.commands.toggleField(second, 1, "name", true));
+    act(() => { result.current.commands.applyResult(second); result.current.commands.applyResult(second); });
+    expect(updateForm).toHaveBeenCalledExactlyOnceWith({ name: "Other variant" });
+  });
 
   it("preselects only usable empty accessory fields and applies selected images", async () => {
     vi.spyOn(api, "articleSearch").mockResolvedValue({ query: "Tillig 83101 TT", results: [searchResult] });
