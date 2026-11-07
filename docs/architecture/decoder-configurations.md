@@ -98,3 +98,21 @@ origin `manual` and no inferred hardware. Empty groups remain available for deli
 Ordinary writes do not create hidden full snapshots. Existing immutable evidence remains unchanged;
 recording a checkpoint and confirming an installation are separate commands. Restoring an existing
 workspace preserves its metadata and snapshots; older backups still receive legacy adoption.
+
+## Explicit hardware commands
+
+The application layer provides a consistent read context and explicit physical-instance,
+installation, removal and date-correction commands. HTTP and UI exposure follow separately.
+Matching model names never merge instances. A second decoder in one vehicle is allowed; one
+physical decoder cannot have two active installations. Removal keeps the installation episode,
+its vehicle identity and prior notes. A later installation creates a new episode.
+
+Unknown dates remain nullable even when recording or removing an installation today. Date
+corrections validate real calendar dates and chronological order without modifying earlier
+snapshot hardware descriptions. Existing imported instance identities remain editable; new
+instances and installation episodes require distinct client-generated identities.
+
+Commands compare a current context revision inside their transaction. That revision includes
+physical-instance and installation records plus exact working CVs, histories and source-file
+metadata, including changes made without advancing a timestamp. Failed comparisons and duplicate
+create confirmations make no changes. Hardware changes and their audit record commit together.
