@@ -15,7 +15,7 @@ func portableBackupMediaPath(value string) (string, error) {
 }
 
 func validateBackupMediaPaths(table string, rows []map[string]any) []string {
-	paths := map[string]string{}
+	var paths map[string]string
 	switch table {
 	case "vehicle_images":
 		paths = map[string]string{"storage_path": "blob_id", "thumbnail_path": "thumbnail_blob_id"}
