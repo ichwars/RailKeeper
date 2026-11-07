@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../shared/api";
 import type { BugReportCapability } from "../shared/apiBugReports";
 import { Shell } from "./Shell";
+import { defaultSidebarOrder, sidebarOrderChangedEvent, sidebarPrefsKey } from "./sidebarPreferences";
 
 const disabledBugReporting: BugReportCapability = {
   enabled: false,
@@ -36,6 +37,48 @@ describe("Shell article navigation", () => {
       message: "current"
     });
     vi.spyOn(api, "bugReportConfig").mockResolvedValue(disabledBugReporting);
+  });
+
+  it("keeps specialist tools accessible and retains open inputs across preference changes", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(sidebarPrefsKey("admin"), JSON.stringify({
+      order: defaultSidebarOrder, hidden: ["exhibition", "importExport", "digitalCenters"]
+    }));
+    render(<Shell username="admin" roles={["Admin"]} activeView="vehicles" onLogout={vi.fn()}><input aria-label="Entwurf" defaultValue="Ungespeichert" /></Shell>);
+    const more = screen.getByText("Weitere Funktionen");
+    await user.click(more);
+    expect(screen.getByRole("link", { name: "Digitalzentralen" })).toHaveAttribute("href", "/digital-centers");
+    window.localStorage.setItem(sidebarPrefsKey("admin"), JSON.stringify({ order: defaultSidebarOrder, hidden: [] }));
+    window.dispatchEvent(new Event(sidebarOrderChangedEvent));
+    await waitFor(() => expect(screen.queryByText("Weitere Funktionen")).not.toBeInTheDocument());
+    expect(screen.getByRole("textbox", { name: "Entwurf" })).toHaveValue("Ungespeichert");
+  });
+
+  it("closes the menu when its settings footer navigates inside the application", async () => {
+    const user = userEvent.setup();
+    const navigate = vi.fn();
+    const view = render(<Shell username="admin" roles={["Admin"]} activeView="overview"
+      onLogout={vi.fn()} onNavigate={navigate}><p>Inhalt</p></Shell>);
+    await user.click(screen.getByRole("button", { name: "Menü öffnen" }));
+    expect(view.container.querySelector(".layout")).toHaveClass("nav-open");
+    const settings = view.container.querySelector<HTMLAnchorElement>('.sidebar-footer-actions a[href="/settings"]');
+    if (!settings) throw new Error("settings link missing");
+    await user.click(settings);
+    expect(navigate).toHaveBeenCalledWith("settings");
+    expect(view.container.querySelector(".layout")).not.toHaveClass("nav-open");
+  });
+
+  it("starts explicit sidebar destinations at the top and focuses their main content", async () => {
+    const user = userEvent.setup(), navigate = vi.fn();
+    render(<Shell username="admin" roles={["Admin"]} activeView="vehicles"
+      onLogout={vi.fn()} onNavigate={navigate}><p>Inhalt</p></Shell>);
+    const main = screen.getByRole("main");
+    main.scrollTop = 300; main.scrollLeft = 100;
+    await user.click(screen.getByRole("link", { name: "Einstellungen" }));
+    expect(navigate).toHaveBeenCalledWith("settings");
+    expect(main.scrollTop).toBe(0);
+    expect(main.scrollLeft).toBe(0);
+    expect(main).toHaveFocus();
   });
 
   it("uses the approved vehicle and accessory navigation labels", async () => {

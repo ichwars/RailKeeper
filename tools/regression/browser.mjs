@@ -107,7 +107,8 @@ try {
         await page.screenshot({ path: `${input.output}/${language}-${theme}-${width}.png` });
         checks.push(`${language}:${theme}:${width}`);
         await assertResponsiveWorkspaces(page, {
-          base: input.base, width, de, screenshotPrefix: `${input.output}/${language}-${theme}-${width}`
+          base: input.base, username: input.credentials.username, width, de,
+          screenshotPrefix: `${input.output}/${language}-${theme}-${width}`
         });
         checks.push(`${language}:${theme}:${width}:filters-settings-and-uploads`);
       }

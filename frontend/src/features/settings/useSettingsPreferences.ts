@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AppView } from "../../app/App";
 import { availableStartView } from "../../app/navigationAvailability";
-import { api, type SystemPrinters } from "../../shared/api";
+import { applySidebarProfile, type SidebarProfile } from "../../app/sidebarPreferences";
+import { captureSidebarRead, saveSidebarPreference, sidebarSaveChangedEvent, sidebarSaveState } from "../../app/sidebarSaving";
+import { api, captureSessionGuard, type SystemPrinters } from "../../shared/api";
 import {
   applyStoredThemeOptions, applyThemePreference, readThemePreference, themePreferenceKey,
   type ThemePreference
@@ -13,6 +15,10 @@ import {
 } from "./settingsModel";
 
 export function useSettingsPreferences(username: string) {
+  const sidebarRevision = useRef(0);
+  const sidebarOwner = useRef(0);
+  const [sidebarSaveFailed, setSidebarSaveFailed] = useState(false);
+  const [sidebarSaving, setSidebarSaving] = useState(false);
   const [articleSearchEnabled, setArticleSearchEnabled] = useState(
     () => window.localStorage.getItem(articleSearchSettingKey) !== "false"
   );
@@ -36,13 +42,28 @@ export function useSettingsPreferences(username: string) {
   const [systemPrinters, setSystemPrinters] = useState<SystemPrinters | null>(null);
 
   useEffect(() => {
+    sidebarRevision.current += 1;
+    sidebarOwner.current += 1;
     const prefs = readSidebarPrefs(username);
     setSidebarOrder(prefs.order);
     setSidebarHidden(prefs.hidden);
   }, [username]);
 
   useEffect(() => {
+    const sync = () => {
+      const state = sidebarSaveState(username);
+      setSidebarSaving(state === "saving");
+      setSidebarSaveFailed(state === "failed");
+    };
+    sync();
+    window.addEventListener(sidebarSaveChangedEvent, sync);
+    return () => window.removeEventListener(sidebarSaveChangedEvent, sync);
+  }, [username]);
+
+  useEffect(() => {
     let cancelled = false;
+    const requestedSidebarRevision = sidebarRevision.current;
+    const sidebarReadCurrent = captureSidebarRead(username);
     api
       .profileSettings()
       .then(({ settings }) => {
@@ -85,7 +106,7 @@ export function useSettingsPreferences(username: string) {
           }
         }
         const sidebarValue = settings[sidebarPrefsKey(username)];
-        if (sidebarValue) {
+        if (sidebarValue && sidebarRevision.current === requestedSidebarRevision && sidebarReadCurrent()) {
           try {
             const prefs = JSON.parse(sidebarValue) as { order?: AppView[]; hidden?: AppView[] };
             const normalized = normalizeSidebarPrefs(prefs);
@@ -124,11 +145,16 @@ export function useSettingsPreferences(username: string) {
   };
 
   const saveSidebarPrefs = (nextOrder: AppView[], nextHidden: AppView[]) => {
+    sidebarRevision.current += 1;
     setSidebarOrder(nextOrder);
     setSidebarHidden(nextHidden);
     const value = JSON.stringify({ order: nextOrder, hidden: nextHidden });
     window.localStorage.setItem(sidebarPrefsKey(username), value);
-    saveProfileSetting(sidebarPrefsKey(username), value);
+    const key = sidebarPrefsKey(username);
+    const owner = sidebarOwner.current;
+    const isCurrentSession = captureSessionGuard();
+    void saveSidebarPreference(username, () => sidebarOwner.current === owner && isCurrentSession(),
+      () => api.updateProfileSettings({ [key]: value }));
     window.dispatchEvent(new Event(sidebarOrderChangedEvent));
   };
 
@@ -147,6 +173,11 @@ export function useSettingsPreferences(username: string) {
 
   const resetSidebarOrder = () => {
     saveSidebarPrefs(defaultSidebarOrder, []);
+  };
+
+  const selectSidebarProfile = (profile: SidebarProfile) => {
+    const next = applySidebarProfile({ order: sidebarOrder, hidden: sidebarHidden }, profile);
+    saveSidebarPrefs(next.order, next.hidden);
   };
 
   const toggleSidebarVisibility = (view: AppView) => {
@@ -210,6 +241,8 @@ export function useSettingsPreferences(username: string) {
     sidebarOrder,
     setSidebarOrder,
     sidebarHidden,
+    sidebarSaveFailed,
+    sidebarSaving,
     setSidebarHidden,
     dateFormat,
     setDateFormat,
@@ -240,6 +273,7 @@ export function useSettingsPreferences(username: string) {
     saveSidebarOrder,
     moveSidebarItem,
     resetSidebarOrder,
+    selectSidebarProfile,
     toggleSidebarVisibility,
     updateArticleSearchEnabled,
     updateArticleSearchSource,

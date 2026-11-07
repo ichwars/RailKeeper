@@ -796,6 +796,12 @@ export type ExhibitionStatusInput = {
 
 let csrfToken = "";
 
+// Keep queued work bound to the session that created it, across view unmounts.
+export function captureSessionGuard() {
+  const owner = csrfToken;
+  return () => csrfToken === owner;
+}
+
 export class ApiError extends Error {
   code: string;
   status: number;

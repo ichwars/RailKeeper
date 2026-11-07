@@ -29,6 +29,7 @@
 @import "../styles/overrides-responsive.css";
 @import "../styles/vehicle-inventory-responsive.css";
 @import "../styles/vehicle-inventory-filters.css";
+@import "../styles/sidebar-profiles.css";
 
 @import "../styles/vehicle-decoder.css";
 @import "../styles/decoder-configurations.css";

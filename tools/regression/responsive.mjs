@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
+import { assertPersonalViews } from "./personal-views.mjs";
 
 // Exercise real controls: invisible native switch inputs must stay inside the scrollable table,
 // and the visible maintenance selector must never cover the image-upload action.
-export async function assertResponsiveWorkspaces(page, { base, width, de, screenshotPrefix }) {
+export async function assertResponsiveWorkspaces(page, { base, username, width, de, screenshotPrefix }) {
   await assertInventoryFilters(page, { width, de, screenshotPrefix });
   await page.goto(base + "/settings", { waitUntil: "domcontentloaded" });
   await page.locator(".settings-dashboard-grid").waitFor();
+  await assertPersonalViews(page, { base, username, width, de, screenshotPrefix });
   await page.evaluate(() => document.fonts.ready);
   await assertViewportFits(page, "general settings");
   const toggle = page.locator('.settings-inline-table input[type="checkbox"]').first();

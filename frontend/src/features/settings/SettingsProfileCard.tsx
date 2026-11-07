@@ -1,7 +1,8 @@
 import { useI18n } from "../../shared/i18n";
 import type { Language } from "../../shared/i18n";
-import { Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
+import { Check, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
 import { availableStartView } from "../../app/navigationAvailability";
+import { sidebarProfile } from "../../app/sidebarPreferences";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { localSettingKeys } from "./settingsModel";
 import type { SettingsPreferencesController } from "./useSettingsPreferences";
@@ -13,6 +14,8 @@ export function SettingsProfileCard({ preferences }: { preferences: SettingsPref
     setDefaultView,
     sidebarOrder,
     sidebarHidden,
+    sidebarSaveFailed,
+    sidebarSaving,
     dateFormat,
     setDateFormat,
     timeFormat,
@@ -23,6 +26,7 @@ export function SettingsProfileCard({ preferences }: { preferences: SettingsPref
     setLocalSetting,
     moveSidebarItem,
     resetSidebarOrder,
+    selectSidebarProfile,
     toggleSidebarVisibility
   } = preferences;
 
@@ -85,10 +89,31 @@ export function SettingsProfileCard({ preferences }: { preferences: SettingsPref
         </label>
       </div>
       <section className="sidebar-order-box" aria-label={t("settings.sidebarOrder.title")}>
+        <div className="sidebar-profile-choices" role="group" aria-label={t("settings.sidebarProfile.title")}>
+          <h3>{t("settings.sidebarProfile.title")}</h3>
+          <p>{t("settings.sidebarProfile.help")}</p>
+          <div>
+            {(["collection", "all"] as const).map((profile) => <button key={profile} type="button"
+              className="secondary-button compact-action"
+              aria-pressed={sidebarProfile({ order: sidebarOrder, hidden: sidebarHidden }) === profile}
+              onClick={() => selectSidebarProfile(profile)}>
+              {sidebarProfile({ order: sidebarOrder, hidden: sidebarHidden }) === profile && <Check size={16} aria-hidden="true" />}
+              {t(`settings.sidebarProfile.${profile}`)}
+            </button>)}
+          </div>
+        </div>
         <div>
           <h3>{t("settings.sidebarOrder.title")}</h3>
           <p>{t("settings.sidebarOrder.subtitle")}</p>
         </div>
+        {sidebarSaving && <p role="status">{t("settings.sidebarProfile.saving")}</p>}
+        {sidebarSaveFailed && <div role="alert">
+          <p>{t("settings.sidebarProfile.saveFailed")}</p>
+          <button type="button" className="secondary-button compact-action"
+            onClick={() => preferences.saveSidebarPrefs(sidebarOrder, sidebarHidden)}>
+            {t("settings.sidebarProfile.retry")}
+          </button>
+        </div>}
         <div className="sidebar-order-list">
           {sidebarOrder.map((view, index) => (
             <div key={view} className={sidebarHidden.includes(view) ? "muted-row" : ""}>
