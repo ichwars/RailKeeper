@@ -2966,6 +2966,151 @@ components:
           minItems: 1
           maxItems: 500
           items: {$ref: '#/components/schemas/VehicleCVChange'}
+    DecoderInstance:
+      type: object
+      required: [id, label, manufacturer, model, serialNumber, notes, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        label: {type: string}
+        manufacturer: {type: string}
+        model: {type: string}
+        serialNumber: {type: string}
+        notes: {type: string}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    DecoderInstallation:
+      type: object
+      required: [id, decoderId, vehicleId, vehicleReferenceId, vehicleName, vehicleInventoryNumber, state, installedAt, removedAt, notes, recordedAt, updatedAt]
+      properties:
+        id: {type: string}
+        decoderId: {type: string}
+        vehicleId: {type: [string, 'null']}
+        vehicleReferenceId: {type: string}
+        vehicleName: {type: string}
+        vehicleInventoryNumber: {type: string}
+        state: {type: string, enum: [installed, removed, unresolved]}
+        installedAt: {type: [string, 'null'], format: date}
+        removedAt: {type: [string, 'null'], format: date}
+        notes: {type: string}
+        recordedAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    DecoderCVWorkspace:
+      type: object
+      required: [id, vehicleId, profile, origin, installationId, createdAt, updatedAt, valueCount, sourceCount, contentRevision]
+      properties:
+        id: {type: string}
+        vehicleId: {type: string}
+        profile: {type: string, description: Exact stored working label. Legacy whitespace is preserved.}
+        origin: {type: string, enum: [legacy, manual]}
+        installationId: {type: [string, 'null']}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+        valueCount: {type: integer, minimum: 0}
+        sourceCount: {type: integer, minimum: 0}
+        contentRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
+    DecoderCVSnapshotSummary:
+      type: object
+      required: [id, workspaceId, vehicleReferenceId, vehicleName, vehicleInventoryNumber, profile, installationId, kind, scope, note, recordedAt, valueCount]
+      properties:
+        id: {type: string}
+        workspaceId: {type: string}
+        vehicleReferenceId: {type: string}
+        vehicleName: {type: string}
+        vehicleInventoryNumber: {type: string}
+        profile: {type: string}
+        installationId: {type: [string, 'null']}
+        kind: {type: string, enum: [legacy, manual, file_import, station_import, checkpoint]}
+        scope: {type: string, enum: [partial_working_state]}
+        note: {type: string}
+        recordedAt: {type: string, format: date-time}
+        valueCount: {type: integer, minimum: 0}
+    DecoderConfigurationContext:
+      type: object
+      required: [vehicleId, vehicleName, inventoryNumber, instances, installations, workspaces, snapshots, revision]
+      properties:
+        vehicleId: {type: string}
+        vehicleName: {type: string}
+        inventoryNumber: {type: string}
+        instances:
+          type: array
+          description: Known physical decoder inventory, including available instances and instances installed in other vehicles.
+          items: {$ref: '#/components/schemas/DecoderInstance'}
+        installations:
+          type: array
+          description: Installation episodes across the inventory. Use vehicleId and state to identify the current vehicle's active installations.
+          items: {$ref: '#/components/schemas/DecoderInstallation'}
+        workspaces:
+          type: array
+          items: {$ref: '#/components/schemas/DecoderCVWorkspace'}
+        snapshots:
+          type: array
+          items: {$ref: '#/components/schemas/DecoderCVSnapshotSummary'}
+        revision: {type: string, pattern: '^[0-9a-f]{64}$'}
+    DecoderRecordedCVValue:
+      type: object
+      description: Historical evidence, including original raw profiles and unknown integer values. These fields are not validated programming commands. Missing index pages differ from page 0/0.
+      required: [id, vehicleId, cvNumber, value, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        vehicleId: {type: string}
+        cvNumber: {type: integer}
+        value: {type: integer}
+        indexCV31: {type: [integer, 'null']}
+        indexCV32: {type: [integer, 'null']}
+        decoderProfile: {type: string}
+        description: {type: string}
+        category: {type: string}
+        protocol: {type: string}
+        sourceFileId: {type: string}
+        sourceLine: {type: [integer, 'null']}
+        sourceExportedAt: {type: string}
+        createdAt: {type: string}
+        updatedAt: {type: string}
+        revision: {type: string, readOnly: true}
+        history:
+          type: array
+          items: {$ref: '#/components/schemas/VehicleCVValueHistory'}
+    DecoderCVSnapshotPayload:
+      type: object
+      required: [values]
+      properties:
+        values:
+          type: array
+          items: {$ref: '#/components/schemas/DecoderRecordedCVValue'}
+    DecoderSnapshotHardware:
+      type: object
+      required: [decoderId, decoderLabel, manufacturer, model, serialNumber, installationId, installationState, installedAt, removedAt]
+      properties:
+        decoderId: {type: string}
+        decoderLabel: {type: string}
+        manufacturer: {type: string}
+        model: {type: string}
+        serialNumber: {type: string}
+        installationId: {type: string}
+        installationState: {type: string, enum: [installed, removed, unresolved]}
+        installedAt: {type: [string, 'null'], format: date}
+        removedAt: {type: [string, 'null'], format: date}
+    DecoderCVSnapshotSource:
+      type: object
+      required: [sourceFileId, metadata, contentState]
+      properties:
+        sourceFileId: {type: string}
+        metadata: {$ref: '#/components/schemas/VehicleCVFile'}
+        contentState: {type: string, enum: [stored, unavailable]}
+    DecoderCVSnapshot:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/DecoderCVSnapshotSummary'
+      required: [payload, hardware, sources]
+      properties:
+        payload: {$ref: '#/components/schemas/DecoderCVSnapshotPayload'}
+        hardware:
+          oneOf:
+            - {type: 'null'}
+            - {$ref: '#/components/schemas/DecoderSnapshotHardware'}
+        sources:
+          type: array
+          items: {$ref: '#/components/schemas/DecoderCVSnapshotSource'}
     DecoderText:
       type: object
       required: [de, en]
@@ -9676,6 +9821,85 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/decoder-configurations:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    get:
+      summary: Read physical decoders and saved CV working groups
+      description: Viewer, Editor or Admin. Reads one consistent context without changing any data. Model names do not infer physical identity. Unknown installation dates remain null.
+      responses:
+        "200":
+          description: Current decoder comparison
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderConfigurationContext'}
+        "401": {description: Authentication required}
+        "403": {description: Inventory role required}
+        "404": {description: Vehicle not found}
+  /decoder-configurations/snapshots:
+    get:
+      summary: List immutable partial CV working states
+      description: Viewer, Editor or Admin. Historical vehicle labels and inventory numbers remain available after vehicle deletion. This list does not include CV payloads or internal storage references.
+      parameters:
+        - name: vehicleId
+          in: query
+          required: false
+          schema: {type: string}
+          description: Optional historical vehicle ID, including deleted inventory.
+      responses:
+        "200":
+          description: Archived partial working states, most recently recorded first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/DecoderCVSnapshotSummary'}
+        "401": {description: Authentication required}
+        "403": {description: Inventory role required}
+  /decoder-configurations/snapshots/{snapshotID}:
+    parameters:
+      - name: snapshotID
+        in: path
+        required: true
+        schema: {type: string}
+    get:
+      summary: Read a complete recorded partial CV working state
+      description: Viewer, Editor or Admin. Preserves unknown historic values, raw profiles, individual source timestamps and real value histories. The recording time is not a measurement/export time. No current vehicle is required. Unassigned hardware is null; missing originals remain explicitly unavailable.
+      responses:
+        "200":
+          description: Immutable recorded evidence and original source metadata
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecoderCVSnapshot'}
+        "401": {description: Authentication required}
+        "403": {description: Inventory role required}
+        "404": {description: Snapshot not found}
+  /decoder-configurations/snapshots/{snapshotID}/sources/{sourceID}/download:
+    parameters:
+      - name: snapshotID
+        in: path
+        required: true
+        schema: {type: string}
+      - name: sourceID
+        in: path
+        required: true
+        schema: {type: string}
+    get:
+      summary: Download a retained original CV source privately
+      description: Viewer, Editor or Admin. Reads only the source blob retained by this snapshot. Remains available after deleting the live file, workspace or vehicle. Never substitutes another live file or reads a supplied filesystem path.
+      responses:
+        "200":
+          description: Original bytes as an attachment
+          content:
+            application/octet-stream:
+              schema: {type: string, format: binary}
+        "401": {description: Authentication required}
+        "403": {description: Inventory role required}
+        "404": {description: Snapshot source not found}
+        "410": {description: Original content was recorded as unavailable}
   /catalog/{targetType}/{id}:
     parameters:
       - name: targetType

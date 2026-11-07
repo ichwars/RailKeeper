@@ -223,7 +223,7 @@
       "labelDE": "Architektur und Beiträge",
       "labelEN": "Architecture and contributions",
       "reviewEvidence": "source",
-      "reviewedAt": "2026-11-06"
+      "reviewedAt": "2026-11-07"
     },
     {
       "id": "releases-support",
@@ -350,6 +350,8 @@
       "/api/v1/vehicles/{id}/functions": "vehicle-decoder-cv",
       "/api/v1/vehicles/{id}/cv-values": "vehicle-decoder-cv",
       "/api/v1/vehicles/{id}/cv-files": "vehicle-decoder-cv",
+      "/api/v1/vehicles/{id}/decoder-configurations": "development-architecture",
+      "/api/v1/decoder-configurations": "development-architecture",
       "/api/v1/cv-files": "vehicle-decoder-cv",
       "/api/v1/article-search": "vehicle-search-spares",
       "/api/v1/overview": "overview",

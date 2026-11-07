@@ -136,3 +136,16 @@ explicit unavailable result; a path or a different live file is never substitute
 and compressed original bytes are read together from the database. Archive readers expose no
 internal storage paths or blob identifiers. Checkpoint/association changes and their audit records
 commit together, including any newly captured blobs.
+
+## Private read API
+
+The vehicle decoder-context route and the global snapshot archive require an inventory role
+(Viewer, Editor or Admin). Messe has no access. Snapshot details and retained-source downloads
+use their historical identities directly and remain readable after vehicle deletion. Downloads
+serve only the retained blob of the requested snapshot/source pair as an attachment. Missing
+evidence returns `410 decoder_source_unavailable`; an unknown pair returns `404`.
+
+OpenAPI and generated transport types distinguish recorded CV values from writable CV input.
+Historical unknown integers, exact profile text, source timestamps and index-page absence are
+preserved without presenting those records as valid programming commands. Read responses contain
+no internal storage paths or blob identifiers. All current decoder writes remain separate.

@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ROUTES_SHA256 = "35e2e3cccdd8e24db555bc99b178ac47e4a99451dd4330bc2ee49a80e47653d3"
+ROUTES_SHA256 = "2daf187e907927875ede8554543869de6d21bb77127fd902bb9a404c254cdc5a"
 
 # Longest matching prefix wins. New top-level areas must be classified explicitly.
 FEATURES = {
@@ -58,6 +58,14 @@ FEATURES = {
         "ui": "Wartung, Zustand, Ersatzteile und Dokumentauswertung",
         "storage": "vehicle_maintenance, vehicle_spare_parts",
         "tests": ["backend/internal/application/vehicles_test.go", "backend/internal/application/backup_test.go"],
+    },
+    "decoder-configurations": {
+        "prefixes": ["/vehicles/{id}/decoder-configurations", "/decoder-configurations"],
+        "ui": "Decoderexemplare, Einbauzeiträume, CV-Arbeitsgruppen und privates Teilstandarchiv",
+        "storage": "decoder_instances, decoder_installations, decoder_cv_workspaces, decoder_cv_snapshots, decoder_cv_snapshot_sources",
+        "tests": ["backend/internal/application/decoder_hardware_changes_test.go",
+                  "backend/internal/application/decoder_workspace_changes_test.go",
+                  "backend/internal/api/decoder_configuration_reads_test.go"],
     },
     "functions-cv": {
         "prefixes": ["/vehicles/{id}/functions", "/vehicles/{id}/cv-values", "/vehicles/{id}/cv-files", "/cv-files", "/decoder-library"],

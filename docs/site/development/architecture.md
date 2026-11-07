@@ -4,7 +4,7 @@ description: Architecture and contributions.
 audience: developer
 status: development
 reviewedVersion: main
-lastReviewed: 2026-11-06
+lastReviewed: 2026-11-07
 ---
 
 # Architecture and contributions
@@ -55,6 +55,21 @@ The comparison token and `selectedFields` are required; an empty selection keeps
 New revisions use a 32-character hexadecimal identity retained on retries. After HTTP 409, reload
 and review the saved assignment before confirming again. Do not automatically modify and replay
 the request. Existing vehicle/set write calls retain their previous meaning.
+
+## Read saved decoder evidence
+
+Viewer, Editor and Admin can read `GET /api/v1/vehicles/{id}/decoder-configurations` without
+changing the collection. Physical decoders, installation episodes, exact working labels and
+recorded partial CV states remain separate. Unknown installation dates stay null.
+
+`GET /api/v1/decoder-configurations/snapshots` lists the private archive, optionally filtered by
+the historical `vehicleId`. Snapshot details and retained-source downloads use their snapshot ID
+and stay readable after vehicle deletion. Unknown historic CV values and individual source dates
+are preserved; a recording time does not claim a complete measurement. Missing original content
+returns HTTP 410 rather than another file. Messe cannot use these inventory routes.
+
+The [decoder-model reference](https://github.com/ichwars/RailKeeper/blob/main/docs/architecture/decoder-configurations.md)
+describes the model and transaction rules. The OpenAPI contract defines each route and response.
 
 ## Preserve the boundaries
 
