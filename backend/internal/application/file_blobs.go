@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -199,11 +198,33 @@ WHERE COALESCE(%s, '')='' AND COALESCE(%s, '')<>''
 }
 
 func (s *FileBlobService) readConfinedDataFile(relativePath string) ([]byte, error) {
-	fullPath, err := confinedDataPath(s.dataDir, relativePath)
+	relativePath, err := portableBackupMediaPath(relativePath)
 	if err != nil {
 		return nil, err
 	}
-	data, err := os.ReadFile(fullPath)
+	root, err := os.OpenRoot(s.dataDir)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = root.Close() }()
+	info, err := root.Lstat("uploads")
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return nil, ErrBackupPath
+	}
+	uploads, err := root.OpenRoot("uploads")
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = uploads.Close() }()
+	file, err := uploads.Open(strings.TrimPrefix(relativePath, "uploads/"))
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = file.Close() }()
+	data, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}
@@ -240,20 +261,4 @@ func decompressBlobData(data []byte, compression string) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unsupported blob compression %q", compression)
 	}
-}
-
-func confinedDataPath(dataDir, relativePath string) (string, error) {
-	base, err := filepath.Abs(dataDir)
-	if err != nil {
-		return "", err
-	}
-	target := filepath.Join(base, filepath.FromSlash(filepath.ToSlash(relativePath)))
-	absTarget, err := filepath.Abs(target)
-	if err != nil {
-		return "", err
-	}
-	if absTarget != base && !strings.HasPrefix(absTarget, base+string(os.PathSeparator)) {
-		return "", errors.New("path escapes data directory")
-	}
-	return absTarget, nil
 }

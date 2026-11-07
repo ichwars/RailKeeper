@@ -759,6 +759,7 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 			}
 		}
 		item.UnknownColumns = sortedKeys(unknownColumns)
+		result.Errors = append(result.Errors, validateBackupMediaPaths(table, rows)...)
 		if table == "vehicle_functions" {
 			result.Errors = append(result.Errors, validateBackupFunctionFlags(doc.Version, rows)...)
 		}
