@@ -189,10 +189,12 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
                 value={twoFactorCode}
                 inputMode="numeric"
                 autoComplete="one-time-code"
+                aria-describedby="login-two-factor-hint"
                 pattern="[0-9 ]{6,8}"
                 onChange={(event) => setTwoFactorCode(event.target.value)}
                 required
               />
+              <small id="login-two-factor-hint">{t("auth.twoFactor.freshCode")}</small>
             </label>
           )}
 

@@ -11,6 +11,13 @@ import (
 	"railkeeper/backend/internal/application"
 )
 
+func nondefaultPasswordHashForTest(password string) string {
+	salt := []byte("test-legacy-salt")
+	key := argon2.IDKey([]byte(password), salt, 2, 32, 1, 24)
+	return "$argon2id$v=19$m=32,t=2,p=1$" + base64.RawStdEncoding.EncodeToString(salt) + "$" +
+		base64.RawStdEncoding.EncodeToString(key)
+}
+
 func TestPasswordHashUpgradesOnlyAfterCompleteAuthentication(t *testing.T) {
 	db := testDB(t)
 	if err := application.NewSetupService(db).CreateAdmin(t.Context(), application.CreateAdminInput{
@@ -18,10 +25,7 @@ func TestPasswordHashUpgradesOnlyAfterCompleteAuthentication(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	salt := []byte("test-legacy-salt")
-	key := argon2.IDKey([]byte("very-secure-password"), salt, 2, 32, 1, 24)
-	old := "$argon2id$v=19$m=32,t=2,p=1$" + base64.RawStdEncoding.EncodeToString(salt) + "$" +
-		base64.RawStdEncoding.EncodeToString(key)
+	old := nondefaultPasswordHashForTest("very-secure-password")
 	const secret = "JBSWY3DPEHPK3PXP"
 	if _, err := db.ExecContext(t.Context(), `UPDATE users SET password_hash=?,two_factor_enabled=1,two_factor_secret=?`, old, secret); err != nil {
 		t.Fatal(err)

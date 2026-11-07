@@ -51,22 +51,23 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginResult
 		_ = s.audit(ctx, "", "LoginFailed", "user", username, "{}")
 		return nil, ErrInvalidLogin
 	}
+	var twoFactorStep int64
 	if twoFactorEnabled {
 		if strings.TrimSpace(input.TwoFactorCode) == "" {
 			_ = s.audit(ctx, userID, "LoginTwoFactorRequired", "user", userID, "{}")
 			return nil, ErrTwoFactorRequired
 		}
-		if !verifyTOTPCode(twoFactorSecret, input.TwoFactorCode, s.now().UTC()) {
+		var validCode bool
+		twoFactorStep, validCode = credentials.MatchTOTP(twoFactorSecret, input.TwoFactorCode, s.now().UTC())
+		if !validCode {
 			_ = s.audit(ctx, userID, "LoginTwoFactorFailed", "user", userID, "{}")
 			return nil, ErrInvalidLogin
 		}
 	}
 
-	if err := s.upgradePassword(ctx, userID, input.Password, passwordHash); err != nil {
-		return nil, err
-	}
-	if err := s.loginLimits.Reset(ctx, "login-account", key); err != nil {
-		return nil, err
+	upgradedHash, err := credentials.Upgrade(input.Password, passwordHash)
+	if err != nil {
+		return nil, fmt.Errorf("prepare password upgrade: %w", err)
 	}
 	roles, err := s.roles(ctx, userID)
 	if err != nil {
@@ -76,27 +77,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginResult
 	sessionToken := randomToken()
 	csrfToken := randomToken()
 	expiresAt := s.now().UTC().Add(12 * time.Hour)
-	now := s.now().UTC().Format(time.RFC3339)
-
-	if _, err := s.db.ExecContext(
-		ctx,
-		`INSERT INTO sessions(id, user_id, token_hash, csrf_token, expires_at, created_at)
-		 VALUES(?, ?, ?, ?, ?, ?)`,
-		randomID(),
-		userID,
-		hashToken(sessionToken),
-		csrfToken,
-		expiresAt.Format(time.RFC3339),
-		now,
-	); err != nil {
-		return nil, fmt.Errorf("create session: %w", err)
-	}
-
-	if err := s.audit(ctx, userID, "Login", "user", userID, "{}"); err != nil {
-		return nil, err
-	}
-
-	return &LoginResult{
+	result := &LoginResult{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
 		ExpiresAt:    expiresAt,
@@ -106,5 +87,14 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginResult
 			CSRFToken:        csrfToken,
 			TwoFactorEnabled: twoFactorEnabled,
 		},
-	}, nil
+	}
+	proof := loginProof{userID: userID, passwordHash: passwordHash, twoFactorSecret: twoFactorSecret,
+		accountBudgetKey: key, upgradedHash: upgradedHash, twoFactorEnabled: twoFactorEnabled, twoFactorStep: twoFactorStep}
+	if err := s.completeLogin(ctx, proof, result); err != nil {
+		if errors.Is(err, ErrInvalidLogin) {
+			_ = s.audit(ctx, userID, "LoginFailed", "user", userID, "{}")
+		}
+		return nil, err
+	}
+	return result, nil
 }

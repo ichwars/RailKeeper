@@ -56,6 +56,14 @@ erfolgt erst nach vollständiger Anmeldung samt zweitem Faktor; stärkere vorhan
 Parameter werden dabei nicht abgesenkt. Die Standardparameter bleiben bei 64 MiB,
 einer Iteration, Parallelität vier und 32 Byte Schlüssel.
 
+Erfolgreich verwendete TOTP-Zeitschritte werden je Konto dauerhaft gespeichert.
+Aktivierung, Anmeldung und Deaktivierung verlangen jeweils einen noch nicht verbrauchten
+Code. Die bestehende Toleranz von einem Zeitschritt bleibt erhalten. Bei der Anmeldung
+werden Codeverbrauch, gegebenenfalls Hash-Upgrade, Sitzung, Audit und Budgetrücksetzung
+gemeinsam bestätigt oder vollständig zurückgerollt. Schema 78 ergänzt ausschließlich
+einen zunächst leeren Verbrauchszähler; bestehende Konten, Secrets und Sitzungen bleiben
+erhalten. Lokale Authentifizierung bleibt aus App-Backups ausgeschlossen.
+
 `cd frontend && npm run lint` prüft Produktionscode einschließlich React-Hook-Regeln.
 Die Syntaxwerkzeuge liegen mit Babels TypeScript-/JSX-Parser in `tools/frontend-lint`;
 die eigentliche Frontend-Typprüfung und der Build verwenden den Compiler aus

@@ -8,11 +8,58 @@ from pathlib import Path
 from fixture import record_comparison_projection
 
 from preservation import (
-    assert_same, backup_manifest, database_manifest, expected_backup_upgrade, expected_fresh_restore, file_manifest, vehicle_edit_manifest,
+    assert_same, backup_manifest, database_manifest, expected_authentication_startup, expected_backup_upgrade,
+    expected_fresh_restore, file_manifest, vehicle_edit_manifest,
 )
 
 
 class PreservationTests(unittest.TestCase):
+    def test_authentication_upgrade_preserves_all_old_cells_and_requires_null_counter(self):
+        original = self.root / "old.db"
+        upgraded = self.root / "upgraded.db"
+        with closing(sqlite3.connect(original)) as db, db:
+            db.execute("CREATE TABLE users(id TEXT PRIMARY KEY, password_hash TEXT, secret BLOB)")
+            db.execute("INSERT INTO users VALUES('old','fixture-hash',?)", (b"fixture-secret",))
+        upgraded.write_bytes(original.read_bytes())
+        before = database_manifest(original)["users"]
+        with closing(sqlite3.connect(upgraded)) as db, db:
+            db.execute("ALTER TABLE users ADD COLUMN two_factor_last_step INTEGER")
+        after = database_manifest(upgraded)["users"]
+        expected = expected_authentication_startup(original, before, after)
+        assert_same(expected, after, "upgrade")
+        for column, value in [("password_hash", "changed"), ("secret", b"changed"), ("two_factor_last_step", 123)]:
+            with self.subTest(column=column):
+                with closing(sqlite3.connect(upgraded)) as db, db:
+                    db.execute("BEGIN")
+                    db.execute(f"UPDATE users SET {column}=?", (value,))
+                    db.commit()
+                changed = database_manifest(upgraded)["users"]
+                with self.assertRaises(AssertionError):
+                    assert_same(expected, changed, "upgrade")
+                with closing(sqlite3.connect(upgraded)) as db, db:
+                    db.execute("UPDATE users SET password_hash='fixture-hash',secret=?,two_factor_last_step=NULL",
+                               (b"fixture-secret",))
+        with closing(sqlite3.connect(upgraded)) as db, db:
+            db.execute("ALTER TABLE users ADD COLUMN unexpected TEXT")
+        with self.assertRaisesRegex(AssertionError, "column"):
+            expected_authentication_startup(original, before, database_manifest(upgraded)["users"])
+
+    def test_existing_authentication_counter_and_original_snapshot_remain_strict(self):
+        with closing(sqlite3.connect(self.db_path)) as db, db:
+            db.execute("CREATE TABLE users(id TEXT, two_factor_last_step INTEGER)")
+            db.execute("INSERT INTO users VALUES('old',123)")
+        before = database_manifest(self.db_path)["users"]
+        with closing(sqlite3.connect(self.db_path)) as db, db:
+            db.execute("UPDATE users SET two_factor_last_step=NULL")
+        after = database_manifest(self.db_path)["users"]
+        expected = expected_authentication_startup(self.db_path, before, after)
+        with self.assertRaises(AssertionError):
+            assert_same(expected, after, "counter changed")
+        changed_schema = copy.deepcopy(after)
+        changed_schema["columns"].append((2, "two_factor_last_step", "INTEGER", 0, None, 0))
+        with self.assertRaisesRegex(AssertionError, "snapshot"):
+            expected_authentication_startup(self.db_path, before, changed_schema)
+
     def test_decoder_schema_only_adds_five_empty_tables_and_retains_every_old_row(self):
         from decoder import TABLES
         original = {"format": "railkeeper-backup", "version": 26,

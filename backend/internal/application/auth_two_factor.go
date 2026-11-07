@@ -35,20 +35,26 @@ func (s *AuthService) TwoFactorStatus(ctx context.Context, userID string) (*TwoF
 }
 
 func (s *AuthService) PrepareTwoFactor(ctx context.Context, userID string) (*TwoFactorStatus, error) {
-	var username, existingSecret string
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin two factor preparation: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	var username, existingSecret, enabledAt string
 	var enabled bool
-	if err := s.db.QueryRowContext(
+	if err := tx.QueryRowContext(
 		ctx,
-		`SELECT username, COALESCE(two_factor_secret, ''), two_factor_enabled FROM users WHERE id=?`,
+		`SELECT username, COALESCE(two_factor_secret, ''), two_factor_enabled,
+COALESCE(two_factor_enabled_at,'') FROM users WHERE id=?`,
 		userID,
-	).Scan(&username, &existingSecret, &enabled); err != nil {
+	).Scan(&username, &existingSecret, &enabled, &enabledAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
 		return nil, fmt.Errorf("read two factor user: %w", err)
 	}
 	if enabled {
-		return s.TwoFactorStatus(ctx, userID)
+		return &TwoFactorStatus{Enabled: true, Prepared: existingSecret != "", EnabledAt: enabledAt, Username: username}, nil
 	}
 
 	secret := existingSecret
@@ -58,17 +64,21 @@ func (s *AuthService) PrepareTwoFactor(ctx context.Context, userID string) (*Two
 		if err != nil {
 			return nil, fmt.Errorf("generate two factor secret: %w", err)
 		}
-		if _, err := s.db.ExecContext(
+		if _, err := tx.ExecContext(
 			ctx,
-			`UPDATE users SET two_factor_secret=?, two_factor_enabled=0, two_factor_enabled_at=NULL WHERE id=?`,
+			`UPDATE users SET two_factor_secret=?, two_factor_enabled=0, two_factor_enabled_at=NULL,
+two_factor_last_step=NULL WHERE id=? AND two_factor_enabled=0 AND COALESCE(two_factor_secret,'')=''`,
 			secret,
 			userID,
 		); err != nil {
 			return nil, fmt.Errorf("store two factor secret: %w", err)
 		}
-		if err := s.audit(ctx, userID, "TwoFactorPrepared", "user", userID, "{}"); err != nil {
+		if err := s.auditTx(ctx, tx, userID, "TwoFactorPrepared", "user", userID, "{}"); err != nil {
 			return nil, err
 		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit two factor preparation: %w", err)
 	}
 
 	return &TwoFactorStatus{
@@ -88,20 +98,12 @@ func (s *AuthService) EnableTwoFactor(ctx context.Context, userID string, input 
 		}
 		return nil, fmt.Errorf("read two factor secret: %w", err)
 	}
-	if secret == "" || !verifyTOTPCode(secret, input.Code, s.now().UTC()) {
+	step, valid := credentials.MatchTOTP(secret, input.Code, s.now().UTC())
+	if !valid {
 		_ = s.audit(ctx, userID, "TwoFactorEnableFailed", "user", userID, "{}")
 		return nil, ErrInvalidLogin
 	}
-	now := s.now().UTC().Format(time.RFC3339)
-	if _, err := s.db.ExecContext(
-		ctx,
-		`UPDATE users SET two_factor_enabled=1, two_factor_enabled_at=? WHERE id=?`,
-		now,
-		userID,
-	); err != nil {
-		return nil, fmt.Errorf("enable two factor: %w", err)
-	}
-	if err := s.audit(ctx, userID, "TwoFactorEnabled", "user", userID, "{}"); err != nil {
+	if err := s.commitTwoFactorEnable(ctx, userID, secret, step); err != nil {
 		return nil, err
 	}
 	return s.TwoFactorStatus(ctx, userID)
@@ -124,43 +126,13 @@ func (s *AuthService) DisableTwoFactor(ctx context.Context, userID, sessionToken
 		_ = s.audit(ctx, userID, "TwoFactorDisableFailed", "user", userID, "{}")
 		return ErrInvalidLogin
 	}
-	if enabled && !verifyTOTPCode(secret, input.Code, s.now().UTC()) {
+	step, valid := credentials.MatchTOTP(secret, input.Code, s.now().UTC())
+	if enabled && !valid {
 		_ = s.audit(ctx, userID, "TwoFactorDisableFailed", "user", userID, "{}")
 		return ErrInvalidLogin
 	}
 
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin two factor disable: %w", err)
-	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
-	if _, err = tx.ExecContext(
-		ctx,
-		`UPDATE users SET two_factor_secret=NULL, two_factor_enabled=0, two_factor_enabled_at=NULL WHERE id=?`,
-		userID,
-	); err != nil {
-		return fmt.Errorf("disable two factor: %w", err)
-	}
-	if _, err = tx.ExecContext(
-		ctx,
-		`UPDATE sessions SET revoked_at=? WHERE user_id=? AND token_hash<>? AND revoked_at IS NULL`,
-		s.now().UTC().Format(time.RFC3339),
-		userID,
-		hashToken(sessionToken),
-	); err != nil {
-		return fmt.Errorf("revoke two factor sessions: %w", err)
-	}
-	if err = s.auditTx(ctx, tx, userID, "TwoFactorDisabled", "user", userID, "{}"); err != nil {
-		return err
-	}
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("commit two factor disable: %w", err)
-	}
-	return nil
+	return s.commitTwoFactorDisable(ctx, userID, sessionToken, passwordHash, secret, enabled, step)
 }
 
 func generateTOTPSecret() (string, error) { return credentials.GenerateTOTPSecret() }
