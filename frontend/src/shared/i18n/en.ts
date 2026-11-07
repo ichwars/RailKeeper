@@ -294,6 +294,7 @@ export const enTranslations: Record<string, string> = {
     "settings.updates.status.local": "local",
     "settings.updates.status.noRelease": "no release",
     "settings.updates.status.offline": "offline",
+    "settings.updates.message.local": "Local RailKeeper version read.",
     "settings.updates.message.noRelease": "No release information available.",
     "settings.updates.message.current": "RailKeeper is up to date.",
     "settings.updates.message.reachable": "RailKeeper is reachable. Current version: {version}.",

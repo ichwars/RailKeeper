@@ -153,5 +153,16 @@
       "en"
     ],
     "evidence": "Actual clean Go 1.27.3 linux/amd64 executable, local synthetic reference collection and the published synthetic locomotive drawing. Visible inventory filters, current navigation, source-identified update card and local first-setup code. External browser requests blocked; no production records, filled passwords, setup codes or device writes."
+  },
+  "qualityStatusTranslationCaptures": {
+    "applicationCommit": "9ede2e3ec68f8f79cdfc0509b118a0fa455d7fbe",
+    "capturedAt": "2026-11-07",
+    "images": [
+      "update-version.png"
+    ],
+    "languages": [
+      "en"
+    ],
+    "evidence": "Actual clean Go 1.27.3 executable and real local Settings card. The existing local-version message is translated to English; both German and English were exercised. Synthetic installation, no filled credentials, blocked external browser requests and no devices."
   }
 }
