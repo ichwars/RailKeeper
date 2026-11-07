@@ -17,7 +17,7 @@ jobs:
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version-file: backend/go.mod
+          go-version-file: .go-version
           cache-dependency-path: backend/go.sum
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
@@ -33,6 +33,17 @@ jobs:
       - name: Build standalone package
         shell: pwsh
         run: .\tools\build_windows_standalone.ps1
+
+      - name: Upload sanitized qualification reports and screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: windows-qualification
+          path: |
+            output/windows-baseline-*/**/report.json
+            output/windows-baseline-*/**/*.png
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
