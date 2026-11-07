@@ -89,6 +89,7 @@ export function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [loadError, setLoadError] = useState("");
   const [view, setView] = useState<AppView>(currentView);
+  const [navigationRevision, setNavigationRevision] = useState(0);
   const { t } = useI18n();
 
   useEffect(() => {
@@ -181,11 +182,16 @@ export function App() {
       username={session.username}
       roles={session.roles}
       activeView={effectiveView}
+      onNavigate={nextView => {
+        window.history.pushState(null, "", pathForView(nextView));
+        setView(nextView);
+        setNavigationRevision(previous => previous + 1);
+      }}
       onLogout={() => {
         api.logout().finally(() => setSession(null));
       }}
     >
-      <Suspense fallback={<ViewLoading />}>
+      <Suspense key={navigationRevision} fallback={<ViewLoading />}>
         {effectiveView === "overview" && <OverviewView username={session.username} roles={session.roles} />}
         {effectiveView === "vehicles" && <VehiclesView username={session.username} roles={session.roles} />}
         {effectiveView === "accessories" && <AccessoriesView roles={session.roles} />}

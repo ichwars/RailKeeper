@@ -220,6 +220,7 @@ export const deTranslations: Record<string, string> = {
     "settings.sidebarProfile.all": "Alle Funktionen",
     "settings.sidebarProfile.saveFailed": "Die Ansicht ist lokal aktiv, konnte aber nicht im Benutzerprofil gespeichert werden. Du kannst die Speicherung erneut versuchen.",
     "settings.sidebarProfile.retry": "Ansicht erneut speichern",
+    "settings.sidebarProfile.saving": "Die persönliche Ansicht wird gespeichert …",
     "settings.sidebarProfile.help": "Sammlung stellt Bestand, Bilder, Unterlagen und Wartung in den Vordergrund. Ausstellung, Import/Export und Digitalzentralen bleiben unter Weitere Funktionen erreichbar. Die Auswahl ändert nur deine Navigation; Reihenfolge und offene Eingaben bleiben erhalten.",
     "settings.sidebarOrder.subtitle": "Ordnet und steuert die Hauptnavigation für den aktuellen Benutzer.",
     "settings.sidebarOrder.reset": "Zurücksetzen",

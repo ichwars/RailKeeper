@@ -220,6 +220,7 @@ export const enTranslations: Record<string, string> = {
     "settings.sidebarProfile.all": "All functions",
     "settings.sidebarProfile.saveFailed": "This view is active locally, but could not be saved to your user profile. You can retry saving it.",
     "settings.sidebarProfile.retry": "Retry saving view",
+    "settings.sidebarProfile.saving": "Saving your personal view …",
     "settings.sidebarProfile.help": "Collection emphasises inventory, images, documents and maintenance. Exhibition, Import/Export and Command stations remain accessible under More functions. This changes only your navigation; order and open inputs are retained.",
     "settings.sidebarOrder.subtitle": "Orders and controls the main navigation for the current user.",
     "settings.sidebarOrder.reset": "Reset",

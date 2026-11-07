@@ -104,4 +104,62 @@ describe("explicit personal view selection", () => {
     await act(async () => finish({ settings:{} }));
     expect(api.updateProfileSettings).toHaveBeenCalledOnce();
   });
+
+  it("finishes the latest queued choice after leaving settings in the same session", async () => {
+    let finish!: (value: { settings: Record<string, string> }) => void;
+    vi.mocked(api.updateProfileSettings).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const user = userEvent.setup();
+    const view = render(<Profile />);
+    await user.click(screen.getByRole("button", { name: "Sammlung" }));
+    await user.click(screen.getByRole("button", { name: "Alle Funktionen" }));
+    expect(screen.getByRole("status")).toHaveTextContent("wird gespeichert");
+    view.unmount();
+    await act(async () => finish({ settings: {} }));
+    await waitFor(() => expect(api.updateProfileSettings).toHaveBeenCalledTimes(2));
+    const last = vi.mocked(api.updateProfileSettings).mock.calls[1][0];
+    expect(JSON.parse(last[sidebarPrefsKey("editor")]).hidden).toEqual([]);
+  });
+
+  it("keeps pending intent across remount and serializes a later choice from the new view", async () => {
+    let finish!: (value: { settings: Record<string, string> }) => void;
+    vi.mocked(api.updateProfileSettings).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const user = userEvent.setup();
+    const old = render(<Profile />);
+    await user.click(screen.getByRole("button", { name: "Sammlung" }));
+    await user.click(screen.getByRole("button", { name: "Alle Funktionen" }));
+    old.unmount();
+    vi.mocked(api.profileSettings).mockResolvedValue({ settings: {
+      [sidebarPrefsKey("editor")]: JSON.stringify({ order: [], hidden: ["digitalCenters"] })
+    } });
+    render(<Profile />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Alle Funktionen" })).toHaveAttribute("aria-pressed", "true"));
+    await user.click(screen.getByRole("button", { name: "Sammlung" }));
+    expect(api.updateProfileSettings).toHaveBeenCalledOnce();
+    await act(async () => finish({ settings: {} }));
+    await waitFor(() => expect(api.updateProfileSettings).toHaveBeenCalledTimes(3));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(readSidebarPrefs("editor").hidden).toEqual(["exhibition", "importExport", "digitalCenters"]);
+    const last = vi.mocked(api.updateProfileSettings).mock.calls[2][0];
+    expect(JSON.parse(last[sidebarPrefsKey("editor")]).hidden).toHaveLength(3);
+  });
+
+  it("ignores a read begun during a pending write even if it arrives after completion", async () => {
+    let finishSave!: (value: { settings: Record<string, string> }) => void;
+    let finishRead!: (value: { settings: Record<string, string> }) => void;
+    vi.mocked(api.updateProfileSettings).mockReturnValueOnce(new Promise(resolve => { finishSave = resolve; }));
+    const user = userEvent.setup();
+    const old = render(<Profile />);
+    await user.click(screen.getByRole("button", { name: "Sammlung" }));
+    await user.click(screen.getByRole("button", { name: "Alle Funktionen" }));
+    old.unmount();
+    vi.mocked(api.profileSettings).mockReturnValueOnce(new Promise(resolve => { finishRead = resolve; }));
+    render(<Profile />);
+    await act(async () => finishSave({ settings: {} }));
+    await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+    await act(async () => finishRead({ settings: {
+      [sidebarPrefsKey("editor")]: JSON.stringify({ order: [], hidden: ["digitalCenters"] })
+    } }));
+    expect(screen.getByRole("button", { name: "Alle Funktionen" })).toHaveAttribute("aria-pressed", "true");
+    expect(readSidebarPrefs("editor").hidden).toEqual([]);
+  });
 });

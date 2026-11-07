@@ -9,6 +9,8 @@ import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference, themePreferenceKey, type ThemePreference } from "../shared/theme";
 import { sidebarNavigation } from "./sidebarNavigation";
 import { SidebarAdditionalNavigation } from "./SidebarAdditionalNavigation";
+import { followAppLink } from "./appNavigation";
+import { captureSidebarRead } from "./sidebarSaving";
 import {
   readSidebarPrefs,
   sidebarOrderChangedEvent,
@@ -54,13 +56,15 @@ export function Shell({
   username,
   roles,
   activeView,
-  onLogout
+  onLogout,
+  onNavigate
 }: {
   children: ReactNode;
   username: string;
   roles: string[];
   activeView: AppView;
   onLogout: () => void;
+  onNavigate?: (view: AppView) => void;
 }) {
   const loadBugReportDiagnostics = useCallback(() => api.bugReportConfig(true), []);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -103,12 +107,13 @@ export function Shell({
   useEffect(() => {
     let cancelled = false;
     const requestedSidebarRevision = sidebarRevision.current;
+    const sidebarReadCurrent = captureSidebarRead(username);
     api
       .profileSettings()
       .then(({ settings }) => {
         if (cancelled) return;
         const sidebarValue = settings[sidebarPrefsKey(username)];
-        if (sidebarValue && sidebarRevision.current === requestedSidebarRevision) {
+        if (sidebarValue && sidebarRevision.current === requestedSidebarRevision && sidebarReadCurrent()) {
           window.localStorage.setItem(sidebarPrefsKey(username), sidebarValue);
           setOrderedNavItems(readNavItems(roles, username));
         }
@@ -248,7 +253,10 @@ export function Shell({
                 className={`nav-entry${activeView === item.view ? " active" : ""}`}
                 href={item.href}
                 aria-current={activeView === item.view ? "page" : undefined}
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={event => {
+                  setMobileMenuOpen(false);
+                  followAppLink(event, onNavigate ? () => onNavigate(item.view) : undefined);
+                }}
               >
                 <Icon size={16} aria-hidden="true" />
                 <span>{label}</span>
@@ -257,7 +265,7 @@ export function Shell({
           })}
 
           <SidebarAdditionalNavigation items={orderedNavItems.additional} activeView={activeView}
-            onNavigate={() => setMobileMenuOpen(false)} />
+            onNavigate={() => setMobileMenuOpen(false)} onSelect={onNavigate} />
 
           <button
             type="button"
@@ -271,7 +279,8 @@ export function Shell({
 
           <div className="sidebar-footer" aria-label={t("nav.footerActions")}>
             <div className="sidebar-footer-actions">
-              <a href="/settings" title={t("nav.system")} aria-label={t("nav.system")}>
+              <a href="/settings" title={t("nav.system")} aria-label={t("nav.system")}
+                onClick={event => followAppLink(event, onNavigate ? () => onNavigate("settings") : undefined)}>
                 <Settings size={17} aria-hidden="true" />
               </a>
               <a href="https://github.com/ichwars/RailKeeper" target="_blank" rel="noreferrer" title={t("nav.repository")} aria-label={t("nav.repository")}>

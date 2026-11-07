@@ -15,6 +15,7 @@ export function SettingsProfileCard({ preferences }: { preferences: SettingsPref
     sidebarOrder,
     sidebarHidden,
     sidebarSaveFailed,
+    sidebarSaving,
     dateFormat,
     setDateFormat,
     timeFormat,
@@ -105,6 +106,7 @@ export function SettingsProfileCard({ preferences }: { preferences: SettingsPref
           <h3>{t("settings.sidebarOrder.title")}</h3>
           <p>{t("settings.sidebarOrder.subtitle")}</p>
         </div>
+        {sidebarSaving && <p role="status">{t("settings.sidebarProfile.saving")}</p>}
         {sidebarSaveFailed && <div role="alert">
           <p>{t("settings.sidebarProfile.saveFailed")}</p>
           <button type="button" className="secondary-button compact-action"

@@ -62,4 +62,59 @@ export async function assertPersonalViews(page, { base, username, width, de, scr
   }
   await all.scrollIntoViewIfNeeded();
   await page.screenshot({ path: screenshotPrefix + "-personal-view.png" });
+  if (width === 1280) await assertQueuedProfileNavigation(page, { base, key, de });
+}
+
+async function assertQueuedProfileNavigation(page, { base, key, de }) {
+  const profileURL = base + "/api/v1/profile/settings";
+  const isWrite = request => request.url() === profileURL && request.method() === "PUT";
+  const [customized] = await Promise.all([
+    page.waitForResponse(response => isWrite(response.request())),
+    page.getByRole("button", { name: de ? "Zubehör ausblenden" : "Hide Accessories", exact: true }).click()
+  ]);
+  assert.equal(customized.status(), 200);
+  let release;
+  const held = new Promise(resolve => { release = resolve; });
+  let intercepted = false;
+  const handler = async route => {
+    if (!intercepted && isWrite(route.request()) && route.request().postDataJSON()?.settings?.[key]) {
+      intercepted = true;
+      await held;
+    }
+    await route.continue();
+  };
+  await page.route("**/api/v1/profile/settings", handler);
+  try {
+    await Promise.all([
+      page.waitForRequest(isWrite),
+      page.getByRole("button", { name: de ? "Sammlung" : "Collection", exact: true }).click()
+    ]);
+    await page.getByRole("button", { name: de ? "Alle Funktionen" : "All functions", exact: true }).click();
+    const desired = await page.evaluate(key => localStorage.getItem(key), key);
+    await page.evaluate(() => { document.documentElement.dataset.profileQueueProbe = "pending"; });
+    await page.locator("#main-navigation").getByRole("link", {
+      name: de ? "Fahrzeugbestand" : "Vehicle inventory", exact: true
+    }).click();
+    await page.waitForURL("**/vehicles");
+    await page.locator(".inventory-filter-row").waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.profileQueueProbe), "pending",
+      "sidebar navigation must preserve the document containing pending saves");
+    const finished = page.waitForResponse(response => isWrite(response.request()) &&
+      response.request().postDataJSON()?.settings?.[key] === desired);
+    release();
+    assert.equal((await finished).status(), 200);
+    const stored = await page.request.get(profileURL);
+    assert.equal(stored.status(), 200);
+    assert.equal((await stored.json()).settings[key], desired, "latest queued choice must win");
+    await page.locator("#main-navigation").getByRole("link", { name: de ? "Einstellungen" : "Settings", exact: true }).click();
+    await page.locator(".settings-dashboard-grid").waitFor();
+    const synchronized = page.waitForResponse(response => response.url() === profileURL && response.request().method() === "GET");
+    await page.reload({ waitUntil: "domcontentloaded" });
+    assert.equal((await synchronized).status(), 200);
+    await page.locator(".settings-dashboard-grid").waitFor();
+    await page.waitForFunction(({ key, desired }) => localStorage.getItem(key) === desired, { key, desired });
+  } finally {
+    release();
+    await page.unroute("**/api/v1/profile/settings", handler);
+  }
 }
