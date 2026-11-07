@@ -54,6 +54,20 @@ describe("Shell article navigation", () => {
     expect(screen.getByRole("textbox", { name: "Entwurf" })).toHaveValue("Ungespeichert");
   });
 
+  it("closes the menu when its settings footer navigates inside the application", async () => {
+    const user = userEvent.setup();
+    const navigate = vi.fn();
+    const view = render(<Shell username="admin" roles={["Admin"]} activeView="overview"
+      onLogout={vi.fn()} onNavigate={navigate}><p>Inhalt</p></Shell>);
+    await user.click(screen.getByRole("button", { name: "Menü öffnen" }));
+    expect(view.container.querySelector(".layout")).toHaveClass("nav-open");
+    const settings = view.container.querySelector<HTMLAnchorElement>('.sidebar-footer-actions a[href="/settings"]');
+    if (!settings) throw new Error("settings link missing");
+    await user.click(settings);
+    expect(navigate).toHaveBeenCalledWith("settings");
+    expect(view.container.querySelector(".layout")).not.toHaveClass("nav-open");
+  });
+
   it("uses the approved vehicle and accessory navigation labels", async () => {
     render(
       <Shell username="editor" roles={["Editor"]} activeView="accessories" onLogout={vi.fn()}>

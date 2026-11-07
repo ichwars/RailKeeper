@@ -97,7 +97,10 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const syncView = () => setView(currentView());
+    const syncView = () => {
+      setView(currentView());
+      setNavigationRevision(previous => previous + 1);
+    };
 
     window.addEventListener("popstate", syncView);
     return () => window.removeEventListener("popstate", syncView);

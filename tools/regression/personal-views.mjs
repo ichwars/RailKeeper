@@ -63,6 +63,12 @@ export async function assertPersonalViews(page, { base, username, width, de, scr
   await all.scrollIntoViewIfNeeded();
   await page.screenshot({ path: screenshotPrefix + "-personal-view.png" });
   if (width === 1280) await assertQueuedProfileNavigation(page, { base, key, de });
+  if (width === 390) {
+    await page.getByRole("button", { name: de ? "Menü öffnen" : "Open menu", exact: true }).click();
+    await page.locator('.sidebar-footer-actions a[href="/settings"]').click();
+    await page.locator(".settings-dashboard-grid").waitFor();
+    assert.equal(await page.locator(".mobile-nav-scrim").count(), 0, "footer settings must close the mobile menu");
+  }
 }
 
 async function assertQueuedProfileNavigation(page, { base, key, de }) {
@@ -113,6 +119,18 @@ async function assertQueuedProfileNavigation(page, { base, key, de }) {
     assert.equal((await synchronized).status(), 200);
     await page.locator(".settings-dashboard-grid").waitFor();
     await page.waitForFunction(({ key, desired }) => localStorage.getItem(key) === desired, { key, desired });
+    await page.goto(base + "/settings?tab=digital", { waitUntil: "domcontentloaded" });
+    const activeTab = page.locator(".settings-primary-tabs button.active");
+    await activeTab.waitFor();
+    const digitalTab = await activeTab.innerText();
+    await page.locator("#main-navigation").getByRole("link", { name: de ? "Einstellungen" : "Settings", exact: true }).click();
+    await page.locator(".settings-dashboard-grid").waitFor();
+    const generalTab = await activeTab.innerText();
+    assert.notEqual(digitalTab, generalTab);
+    await page.goBack();
+    await page.waitForFunction(expected => document.querySelector(".settings-primary-tabs button.active")?.textContent === expected, digitalTab);
+    await page.goForward();
+    await page.waitForFunction(expected => document.querySelector(".settings-primary-tabs button.active")?.textContent === expected, generalTab);
   } finally {
     release();
     await page.unroute("**/api/v1/profile/settings", handler);

@@ -280,7 +280,10 @@ export function Shell({
           <div className="sidebar-footer" aria-label={t("nav.footerActions")}>
             <div className="sidebar-footer-actions">
               <a href="/settings" title={t("nav.system")} aria-label={t("nav.system")}
-                onClick={event => followAppLink(event, onNavigate ? () => onNavigate("settings") : undefined)}>
+                onClick={event => {
+                  setMobileMenuOpen(false);
+                  followAppLink(event, onNavigate ? () => onNavigate("settings") : undefined);
+                }}>
                 <Settings size={17} aria-hidden="true" />
               </a>
               <a href="https://github.com/ichwars/RailKeeper" target="_blank" rel="noreferrer" title={t("nav.repository")} aria-label={t("nav.repository")}>
