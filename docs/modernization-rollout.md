@@ -13,6 +13,18 @@ keinen identischen Entwicklungsstand. Windows-Nachweise müssen den exakten Kand
 betreffen. Native Dockerprüfungen für AMD64 und ARM64 bleiben erforderlich; Emulation
 ersetzt keinen nativen Plattformnachweis.
 
+Unter **Einstellungen > Allgemein > Updates** stehen Releaseversion und Buildkennung getrennt.
+Die Kennung zeigt zwölf Commitzeichen und den Status Release, Entwicklungsstand, lokale Änderungen
+oder unbekannte Herkunft. `railkeeper version` beziehungsweise `RailKeeper.exe version` liefert
+zusätzlich vollständigen Commit, Compiler und Plattform als JSON, ohne eine Datenbank zu öffnen.
+Eine unbekannte Kennung ist kein qualifizierter Kandidat. Der laufende Prozess liefert dieselben
+Angaben im vorhandenen Versionsendpunkt und beim Start im lokalen Log.
+
+Für die endgültige Auslieferung einen Main-Commit festlegen und dessen native Plattformläufe
+zuordnen. Ein PR-Container kann einen Integrationscommit prüfen; maßgeblich ist seine eingebettete
+Kennung, nicht allein der Branchname. Die abschließenden Berichte müssen denselben festgelegten
+Commit nennen. `--expected-commit` weist unbekannte, veränderte oder abweichende Quellen zurück.
+
 Die [Referenzprüfung](testing-baseline.md) verwendet ausschließlich neue synthetische
 Installationen. Ihr Upgrade startet mit der tatsächlichen Vorgängerversion und vergleicht
 Dateninhalte, IDs, Beziehungen, CV-Indexseiten, Herkunft, Historien und Datei-Prüfsummen.
@@ -26,6 +38,7 @@ ab und räumt sie nach dem Lauf auf. Berichte und Programme bleiben unter `outpu
 
 ```bash
 codex-test-tmp run -- bash -euo pipefail <<'RK_TEST'
+export GOTOOLCHAIN="go$(cat .go-version)"
 rk_previous_source="$(mktemp -d "$TMPDIR/railkeeper-modernization-source.XXXXXX")"
 git archive debfad6198299052f07220883c1476581be691cc backend | tar -x -C "$rk_previous_source"
 mkdir -p output/regression
@@ -37,7 +50,7 @@ python3 tools/regression/run_baseline.py \
   --previous-binary output/regression/railkeeper-v0.1.22 \
   --previous-backend "$rk_previous_source/backend" \
   --catalog-backfill --catalog-authority --catalog-writes \
-  --decoder-model --decoder-backfill \
+  --decoder-model --decoder-backfill --expected-commit "$(git rev-parse HEAD)" \
   --browser --output output/regression-modernization
 RK_TEST
 ```

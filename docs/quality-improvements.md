@@ -57,8 +57,13 @@ bewahren frühere Werte und Quellen. Beides ersetzt keinen Beleg für ein Decode
   mit den vorhandenen Controllern und `useVehicleWorkspace` koordiniert deren Lebensdauer.
   Die frühere, ausschließlich von ihrem eigenen Test geladene `importExportHelpers.tsx`
   entfällt. Aktive Transfer-Vorschauen und ECoS-Übernahmen behalten ihre vorhandenen Module.
-  `ecos.go` und `backup.go` werden getrennt nach Verantwortungen entkoppelt.
-  Dateilänge allein ist kein Qualitätsnachweis.
+  ECoS trennt reine Protokoll-/Vergleichsregeln in `ecosmodel` vom einzigen
+  Verbindungs- und Zustandsbesitzer. Backup trennt Format/Regeln in `backup` von
+  Transaktion, Staging und Dateitausch in `infrastructure/backupdata`. Decoder/CV
+  verwendet reine Identitäts-, Revisions- und Konfliktregeln in `decoder`/`revision`
+  und schmale `vehicledata`-Adapter. Spezialisierte Altadapter bleiben in den
+  jeweiligen Architekturverträgen ausdrücklich aufgeführt. Dateilänge allein
+  ist kein Qualitätsnachweis.
 - TypeScript bleibt strikt; OpenAPI, Backend und generierte Frontendverträge bleiben synchron.
 - Validierung, Parallelkonflikt, Abbruch und technische Fehler bleiben unterscheidbar.
   Eine verlorene Antwort darf keine blinde Wiederholung einer Speicherung auslösen.

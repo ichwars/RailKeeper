@@ -13,8 +13,8 @@ Other hosts use their own temporary-directory configuration; this launcher is no
 
 `tools/regression/matrix.py` inventories all registered HTTP methods, paths and access declarations.
 Its original reviewed digest froze 200 routes at commit `2cdfd4430ffb28d0d726d2de6cb67bc43b329946`.
-The current reviewed digest covers 218 routes, including the additive manual CV draft, catalog and
-decoder configuration endpoints. Original methods, paths and access declarations remain protected.
+The current reviewed digest covers 222 routes, including the additive manual CV draft, catalog, decoder
+configuration and manual valuation endpoints. Original methods, paths and access declarations remain protected.
 An intentional contract change requires reviewing the matrix and updating the digest. The script verifies
 that evidence source files exist. This source inventory does not establish behavioral coverage of every route.
 
@@ -147,6 +147,15 @@ It places temporary sources under `TMPDIR` and writes lasting evidence into the 
 
 The baseline release source is pinned to `debfad6198299052f07220883c1476581be691cc` (v0.1.22).
 The previous binary is built from that revision separately; the current checkout is not reset.
+The optional `--expected-commit FULL_SHA` requires the actual running process to report that
+clean source identity, compiler and platform through its local version endpoint. Reports retain
+that identity independently of update-feed status. Native Windows packaging also checks the
+resource-patched executable's `version` command and its compiler against `.go-version`.
+The valuation process test abruptly kills only its own isolated child process, restarts the
+same synthetic data, validates the existing session, and compares every historical valuation
+and application row. Controlled SQLite FULL and staged-file errors separately prove restore
+rollback retains application rows, original upload bytes and local authentication.
+
 The report distinguishes upgrade from restart and records binary/image identities.
 Application code, migrations and seeds of both versions must be available with that exercise.
 The application JSON backup intentionally excludes job/workspace operational history and installation settings;

@@ -43,6 +43,16 @@ if [[ "$ready" != true ]]; then
   exit 1
 fi
 
+identity="$(docker exec "$container" railkeeper version)"
+expected_go="go$(tr -d '\r\n' < .go-version)"
+jq -e --arg platform "linux/$expected_arch" --arg compiler "$expected_go" --arg commit "${GITHUB_SHA:-}" '
+  .build.platform == $platform and .build.goVersion == $compiler and
+  ($commit == "" or (.build.commit == $commit and (.build.status == "release" or .build.status == "development")))
+' <<< "$identity"
+mkdir -p output
+image_id="$(docker image inspect "$image" --format '{{.Id}}')"
+jq --arg imageID "$image_id" '. + {imageID: $imageID}' <<< "$identity" > "output/docker-qualification-$expected_arch.json"
+
 docker exec "$container" wget -q -O - http://127.0.0.1:8080/api/v1/setup/status |
   jq -e '.setupRequired == true'
 docker exec "$container" wget -q -O - http://127.0.0.1:8080/ |

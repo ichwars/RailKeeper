@@ -15,11 +15,14 @@ RUN npm run build
 FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS backend-build
 ARG TARGETOS
 ARG TARGETARCH
+ARG BUILD_COMMIT=unknown
+ARG BUILD_KIND=development
+ARG BUILD_MODIFIED=unknown
 WORKDIR /src/backend
 COPY backend/go.mod ./
 RUN go mod download
 COPY backend ./
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/railkeeper ./cmd/railkeeper
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w -X railkeeper/backend/internal/buildinfo.commit=$BUILD_COMMIT -X railkeeper/backend/internal/buildinfo.kind=$BUILD_KIND -X railkeeper/backend/internal/buildinfo.modified=$BUILD_MODIFIED" -o /out/railkeeper ./cmd/railkeeper
 
 FROM alpine:3.24 AS runtime
 LABEL org.opencontainers.image.source="https://github.com/ichwars/RailKeeper" \

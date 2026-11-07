@@ -12,6 +12,7 @@ from pathlib import Path
 from client import Client, setup
 from preservation import assert_same, backup_manifest, expected_fresh_restore
 from runtime import Runtime
+from qualification import read_candidate
 
 
 def run(args):
@@ -30,6 +31,7 @@ def run(args):
         return client.request("GET", "/api/v1/backup/export")
 
     with launch("source-data", "source-runtime") as source:
+        candidate = read_candidate(source.client, args.expected_commit)
         credentials = setup(source.client, "valuation-proof-owner")
         if args.browser:
             payload = {"base": source.client.base, "credentials": credentials, "output": str(root / "browser")}
@@ -90,13 +92,23 @@ def run(args):
         assert_same(backup_manifest(document), backup_manifest(backup(source.client)), "Rejected valuation restore")
         passed("valuation-backup-and-rejected-restore-preserve-every-application-row")
         observed = source.client.request("GET", path + "/export")
+        source.crash()
     with launch("source-data", "source-restart") as restarted:
+        read_candidate(restarted.client, args.expected_commit)
+        for cookie in source.client.cookies:
+            restarted.client.cookies.set_cookie(copy.copy(cookie))
+        restarted.client.token = source.client.token
+        session = restarted.client.request("GET", "/api/v1/auth/session")
+        if session["username"] != credentials["username"]:
+            raise AssertionError("Abrupt process stop replaced the existing local session")
         restarted.client.login(credentials)
         current = restarted.client.request("GET", path + "/export")
         assert_same(observed["entries"], current["entries"], "Valuation process restart")
         assert_same(backup_manifest(document), backup_manifest(backup(restarted.client)), "Restart application rows")
         passed("valuation-process-restart-preserves-entire-history")
+        passed("valuation-abrupt-stop-preserves-existing-session-and-history")
     with launch("target-data", "target-runtime") as target:
+        read_candidate(target.client, args.expected_commit)
         target_credentials = setup(target.client, "valuation-proof-target")
         local = backup(target.client)
         local_users = target.client.request("GET", "/api/v1/users")
@@ -109,7 +121,7 @@ def run(args):
         if target.client.request("GET", "/api/v1/auth/session")["username"] != target_credentials["username"]:
             raise AssertionError("Restore replaced target authentication")
         passed("valuation-fresh-restore-preserves-history-and-target-authentication")
-    report = {"synthetic": True, "passed": True, "platform": platform.platform(), "backupVersion": 28, "checks": checks,
+    report = {"synthetic": True, "passed": True, "candidate": candidate, "platform": platform.platform(), "backupVersion": 28, "checks": checks,
               "binarySHA256": hashlib.sha256(args.binary.read_bytes()).hexdigest(), "hardware": "not contacted"}
     (root / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
@@ -122,6 +134,7 @@ if __name__ == "__main__":
     parser.add_argument("--static-dir", type=Path, default=repo / "frontend/dist")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--browser", action="store_true")
+    parser.add_argument("--expected-commit", help="Require the actual clean source commit in the running process")
     args = parser.parse_args()
     for field in ("binary", "backend", "static_dir"):
         setattr(args, field, getattr(args, field).resolve(strict=True))

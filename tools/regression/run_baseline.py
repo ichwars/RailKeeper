@@ -21,6 +21,7 @@ from preservation import (
     assert_same, backup_manifest, digest, expected_authentication_startup, expected_backup_upgrade, expected_fresh_restore, installation_manifest, vehicle_edit_manifest,
 )
 from runtime import Runtime
+from qualification import read_candidate
 
 
 def role_checks(client, fixture):
@@ -147,6 +148,7 @@ def run(args):
 
         with Runtime(args.binary, args.backend, args.static_dir, root / "app-restored-data",
                      root / "app-restored-runtime", image=args.image, configuration=configuration) as target:
+            report["candidate"] = read_candidate(target.client, args.expected_commit)
             recovery = setup(target.client, "restore-owner")
             settings = target.client.request("PUT", "/api/v1/profile/settings",
                                              {"settings": {"railkeeper.settings.defaultView": "overview"}})
@@ -231,6 +233,7 @@ def run(args):
 
     with Runtime(args.binary, args.backend, args.static_dir, restored_data, root / "installation-runtime",
                  image=args.image, configuration=json.loads(restored_config.read_text(encoding="utf-8"))) as target:
+        read_candidate(target.client, args.expected_commit)
         startup_tables = installation_manifest(restored_data)["tables"]
         for name in ("users", "roles", "user_roles", "app_settings", "user_settings",
                      "data_transfer_jobs", "data_transfer_artifacts"):
@@ -273,6 +276,7 @@ if __name__ == "__main__":
     parser.add_argument("--previous-backend", type=Path)
     parser.add_argument("--output", type=Path, required=True, help="New directory; existing paths are refused")
     parser.add_argument("--browser", action="store_true")
+    parser.add_argument("--expected-commit", help="Require the actual clean source commit in the running process")
     parser.add_argument("--catalog-backfill", action="store_true", help="Verify the separately checked legacy catalog backfill")
     parser.add_argument("--catalog-authority", action="store_true", help="Verify the checked catalog authority conversion")
     parser.add_argument("--catalog-writes", action="store_true", help="Verify explicit catalog field selection and rejected replays")
