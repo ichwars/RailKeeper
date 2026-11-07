@@ -1754,12 +1754,32 @@ components:
               type: boolean
         workItem:
           $ref: "#/components/schemas/DigitalCenterWorkItem"
+    BuildInfo:
+      type: object
+      required: [status, goVersion, platform]
+      properties:
+        commit:
+          type: string
+          description: Full Git commit when the source identity is known.
+        shortCommit:
+          type: string
+          description: First twelve characters of the known source commit.
+        status:
+          type: string
+          enum: [release, development, modified, unknown]
+        goVersion:
+          type: string
+        platform:
+          type: string
+          description: Operating system and architecture of this executable.
     VersionInfo:
       type: object
       required: [version, updateAvailable, checkedAt, status, message]
       properties:
         version:
           type: string
+        build:
+          $ref: "#/components/schemas/BuildInfo"
         latestVersion:
           type: string
         updateAvailable:

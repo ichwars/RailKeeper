@@ -2,6 +2,7 @@ import { useI18n } from "../../shared/i18n";
 import { RefreshCw } from "lucide-react";
 import type { VersionInfo } from "../../shared/api";
 import { formatDateTime } from "./settingsModel";
+import { SettingsBuildIdentity } from "./SettingsBuildIdentity";
 import { WindowsUpdateDownload } from "./WindowsUpdateDownload";
 import type { SettingsPreferencesController } from "./useSettingsPreferences";
 import type { SettingsGeneralController } from "./useSettingsGeneral";
@@ -50,6 +51,7 @@ export function SettingsUpdatesCard({ preferences, general }: { preferences: Set
           {versionInfo?.latestVersion && <> · {t("settings.updates.latestVersion")}: <strong>{updateVersionLabel(versionInfo.latestVersion)}</strong></>}
           <br />
           <small>{updateCheckedAtLabel}</small>
+          <SettingsBuildIdentity build={versionInfo?.build} />
         </p>
         {versionInfo?.status && (
           <span className={`settings-pill ${versionInfo.updateAvailable ? "active" : ["unavailable", "no_release"].includes(versionInfo.status) ? "muted" : ""}`}>

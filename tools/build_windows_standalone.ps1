@@ -5,6 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 . (Join-Path $PSScriptRoot "windows_package_validation.ps1")
+. (Join-Path $PSScriptRoot "windows_build_identity.ps1")
 
 $repo = Resolve-Path (Join-Path $PSScriptRoot "..")
 $frontend = Join-Path $repo "frontend"
@@ -192,6 +193,8 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
   $Version = $Matches[1]
 }
 
+$railKeeperBuild = Get-RailKeeperBuildIdentity -Repo $repo -Version $Version
+
 $zipPath = Join-Path $packageRoot ("RailKeeper-windows-x64-v{0}.zip" -f $Version)
 
 $resolvedPackageRoot = [IO.Path]::GetFullPath($packageRoot)
@@ -245,7 +248,8 @@ try {
       throw "Native Windows media preservation tests failed with exit code $LASTEXITCODE"
     }
   }
-  & go build -buildvcs=false -trimpath -ldflags "-s -w" -o $exePath ./cmd/railkeeper
+  $buildFlags = "-s -w -X railkeeper/backend/internal/buildinfo.commit=$($railKeeperBuild.Commit) -X railkeeper/backend/internal/buildinfo.kind=$($railKeeperBuild.Kind) -X railkeeper/backend/internal/buildinfo.modified=$($railKeeperBuild.Modified)"
+  & go build -buildvcs=false -trimpath -ldflags $buildFlags -o $exePath ./cmd/railkeeper
   if ($LASTEXITCODE -ne 0) {
     throw "Windows backend build failed with exit code $LASTEXITCODE"
   }

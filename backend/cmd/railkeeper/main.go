@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/buildinfo"
 	"railkeeper/backend/internal/startup"
 )
 
@@ -25,6 +26,13 @@ var (
 const defaultUpdateCheckURL = "https://api.github.com/repos/ichwars/RailKeeper/releases/latest"
 
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "version" || os.Args[1] == "--version") {
+		if err := writeVersion(os.Stdout, version, buildinfo.Current()); err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
 		request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://127.0.0.1:8080/health", nil)
 		if err != nil {
@@ -141,7 +149,7 @@ func main() {
 
 	server := newHTTPServer(listener.Addr().String(), startupResult.Handler)
 
-	logger.Info("railkeeper started", "addr", server.Addr, "url", appURL, "version", version, "standalone", standalone)
+	logger.Info("railkeeper started", "build", buildinfo.Current(), "addr", server.Addr, "url", appURL, "version", version, "standalone", standalone)
 	if standalone {
 		printStandaloneStart(appURL, dataDir)
 		if env("RAILKEEPER_OPEN_BROWSER", "true") != "false" {

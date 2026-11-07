@@ -9,6 +9,15 @@ export async function assertResponsiveWorkspaces(page, { base, username, width, 
   await page.locator(".settings-dashboard-grid").waitFor();
   await assertPersonalViews(page, { base, username, width, de, screenshotPrefix });
   await page.evaluate(() => document.fonts.ready);
+  const version = await (await page.request.get(base + "/api/v1/version")).json();
+  assert.ok(version.build?.shortCommit, "qualified process must identify its source");
+  const updates = page.locator("section.settings-card").filter({
+    has: page.getByRole("heading", { name: "Updates", exact: true })
+  });
+  const commit = updates.getByText(version.build.shortCommit, { exact: true });
+  await commit.waitFor();
+  assert.equal(await commit.locator("..").getAttribute("title"), version.build.commit);
+  await updates.screenshot({ path: screenshotPrefix + "-update-version.png" });
   await assertViewportFits(page, "general settings");
   // Wait for stored rows. While they load, the next focus target after the create
   // row changes, so a Tab/Shift+Tab round-trip would not describe a stable table.

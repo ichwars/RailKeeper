@@ -129,5 +129,29 @@
       "en"
     ],
     "evidence": "Actual vehicle editor, function draft controller, decoder-library evaluator and ECoS function preview with synthetic CVs/manual data and simulated station replies. No production data or station writes."
+  },
+  "qualityImprovementsCaptures": {
+    "applicationCommit": "1ccdffe975632f30b1fdd1ff179021d329d26f7b",
+    "capturedAt": "2026-11-07",
+    "images": [
+      "login.png",
+      "overview.png",
+      "vehicles.png",
+      "accessories.png",
+      "exhibition.png",
+      "import-export.png",
+      "central-workspace.png",
+      "preferences.png",
+      "update-version.png",
+      "vehicle-editor.png",
+      "media.png",
+      "maintenance.png",
+      "installation-first-admin.png"
+    ],
+    "languages": [
+      "de",
+      "en"
+    ],
+    "evidence": "Actual clean Go 1.27.3 linux/amd64 executable, local synthetic reference collection and the published synthetic locomotive drawing. Visible inventory filters, current navigation, source-identified update card and local first-setup code. External browser requests blocked; no production records, filled passwords, setup codes or device writes."
   }
 }

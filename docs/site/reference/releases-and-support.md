@@ -13,6 +13,12 @@ lastReviewed: 2026-11-07
 
 RailKeeper shows its version in the interface and under **Settings > General > Updates**. A release is a published version. `main` is the current development branch and may already include additional features. Screenshots come from isolated demos; each page records its own editorial review date. Older installed releases may differ. Identify a development build by its commit or package provenance as well as its displayed version.
 
+The **Build** line shows a short commit and a separate **Release**, **Development build**,
+**Local changes** or **Unknown build origin** state. Hover over the commit for its full value.
+Include version and build when reporting an issue. `railkeeper version` (Windows:
+`RailKeeper.exe version`) prints the same identity plus compiler/platform without opening
+application data. An old server without build metadata keeps its existing version display.
+
 A page's visible **editorial review** date records content review. **Last updated** at the bottom is its Git modification date. Neither alone proves testing with real hardware. The [coverage overview](coverage) explains the evidence.
 
 ## Where should I ask?

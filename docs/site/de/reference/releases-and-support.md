@@ -13,6 +13,12 @@ lastReviewed: 2026-11-07
 
 RailKeeper zeigt seine Version in der Oberfläche und unter **Einstellungen > Allgemein > Updates**. Ein Release ist eine veröffentlichte Version. `main` ist der aktuelle Entwicklungsstand und kann bereits weitere Funktionen enthalten. Screenshots stammen aus isolierten Demos; jede Seite nennt ihren redaktionellen Prüfstand. Installierte ältere Releases können abweichen. Identifiziere einen Entwicklungsbuild zusätzlich anhand seines Commits oder Paketnachweises.
 
+Die Zeile **Build** zeigt einen kurzen Commit sowie getrennt **Release**, **Entwicklungsstand**,
+**Lokale Änderungen** oder **Build-Herkunft unbekannt**. Über dem Commit erscheint der vollständige
+Wert als Hinweis. Gib bei einer Fehlermeldung Version und Build an. `railkeeper version`
+(Windows: `RailKeeper.exe version`) liefert dieselbe Kennung samt Compiler und Plattform,
+ohne Anwendungsdaten zu öffnen. Ein älterer Server ohne Buildangaben behält seine Versionsanzeige.
+
 Die sichtbare **redaktionelle Prüfung** einer Seite ist das Datum der Inhaltsprüfung. **Letzte Änderung** am Seitenende ist das Git-Änderungsdatum. Beides sagt allein nichts über einen Test mit echter Hardware aus. Die [Abdeckungsübersicht](coverage) erklärt den jeweiligen Nachweis.
 
 ## Wo gehört meine Frage hin?

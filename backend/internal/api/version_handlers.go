@@ -11,9 +11,12 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/buildinfo"
 )
 
 type versionInfoResponse struct {
+	Build           buildinfo.Info          `json:"build"`
 	Version         string                  `json:"version"`
 	LatestVersion   string                  `json:"latestVersion,omitempty"`
 	UpdateAvailable bool                    `json:"updateAvailable"`
@@ -60,6 +63,7 @@ type cachedUpdateCheck struct {
 
 func (a *App) versionInfo(w http.ResponseWriter, r *http.Request) {
 	response := versionInfoResponse{
+		Build:     a.buildInfo,
 		Version:   a.version,
 		CheckedAt: time.Now().UTC().Format(time.RFC3339),
 		Status:    "local",
