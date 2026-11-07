@@ -181,3 +181,18 @@ Clients retain new instance/episode/group/checkpoint identities with the confirm
 A lost reply must not trigger an automatic new identity or a modified replay. HTTP 409 requires
 reloading the saved context and reviewing the intended change. Checkpoints contain only saved
 working rows; open browser drafts are excluded. These inventory commands do not write to devices.
+
+## Working-group comparisons for deletion
+
+CV and source-file DELETE requests accept optional `workspaceId` and
+`expectedWorkspaceRevision` query parameters together with the existing `expectedRevision`.
+Both comparisons are required when selecting a working group. The exact stored profile must
+match that group; a trimmed alias is insufficient. Missing pairs, repeated query fields,
+foreign groups and invalid comparisons are rejected. A changed assignment or installation
+state yields HTTP 409 before deletion, even if the CV or file revision itself stayed unchanged.
+
+For a manual CV batch, the same scope fields belong on the outer deletion item. Value writes
+keep their scope inside `value`. Every comparison and deletion uses the existing transaction,
+so a later conflicting deletion rolls back earlier edits in the same batch. Legacy callers
+that omit the optional scope retain their contract. Confirmed deletion preserves recorded
+partial states and any original blobs retained by those states.

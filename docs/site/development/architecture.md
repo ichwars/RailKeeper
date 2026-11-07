@@ -85,6 +85,11 @@ The server preserves the group's original profile text, including legacy whitesp
 a changed hardware association/state. Requests without this optional scope keep their existing
 profile-cleaning semantics. Source uploads use the same pair as multipart fields.
 
+CV and source-file deletions accept the same paired query fields together with
+`expectedRevision`; manual batch deletions carry them on the outer deletion item. A changed
+hardware binding rejects the whole operation even when the row itself is unchanged. The exact
+stored profile must match the selected group. Legacy requests without scope remain compatible.
+
 ## Preserve the boundaries
 
 Roles and protections are enforced by the server. Device data starts as read-only suggestions; writes require an explicitly confirmed preview. CV values remain separate from their meaning: library rules interpret raw data only with documented model, firmware and index context.

@@ -19,10 +19,12 @@ const MaxVehicleCVChanges = 500
 var ErrVehicleCVConflict = errors.New("vehicle CV changed or target identity already exists")
 
 type VehicleCVChange struct {
-	ID               string               `json:"id,omitempty"`
-	ExpectedRevision string               `json:"expectedRevision"`
-	Delete           bool                 `json:"delete,omitempty"`
-	Value            *VehicleCVValueInput `json:"value,omitempty"`
+	ID                        string               `json:"id,omitempty"`
+	ExpectedRevision          string               `json:"expectedRevision"`
+	Delete                    bool                 `json:"delete,omitempty"`
+	Value                     *VehicleCVValueInput `json:"value,omitempty"`
+	WorkspaceID               string               `json:"workspaceId,omitempty"`
+	ExpectedWorkspaceRevision string               `json:"expectedWorkspaceRevision,omitempty"`
 }
 
 type VehicleCVChangesInput struct {
@@ -169,6 +171,9 @@ func (s *VehicleService) ApplyCVChanges(ctx context.Context, vehicleID string, i
 			(change.ID == "" && (change.Delete || change.ExpectedRevision != "")) {
 			return 0, ErrVehicleValidation
 		}
+		if !change.Delete && (change.WorkspaceID != "" || change.ExpectedWorkspaceRevision != "") {
+			return 0, ErrVehicleValidation
+		}
 		if change.ID != "" {
 			seenIDs[change.ID] = true
 		}
@@ -218,6 +223,11 @@ func (s *VehicleService) ApplyCVChanges(ctx context.Context, vehicleID string, i
 			return 0, err
 		}
 		if change.Delete {
+			if err := checkCVDeletionScopeTx(ctx, tx, vehicleID, previous.DecoderProfile, VehicleCVDeletionInput{
+				ExpectedRevision: &change.ExpectedRevision, WorkspaceID: change.WorkspaceID, ExpectedWorkspaceRevision: change.ExpectedWorkspaceRevision,
+			}); err != nil {
+				return 0, err
+			}
 			if err := vehicledata.DeleteCV(ctx, tx, vehicleID, change.ID); err != nil {
 				return 0, fmt.Errorf("delete draft CV: %w", err)
 			}

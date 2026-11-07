@@ -2966,12 +2966,14 @@ components:
       type: object
       additionalProperties: false
       required: [expectedRevision]
-      description: Existing IDs require their original revision. A new row omits id and uses an empty revision. Delete requires an ID and no value. A value cannot move onto another stored identity; no existing row is silently replaced.
+      description: Existing IDs require their original revision. A new row omits id and uses an empty revision. Delete requires an ID and no value. Optional workspaceId and expectedWorkspaceRevision on a deletion must be supplied together and match the exact row's group and current hardware binding. For value writes, scope belongs inside value. A value cannot move onto another stored identity; no existing row is silently replaced.
       properties:
         id: {type: string, maxLength: 80}
         expectedRevision: {type: string, pattern: '^([0-9a-f]{64})?$'}
         delete: {type: boolean}
         value: {$ref: '#/components/schemas/VehicleCVWriteFields'}
+        workspaceId: {type: string, minLength: 1}
+        expectedWorkspaceRevision: {type: string, pattern: '^[0-9a-f]{64}$'}
     VehicleCVChangesInput:
       type: object
       additionalProperties: false
@@ -12150,10 +12152,17 @@ paths:
     delete:
       tags: [Vehicles]
       summary: Delete a CV value
+      description: Optional working-group comparisons guard against a changed hardware binding. workspaceId and expectedWorkspaceRevision require each other and expectedRevision. All comparisons are checked in the deletion transaction. Omission retains the legacy contract.
       parameters:
         - name: expectedRevision
           in: query
           description: Optional revision guard. Omission retains the existing request behavior.
+          schema: {type: string, pattern: '^[0-9a-f]{64}$'}
+        - name: workspaceId
+          in: query
+          schema: {type: string, minLength: 1}
+        - name: expectedWorkspaceRevision
+          in: query
           schema: {type: string, pattern: '^[0-9a-f]{64}$'}
         - name: id
           in: path
@@ -12169,9 +12178,9 @@ paths:
         "204":
           description: CV value deleted
         "400":
-          description: Invalid expected revision
+          description: Invalid or incomplete row/working-group comparison
         "409":
-          description: Expected revision is stale; the CV was not deleted
+          description: Row or hardware binding is stale; the CV was not deleted
   /vehicles/{id}/cv-files:
     post:
       tags: [Vehicles]
@@ -12214,11 +12223,18 @@ paths:
     delete:
       tags: [Vehicles]
       summary: Delete a decoder CV file
+      description: Optional workspaceId and expectedWorkspaceRevision require each other and expectedRevision. The file must belong to that exact working group. Its revision and hardware binding are checked in the same transaction before deletion. Omission retains legacy behavior.
       parameters:
         - name: expectedRevision
           in: query
           required: false
           schema: {type: string, pattern: "^[0-9a-f]{64}$"}
+        - name: workspaceId
+          in: query
+          schema: {type: string, minLength: 1}
+        - name: expectedWorkspaceRevision
+          in: query
+          schema: {type: string, pattern: '^[0-9a-f]{64}$'}
         - name: id
           in: path
           required: true
@@ -12230,8 +12246,10 @@ paths:
           schema:
             type: string
       responses:
+        "400":
+          description: Invalid or incomplete file/working-group comparison
         "409":
-          description: The file or its source references changed; nothing was deleted.
+          description: The file, source references or hardware binding changed; nothing was deleted.
           content:
             application/json:
               schema: {$ref: "#/components/schemas/Problem"}

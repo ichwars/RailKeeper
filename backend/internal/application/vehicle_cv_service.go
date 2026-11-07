@@ -92,6 +92,14 @@ func (s *VehicleService) DeleteCVValue(ctx context.Context, vehicleID, cvValueID
 	if len(expectedRevision) > 1 {
 		return nil, ErrVehicleValidation
 	}
+	var expected *string
+	if len(expectedRevision) == 1 {
+		expected = &expectedRevision[0]
+	}
+	return s.DeleteCVValueCompared(ctx, vehicleID, cvValueID, VehicleCVDeletionInput{ExpectedRevision: expected})
+}
+
+func (s *VehicleService) DeleteCVValueCompared(ctx context.Context, vehicleID, cvValueID string, input VehicleCVDeletionInput) (*VehicleCVValue, error) {
 	vehicleID, cvValueID = strings.TrimSpace(vehicleID), strings.TrimSpace(cvValueID)
 	tx, err := beginVehicleCVWrite(ctx, s.db, vehicleID)
 	if err != nil {
@@ -105,8 +113,11 @@ func (s *VehicleService) DeleteCVValue(ctx context.Context, vehicleID, cvValueID
 	if err != nil {
 		return nil, fmt.Errorf("read CV before delete: %w", err)
 	}
-	if len(expectedRevision) == 1 {
-		if err := checkCVRevision(&record, &expectedRevision[0]); err != nil {
+	if err := checkCVDeletionScopeTx(ctx, tx, vehicleID, record.DecoderProfile, input); err != nil {
+		return nil, err
+	}
+	if input.ExpectedRevision != nil {
+		if err := checkCVRevision(&record, input.ExpectedRevision); err != nil {
 			return nil, err
 		}
 	}
@@ -256,6 +267,17 @@ func (s *VehicleService) GetCVFile(ctx context.Context, vehicleID, fileID string
 }
 
 func (s *VehicleService) DeleteCVFile(ctx context.Context, vehicleID, fileID string, expectedRevision ...string) (*VehicleCVFile, error) {
+	if len(expectedRevision) > 1 {
+		return nil, ErrVehicleValidation
+	}
+	var expected *string
+	if len(expectedRevision) == 1 {
+		expected = &expectedRevision[0]
+	}
+	return s.DeleteCVFileCompared(ctx, vehicleID, fileID, VehicleCVDeletionInput{ExpectedRevision: expected})
+}
+
+func (s *VehicleService) DeleteCVFileCompared(ctx context.Context, vehicleID, fileID string, input VehicleCVDeletionInput) (*VehicleCVFile, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin CV file delete: %w", err)
@@ -265,7 +287,13 @@ func (s *VehicleService) DeleteCVFile(ctx context.Context, vehicleID, fileID str
 	if err != nil {
 		return nil, err
 	}
-	if err := checkVehicleRevision(file.Revision, optionalVehicleRevision(expectedRevision), ErrVehicleCVFileConflict); err != nil {
+	if err := checkCVDeletionScopeTx(ctx, tx, file.VehicleID, file.DecoderProfile, input); err != nil {
+		if errors.Is(err, ErrVehicleCVConflict) {
+			return nil, ErrVehicleCVFileConflict
+		}
+		return nil, err
+	}
+	if err := checkVehicleRevision(file.Revision, input.ExpectedRevision, ErrVehicleCVFileConflict); err != nil {
 		return nil, err
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM vehicle_cv_files WHERE id=? AND vehicle_id=?`, file.ID, file.VehicleID); err != nil {
