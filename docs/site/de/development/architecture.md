@@ -88,6 +88,16 @@ ebenfalls erforderlich. Der Server erhält den ursprünglichen Profiltext einsch
 Leerzeichen und weist geänderte Hardwarezuordnungen/-zustände ab. Aufrufe ohne diesen optionalen
 Kontext behalten ihre bisherige Profilbereinigung. Uploads verwenden dasselbe Paar als Formularfelder.
 
+CV- und Quelldatei-Löschungen akzeptieren dieselben beiden Vergleichsfelder als Queryparameter
+zusammen mit `expectedRevision`, manuelle Stapellöschungen am äußeren Löscheintrag. Eine geänderte
+Hardwarezuordnung weist die gesamte Aktion ab, auch bei unveränderter Zeile. Der genaue gespeicherte
+Profiltext muss zur ausgewählten Gruppe gehören. Altaufrufe ohne diesen Kontext bleiben kompatibel.
+
+Bei bestehenden Stapelwerten vergleichen die äußeren Felder die ursprüngliche Gruppe, während
+`value` das Ziel wählt. Ein Profilwechsel mit Kontext verlangt beide Vergleiche. Ein direkter PUT
+verwendet dieselben Queryfelder für die ursprüngliche Gruppe, mit derselben Zeilenrevision wie
+im JSON. So verschiebt ein vorbereiteter Wechsel keine CVs aus einer inzwischen anders zugeordneten Gruppe.
+
 ## Grenzen erhalten
 
 Rollen und Schutzmaßnahmen werden serverseitig geprüft. Gerätedaten beginnen als lesende Vorschläge; Schreibvorgänge benötigen eine bewusst bestätigte Vorschau. CV-Werte bleiben von ihrer Bedeutung getrennt: Bibliotheksregeln erklären Rohdaten nur bei belegtem Modell-, Firmware- und Indexkontext.

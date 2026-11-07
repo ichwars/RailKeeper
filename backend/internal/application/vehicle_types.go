@@ -482,20 +482,23 @@ type VehicleCVValueHistory struct {
 }
 
 type VehicleCVValueInput struct {
-	ExpectedRevision          *string `json:"expectedRevision,omitempty"`
-	WorkspaceID               string  `json:"workspaceId,omitempty"`
-	ExpectedWorkspaceRevision string  `json:"expectedWorkspaceRevision,omitempty"`
-	CVNumber                  int     `json:"cvNumber"`
-	IndexCV31                 *int    `json:"indexCV31,omitempty"`
-	IndexCV32                 *int    `json:"indexCV32,omitempty"`
-	Value                     int     `json:"value"`
-	Description               string  `json:"description"`
-	Category                  string  `json:"category"`
-	Protocol                  string  `json:"protocol"`
-	DecoderProfile            string  `json:"decoderProfile"`
-	SourceFileID              string  `json:"sourceFileId"`
-	SourceLine                *int    `json:"sourceLine,omitempty"`
-	SourceExportedAt          string  `json:"sourceExportedAt,omitempty"`
+	// Original-group comparisons come from a PUT query or an outer batch item, never source files.
+	SourceWorkspaceID               string  `json:"-"`
+	ExpectedSourceWorkspaceRevision string  `json:"-"`
+	ExpectedRevision                *string `json:"expectedRevision,omitempty"`
+	WorkspaceID                     string  `json:"workspaceId,omitempty"`
+	ExpectedWorkspaceRevision       string  `json:"expectedWorkspaceRevision,omitempty"`
+	CVNumber                        int     `json:"cvNumber"`
+	IndexCV31                       *int    `json:"indexCV31,omitempty"`
+	IndexCV32                       *int    `json:"indexCV32,omitempty"`
+	Value                           int     `json:"value"`
+	Description                     string  `json:"description"`
+	Category                        string  `json:"category"`
+	Protocol                        string  `json:"protocol"`
+	DecoderProfile                  string  `json:"decoderProfile"`
+	SourceFileID                    string  `json:"sourceFileId"`
+	SourceLine                      *int    `json:"sourceLine,omitempty"`
+	SourceExportedAt                string  `json:"sourceExportedAt,omitempty"`
 }
 
 type VehicleCVFile struct {

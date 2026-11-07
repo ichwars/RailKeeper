@@ -908,6 +908,19 @@ function digitalCenterSessionSuffix(sessionID?: string) {
   return normalized ? `?sessionId=${encodeURIComponent(normalized)}` : "";
 }
 
+export type VehicleCVWorkspaceComparison = Required<Pick<VehicleCVChange, "workspaceId" | "expectedWorkspaceRevision">>;
+export type VehicleCVDeletionScope = VehicleCVWorkspaceComparison;
+
+function cvComparisonQuery(expectedRevision?: string, scope?: VehicleCVWorkspaceComparison) {
+  const query = new URLSearchParams();
+  if (expectedRevision !== undefined) query.set("expectedRevision", expectedRevision);
+  if (scope !== undefined) {
+    query.set("workspaceId", scope.workspaceId);
+    query.set("expectedWorkspaceRevision", scope.expectedWorkspaceRevision);
+  }
+  return query.size ? `?${query}` : "";
+}
+
 export const api = {
   ...createDecoderConfigurationsAPI(request),
   ...createVehicleCatalogAPI(request),
@@ -1340,13 +1353,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input)
     }),
-  updateVehicleCVValue: (vehicleId: string, cvValueId: string, input: VehicleCVValueInput) =>
-    request<VehicleCVValue>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}`, {
+  updateVehicleCVValue: (vehicleId: string, cvValueId: string, input: VehicleCVValueInput, sourceScope?: VehicleCVWorkspaceComparison) =>
+    request<VehicleCVValue>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}${sourceScope ? cvComparisonQuery(input.expectedRevision, sourceScope) : ""}`, {
       method: "PUT",
       body: JSON.stringify(input)
     }),
-  deleteVehicleCVValue: (vehicleId: string, cvValueId: string) =>
-    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}`, {
+  deleteVehicleCVValue: (vehicleId: string, cvValueId: string, expectedRevision?: string, scope?: VehicleCVDeletionScope) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}${cvComparisonQuery(expectedRevision, scope)}`, {
       method: "DELETE"
     }),
   uploadVehicleCVFile: (vehicleId: string, file: File, decoderProfile = "", description = "",
@@ -1378,8 +1391,8 @@ export const api = {
       { timeoutMs: 30000 }
     );
   },
-  deleteVehicleCVFile: (vehicleId: string, cvFileId: string, expectedRevision?: string) =>
-    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-files/${encodeURIComponent(cvFileId)}${expectedRevision === undefined ? "" : `?expectedRevision=${encodeURIComponent(expectedRevision)}`}`, {
+  deleteVehicleCVFile: (vehicleId: string, cvFileId: string, expectedRevision?: string, scope?: VehicleCVDeletionScope) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-files/${encodeURIComponent(cvFileId)}${cvComparisonQuery(expectedRevision, scope)}`, {
       method: "DELETE"
     }),
   vehicleCVFileDownloadUrl: (vehicleId: string, cvFileId: string) =>

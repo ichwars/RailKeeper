@@ -8,6 +8,32 @@ import (
 	"strings"
 )
 
+type VehicleCVDeletionInput struct {
+	ExpectedRevision          *string
+	WorkspaceID               string
+	ExpectedWorkspaceRevision string
+}
+
+func checkCVDeletionScopeTx(ctx context.Context, tx *sql.Tx, vehicleID, profile string, input VehicleCVDeletionInput) error {
+	if input.WorkspaceID == "" && input.ExpectedWorkspaceRevision == "" {
+		return nil
+	}
+	if input.WorkspaceID == "" || !validCVRevision(input.ExpectedWorkspaceRevision) || input.ExpectedRevision == nil {
+		return ErrVehicleValidation
+	}
+	stored, revision, err := readCVWorkspaceBindingTx(ctx, tx, vehicleID, input.WorkspaceID)
+	if err != nil {
+		return err
+	}
+	if revision != input.ExpectedWorkspaceRevision {
+		return ErrVehicleCVConflict
+	}
+	if stored != profile {
+		return ErrVehicleValidation
+	}
+	return nil
+}
+
 func readCVWorkspaceBindingTx(ctx context.Context, tx *sql.Tx, vehicleID, workspaceID string) (string, string, error) {
 	var profile, installation, decoder, state string
 	err := tx.QueryRowContext(ctx, `SELECT w.profile_text,COALESCE(w.installation_id,''),COALESCE(i.decoder_id,''),COALESCE(i.state,'')
