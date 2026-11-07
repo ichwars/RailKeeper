@@ -4,14 +4,20 @@ import type {
   VehicleCVValue,
   VehicleFunction,
   VehicleImage,
+  VehicleImageCreation,
   VehicleMaintenance
 } from "../../shared/api";
 
 const timestamp = "2026-07-23T08:00:00Z";
 
+export function createdImageFixture(overrides: Partial<VehicleImageCreation> = {}): VehicleImageCreation {
+  return { ...imageFixture(), imagesRevision: "b".repeat(64), ...overrides };
+}
+
 export function imageFixture(overrides: Partial<VehicleImage> = {}): VehicleImage {
   return {
     id: "image-1",
+    revision: "d".repeat(64),
     vehicleId: "vehicle-1",
     url: "/api/v1/vehicles/vehicle-1/images/image-1/file",
     isPrimary: true,
@@ -56,6 +62,7 @@ export function functionFixture(overrides: Partial<VehicleFunction> = {}): Vehic
 export function cvValueFixture(overrides: Partial<VehicleCVValue> = {}): VehicleCVValue {
   return {
     id: "cv-1",
+    revision: "c".repeat(64),
     vehicleId: "vehicle-1",
     cvNumber: 1,
     value: 3,
@@ -70,6 +77,7 @@ export function cvValueFixture(overrides: Partial<VehicleCVValue> = {}): Vehicle
 export function cvFileFixture(overrides: Partial<VehicleCVFile> = {}): VehicleCVFile {
   return {
     id: "cv-file-1",
+    revision: "a".repeat(64),
     vehicleId: "vehicle-1",
     fileName: "decoder.esux",
     originalName: "decoder.esux",
@@ -82,6 +90,8 @@ export function cvFileFixture(overrides: Partial<VehicleCVFile> = {}): VehicleCV
 
 export function vehicleFixture(overrides: Partial<Vehicle> = {}): Vehicle {
   return {
+    revision: "e".repeat(64),
+    imagesRevision: "f".repeat(64),
     id: "vehicle-1",
     inventoryNumber: "RK-LOK-000001",
     manufacturer: "ESU",

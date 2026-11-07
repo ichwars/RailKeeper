@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { api, type CreateVehicleRequest, type Vehicle } from "../../shared/api";
+import { useEffect, useRef, useState } from "react";
+import { api, ApiError, type CreateVehicleRequest, type Vehicle } from "../../shared/api";
 import { vehicleSetInputFromForm, vehicleSetMembersFromForm } from "./VehicleCreateWizard";
 import { clearVehicleCreateDraft, type VehicleSetMemberDraft } from "./vehicleCreateWizardState";
 import { vehicleSetDuplicatePrefill, type VehicleCreatePrefill } from "./vehicleSetDuplicate";
@@ -9,6 +9,7 @@ import type { ModalMode, ModalTab } from "./vehicleViewModel";
 type VehicleSetControllerOptions = {
   username: string;
   form: CreateVehicleRequest;
+  captureScope?: () => () => boolean;
   vehicles: Vehicle[];
   openDetail: (vehicle: Vehicle) => void;
   pendingArticleImages: PendingArticleImage[];
@@ -25,19 +26,32 @@ type VehicleSetControllerOptions = {
 
 export function useVehicleSetController({
   username, form, pendingArticleImages, setSaving, setSelectedDetail, setMode,
-  setActiveTab, closeModal, openCreate, openDetail, vehicles, load, onMessage, t
+  setActiveTab, closeModal, openCreate, openDetail, vehicles, load, onMessage, t, captureScope
 }: VehicleSetControllerOptions) {
 	const [selectedVehicleSetID, setSelectedVehicleSetID] = useState("");
 	const [vehicleSetMode, setVehicleSetMode] = useState<"view" | "edit" | null>(null);
 	const [createPrefill, setCreatePrefill] = useState<VehicleCreatePrefill | null>(null);
-  const submitVehicleSet = async (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>) => {
+  const setSession = useRef(0), setOpen = useRef(false), alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; setSession.current++; };
+  }, []);
+  const captureVehicleSetScope = (session = setSession.current) =>
+    () => alive.current && setOpen.current && setSession.current === session;
+  const submitVehicleSet = async (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>, creationId?: string) => {
+    const isCurrent = captureScope?.() || (() => true);
+    if (!isCurrent()) return;
     setSaving(true);
     onMessage("");
+    let acknowledged = false;
     try {
       const created = await api.createVehicleSet({
+        ...(creationId ? { creationId } : {}),
         set: vehicleSetInputFromForm(form),
         members: vehicleSetMembersFromForm(form, members, pendingArticleImages, imageOwners)
       });
+      acknowledged = true;
+      if (!isCurrent()) return;
       clearVehicleCreateDraft(username);
       const firstMember = created.members[0];
       if (firstMember) {
@@ -48,19 +62,29 @@ export function useVehicleSetController({
         closeModal();
       }
       await load();
+      if (!isCurrent()) return;
 			setCreatePrefill(null);
       onMessage(t("vehicles.wizard.created", { count: created.members.length }));
     } catch (error) {
+      if (!isCurrent()) return;
+      if (error instanceof ApiError && error.code === "vehicle_creation_conflict") {
+        await load(); if (isCurrent()) onMessage(t("vehicles.creation.alreadyStored")); return;
+      }
+      if (creationId && !acknowledged && (!(error instanceof ApiError) || error.status >= 500 || [408, 499].includes(error.status))) {
+        onMessage(t("vehicles.creation.unknown")); return;
+      }
       onMessage(error instanceof Error ? error.message : t("vehicles.wizard.createFailed"));
     } finally {
-      setSaving(false);
+      if (isCurrent()) setSaving(false);
     }
   };
 	const closeVehicleSetDialog = () => {
+    setSession.current++; setOpen.current = false;
 		setSelectedVehicleSetID("");
 		setVehicleSetMode(null);
 	};
 	const openVehicleSet = (setID: string, nextMode: "view" | "edit") => {
+    setSession.current++; setOpen.current = true;
 		setSelectedVehicleSetID(setID);
 		setVehicleSetMode(nextMode);
 	};
@@ -82,8 +106,9 @@ export function useVehicleSetController({
 		}
 	};
 	const handleVehicleSetUpdated = async () => {
+		const isCurrent = captureVehicleSetScope();
 		await load();
-		setVehicleSetMode("view");
+		if (isCurrent()) setVehicleSetMode("view");
 	};
 	const handleVehicleSetImageChanged = async () => {
 		await load();
@@ -100,6 +125,7 @@ export function useVehicleSetController({
 
   return {
     selectedVehicleSetID, vehicleSetMode, createPrefill, setCreatePrefill,
+    vehicleSetSessionKey: setSession.current, captureVehicleSetScope,
     submitVehicleSet, closeVehicleSetDialog, openVehicleSet, duplicateVehicleSet,
     closeVehicleCreateDialog, duplicateVehicleSetByID, handleVehicleSetUpdated, handleVehicleSetImageChanged, openSetMember
   };

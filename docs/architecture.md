@@ -41,11 +41,20 @@ duplication prefills and creation. Existing function, maintenance, decoder-file 
 retain their request boundaries.
 
 Image draft state lives in `useVehicleImageDraftController` and makes no API calls. The existing media
-controller still performs immediate uploads and persisted deletions. `vehicleImagePersistence` partitions
+controller prepares independent confirmed file actions through `useVehicleUploads` and
+`useVehicleMediaDeletion`. `vehicleImagePersistence` partitions
 new remote images from the core save payload; `vehicleImportAdoption` handles local mapping/CV adoption
 and return navigation. The core save acknowledges and selects the saved vehicle before ancillary imports,
-so retrying a failed image import uses the saved vehicle. These boundaries do not turn a draft operation
-into an immediate write or change existing save/cancel behavior. They add no physical device writes.
+so retrying a failed image import uses the saved vehicle. Each successful remote image is acknowledged
+with its persisted ID before the next import, including when a later import fails.
+
+Independent actions refresh the selected aggregate without reinitializing its open drafts. Core fields
+use a three-way comparison with the previous response; concurrent edits to the same refreshed field
+remain visible until the user chooses a value. Dirty functions keep their original revision, image
+metadata and attachment edits are reconciled, and unrelated workshop/CV forms remain open. Only opening
+another editor resets all sections. Closing is blocked during a save. Bilingual guidance distinguishes
+pending drafts from actions already stored. See [vehicle save boundaries](architecture/vehicle-save-boundaries.md)
+for the individual write paths and cancellation semantics. These local actions add no physical device writes.
 
 Vehicle create/update use cases retain validation, inventory-number allocation, the transaction boundary,
 audit/history writes, media reconciliation and optimistic function conflicts. The focused
@@ -54,7 +63,15 @@ transactions. It never begins or commits a transaction and imports no applicatio
 cycle with legacy infrastructure adapters that still depend on application types. The application maps
 its existing vehicle model to a typed storage record; public response types and stored values are unchanged.
 
+CV writes similarly use caller-owned transactions through `vehicledata`. The additive
+[atomic CV changes API](architecture/cv-drafts.md) supports bounded manual batches, exact profile/index
+identity checks and computed row revisions. Existing single-value and import routes share the writer;
+their existing requests remain valid. The database schema and backup format are unchanged.
+
 ## Frontend settings
+
+Import previews use shared [source, target, effect and comparison vocabulary](architecture/import-review.md)
+while keeping their specialized parsers and confirmed write boundaries.
 
 `SettingsView` composes the existing settings areas and coordinates shared confirmations. Its controllers
 stay mounted across tabs so navigation does not discard pending form state. Existing load points, save
@@ -136,6 +153,9 @@ Node.js is only used to build the frontend.
 - Z21 locomotive reads are targeted status polls for decoder addresses already known to RailKeeper, not a
   roster import. Only the confirmed address enters the comparison workspace; driving and function state is
   discarded. See `docs/architecture/z21-read-scope.md` for protocol evidence, bounds, and hardware gaps.
+- The additive [decoder installation and CV snapshot model](architecture/decoder-configurations.md)
+  preserves physical decoder identity separately from working profile labels and recorded partial
+  states. Backup support precedes use; existing mutable CV rows remain authoritative.
 - Decoder CV identity is vehicle + exact trimmed decoder profile + CV number + optional CV31/CV32 pair.
   Unindexed values and zero index pages remain distinct. Reviewed CV selections commit atomically.
   ECoS CVs use a bounded database XML export with explicit index pages and additive adoption with
@@ -188,7 +208,7 @@ Node.js is only used to build the frontend.
   It does not infer key mode/inversion or apply these rules to other Kühn decoders. See
   [Kühn quality and source conflicts](architecture/kuehn-cv-quality.md).
   Coverage counts include documented memory ranges, not full semantic decoding of every byte.
-  Profile validation applies to master-data writes/imports and backup preflight. Backup version 24
+  Profile validation applies to master-data writes/imports and backup preflight. Backup version 26
   carries this data; restore fills missing bundled profiles for older backups.
 - RailComPlus presentation uses one client-side evaluator (`shared/railComPlus.ts`) for both
   import previews and saved vehicle readings. It requires the reviewed active LokPilot 5 micro DCC
@@ -234,11 +254,16 @@ Node.js is only used to build the frontend.
 - SQLite remains the default database because it keeps local installation, backup, and restore simple.
 - Attachments are stored on the filesystem below the configured data directory; metadata stays in SQLite.
 - CV provenance stores the physical source line and source export wall-clock timestamp without an inferred timezone. Missing provenance on edits/imports preserves existing metadata. Legacy records remain unknown until matched to an original source.
-- Backup version 24 includes vehicle sets, vehicles, accessories, storage, maintenance, CVs,
+- Backup version 26 includes optional catalog articles, immutable revisions, vehicle/set links and
+  individual catalog overrides alongside vehicle sets, vehicles, accessories, storage, maintenance, CVs,
   exhibitions, transfer profiles, conflict exceptions, uploads, and archived legacy planning data.
   Older supported backups remain importable. Legacy layout allocations are archived and retired
   transactionally during restore; vehicle allocations remain unchanged. Restore defers foreign-key
   checks and validates them at commit.
+- Consistent catalog relationships become authoritative with transactional legacy projections for
+  every existing inventory writer. Unresolved proposals retain legacy authority and their original
+  marker. Its field map, backup boundary and authority rules are defined in
+  [vehicle catalog relationships](architecture/vehicle-catalog.md).
 - Backup and restore intentionally exclude local authentication and installation data such as users,
   roles, sessions, password hashes, audit logs, SMTP settings, and user UI settings.
 

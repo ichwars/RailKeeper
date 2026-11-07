@@ -136,7 +136,11 @@ func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		a.logger.Warn("image thumbnail skipped", "file", header.Filename, "error", err)
 	}
-	image, err := a.vehicleService.CreateImage(r.Context(), vehicleID, application.VehicleImageInput{
+	var expectedImagesRevision *string
+	if values, ok := r.MultipartForm.Value["expectedImagesRevision"]; ok && len(values) > 0 {
+		expectedImagesRevision = &values[0]
+	}
+	image, err := a.vehicleService.CreateImageWithRevision(r.Context(), vehicleID, application.VehicleImageInput{
 		Title:           r.FormValue("title"),
 		SourceURL:       r.FormValue("sourceUrl"),
 		FileName:        storageName,
@@ -145,10 +149,18 @@ func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
 		ThumbnailBlobID: thumbnailBlobID,
 		MaintenanceID:   r.FormValue("maintenanceId"),
 		IsPrimary:       strings.EqualFold(r.FormValue("isPrimary"), "true"),
-	})
+	}, expectedImagesRevision)
 	if err != nil {
 		a.deleteFileBlobIfUnreferenced(r.Context(), blobID)
 		a.deleteFileBlobIfUnreferenced(r.Context(), thumbnailBlobID)
+		if errors.Is(err, application.ErrVehicleImageConflict) {
+			respondProblem(w, http.StatusConflict, "vehicle_image_conflict", "The image collection changed. No new image was stored.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "image_invalid", "Invalid image metadata or expected revision.")
+			return
+		}
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
 			return
@@ -161,12 +173,13 @@ func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
 }
 
 type importVehicleImageInput struct {
-	URL           string `json:"url"`
-	Title         string `json:"title"`
-	SourceURL     string `json:"sourceUrl"`
-	MaintenanceID string `json:"maintenanceId"`
-	IsPrimary     bool   `json:"isPrimary"`
-	SortOrder     int    `json:"sortOrder"`
+	ExpectedImagesRevision *string `json:"expectedImagesRevision,omitempty"`
+	URL                    string  `json:"url"`
+	Title                  string  `json:"title"`
+	SourceURL              string  `json:"sourceUrl"`
+	MaintenanceID          string  `json:"maintenanceId"`
+	IsPrimary              bool    `json:"isPrimary"`
+	SortOrder              int     `json:"sortOrder"`
 }
 
 func (a *App) importVehicleImageFromURL(w http.ResponseWriter, r *http.Request) {
@@ -194,7 +207,7 @@ func (a *App) importVehicleImageFromURL(w http.ResponseWriter, r *http.Request) 
 		respondProblem(w, http.StatusBadGateway, "image_import_failed", "Bild konnte nicht heruntergeladen werden.")
 		return
 	}
-	image, err := a.vehicleService.CreateImage(r.Context(), vehicleID, localized)
+	image, err := a.vehicleService.CreateImageWithRevision(r.Context(), vehicleID, localized, input.ExpectedImagesRevision)
 	if err != nil {
 		a.deleteFileBlobIfUnreferenced(r.Context(), localized.BlobID)
 		a.deleteFileBlobIfUnreferenced(r.Context(), localized.ThumbnailBlobID)
@@ -204,12 +217,16 @@ func (a *App) importVehicleImageFromURL(w http.ResponseWriter, r *http.Request) 
 		if fullPath, pathErr := confinedDataPath(a.dataDir, localized.ThumbnailPath); pathErr == nil {
 			_ = os.Remove(fullPath)
 		}
+		if errors.Is(err, application.ErrVehicleImageConflict) {
+			respondProblem(w, http.StatusConflict, "vehicle_image_conflict", "The image collection changed. No imported image was stored.")
+			return
+		}
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
 			return
 		}
 		if errors.Is(err, application.ErrVehicleValidation) {
-			respondProblem(w, http.StatusBadRequest, "image_invalid", "Bilddaten sind unvollst?ndig.")
+			respondProblem(w, http.StatusBadRequest, "image_invalid", "Bilddaten sind unvollständig.")
 			return
 		}
 		a.logger.Error("remote image metadata create failed", "error", err)
@@ -220,8 +237,21 @@ func (a *App) importVehicleImageFromURL(w http.ResponseWriter, r *http.Request) 
 }
 
 func (a *App) deleteVehicleImage(w http.ResponseWriter, r *http.Request) {
-	image, err := a.vehicleService.DeleteImage(r.Context(), r.PathValue("id"), r.PathValue("imageID"))
+	var expected []string
+	if r.URL.Query().Has("expectedRevision") {
+		expected = []string{r.URL.Query().Get("expectedRevision")}
+	}
+	image, err := a.vehicleService.DeleteImage(r.Context(), r.PathValue("id"), r.PathValue("imageID"), expected...)
 	if err != nil {
+		if errors.Is(err, application.ErrVehicleImageConflict) {
+			respondProblem(w, http.StatusConflict, "image_conflict", "Media changed. Compare the current record before confirming deletion again.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "image_invalid", "Invalid expected revision.")
+			return
+		}
+
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "image_not_found", "Image not found.")
 			return
@@ -234,18 +264,18 @@ func (a *App) deleteVehicleImage(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusInternalServerError, "image_delete_failed", "Bild konnte nicht gelöscht werden.")
 		return
 	}
-	a.removeVehicleImageFileIfUnreferenced(r.Context(), image.StoragePath)
-	a.removeVehicleImageFileIfUnreferenced(r.Context(), image.ThumbnailPath)
+	a.removeVehicleMediaFileIfUnreferenced(r.Context(), image.StoragePath)
+	a.removeVehicleMediaFileIfUnreferenced(r.Context(), image.ThumbnailPath)
 	a.deleteFileBlobIfUnreferenced(r.Context(), image.BlobID)
 	a.deleteFileBlobIfUnreferenced(r.Context(), image.ThumbnailBlobID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (a *App) removeVehicleImageFileIfUnreferenced(ctx context.Context, storagePath string) {
+func (a *App) removeVehicleMediaFileIfUnreferenced(ctx context.Context, storagePath string) {
 	if storagePath == "" {
 		return
 	}
-	references, err := a.vehicleService.ImageFileReferenceCount(ctx, storagePath)
+	references, err := a.vehicleService.MediaFileReferenceCount(ctx, storagePath)
 	if err != nil {
 		a.logger.Warn("image file reference check failed", "path", storagePath, "error", err)
 		return
@@ -276,7 +306,9 @@ func (a *App) deleteFileBlobIfUnreferenced(ctx context.Context, blobID string) {
 	if blobID == "" || a.fileBlobs == nil {
 		return
 	}
-	if err := a.fileBlobs.DeleteIfUnreferenced(ctx, blobID); err != nil {
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	if err := a.fileBlobs.DeleteIfUnreferenced(cleanupCtx, blobID); err != nil {
 		a.logger.Warn("file blob cleanup failed", "blobID", blobID, "error", err)
 	}
 }

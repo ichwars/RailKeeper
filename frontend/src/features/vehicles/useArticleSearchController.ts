@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 
 import {
   api,
@@ -17,6 +17,7 @@ import {
 } from "./articleSearch";
 import type { PendingArticleImage } from "./vehicleTransforms";
 import type { VehicleCreateArticleDraft } from "./vehicleCreateWizardState";
+import { reviewedResultIndex, useArticleReviewGuard } from "../../shared/articleSearch/useArticleReviewGuard";
 import {
   articleSearchEnabled,
   articleSearchSources,
@@ -29,6 +30,7 @@ import {
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
 type UseArticleSearchControllerOptions = {
+  targetKey?: string;
   form: CreateVehicleRequest;
   pendingImageCount: number;
   replaceForm: (form: CreateVehicleRequest) => void;
@@ -39,6 +41,7 @@ type UseArticleSearchControllerOptions = {
 };
 
 export function useArticleSearchController({
+  targetKey = "vehicle-draft",
   form,
   pendingImageCount,
   replaceForm,
@@ -55,8 +58,17 @@ export function useArticleSearchController({
   const [barcodeValue, setBarcodeValue] = useState("");
   const [selectedFields, setSelectedFields] = useState<Record<string, boolean>>({});
   const [selectedImages, setSelectedImages] = useState<Record<string, boolean>>({});
+  const latest = useRef({ form, selectedFields, selectedImages, pendingImageCount, updateForm, addImages });
+  latest.current = { form, selectedFields, selectedImages, pendingImageCount, updateForm, addImages };
+  const guard = useArticleReviewGuard(targetKey, () => {
+    setOpen(false); setLoading(false); setResponse(null); setError("");
+    setSelectedFields({}); setSelectedImages({}); setBarcodeOpen(false);
+  });
 
   const run = (searchForm = form, searchInput?: ArticleSearchInput) => {
+    const request = guard.begin();
+    if (request === null) return;
+    setLoading(false); setResponse(null); setSelectedFields({}); setSelectedImages({});
     if (!articleSearchEnabled()) {
       setError("Die Artikeldaten-Websuche ist in den Einstellungen deaktiviert.");
       setOpen(true);
@@ -91,17 +103,19 @@ export function useArticleSearchController({
     })
       .then((nextResponse) => {
         const sanitized = sanitizeArticleSearchResponse(nextResponse);
+        if (!guard.complete(request, sanitized)) return;
         const initialSelection: Record<string, boolean> = {};
         sanitized.results.forEach((result, index) => {
           Object.keys(result.fields).filter(isArticleFieldKey).forEach((key) => {
             initialSelection[articleSelectionKey(result, key, index)] = !currentArticleValue(searchForm, key);
+            guard.remember(articleSelectionKey(result, key, index), currentArticleValue(searchForm, key));
           });
         });
         setResponse(sanitized);
         setSelectedFields(initialSelection);
       })
-      .catch((requestError: Error) => setError(requestError.message))
-      .finally(() => setLoading(false));
+      .catch((requestError: Error) => { if (guard.active(request)) setError(requestError.message); })
+      .finally(() => { if (guard.active(request)) setLoading(false); });
   };
 
   const openBarcode = () => {
@@ -127,6 +141,8 @@ export function useArticleSearchController({
   };
 
   const toggleField = (result: ArticleSearchResult, index: number, key: string, checked: boolean) => {
+    if (!guard.reviewing(response) || reviewedResultIndex(response, result) !== index || !isArticleFieldKey(key)) return;
+    if (checked) guard.remember(articleSelectionKey(result, key, index), currentArticleValue(form, key));
     setSelectedFields((current) => ({ ...current, [articleSelectionKey(result, key, index)]: checked }));
   };
 
@@ -136,30 +152,41 @@ export function useArticleSearchController({
     image: ArticleSearchImage,
     checked: boolean
   ) => {
+    if (!guard.reviewing(response) || reviewedResultIndex(response, result) !== index ||
+      !result.images?.some(candidate => candidate.url === image.url)) return;
     setSelectedImages((current) => ({ ...current, [imageSelectionKey(result, image, index)]: checked }));
   };
 
   const applyResult = (result: ArticleSearchResult) => {
+    const now = latest.current;
+    const resultIndex = reviewedResultIndex(response, result);
+    if (!guard.reviewing(response) || resultIndex < 0) return;
+    const selected = Object.keys(result.fields).filter(isArticleFieldKey)
+      .filter(key => now.selectedFields[articleSelectionKey(result, key, resultIndex)]);
+    const changed = guard.changed(selected.map(key => [articleSelectionKey(result, key, resultIndex), currentArticleValue(now.form, key)]));
+    if (changed.length) {
+      setSelectedFields(current => Object.fromEntries(Object.entries(current).map(([key, checked]) => [key, changed.includes(key) ? false : checked])));
+      setError(t("importReview.article.changed")); return;
+    }
+    if (!guard.consume(response)) return;
     const patch: Partial<CreateVehicleRequest> = {};
-    const foundResultIndex = response?.results.findIndex((entry) => entry.url === result.url) ?? 0;
-    const resultIndex = foundResultIndex >= 0 ? foundResultIndex : 0;
 
     Object.entries(result.fields).forEach(([key, field]) => {
-      if (!isArticleFieldKey(key) || !selectedFields[articleSelectionKey(result, key, resultIndex)]) return;
+      if (!isArticleFieldKey(key) || !now.selectedFields[articleSelectionKey(result, key, resultIndex)]) return;
       if (isBadArticleValue(key, field.value)) return;
       Object.assign(patch, { [key]: articleValueForForm(key, field.value) });
     });
 
     const images = (result.images || [])
-      .filter((image) => selectedImages[imageSelectionKey(result, image, resultIndex)])
+      .filter((image) => now.selectedImages[imageSelectionKey(result, image, resultIndex)])
       .map((image, imageIndex) => ({
         ...image,
         id: `${result.url}-${image.url}`,
-        isPrimary: pendingImageCount === 0 && imageIndex === 0
+        isPrimary: now.pendingImageCount === 0 && imageIndex === 0
       }));
-    if (images.length > 0) addImages(images);
+    if (images.length > 0) now.addImages(images);
 
-    updateForm(patch);
+    now.updateForm(patch);
     setOpen(false);
   };
 
@@ -168,6 +195,11 @@ export function useArticleSearchController({
     selectedResultIndex: number | null,
     imagesApplied: boolean
   ) => {
+    const version = guard.begin();
+    if (!guard.complete(version, draft?.response || null)) return;
+    setLoading(false);
+    draft?.response?.results.forEach((result, index) => Object.keys(result.fields).filter(isArticleFieldKey).forEach(key =>
+      guard.remember(articleSelectionKey(result, key, index), currentArticleValue(form, key))));
     setResponse(draft?.response || null);
     setSelectedFields(draft?.selectedFields || {});
     setSelectedImages(draft?.selectedImages || {});
@@ -198,7 +230,8 @@ export function useArticleSearchController({
       selectedImages
     },
     setters: {
-      setOpen,
+      setOpen: (value: boolean) => { if (!guard.available()) return;
+        if (!value) { guard.invalidate(); setLoading(false); } setOpen(value); },
       setBarcodeOpen,
       setBarcodeValue
     },

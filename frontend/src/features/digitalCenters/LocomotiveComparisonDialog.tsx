@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, TriangleAlert, X } from "lucide-react";
 
 import { useI18n, type Language } from "../../shared/i18n";
+import { ImportReviewContext, ImportReviewStatus } from "../../shared/ImportReview";
 import { AppCheckbox } from "../../shared/ui/AppCheckbox";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import { ECoSStoredCVPanel } from "./ECoSStoredCVPanel";
@@ -12,6 +13,7 @@ import type {
   DigitalCenterWriteOperation,
   DigitalCenterWritePreview
 } from "./digitalCenterModel";
+const reviewStates = { ok: "same", deviation: "changed", missing: "unclear", new: "new", conflict: "unclear" } as const;
 
 export function LocomotiveComparisonDialog({
   item, canWrite, canAdopt, loading, preview, confirmation, error, onPreview, onConfirm,
@@ -64,13 +66,18 @@ export function LocomotiveComparisonDialog({
       <div ref={layerRef} className="digital-comparison-layer" role="dialog" aria-modal="true"
         aria-label={t("digitalCenters.dialog.label", { name: item.name })} onKeyDown={onKeyDown}>
         <section className="digital-comparison-dialog">
-          <header><div><p className="eyebrow">{t("digitalCenters.dialog.eyebrow")}</p><h2>{item.name}</h2></div>
+          <header><div><p className="eyebrow">{t("digitalCenters.dialog.eyebrow")}</p><h2>{item.name}</h2>
+            <ImportReviewStatus state={reviewStates[item.compareStatus]} /></div>
             <button ref={closeButtonRef} type="button" className="digital-center-icon-button"
               aria-label={t("digitalCenters.dialog.closeComparison")} onClick={onClose}>
               <X size={19} aria-hidden="true" />
             </button></header>
 
-          {!preview && <ComparisonTable rows={rows} t={t} />}
+          {!preview && <>
+            <ImportReviewContext source={`${t("digitalCenters.dialog.station")}: ${item.center.name ?? item.name}`}
+              target={`RailKeeper: ${item.railkeeper.name || item.name}`} effect={t("importReview.effect.compare")} />
+            <ComparisonTable rows={rows} t={t} />
+          </>}
           {!preview && canReadCVs && item.stationStatus !== "missing" && onCVRead &&
             <ECoSStoredCVPanel key={item.id} item={item} onChange={onCVRead} onBusy={setCVBusy}
               externalReading={preparingCVs} externalError={cvReadError} onCancelRead={onCancelCVRead} />}

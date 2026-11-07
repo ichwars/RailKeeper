@@ -65,6 +65,8 @@ type VehicleService struct {
 type VehicleImageLocalizer func(ctx context.Context, vehicleID string, images []VehicleImageInput) ([]VehicleImageInput, error)
 
 type Vehicle struct {
+	Revision                  string                      `json:"revision,omitempty"`
+	ImagesRevision            string                      `json:"imagesRevision,omitempty"`
 	ID                        string                      `json:"id"`
 	VehicleSetID              string                      `json:"vehicleSetId,omitempty"`
 	VehicleSetName            string                      `json:"vehicleSetName,omitempty"`
@@ -229,8 +231,9 @@ type VehicleSetInput struct {
 }
 
 type CreateVehicleSetInput struct {
-	Set     VehicleSetInput      `json:"set"`
-	Members []CreateVehicleInput `json:"members"`
+	CreationID string               `json:"creationId,omitempty"`
+	Set        VehicleSetInput      `json:"set"`
+	Members    []CreateVehicleInput `json:"members"`
 }
 
 type VehicleSet struct {
@@ -291,6 +294,7 @@ type VehicleExternalMapInput struct {
 }
 
 type VehicleImage struct {
+	Revision        string `json:"revision,omitempty"`
 	ID              string `json:"id"`
 	VehicleID       string `json:"vehicleId"`
 	URL             string `json:"url"`
@@ -310,6 +314,11 @@ type VehicleImage struct {
 	UpdatedAt       string `json:"updatedAt,omitempty"`
 }
 
+type VehicleImageCreation struct {
+	VehicleImage
+	ImagesRevision string `json:"imagesRevision"`
+}
+
 type VehicleImageInput struct {
 	ID              string `json:"id"`
 	URL             string `json:"url"`
@@ -327,6 +336,7 @@ type VehicleImageInput struct {
 }
 
 type VehicleAttachment struct {
+	Revision      string `json:"revision,omitempty"`
 	ID            string `json:"id"`
 	VehicleID     string `json:"vehicleId"`
 	FileName      string `json:"fileName"`
@@ -355,9 +365,10 @@ type VehicleAttachmentInput struct {
 }
 
 type VehicleAttachmentUpdateInput struct {
-	Description   string `json:"description"`
-	Category      string `json:"category"`
-	MaintenanceID string `json:"maintenanceId"`
+	ExpectedRevision *string `json:"expectedRevision,omitempty"`
+	Description      string  `json:"description"`
+	Category         string  `json:"category"`
+	MaintenanceID    string  `json:"maintenanceId"`
 }
 
 type VehicleMaintenance struct {
@@ -443,6 +454,7 @@ type VehicleFunctionChange struct {
 
 type VehicleCVValue struct {
 	ID               string                  `json:"id"`
+	Revision         string                  `json:"revision,omitempty"`
 	VehicleID        string                  `json:"vehicleId"`
 	CVNumber         int                     `json:"cvNumber"`
 	IndexCV31        *int                    `json:"indexCV31,omitempty"`
@@ -470,46 +482,58 @@ type VehicleCVValueHistory struct {
 }
 
 type VehicleCVValueInput struct {
-	CVNumber         int    `json:"cvNumber"`
-	IndexCV31        *int   `json:"indexCV31,omitempty"`
-	IndexCV32        *int   `json:"indexCV32,omitempty"`
-	Value            int    `json:"value"`
-	Description      string `json:"description"`
-	Category         string `json:"category"`
-	Protocol         string `json:"protocol"`
-	DecoderProfile   string `json:"decoderProfile"`
-	SourceFileID     string `json:"sourceFileId"`
-	SourceLine       *int   `json:"sourceLine,omitempty"`
-	SourceExportedAt string `json:"sourceExportedAt,omitempty"`
+	// Original-group comparisons come from a PUT query or an outer batch item, never source files.
+	SourceWorkspaceID               string  `json:"-"`
+	ExpectedSourceWorkspaceRevision string  `json:"-"`
+	ExpectedRevision                *string `json:"expectedRevision,omitempty"`
+	WorkspaceID                     string  `json:"workspaceId,omitempty"`
+	ExpectedWorkspaceRevision       string  `json:"expectedWorkspaceRevision,omitempty"`
+	CVNumber                        int     `json:"cvNumber"`
+	IndexCV31                       *int    `json:"indexCV31,omitempty"`
+	IndexCV32                       *int    `json:"indexCV32,omitempty"`
+	Value                           int     `json:"value"`
+	Description                     string  `json:"description"`
+	Category                        string  `json:"category"`
+	Protocol                        string  `json:"protocol"`
+	DecoderProfile                  string  `json:"decoderProfile"`
+	SourceFileID                    string  `json:"sourceFileId"`
+	SourceLine                      *int    `json:"sourceLine,omitempty"`
+	SourceExportedAt                string  `json:"sourceExportedAt,omitempty"`
 }
 
 type VehicleCVFile struct {
-	ID             string `json:"id"`
-	VehicleID      string `json:"vehicleId"`
-	FileName       string `json:"fileName"`
-	OriginalName   string `json:"originalName"`
-	Description    string `json:"description,omitempty"`
-	DecoderProfile string `json:"decoderProfile,omitempty"`
-	MimeType       string `json:"mimeType,omitempty"`
-	SizeBytes      int64  `json:"sizeBytes"`
-	StoragePath    string `json:"-"`
-	BlobID         string `json:"-"`
-	CreatedAt      string `json:"createdAt"`
-	UpdatedAt      string `json:"updatedAt"`
+	SourceReferenceCount int    `json:"sourceReferenceCount,omitempty"`
+	Revision             string `json:"revision,omitempty"`
+	ID                   string `json:"id"`
+	VehicleID            string `json:"vehicleId"`
+	FileName             string `json:"fileName"`
+	OriginalName         string `json:"originalName"`
+	Description          string `json:"description,omitempty"`
+	DecoderProfile       string `json:"decoderProfile,omitempty"`
+	MimeType             string `json:"mimeType,omitempty"`
+	SizeBytes            int64  `json:"sizeBytes"`
+	StoragePath          string `json:"-"`
+	BlobID               string `json:"-"`
+	CreatedAt            string `json:"createdAt"`
+	UpdatedAt            string `json:"updatedAt"`
 }
 
 type VehicleCVFileInput struct {
-	FileName       string
-	OriginalName   string
-	Description    string
-	DecoderProfile string
-	MimeType       string
-	SizeBytes      int64
-	StoragePath    string
-	BlobID         string
+	WorkspaceID               string
+	ExpectedWorkspaceRevision string
+	FileName                  string
+	OriginalName              string
+	Description               string
+	DecoderProfile            string
+	MimeType                  string
+	SizeBytes                 int64
+	StoragePath               string
+	BlobID                    string
 }
 
 type CreateVehicleInput struct {
+	ExpectedRevision          *string             `json:"expectedRevision,omitempty"`
+	ExpectedImagesRevision    *string             `json:"expectedImagesRevision,omitempty"`
 	InventoryNumber           string              `json:"inventoryNumber"`
 	Manufacturer              string              `json:"manufacturer"`
 	ArticleNumber             string              `json:"articleNumber"`

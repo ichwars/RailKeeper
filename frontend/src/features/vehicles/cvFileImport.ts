@@ -55,11 +55,11 @@ function csvCells(line: string, delimiter: string): string[] {
     if (char === '"') {
       if (quoted && line[i + 1] === '"') { current += '"'; i++; }
       else quoted = !quoted;
-    } else if (char === delimiter && !quoted) { cells.push(current.trim()); current = ""; }
+    } else if (char === delimiter && !quoted) { cells.push(current); current = ""; }
     else current += char;
   }
   if (quoted) throw importError("invalidCsv");
-  return [...cells, current.trim()];
+  return [...cells, current];
 }
 
 export function cvValuesFromImport(text: string): VehicleCVValueInput[] {
@@ -92,7 +92,8 @@ export function cvValuesFromImport(text: string): VehicleCVValueInput[] {
       : ["cvNumber", "value", "description", "category", "decoderProfile", "indexCV31", "indexCV32"];
     if (cells.length > maxCVImportValues) throw importError("tooMany");
     values = cells.map((cells, index) => {
-      const row = Object.fromEntries(headers.filter(Boolean).map(key => [key, cells[headers.indexOf(key)]]));
+      const row = Object.fromEntries(headers.filter(Boolean).map(key => [key,
+        key === "decoderProfile" ? cells[headers.indexOf(key)] : cells[headers.indexOf(key)]?.trim()]));
       if (!row.sourceLine) row.sourceLine = String(sourceLines[index]);
       return input(row);
     });

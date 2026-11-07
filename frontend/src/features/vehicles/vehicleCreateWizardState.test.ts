@@ -121,6 +121,17 @@ describe("vehicleCreateWizardState", () => {
     expect(loadVehicleCreateDraft()).toEqual({ kind: "invalid" });
   });
 
+  it("retains a creation identity in saved drafts and rejects invalid identities without erasing storage", () => {
+    const state = { ...createVehicleCreateWizardState(emptyVehicle), creationId: "a".repeat(32) };
+    expect(saveVehicleCreateDraft(state)).toEqual({ kind: "saved" });
+    expect(loadVehicleCreateDraft()).toEqual(expect.objectContaining({ kind: "loaded",
+      state: expect.objectContaining({ creationId: state.creationId }) }));
+    const invalid = JSON.stringify({ version: 2, savedAt: new Date().toISOString(), state: { ...state, creationId: "invalid" } });
+    localStorage.setItem(vehicleCreateDraftKey("local"), invalid);
+    expect(loadVehicleCreateDraft()).toEqual({ kind: "invalid" });
+    expect(localStorage.getItem(vehicleCreateDraftKey("local"))).toBe(invalid);
+  });
+
   it("normalizes legacy drafts that cannot restore article search state", () => {
     const state = {
       ...createVehicleCreateWizardState({ ...emptyVehicle, name: "Legacy" }),

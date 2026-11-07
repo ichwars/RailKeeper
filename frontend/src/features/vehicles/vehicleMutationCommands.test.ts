@@ -1,10 +1,12 @@
 import type { FormEvent } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { api, ApiError, type Vehicle, type VehicleFunctionChange } from "../../shared/api";
-import { vehicleFixture } from "../../test/fixtures/vehicles";
+import { api, ApiError, type Vehicle, type VehicleFunctionChange, type VehicleImage, type VehicleImageCreation } from "../../shared/api";
+import { createdImageFixture, imageFixture, vehicleFixture } from "../../test/fixtures/vehicles";
+import { uploadedImageToPending, type PendingArticleImage } from "./vehicleTransforms";
 import { emptyVehicle, type ECoSVehicleDraftPayload } from "./vehicleViewModel";
 import { createVehicleMutationCommands } from "./vehicleMutationCommands";
+import { importPendingVehicleImages } from "./vehicleImagePersistence";
 
 function commandOptions() {
   const selected: Vehicle | null = null;
@@ -45,6 +47,132 @@ const submitEvent = () => ({ preventDefault: vi.fn() }) as unknown as FormEvent;
 describe("createVehicleMutationCommands", () => {
   afterEach(() => vi.restoreAllMocks());
 
+  it("does not acknowledge or start ancillary writes when a closed editor receives a late creation reply", async () => {
+    const options = commandOptions(), created = vehicleFixture(), storedDraft = "another saved draft";
+    localStorage.setItem("railkeeper.vehicleCreateDraft.v2:tester", storedDraft);
+    let finish!: (vehicle: Vehicle) => void, current = true;
+    vi.spyOn(api, "createVehicle").mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    const imageImport = vi.spyOn(api, "importVehicleImageFromUrl");
+    const commands = createVehicleMutationCommands({ ...options,
+      editor: { ...options.editor, captureScope: () => () => current },
+      media: { pendingImages: [{ id: "remote", url: "https://example.invalid/image.png", title: "Image", source: "" }] }
+    });
+    const pending = commands.submit(submitEvent()); current = false; finish(created); await pending;
+    expect(options.editor.setSelectedDetail).not.toHaveBeenCalled();
+    expect(options.functions.acknowledgeSaved).not.toHaveBeenCalled();
+    expect(imageImport).not.toHaveBeenCalled();
+    expect(options.editor.setSaving.mock.calls).toEqual([[true]]);
+    expect(localStorage.getItem("railkeeper.vehicleCreateDraft.v2:tester")).toBe(storedDraft);
+    localStorage.removeItem("railkeeper.vehicleCreateDraft.v2:tester");
+  });
+
+  it("stops remaining image requests and acknowledgments when the editor closes during one image import", async () => {
+    let finish!: (image: VehicleImageCreation) => void, current = true;
+    const imported = vi.spyOn(api, "importVehicleImageFromUrl").mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    const acknowledge = vi.fn(), image = { id: "one", url: "https://example.invalid/one.png", title: "One", source: "" };
+    const pending = importPendingVehicleImages(vehicleFixture(), [image, { ...image, id: "two" }], 0, acknowledge, () => current);
+    current = false; finish(createdImageFixture()); await pending;
+    expect(imported).toHaveBeenCalledOnce(); expect(acknowledge).not.toHaveBeenCalled();
+  });
+
+  it("keeps the creation identity on an uncertain request and reports an existing result without another acknowledgment", async () => {
+    const options = commandOptions(), id = "a".repeat(32);
+    const create = vi.spyOn(api, "createVehicle").mockRejectedValueOnce(new TypeError("Lost reply"))
+      .mockRejectedValueOnce(new ApiError("Already stored", "vehicle_creation_conflict", 409));
+    const commands = createVehicleMutationCommands(options);
+    await commands.submit(submitEvent(), id);
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.creation.unknown");
+    await commands.submit(submitEvent(), id);
+    expect(create.mock.calls.every(([input]) => input.creationId === id)).toBe(true);
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.creation.alreadyStored");
+    expect(options.editor.setSelectedDetail).not.toHaveBeenCalled();
+    expect(options.functions.acknowledgeSaved).not.toHaveBeenCalled();
+    expect(options.reloadVehicles).toHaveBeenCalledOnce();
+  });
+
+  it("preserves untouched stored ordering numbers and renumbers only an explicit reordering", async () => {
+    const selected = vehicleFixture({ images: [imageFixture({ id: "primary", sortOrder: 8 }),
+      imageFixture({ id: "other", sortOrder: 2, isPrimary: false })] });
+    const pending = selected.images!.map(uploadedImageToPending);
+    const options = commandOptions();
+    const update = vi.spyOn(api, "updateVehicle").mockResolvedValue(selected);
+    const editor = { ...options.editor, mode: "edit" as const, selected };
+    await createVehicleMutationCommands({ ...options, editor, media: { pendingImages: pending } }).submit(submitEvent());
+    expect(update.mock.calls[0][1].images?.map(image => image.sortOrder)).toEqual([8, 2]);
+    await createVehicleMutationCommands({ ...options, editor, media: { pendingImages: [...pending].reverse() } }).submit(submitEvent());
+    expect(update.mock.calls[1][1].images?.map(image => image.sortOrder)).toEqual([0, 1]);
+  });
+
+  it("submits the observed core and image revisions and retains a rejected draft during reload", async () => {
+    const options = commandOptions(), selected = vehicleFixture();
+    const reloadSelectedVehicle = vi.fn().mockResolvedValue(undefined);
+    const update = vi.spyOn(api, "updateVehicle").mockRejectedValue(new ApiError("Changed", "vehicle_image_conflict", 409));
+    const form = { ...options.editor.form, name: "Own retained draft" };
+    await createVehicleMutationCommands({ ...options,
+      editor: { ...options.editor, mode: "edit", selected, form, reloadSelectedVehicle }
+    }).submit(submitEvent());
+    expect(update).toHaveBeenCalledWith(selected.id, expect.objectContaining({
+      name: "Own retained draft", expectedRevision: selected.revision, expectedImagesRevision: selected.imagesRevision
+    }));
+    expect(reloadSelectedVehicle).toHaveBeenCalledExactlyOnceWith(selected.id);
+    expect(options.editor.setSelectedDetail).not.toHaveBeenCalled();
+    expect(options.functions.acknowledgeSaved).not.toHaveBeenCalled();
+    expect(form.name).toBe("Own retained draft");
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.mediaConflict.changed");
+  });
+
+  it("blocks unreviewed image conflicts and records missing their comparison version", async () => {
+    const options = commandOptions();
+    const update = vi.spyOn(api, "updateVehicle");
+    await createVehicleMutationCommands({ ...options, media: { ...options.media, hasConflicts: true } }).submit(submitEvent());
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.mediaConflict.resolve");
+    await createVehicleMutationCommands({ ...options,
+      editor: { ...options.editor, mode: "edit", selected: vehicleFixture({ revision: undefined }) }
+    }).submit(submitEvent());
+    expect(update).not.toHaveBeenCalled();
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.mediaConflict.missingRevision");
+  });
+
+  it("blocks unresolved refreshed fields before any write", async () => {
+    const options = commandOptions();
+    const create = vi.spyOn(api, "createVehicle");
+    await createVehicleMutationCommands({ ...options, editor: { ...options.editor, hasRefreshConflicts: true } })
+      .submit(submitEvent());
+    expect(create).not.toHaveBeenCalled();
+    expect(options.onMessage).toHaveBeenCalledWith("vehicles.saveState.resolveConflicts");
+  });
+
+  it("retries only the remaining remote image after a partial import and retains the stored image ID", async () => {
+    const options = commandOptions(), created = vehicleFixture({ id: "created", images: [] });
+    const first = createdImageFixture({ id: "stored-first", vehicleId: created.id, url: "/first.png" });
+    const second = createdImageFixture({ id: "stored-second", vehicleId: created.id, url: "/second.png", isPrimary: false });
+    const firstPending = { id: "remote-first", url: "https://example.test/first.png", title: "First", source: "" };
+    const secondPending = { id: "remote-second", url: "https://example.test/second.png", title: "Second", source: "" };
+    let pending: PendingArticleImage[] = [firstPending, secondPending];
+    const acknowledgeImportedImage = (original: PendingArticleImage, stored: VehicleImage) => {
+      pending = pending.map(image => image.id === original.id ? uploadedImageToPending(stored) : image);
+    };
+    vi.spyOn(api, "createVehicle").mockResolvedValue(created);
+    const update = vi.spyOn(api, "updateVehicle").mockResolvedValue({ ...created, images: [first] });
+    const imports = vi.spyOn(api, "importVehicleImageFromUrl")
+      .mockResolvedValueOnce(first).mockRejectedValueOnce(new Error("Second download failed")).mockResolvedValueOnce(second);
+    vi.spyOn(api, "vehicle").mockResolvedValue({ ...created, images: [first, second] });
+    await createVehicleMutationCommands({ ...options, media: { pendingImages: pending, acknowledgeImportedImage } })
+      .submit(submitEvent());
+    expect(pending[0]).toMatchObject({ id: "stored-first", persisted: true });
+    await createVehicleMutationCommands({ ...options,
+      editor: { ...options.editor, mode: "edit", selected: created },
+      media: { pendingImages: pending, acknowledgeImportedImage }
+    }).submit(submitEvent());
+    expect(api.createVehicle).toHaveBeenCalledOnce();
+    expect(update).toHaveBeenCalledWith(created.id, expect.objectContaining({
+      images: [expect.objectContaining({ id: "stored-first", url: "/first.png" })]
+    }));
+    expect(imports.mock.calls.map(call => call[1].url)).toEqual([
+      "https://example.test/first.png", "https://example.test/second.png", "https://example.test/second.png"
+    ]);
+  });
+
   it("stops at required model fields before writing", async () => {
     const options = commandOptions();
     options.validation.missingRequiredLabels = ["Spurweite"];
@@ -84,7 +212,7 @@ describe("createVehicleMutationCommands", () => {
     vi.spyOn(api, "updateVehicle").mockResolvedValue(created);
     vi.spyOn(api, "vehicle").mockResolvedValue(created);
     vi.spyOn(api, "importVehicleImageFromUrl").mockRejectedValueOnce(new Error("Import unavailable"))
-      .mockResolvedValueOnce({ id: "image", vehicleId: created.id, url: "/local.png", isPrimary: false, sortOrder: 0, createdAt: "", updatedAt: "" });
+      .mockResolvedValueOnce({ imagesRevision: "b".repeat(64), id: "image", vehicleId: created.id, url: "/local.png", isPrimary: false, sortOrder: 0, createdAt: "", updatedAt: "" });
 
     await createVehicleMutationCommands(options).submit(submitEvent());
 
@@ -115,7 +243,7 @@ describe("createVehicleMutationCommands", () => {
     vi.spyOn(api, "createVehicle").mockResolvedValue(created);
     vi.spyOn(api, "vehicle").mockResolvedValue(created);
     vi.spyOn(api, "importVehicleImageFromUrl").mockResolvedValue({
-      id: "new", vehicleId: created.id, url: "/new.png", isPrimary: false, sortOrder: 1, createdAt: "", updatedAt: ""
+      imagesRevision: "b".repeat(64), id: "new", vehicleId: created.id, url: "/new.png", isPrimary: false, sortOrder: 1, createdAt: "", updatedAt: ""
     });
     await createVehicleMutationCommands(options).submit(submitEvent());
     expect(api.createVehicle).toHaveBeenCalledWith(expect.objectContaining({ images: [
@@ -158,6 +286,7 @@ describe("createVehicleMutationCommands", () => {
     await createVehicleMutationCommands(options).submit(submitEvent());
 
     expect(api.upsertVehicleExternalMapping).toHaveBeenCalledWith(created.id, draft.externalMapping);
+    expect(api.createVehicle).toHaveBeenCalledWith(expect.objectContaining({ externalMapping: draft.externalMapping }));
     expect(api.importDigitalCenterCVs).toHaveBeenCalledWith("session-1", "item-77", created.id);
     expect(createCV).not.toHaveBeenCalled();
     expect(options.ecos.markSaved).toHaveBeenCalledWith(draft, created.id);
@@ -184,6 +313,33 @@ describe("createVehicleMutationCommands", () => {
     await createVehicleMutationCommands(options).submit(submitEvent());
 
     expect(options.onMessage).toHaveBeenCalledWith("vehicles.ecosDraft.mappingConflict");
+    expect(options.reloadVehicles).toHaveBeenCalledOnce();
+  });
+
+  it("does not perform a second mapping write after an atomic mapped creation", async () => {
+    const options = commandOptions();
+    const mapping = { id: "m", vehicleId: "created", provider: "cs3", externalId: "77", syncStatus: "linked",
+      createdAt: "before", updatedAt: "before" };
+    const created = vehicleFixture({ id: "created", externalMappings: [mapping] });
+    options.ecos.draft = { source: "cs3", mode: "create", sourceSummary: { objectId: 77, name: "Source", address: "3", protocol: "DCC", profile: "" },
+      vehicle: options.editor.form, importedKeys: ["name"], externalMapping: { provider: "cs3", externalId: "77" },
+      cvValues: [], functionValues: [], unclearFields: [] };
+    vi.spyOn(api, "createVehicle").mockResolvedValue(created); vi.spyOn(api, "vehicle").mockResolvedValue(created);
+    const extraWrite = vi.spyOn(api, "upsertVehicleExternalMapping");
+    await createVehicleMutationCommands(options).submit(submitEvent());
+    expect(extraWrite).not.toHaveBeenCalled();
+    expect(options.ecos.markSaved).toHaveBeenCalledWith(options.ecos.draft, created.id);
+  });
+
+  it("retains a rejected source draft without acknowledging another vehicle creation", async () => {
+    const options = commandOptions();
+    vi.spyOn(api, "createVehicle").mockRejectedValue(new ApiError("Source already linked", "external_mapping_conflict", 409));
+    await createVehicleMutationCommands(options).submit(submitEvent());
+    expect(options.editor.setSelectedDetail).not.toHaveBeenCalled();
+    expect(options.functions.acknowledgeSaved).not.toHaveBeenCalled();
+    expect(options.editor.close).not.toHaveBeenCalled();
+    expect(options.reloadVehicles).toHaveBeenCalledOnce();
+    expect(options.onMessage).toHaveBeenLastCalledWith("vehicles.ecosDraft.mappingConflict");
   });
 
   it("deletes the selected candidate and closes its editor", async () => {

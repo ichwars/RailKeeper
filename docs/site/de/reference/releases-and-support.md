@@ -4,14 +4,14 @@ description: Versionen und Hilfe.
 audience: reference
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-07
 ---
 
 # Versionen und Hilfe
 
 ## Welchen Stand benutze ich?
 
-RailKeeper zeigt seine Version in der Oberfläche und unter **Einstellungen > Allgemein > Updates**. Ein Release ist eine veröffentlichte Version. `main` ist der aktuelle Entwicklungsstand und kann bereits weitere Funktionen enthalten. Screenshots dieses Handbuchs stammen aus einer isolierten Demo des am 23.10.2026 geprüften `main`-Stands. Installierte ältere Releases können abweichen.
+RailKeeper zeigt seine Version in der Oberfläche und unter **Einstellungen > Allgemein > Updates**. Ein Release ist eine veröffentlichte Version. `main` ist der aktuelle Entwicklungsstand und kann bereits weitere Funktionen enthalten. Screenshots stammen aus isolierten Demos; jede Seite nennt ihren redaktionellen Prüfstand. Installierte ältere Releases können abweichen. Identifiziere einen Entwicklungsbuild zusätzlich anhand seines Commits oder Paketnachweises.
 
 Die sichtbare **redaktionelle Prüfung** einer Seite ist das Datum der Inhaltsprüfung. **Letzte Änderung** am Seitenende ist das Git-Änderungsdatum. Beides sagt allein nichts über einen Test mit echter Hardware aus. Die [Abdeckungsübersicht](coverage) erklärt den jeweiligen Nachweis.
 

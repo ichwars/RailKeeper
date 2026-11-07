@@ -1,9 +1,15 @@
-import { useState } from "react";
+import { useCallback, useRef, useState, type SetStateAction } from "react";
 import type { Vehicle } from "../../shared/api";
 import { vehicleImagesToPending, type PendingArticleImage } from "./vehicleTransforms";
 
 export function useVehicleImageDraftController() {
-  const [pendingImages, setPendingImages] = useState<PendingArticleImage[]>([]);
+  const [pendingImages, setImagesState] = useState<PendingArticleImage[]>([]);
+  const pendingImagesRef = useRef(pendingImages);
+  const setPendingImages = useCallback((action: SetStateAction<PendingArticleImage[]>) => {
+    const next = typeof action === "function" ? action(pendingImagesRef.current) : action;
+    pendingImagesRef.current = next;
+    setImagesState(next);
+  }, []);
   const [previewImage, setPreviewImage] = useState<PendingArticleImage | null>(null);
   const reset = (clearPreview: boolean) => {
     setPendingImages([]);
@@ -59,6 +65,7 @@ export function useVehicleImageDraftController() {
 
   return {
     state: { pendingImages, previewImage },
+    refs: { pendingImagesRef },
     setters: { setPendingImages, setPreviewImage },
     commands: {
       reset, loadDetail, addImages, setPrimaryPendingImage, updatePendingImageTitle,

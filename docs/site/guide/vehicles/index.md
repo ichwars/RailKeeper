@@ -4,7 +4,7 @@ description: Search, filter, create, maintain, report, and safely delete RailKee
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-07
 ---
 
 # Vehicle inventory and core records
@@ -249,6 +249,28 @@ Changing the inventory number requires a new unique value. RailKeeper records th
 numbers in inventory-number history and writes a vehicle-update audit entry. A successful save
 reloads the inventory and keeps the dialog in edit mode. The server, not the visible button state,
 enforces Admin or Editor permission.
+
+## Adopt selected article revision values
+
+Open **Article revisions** in Vehicle view or under **Model** in the editor. The comparison uses
+saved inventory values. Viewer can inspect it; Admin and Editor can confirm a selection.
+
+1. Choose an article revision and compare **Saved** with **Article value**.
+2. Select the fields to adopt. Individual values start protected.
+3. For a correction, choose **Draft a new revision**, edit article values and optionally add a note.
+   **Keep as an independent article** establishes a separate article identity.
+4. Confirm with **Adopt selection now** or **Create revision and save selection**.
+
+This confirmation saves the article revision immediately for the current vehicle. Unselected values
+remain intact. Open core, function, CV and media drafts remain in the dialog. **Cancel** discards
+those open drafts; an already confirmed article change remains saved. Unresolved older proposal
+values are also retained as a revision when deliberately activating the new assignment.
+**Recorded on** identifies the recording time, not an established source timestamp.
+
+After a stale comparison, **Refresh comparison** retains your article draft and selection. Review
+the new saved values before confirming again. If an earlier confirmation is already saved, start a
+new confirmation only to deliberately create another revision. If only refreshing the saved view
+failed, use **Reload the saved view**. It reloads saved data without saving again.
 
 ## Create QR labels
 
