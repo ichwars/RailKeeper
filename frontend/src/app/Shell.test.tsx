@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../shared/api";
 import type { BugReportCapability } from "../shared/apiBugReports";
 import { Shell } from "./Shell";
+import { defaultSidebarOrder, sidebarOrderChangedEvent, sidebarPrefsKey } from "./sidebarPreferences";
 
 const disabledBugReporting: BugReportCapability = {
   enabled: false,
@@ -36,6 +37,21 @@ describe("Shell article navigation", () => {
       message: "current"
     });
     vi.spyOn(api, "bugReportConfig").mockResolvedValue(disabledBugReporting);
+  });
+
+  it("keeps specialist tools accessible and retains open inputs across preference changes", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(sidebarPrefsKey("admin"), JSON.stringify({
+      order: defaultSidebarOrder, hidden: ["exhibition", "importExport", "digitalCenters"]
+    }));
+    render(<Shell username="admin" roles={["Admin"]} activeView="vehicles" onLogout={vi.fn()}><input aria-label="Entwurf" defaultValue="Ungespeichert" /></Shell>);
+    const more = screen.getByText("Weitere Funktionen");
+    await user.click(more);
+    expect(screen.getByRole("link", { name: "Digitalzentralen" })).toHaveAttribute("href", "/digital-centers");
+    window.localStorage.setItem(sidebarPrefsKey("admin"), JSON.stringify({ order: defaultSidebarOrder, hidden: [] }));
+    window.dispatchEvent(new Event(sidebarOrderChangedEvent));
+    await waitFor(() => expect(screen.queryByText("Weitere Funktionen")).not.toBeInTheDocument());
+    expect(screen.getByRole("textbox", { name: "Entwurf" })).toHaveValue("Ungespeichert");
   });
 
   it("uses the approved vehicle and accessory navigation labels", async () => {

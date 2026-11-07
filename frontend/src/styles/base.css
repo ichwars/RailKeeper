@@ -427,7 +427,7 @@ a {
   gap: var(--space-sm);
 }
 
-.nav > .nav-entry {
+:is(.nav, .nav-more) > .nav-entry {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -443,12 +443,12 @@ a {
   width: 100%;
 }
 
-.sidebar.collapsed .nav > .nav-entry {
+.sidebar.collapsed :is(.nav, .nav-more) > .nav-entry {
   justify-content: center;
   padding: 0;
 }
 
-.sidebar.collapsed .nav > .nav-entry span {
+.sidebar.collapsed :is(.nav, .nav-more) > .nav-entry span {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -457,20 +457,20 @@ a {
   white-space: nowrap;
 }
 
-.nav > .nav-entry.disabled {
+:is(.nav, .nav-more) > .nav-entry.disabled {
   color: var(--muted);
   cursor: not-allowed;
   opacity: 0.48;
   user-select: none;
 }
 
-.nav > a.nav-entry.active,
-.nav > a.nav-entry:hover {
+:is(.nav, .nav-more) > a.nav-entry.active,
+:is(.nav, .nav-more) > a.nav-entry:hover {
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
 
-.nav > a.nav-entry.active {
+:is(.nav, .nav-more) > a.nav-entry.active {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
