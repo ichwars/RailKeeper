@@ -44,7 +44,11 @@ inzwischen geändert, lade den Verlauf und vergleiche ihn; deine Eingabe bleibt 
 wird für die Auswertung aber nicht mehr verwendet. Eine ältere weiterhin gültige Bewertung
 kann dann wieder der letzte bekannte Wert des Fahrzeugs sein.
 
-Fehlt eine eindeutige Speicherbestätigung, bleibt die Eingabe gesperrt erhalten. Wähle
+Fehlt eine eindeutige Speicherbestätigung, bleibt die Eingabe gesperrt erhalten. Die
+Wiederherstellungskennung und die Eingabe bleiben je Konto und Fahrzeug im aktuellen
+Browser-Reiter auch nach dem Schließen des Dialogs oder Neuladen der Seite erhalten.
+Sie lösen keine automatische Speicherung aus. Kann der Browser diesen ausstehenden Vorgang
+nicht sichern, wird die Bewertung nicht gesendet. Wähle
 **Gespeicherten Stand prüfen**. RailKeeper liest den vollständigen Verlauf und prüft diese
 Eingabe, ohne sie erneut zu senden. Ist sie bereits gespeichert, erscheint die Bestätigung.
 Ist sie nicht vorhanden, kannst du die erhaltene Eingabe prüfen und ausdrücklich speichern.

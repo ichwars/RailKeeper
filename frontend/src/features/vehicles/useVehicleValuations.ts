@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, ApiError } from "../../shared/api";
+import { ApiError, api } from "../../shared/api";
 import type { VehicleValuation, VehicleValuationHistory } from "../../shared/apiValuations";
+import { clearPendingValuation, pendingValuation, rememberPendingValuation } from "./pendingValuation";
 import { newValuationDraft, sameValuationRequest, valuationChangedEvent, valuationHistoryPageSize, type ValuationDraft } from "./valuationModel";
 
-export function useVehicleValuations(vehicleID: string, active: boolean) {
+export function useVehicleValuations(vehicleID: string, active: boolean, journalOwner = "") {
+  const [pending] = useState(() => pendingValuation(journalOwner, vehicleID));
   const [history, setHistory] = useState<VehicleValuationHistory>({ entries: [], total: 0 });
-  const [draft, setDraft] = useState<ValuationDraft>(() => newValuationDraft());
+  const [draft, setDraft] = useState<ValuationDraft>(() => pending ?? newValuationDraft());
   const [loading, setLoading] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uncertain, setUncertain] = useState<ValuationDraft | null>(null);
-  const [error, setError] = useState("");
+  const [uncertain, setUncertain] = useState<ValuationDraft | null>(pending);
+  const [error, setError] = useState(pending ? "valuation.uncertain" : "");
   const [status, setStatus] = useState("");
   const readGeneration = useRef(0), lifetime = useRef(0), writeBusy = useRef(false);
 
@@ -38,6 +40,7 @@ export function useVehicleValuations(vehicleID: string, active: boolean) {
   useEffect(() => () => { lifetime.current += 1; }, []);
 
   function confirmed(record: VehicleValuation, knownHistory?: VehicleValuationHistory) {
+    clearPendingValuation(journalOwner, vehicleID, record.id);
     setHistory(previous => knownHistory ?? ({
       total: previous.total + (previous.entries.some(old => old.id === record.id) ? 0 : 1),
       entries: [record, ...previous.entries.filter(old => old.id !== record.id)
@@ -51,9 +54,15 @@ export function useVehicleValuations(vehicleID: string, active: boolean) {
     if (writeBusy.current || uncertain) return;
     const owner = lifetime.current;
     const input = { ...draft };
+    if (!rememberPendingValuation(journalOwner, vehicleID, input)) {
+      setError("valuation.pendingUnavailable"); return;
+    }
     writeBusy.current = true; setSaving(true); setError(""); setStatus("");
     try {
       const record = await api.recordVehicleValuation(vehicleID, input);
+      if (sameValuationRequest(record, input) && record.vehicleId === vehicleID) {
+        clearPendingValuation(journalOwner, vehicleID, input.id);
+      }
       if (owner !== lifetime.current) return;
       if (!sameValuationRequest(record, input) || record.vehicleId !== vehicleID) {
         setUncertain(input); setError("valuation.uncertain"); return;
@@ -61,6 +70,9 @@ export function useVehicleValuations(vehicleID: string, active: boolean) {
       confirmed(record);
       await load();
     } catch (failure) {
+      if (failure instanceof ApiError && [400, 409, 404, 401, 403].includes(failure.status)) {
+        clearPendingValuation(journalOwner, vehicleID, input.id);
+      }
       if (owner !== lifetime.current) return;
       if (failure instanceof ApiError && failure.status === 400) setError("valuation.invalid");
       else if (failure instanceof ApiError && failure.status === 409) setError("valuation.conflict");
@@ -84,11 +96,15 @@ export function useVehicleValuations(vehicleID: string, active: boolean) {
       if (record && record.vehicleId !== vehicleID) throw new Error("valuation owner differs");
       if (record) {
         if (!sameValuationRequest(record, uncertain)) {
+          clearPendingValuation(journalOwner, vehicleID, uncertain.id);
           setUncertain(null); setError("valuation.conflict");
           await load(); return;
         }
         confirmed(record, { entries: exported.entries.slice(0, valuationHistoryPageSize), total: exported.entries.length });
-      } else { setUncertain(null); setError(""); setStatus("valuation.reviewMissing"); }
+      } else {
+        clearPendingValuation(journalOwner, vehicleID, uncertain.id);
+        setUncertain(null); setError(""); setStatus("valuation.reviewMissing");
+      }
       await load();
     } catch {
       if (owner === lifetime.current) setError("valuation.reviewFailed");
@@ -109,8 +125,10 @@ export function useVehicleValuations(vehicleID: string, active: boolean) {
   const rebaseCorrection = (record: VehicleValuation) => {
     if (writeBusy.current || uncertain || error !== "valuation.conflict" || !draft.replacesId || record.replacedById || record.vehicleId !== vehicleID) return;
     const target = newValuationDraft(record, draft.withdrawn);
-    setDraft(previous => ({ ...previous, id: target.id, replacesId: record.id,
-      ...(previous.withdrawn ? { amount: record.amount, currency: record.currency, valuedOn: record.valuedOn } : {}) }));
+    setDraft(previous => ({
+      ...previous, id: target.id, replacesId: record.id,
+      ...(previous.withdrawn ? { amount: record.amount, currency: record.currency, valuedOn: record.valuedOn } : {})
+    }));
     setError(""); setStatus("valuation.rebased");
   };
 

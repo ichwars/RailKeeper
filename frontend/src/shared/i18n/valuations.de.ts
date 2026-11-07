@@ -35,6 +35,7 @@ export const valuationsDE = {
   "valuation.loading": "Bewertungen werden geladen …",
   "valuation.loadFailed": "Die Bewertungen konnten nicht geladen werden. Bereits angezeigte Werte und offene Eingaben bleiben erhalten. Lade den Stand erneut.",
   "valuation.empty": "Noch keine manuellen Bewertungen erfasst.",
+  "valuation.pendingUnavailable": "Der Browser kann den ausstehenden Vorgang nicht sichern. Es wurde nichts gesendet. Bitte prüfe den verfügbaren Sitzungsspeicher und versuche es erneut.",
   "valuation.replaced": "Berichtigt",
   "valuation.withdrawn": "Zurückgezogen",
   "valuation.current": "Nicht berichtigt",

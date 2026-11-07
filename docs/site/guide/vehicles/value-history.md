@@ -41,7 +41,10 @@ the history; your input is retained.
 **Withdraw valuation** requires a new reason. The entry remains in history but is excluded
 from calculations. An older valid estimate can then become the latest known vehicle value.
 
-If there is no definite save acknowledgment, the input stays locked and retained. Select
+If there is no definite save acknowledgment, the input stays locked and retained. Its recovery
+identity and input stay in the current browser tab, scoped to the account and vehicle, across
+dialog dismissal and page reload. They never trigger an automatic write. If the browser cannot
+retain this pending operation, the valuation is not sent. Select
 **Check saved state**. RailKeeper reads the entire history and checks this input without
 sending it again. An existing entry receives a confirmation. If absent, you can review and
 explicitly save the retained input.

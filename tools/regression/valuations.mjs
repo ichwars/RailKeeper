@@ -110,6 +110,14 @@ export async function assertValuations(page, input, de, { actor, csrfToken }) {
     assert.ok(committed);
     assert.equal(await amount().isDisabled(), true);
     const count = (await read(endpoint)).total;
+    await close();
+    await open(); await tab(de ? "Wertentwicklung" : "Value history");
+    assert.equal(await amount().isDisabled(), true, "dismissal lost the uncertain request identity");
+    assert.equal(await source().inputValue(), "Lost acknowledgment, original source ä");
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await row().getByRole("button", { name: de ? "Bearbeiten" : "Edit", exact: true }).click();
+    await tab(de ? "Wertentwicklung" : "Value history");
+    assert.equal(await amount().isDisabled(), true, "document reload lost the uncertain request identity");
     await panel.getByRole("button", { name: de ? "Gespeicherten Stand prüfen" : "Check saved state", exact: true }).click();
     await panel.getByRole("status").filter({ hasText: de ? "ist gespeichert" : "is saved" }).waitFor();
     assert.equal((await read(endpoint)).total, count, "reading a lost acknowledgment duplicated the valuation");

@@ -1,14 +1,14 @@
-import { useI18n } from "../../shared/i18n";
 import { api } from "../../shared/api";
-import { formatDate, formatDateTime } from "./vehicleFormat";
-import { useVehicleValuations } from "./useVehicleValuations";
+import { useI18n } from "../../shared/i18n";
 import { VehicleValuationForm } from "./VehicleValuationForm";
+import { useVehicleValuations } from "./useVehicleValuations";
+import { formatDate, formatDateTime } from "./vehicleFormat";
 
-export function VehicleValuations({ vehicleID, canEdit = false, active = true }: {
-  vehicleID: string; canEdit?: boolean; active?: boolean;
+export function VehicleValuations({ vehicleID, canEdit = false, active = true, journalOwner = "" }: {
+  vehicleID: string; canEdit?: boolean; active?: boolean; journalOwner?: string;
 }) {
   const { t } = useI18n();
-  const model = useVehicleValuations(vehicleID, active);
+  const model = useVehicleValuations(vehicleID, active, journalOwner);
   if (!active) return null;
   return <section className="vehicle-valuations" aria-label={t("valuation.title")}>
     <header className="valuation-heading"><h3>{t("valuation.title")}</h3>

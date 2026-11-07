@@ -2,17 +2,18 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../../shared/api";
-import { setLanguage } from "../../shared/i18n";
 import type { VehicleValuation } from "../../shared/apiValuations";
+import { setLanguage } from "../../shared/i18n";
 import { VehicleValuations } from "./VehicleValuations";
 
-const record: VehicleValuation = {  
-id: "1".repeat(32), vehicleId: "a", amount: "1.123456", currency: "CHF", valuedOn: "2026-01-01",
+const record: VehicleValuation = {
+  id: "1".repeat(32), vehicleId: "a", amount: "1.123456", currency: "CHF", valuedOn: "2026-01-01",
   source: "Original source", notes: "Historical note", replacesId: "", withdrawn: false, recordedAt: "2026-11-07T12:00:00.000000000Z", replacedById: ""
 };
 
 describe("manual vehicle valuation presentation", () => {
   beforeEach(() => {
+    sessionStorage.clear();
     setLanguage("de");
     vi.spyOn(api, "vehicleValuations").mockResolvedValue({ entries: [record], total: 1 });
     vi.spyOn(api, "recordVehicleValuation").mockRejectedValue(new Error("response lost"));

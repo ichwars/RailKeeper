@@ -1,15 +1,15 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { api, ApiError } from "../../shared/api";
+import { ApiError, api } from "../../shared/api";
 import type { VehicleValuation, VehicleValuationExport, VehicleValuationHistory } from "../../shared/apiValuations";
-import { canonicalValuationAmount, valuationChangedEvent, type ValuationDraft } from "./valuationModel";
 import { useVehicleValuations } from "./useVehicleValuations";
+import { canonicalValuationAmount, valuationChangedEvent, type ValuationDraft } from "./valuationModel";
 
 function saved(draft: ValuationDraft, extra: Partial<VehicleValuation> = {}): VehicleValuation {
-  return {    
-...draft, amount: canonicalValuationAmount(draft.amount) || "0.00", currency: draft.currency.trim().toUpperCase(),
-    source: draft.source.trim(), notes: draft.notes.trim(), vehicleId: "a", recordedAt: "2026-11-07T12:00:00.000000000Z", replacedById: "", ...extra  
-};
+  return {
+    ...draft, amount: canonicalValuationAmount(draft.amount) || "0.00", currency: draft.currency.trim().toUpperCase(),
+    source: draft.source.trim(), notes: draft.notes.trim(), vehicleId: "a", recordedAt: "2026-11-07T12:00:00.000000000Z", replacedById: "", ...extra
+  };
 }
 function exported(entries: VehicleValuation[]): VehicleValuationExport {
   return { format: "railkeeper-valuations", version: 1, vehicleId: "a", exportedAt: "2026-11-07T12:00:00.000000000Z", entries };
@@ -22,9 +22,59 @@ function deferred<T>() {
 
 describe("valuation save acknowledgment and ownership", () => {
   beforeEach(() => {
+    sessionStorage.clear();
     vi.spyOn(api, "vehicleValuations").mockResolvedValue({ entries: [], total: 0 });
     vi.spyOn(api, "recordVehicleValuation").mockImplementation(async (_vehicle, input) => saved({ notes: "", replacesId: "", withdrawn: false, ...input }));
     vi.spyOn(api, "vehicleValuationsExport").mockResolvedValue(exported([]));
+  });
+  it("restores a lost acknowledgment after dismissal and keeps accounts and vehicles separate", async () => {
+    const hook = await ready(), draft = hook.result.current.draft;
+    vi.mocked(api.recordVehicleValuation).mockRejectedValueOnce(new Error("response lost"));
+    await act(() => hook.result.current.save());
+    hook.unmount();
+    const reopened = renderHook(() => useVehicleValuations("a", true));
+    await waitFor(() => expect(reopened.result.current.loading).toBe(false));
+    expect(reopened.result.current.uncertain).toEqual(draft);
+    expect(reopened.result.current.draft).toEqual(draft);
+    await act(() => reopened.result.current.save());
+    act(() => reopened.result.current.reset());
+    expect(api.recordVehicleValuation).toHaveBeenCalledOnce();
+    const otherAccount = renderHook(() => useVehicleValuations("a", false, "another-account"));
+    const otherVehicle = renderHook(() => useVehicleValuations("b", false));
+    expect(otherAccount.result.current.uncertain).toBeNull();
+    expect(otherVehicle.result.current.uncertain).toBeNull();
+    vi.mocked(api.vehicleValuationsExport).mockResolvedValueOnce(exported([saved(draft)]));
+    await act(() => reopened.result.current.review());
+    expect(reopened.result.current.status).toBe("valuation.saved");
+    reopened.unmount();
+    const resolved = renderHook(() => useVehicleValuations("a", false));
+    expect(resolved.result.current.uncertain).toBeNull();
+    expect(api.recordVehicleValuation).toHaveBeenCalledOnce();
+  });
+
+  it("preserves an in-flight identity across dismissal and acknowledges a late response safely", async () => {
+    const hook = await ready(), draft = hook.result.current.draft, pending = deferred<VehicleValuation>();
+    vi.mocked(api.recordVehicleValuation).mockReturnValueOnce(pending.promise);
+    let operation!: Promise<void>;
+    act(() => { operation = hook.result.current.save(); });
+    hook.unmount();
+    const reopened = renderHook(() => useVehicleValuations("a", false));
+    expect(reopened.result.current.uncertain).toEqual(draft);
+    await act(async () => { pending.resolve(saved(draft)); await operation; });
+    expect(reopened.result.current.uncertain).toEqual(draft);
+    vi.mocked(api.vehicleValuationsExport).mockResolvedValueOnce(exported([saved(draft)]));
+    await act(() => reopened.result.current.review());
+    expect(reopened.result.current.uncertain).toBeNull();
+    expect(api.recordVehicleValuation).toHaveBeenCalledOnce();
+  });
+
+  it("sends nothing when the browser cannot retain the recovery identity", async () => {
+    const hook = await ready(), draft = hook.result.current.draft;
+    vi.spyOn(sessionStorage, "setItem").mockImplementation(() => { throw new Error("quota"); });
+    await act(() => hook.result.current.save());
+    expect(api.recordVehicleValuation).not.toHaveBeenCalled();
+    expect(hook.result.current.error).toBe("valuation.pendingUnavailable");
+    expect(hook.result.current.draft).toEqual(draft);
   });
   async function ready() {
     const hook = renderHook(() => useVehicleValuations("a", true));

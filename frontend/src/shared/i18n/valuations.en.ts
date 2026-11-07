@@ -35,6 +35,7 @@ export const valuationsEN = {
   "valuation.loading": "Loading valuations …",
   "valuation.loadFailed": "Could not load valuations. Existing displayed values and open inputs are retained. Reload the current state.",
   "valuation.empty": "No manual valuations recorded yet.",
+  "valuation.pendingUnavailable": "The browser cannot retain the pending operation. Nothing was sent. Please check the available session storage and try again.",
   "valuation.replaced": "Corrected",
   "valuation.withdrawn": "Withdrawn",
   "valuation.current": "Uncorrected",

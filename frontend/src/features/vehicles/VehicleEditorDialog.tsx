@@ -203,7 +203,7 @@ export function VehicleEditorDialog({
               {activeTab === "maintenance" && <VehicleMaintenanceTab {...tabs.maintenance} />}
               {activeTab === "spareParts" && <VehicleSparePartsTab {...tabs.spareParts} />}
               {selected && <VehicleValuations key={`${draftOwner}:${selected.id}`} vehicleID={selected.id}
-                canEdit active={activeTab === "valuations"} />}
+                canEdit journalOwner={draftOwner} active={activeTab === "valuations"} />}
             </div>
 
             <footer className={`modal-actions${activeTab === "control" ? " function-editor-footer" : ""}`}>
