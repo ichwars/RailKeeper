@@ -1,6 +1,7 @@
 import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { CSSProperties, InputHTMLAttributes, KeyboardEvent, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useI18n } from "../i18n";
 
 export type AppDateInputChangeEvent = { target: { value: string } };
 
@@ -8,22 +9,6 @@ type AppDateInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" 
   value?: string;
   onChange?: (event: AppDateInputChangeEvent) => void;
 };
-
-const dayNames = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-const monthNames = [
-  "Januar",
-  "Februar",
-  "Maerz",
-  "April",
-  "Mai",
-  "Juni",
-  "Juli",
-  "August",
-  "September",
-  "Oktober",
-  "November",
-  "Dezember"
-];
 
 function toISODate(date: Date) {
   const year = date.getFullYear();
@@ -71,7 +56,12 @@ function monthGrid(monthDate: Date) {
   return Array.from({ length: 42 }, (_, index) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + index));
 }
 
-export function AppDateInput({ value = "", onChange, className = "", disabled, required, placeholder = "TT.MM.JJJJ", ...inputProps }: AppDateInputProps) {
+export function AppDateInput({ value = "", onChange, className = "", disabled, required, placeholder, ...inputProps }: AppDateInputProps) {
+  const { language, t } = useI18n();
+  const locale = language === "en" ? "en-GB" : "de-DE";
+  // A known Monday keeps both locales in the existing Monday-first order.
+  const dayNames = useMemo(() => Array.from({ length: 7 }, (_, index) =>
+    new Intl.DateTimeFormat(locale, { weekday: "short" }).format(new Date(2024, 0, 1 + index))), [locale]);
   const calendarID = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
@@ -179,29 +169,29 @@ export function AppDateInput({ value = "", onChange, className = "", disabled, r
           onKeyDown={handleKeyboard}
           disabled={disabled}
           required={required}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t("dateInput.placeholder")}
           inputMode="numeric"
           autoComplete="off"
           aria-controls={calendarID}
           aria-expanded={open}
         />
         {value && !disabled && (
-          <button type="button" className="app-date-clear" onMouseDown={(event) => event.preventDefault()} onClick={() => commit("")} aria-label="Datum leeren" title="Datum leeren">
+          <button type="button" className="app-date-clear" onMouseDown={(event) => event.preventDefault()} onClick={() => commit("")} aria-label={t("dateInput.clearDate")} title={t("dateInput.clearDate")}>
             <X size={14} aria-hidden="true" />
           </button>
         )}
-        <button type="button" className="app-date-toggle" onMouseDown={(event) => event.preventDefault()} onClick={() => !disabled && setOpen((current) => !current)} disabled={disabled} aria-label="Kalender oeffnen" title="Kalender oeffnen">
+        <button type="button" className="app-date-toggle" onMouseDown={(event) => event.preventDefault()} onClick={() => !disabled && setOpen((current) => !current)} disabled={disabled} aria-label={t("dateInput.open")} title={t("dateInput.open")}>
           <Calendar size={16} aria-hidden="true" />
         </button>
       </span>
       {open && typeof document !== "undefined" && createPortal(
-        <div ref={popupRef} id={calendarID} className="app-date-calendar" style={floatingStyle} role="dialog" aria-label="Datum auswaehlen">
+        <div ref={popupRef} id={calendarID} className="app-date-calendar" style={floatingStyle} role="dialog" aria-label={t("dateInput.choose")}>
           <div className="app-date-calendar-head">
-            <button type="button" onClick={() => changeMonth(-1)} aria-label="Vorheriger Monat" title="Vorheriger Monat">
+            <button type="button" onClick={() => changeMonth(-1)} aria-label={t("dateInput.previousMonth")} title={t("dateInput.previousMonth")}>
               <ChevronLeft size={16} aria-hidden="true" />
             </button>
-            <strong>{monthNames[visibleMonth.getMonth()]} {visibleMonth.getFullYear()}</strong>
-            <button type="button" onClick={() => changeMonth(1)} aria-label="Naechster Monat" title="Naechster Monat">
+            <strong>{new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(visibleMonth)}</strong>
+            <button type="button" onClick={() => changeMonth(1)} aria-label={t("dateInput.nextMonth")} title={t("dateInput.nextMonth")}>
               <ChevronRight size={16} aria-hidden="true" />
             </button>
           </div>
@@ -227,8 +217,8 @@ export function AppDateInput({ value = "", onChange, className = "", disabled, r
             })}
           </div>
           <footer className="app-date-calendar-actions">
-            <button type="button" onClick={() => { commit(""); setOpen(false); }}>Leeren</button>
-            <button type="button" onClick={() => chooseDay(new Date())}>Heute</button>
+            <button type="button" onClick={() => { commit(""); setOpen(false); }}>{t("dateInput.clear")}</button>
+            <button type="button" onClick={() => chooseDay(new Date())}>{t("dateInput.today")}</button>
           </footer>
         </div>,
         document.body

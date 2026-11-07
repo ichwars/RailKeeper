@@ -85,6 +85,20 @@ func TestCVImportDataBudgetExcludesOnlyComparisonVersions(t *testing.T) {
 	}
 }
 
+func TestCVImportBudgetPreservesRawBusinessEscaping(t *testing.T) {
+	for _, description := range []string{
+		`"<>&"`, `"\u003c\u003e\u0026"`, `"` + string(rune(0x2028)) + string(rune(0x2029)) + `"`,
+		`"\u2028\u2029"`, `"ä😀"`, `"\\u2028"`, `"a\nb"`,
+	} {
+		plain := `{"cvNumber":1,"value":3,"description":` + description + `}`
+		guarded := strings.TrimSuffix(plain, "}") + `,"expectedRevision":"` + strings.Repeat("a", 64) + `"}`
+		size, err := cvImportDataSize([]json.RawMessage{json.RawMessage(guarded)})
+		if err != nil || size != len(`{"values":[]}`)+len(plain) {
+			t.Fatalf("business escaping changed for %q: %d %v", description, size, err)
+		}
+	}
+}
+
 func TestCVImportBodyKeepsBusinessBudgetWhenVersionsAddOverhead(t *testing.T) {
 	db := testRouterDB(t)
 	auth := application.NewAuthService(db)

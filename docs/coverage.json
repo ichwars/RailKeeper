@@ -310,6 +310,7 @@
       "app": "setup-auth",
       "auth": "setup-auth",
       "common": "shared-navigation",
+      "dateInput": "shared-navigation",
       "digitalCenters": "digital-centers",
       "exhibition": "exhibition",
       "importExport": "import-export",

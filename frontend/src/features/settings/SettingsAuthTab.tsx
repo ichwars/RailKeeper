@@ -271,7 +271,7 @@ export function SettingsAuthTab({ controller }: { controller: SettingsAuthContro
                       {twoFactorSaving ? t("vehicles.saving") : t("settings.auth.twoFactorEnable")}
                     </button>
                   ) : (
-                    <button type="button" className="secondary-button danger" onClick={() => disableTwoFactor(() => setTwoFactorDialogOpen(false))} disabled={twoFactorSaving || !twoFactorPassword.trim()}>
+                    <button type="button" className="secondary-button danger" onClick={() => disableTwoFactor(() => setTwoFactorDialogOpen(false))} disabled={twoFactorSaving || !twoFactorPassword.trim() || !twoFactorCode.trim()}>
                       <X size={16} />
                       {twoFactorSaving ? t("vehicles.saving") : t("settings.auth.twoFactorDisable")}
                     </button>
