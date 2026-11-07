@@ -11,6 +11,7 @@ responsibility.
 - `valuation`: exact manual valuation rules behind a transactional storage port
 - `transfer`: shared exchange contracts, compatibility encoding and preview identities
 - `ecosmodel`: pure ECoS read projections, comparison plans and copied telemetry records
+- `backup`: backup format, compatibility checks and restore orchestration behind storage/rule ports
 - `domain`: vehicle inventory model and domain rules
 - `infrastructure`: SQLite, migrations, seed loading and filesystem adapters
 
@@ -20,6 +21,8 @@ The independent [transfer contracts](architecture/transfer-boundaries.md) keep s
 from depending on application-owned transport models. Compatibility aliases preserve callers.
 The [ECoS boundary](architecture/ecos-boundaries.md) separates protocol decisions from the
 existing connection, monitoring and explicitly confirmed transport operations.
+The [backup boundary](architecture/backup-boundaries.md) separates format checks, domain validation,
+the SQLite/file restore owner and legacy compatibility work within that same transaction.
 
 ## API Contract
 
