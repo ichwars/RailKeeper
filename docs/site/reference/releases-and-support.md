@@ -4,14 +4,14 @@ description: Versions and help.
 audience: reference
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-07
 ---
 
 # Versions and help
 
 ## Which version am I using?
 
-RailKeeper shows its version in the interface and under **Settings > General > Updates**. A release is a published version. `main` is the current development branch and may already include additional features. This handbook's screenshots come from an isolated demo of `main` reviewed on 23 October 2026. Older installed releases may differ.
+RailKeeper shows its version in the interface and under **Settings > General > Updates**. A release is a published version. `main` is the current development branch and may already include additional features. Screenshots come from isolated demos; each page records its own editorial review date. Older installed releases may differ. Identify a development build by its commit or package provenance as well as its displayed version.
 
 A page's visible **editorial review** date records content review. **Last updated** at the bottom is its Git modification date. Neither alone proves testing with real hardware. The [coverage overview](coverage) explains the evidence.
 

@@ -4,12 +4,17 @@ The baseline protects existing RailKeeper data and workflows during incremental 
 new synthetic installations. It never accepts a production URL, an existing data directory, or a private backup.
 Go and frontend tests remain required; this baseline adds process, restore and browser checks.
 
+On the managed `codex-dev` host, start a complete test command with `codex-test-tmp run --`.
+Temporary copies and browser profiles use its `TMPDIR` on the data disk and are removed afterwards.
+Retain reports and other required evidence in the project's ignored `output/` directory before cleanup.
+Other hosts use their own temporary-directory configuration; this launcher is not a RailKeeper dependency.
+
 ## Feature matrix
 
 `tools/regression/matrix.py` inventories all registered HTTP methods, paths and access declarations.
 Its original reviewed digest froze 200 routes at commit `2cdfd4430ffb28d0d726d2de6cb67bc43b329946`.
-The current 201-route digest adds only the Editor/CSRF-protected manual CV draft endpoint; all original
-methods, paths and access declarations remain unchanged.
+The current reviewed digest covers 218 routes, including the additive manual CV draft, catalog and
+decoder configuration endpoints. Original methods, paths and access declarations remain protected.
 An intentional contract change requires reviewing the matrix and updating the digest. The script verifies
 that evidence source files exist. This source inventory does not establish behavioral coverage of every route.
 
@@ -22,6 +27,7 @@ that evidence source files exist. This source inventory does not establish behav
 | Media | Images, attachments, preview/download, maintenance links | Blob/file contents and metadata; vehicle/backup tests |
 | Workshop | Maintenance, condition, spare parts | Maintenance and spare-part histories; vehicle tests |
 | Functions/CVs | Function draft, flags, index pages, decoder library, speed curve | Functions/CV provenance/history; reference evaluator and draft tests |
+| Decoder inventory/archive | Individual units, installation episodes, explicit working targets, recorded partial states | Frozen hardware/source evidence; binding conflicts and legacy adoption tests |
 | Accessories | Catalogue, quantity/individual stock, documents, reservation/installation | Stock, assets, allocations, histories; API lifecycle tests |
 | Exhibition | Entries, conflicts, locking, print | Lists, entries, exceptions; workspace tests |
 | Transfer/search | Formats, profiles, preview, conflict review, jobs; article search | Profiles and transfer data; import/export/search tests |
@@ -100,6 +106,11 @@ The runner exercises:
    verify complete rollback on a later stale row, explicitly resolve it and confirm the whole selection.
    Unselected CVs, provenance, history and the unsaved vehicle/function drafts remain checked; CV controls
    are also checked for mobile bounds, target size, keyboard focus and a pending request.
+   Decoder cases distinguish identical models, unknown physical dates and immutable recorded states.
+   Working-target cases confirm the default explicitly, preserve staged/open/import/file targets after
+   another selection, reject a concurrent hardware change and compare again without an automatic write.
+   Original file bytes survive a rejected upload and its separately confirmed retry. Deletion uses
+   the file's original group, independently of the new-input default.
 7. Stopping the source, copying its complete data directory and the test launcher's external upload-limit
    configuration, verifying all tables/files, restoring into another directory, restarting with that
    configuration, logging in with the original account and rechecking collection/valuation/artifact downloads.
@@ -126,12 +137,9 @@ This is a cold restore exercise, not a tool for live production backups.
 Without `--previous-binary`, the process check is a restart/restore test. An actual upgrade additionally requires
 a different previous application and its matching migration/seed directory:
 
-```sh
-python3 tools/regression/run_baseline.py --binary output/regression/railkeeper \
-  --previous-binary output/regression/railkeeper-v0.1.22 \
-  --previous-backend /tmp/railkeeper-stage0-previous/backend \
-  --browser --output output/regression-upgrade
-```
+The [complete upgrade command](modernization-rollout.md#einen-eindeutigen-kandidaten-qualifizieren)
+builds the previous application separately and retains its matching migrations for the whole test run.
+It places temporary sources under `TMPDIR` and writes lasting evidence into the project.
 
 The baseline release source is pinned to `debfad6198299052f07220883c1476581be691cc` (v0.1.22).
 The previous binary is built from that revision separately; the current checkout is not reset.
@@ -156,3 +164,6 @@ Preserve each report with its tested revision and environment. A passing source 
 does not prove physical hardware, SMTP delivery, camera/scanner access, native printing or human usability.
 Existing device/firmware acceptance limits remain separate. A loss of data, media, provenance, role separation
 or an existing workflow blocks the affected modernization step.
+
+The [modernization rollout guide](modernization-rollout.md) defines the human pilot tasks,
+candidate identification, full-installation recovery and the boundary before a production rollout.

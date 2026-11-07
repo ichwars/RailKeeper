@@ -95,7 +95,9 @@ Wichtige Daten liegen im konfigurierten Data-Verzeichnis:
 Regelmäßiger Ablauf:
 
 1. In RailKeeper unter Einstellungen einen App-Backup-Export erstellen.
-2. Zusätzlich das Docker-Volume oder Host-Datenverzeichnis sichern.
+2. Zusätzlich das Docker-Volume oder Host-Datenverzeichnis konsistent vollständig sichern.
+   Dafür Schreibzugriffe pausieren und die Anwendung stoppen. Zur vollständigen Sicherung gehören
+   gespeicherte Dateien, lokale Konten und die private Startkonfiguration; das passende Image getrennt erhalten.
 3. Backup außerhalb des Hosts ablegen.
 4. Vor größeren Updates ein frisches Backup erzeugen.
 
@@ -118,7 +120,8 @@ docker compose up -d
 Vorher:
 
 - App-Backup exportieren.
-- Optional Volume-/Dateisystem-Backup erstellen.
+- Vollständige konsistente Installationssicherung erstellen und ihre Wiederherstellung an einer isolierten Kopie prüfen.
+- Zielinstallation, tatsächliche Daten-/Uploadpfade, Konfiguration und aktiven Image-Digest feststellen.
 - Release Notes lesen.
 - Prüfen, ob `.env` noch zur neuen Version passt.
 
@@ -131,22 +134,24 @@ Nachher:
 - Backup-Validierung mit aktuellem Export testen.
 - Audit Log auf ungewöhnliche Fehler prüfen.
 
-Rollback:
+Rückweg:
 
-1. In `.env` ein bekannt funktionierendes Image setzen, zum Beispiel:
+Ein altes Image ist nach einer Migration kein belegter verlustfreier Rückweg. Starte es nicht
+ungeprüft auf der aktuellen Datenbank. Schema 77 und App-Backupformat 27 enthalten unter anderem
+Decoderexemplare, Einbauzeiträume und unveränderliche CV-Teilstände. Ältere Modelle können diese
+Angaben nicht vollständig ausdrücken. Die Formatnummer einer Sicherung darf nicht herabgesetzt werden.
 
-   ```env
-   RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.13
-   ```
+| Situation | Vorgehen |
+| --- | --- |
+| Unveränderter Datenzustand, kompatible vorherige Version nachgewiesen | Die geprüfte vorherige Software verwenden; Daten erhalten. |
+| Migration fehlgeschlagen, seit Sicherung keine neuen Nutzereingaben | Schreibpause beibehalten, vollständige geprüfte Installationssicherung mit ihrer passenden alten Software wiederherstellen und kontrollieren. |
+| Nach der Sicherung wurden neue Daten bestätigt | Aktuellen Zustand zusätzlich vollständig sichern und vorwärts reparieren oder eine vollständige geprüfte Übernahme aller Änderungen durchführen. Die alte Sicherung allein verliert neue Eingaben. |
 
-2. Container neu ziehen und starten:
-
-   ```bash
-   docker compose pull
-   docker compose up -d
-   ```
-
-3. Wenn Migrationen bereits angewendet wurden, nur mit vorherigem Datenbackup zurückrollen.
+Die automatische Sicherung vor einer Migration schützt die Datenbank zusätzlich. Sie ersetzt
+keine vollständige Installation mit Dateien, Konten und Konfiguration. Details stehen in der
+[Serversicherungs-Übung](site/de/administration/server-restore.md) und im
+[Modernisierungsablauf](modernization-rollout.md). Veröffentlichung und Produktivumstellung
+bleiben gesonderte Betreiberaufträge.
 
 ## Release-Veröffentlichung
 
