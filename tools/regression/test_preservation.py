@@ -14,6 +14,19 @@ from preservation import (
 
 
 class PreservationTests(unittest.TestCase):
+    def test_valuation_upgrade_only_adds_empty_history_and_preserves_old_cells(self):
+        document = {"version": 27, "tables": {"vehicles": [{"id": "vehicle", "purchase_price": "001,23"}],
+                    "vehicle_cv_values": [{"id": "cv", "decoder_profile": "  Profile  ", "index_cv31": 0}]}}
+        before = copy.deepcopy(document)
+        expected = expected_backup_upgrade(document, 28)
+        self.assertEqual(document, before)
+        self.assertEqual(expected, {**before, "version": 28, "tables": {**before["tables"], "vehicle_valuations": []}})
+        expected["tables"]["vehicle_valuations"] = [{"id": "valuation", "amount": "0.123456", "source": "Original"}]
+        self.assertEqual(expected_backup_upgrade(expected, 28), expected)
+        document["tables"]["vehicle_valuations"] = [{"id": "unexpected"}]
+        with self.assertRaises(AssertionError):
+            expected_backup_upgrade(document, 28)
+
     def test_authentication_upgrade_preserves_all_old_cells_and_requires_null_counter(self):
         original = self.root / "old.db"
         upgraded = self.root / "upgraded.db"
@@ -73,7 +86,7 @@ class PreservationTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             expected_backup_upgrade(original, 27)
         with self.assertRaises(AssertionError):
-            expected_backup_upgrade(original, 28, decoder_model=True)
+            expected_backup_upgrade(original, 29, decoder_model=True)
 
     def test_decoder_upgrade_does_not_accept_unknown_or_accidentally_prefilled_data(self):
         original = {"version": 26, "tables": {"decoder_instances": [{"id": "unexpected"}]}}

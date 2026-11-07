@@ -15,7 +15,9 @@ import (
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/infrastructure"
 	"railkeeper/backend/internal/infrastructure/authdata"
+	"railkeeper/backend/internal/infrastructure/valuationdata"
 	"railkeeper/backend/internal/startup"
+	"railkeeper/backend/internal/valuation"
 )
 
 type StartupState struct {
@@ -281,6 +283,7 @@ func buildApplicationHandler(
 		AuthService:                 authService,
 		VehicleService:              vehicleService,
 		OverviewValuationService:    application.NewOverviewValuationService(database),
+		ValuationService:            valuation.New(valuationdata.NewStore(database), nil),
 		MasterDataService:           masterDataService,
 		ArticleSearch:               application.NewArticleSearchService(masterDataService),
 		InventoryNumbers:            application.NewInventoryNumberService(database),

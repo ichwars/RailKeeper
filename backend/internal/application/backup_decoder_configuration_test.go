@@ -119,7 +119,7 @@ UPDATE vehicle_cv_values SET value=-1 WHERE cv_number=257 AND index_cv31 IS NULL
 
 func TestDecoderConfigurationBackupRoundTripPreservesUnknownHardwareIndicesSourcesAndHistory(t *testing.T) {
 	db, service, doc := decoderConfigurationFixture(t)
-	if doc.Version != 27 {
+	if doc.Version != 28 {
 		t.Fatalf("version=%d", doc.Version)
 	}
 	for _, query := range []string{

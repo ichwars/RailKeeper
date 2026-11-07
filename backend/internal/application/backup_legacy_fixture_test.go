@@ -5,6 +5,9 @@ import "railkeeper/backend/internal/application"
 // Historical fixtures must contain only data their original format could export.
 func setLegacyBackupVersion(doc *application.BackupDocument, version int) {
 	doc.Version = version
+	if version < 28 {
+		delete(doc.Tables, "vehicle_valuations")
+	}
 	if version < 27 {
 		for _, table := range []string{"decoder_instances", "decoder_installations", "decoder_cv_workspaces", "decoder_cv_snapshots", "decoder_cv_snapshot_sources"} {
 			delete(doc.Tables, table)

@@ -87,7 +87,7 @@ func TestLegacyBackupRestoreRetiresAllocationsOnceAndKeepsArchive(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if current.Version != 27 || len(current.Tables["retired_allocation_records"]) != 4 {
+	if current.Version != 28 || len(current.Tables["retired_allocation_records"]) != 4 {
 		t.Fatalf("archive absent from current backup: version %d", current.Version)
 	}
 	for range 2 {

@@ -13,10 +13,12 @@ import (
 func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 	const prefix = "railkeeper/backend/internal/"
 	modules := map[string][]string{
-		"authentication":           {"credentials"},
-		"credentials":              {},
-		"infrastructure/authdata":  {"authentication", "credentials", "infrastructure/ratelimit"},
-		"infrastructure/ratelimit": {"credentials"},
+		"authentication":               {"credentials"},
+		"credentials":                  {},
+		"valuation":                    {},
+		"infrastructure/valuationdata": {"valuation", "credentials"},
+		"infrastructure/authdata":      {"authentication", "credentials", "infrastructure/ratelimit"},
+		"infrastructure/ratelimit":     {"credentials"},
 	}
 	for module, allowed := range modules {
 		t.Run(module, func(t *testing.T) {
@@ -45,7 +47,7 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 							t.Errorf("%s imports forbidden module %s", path, name)
 						}
 					}
-					if module == "authentication" || module == "credentials" {
+					if module == "authentication" || module == "credentials" || module == "valuation" {
 						if strings.HasPrefix(name, "database/") || name == "os" || strings.HasPrefix(name, "os/") || name == "io/fs" || name == "path/filepath" ||
 							strings.HasPrefix(name, "net/") || strings.HasPrefix(name, "modernc.org/") {
 							t.Errorf("%s imports a transport or persistence dependency: %s", path, name)
