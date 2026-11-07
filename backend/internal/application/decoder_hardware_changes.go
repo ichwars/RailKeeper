@@ -28,7 +28,7 @@ func (s *VehicleService) writeDecoderInstance(ctx context.Context, vehicleID str
 	input.Label, input.Manufacturer = strings.TrimSpace(input.Label), strings.TrimSpace(input.Manufacturer)
 	input.Model, input.SerialNumber = strings.TrimSpace(input.Model), strings.TrimSpace(input.SerialNumber)
 	input.Notes = strings.TrimSpace(input.Notes)
-	if (create && !validDecoderID(input.ID)) || input.ID == "" || len(input.ID) > 80 || input.Label == "" || len(input.Notes) > 4000 {
+	if (create && !validDecoderID(input.ID)) || input.ID == "" || input.Label == "" || len(input.Notes) > 4000 {
 		return nil, ErrDecoderValidation
 	}
 	for _, value := range []string{input.Label, input.Manufacturer, input.Model, input.SerialNumber} {

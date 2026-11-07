@@ -3,6 +3,7 @@ package application_test
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	"railkeeper/backend/internal/application"
@@ -112,6 +113,33 @@ func TestDecoderConfigurationHardwareCommandsKeepEpisodesDatesAndOldEvidence(t *
 		if !reflect.DeepEqual(after.Tables[table], deleted.Tables[table]) {
 			t.Fatalf("vehicle deletion lost historical %s", table)
 		}
+	}
+}
+
+func TestDecoderConfigurationRetainsLongImportedHardwareIdentity(t *testing.T) {
+	db, _, original := decoderConfigurationFixture(t)
+	id, now := strings.Repeat("imported-identity-", 8), "2026-11-07T01:00:00Z"
+	if _, err := db.Exec(`INSERT INTO decoder_instances VALUES(?,'Imported','','','','',?,?)`, id, now, now); err != nil {
+		t.Fatal(err)
+	}
+	s := application.NewVehicleService(db)
+	vehicle := original.Tables["vehicles"][0]["id"].(string)
+	before, err := s.DecoderConfigurationContext(t.Context(), vehicle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := s.UpdateDecoderInstance(t.Context(), vehicle, application.DecoderInstanceInput{ID: id, ExpectedRevision: before.Revision, Label: "Corrected imported description"}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, item := range after.Instances {
+		if item.ID == id {
+			found = item.Label == "Corrected imported description"
+		}
+	}
+	if !found {
+		t.Fatal("editing renamed or lost the imported physical identity")
 	}
 }
 

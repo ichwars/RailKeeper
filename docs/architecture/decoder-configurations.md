@@ -102,7 +102,7 @@ workspace preserves its metadata and snapshots; older backups still receive lega
 ## Explicit hardware commands
 
 The application layer provides a consistent read context and explicit physical-instance,
-installation, removal and date-correction commands. HTTP and UI exposure follow separately.
+installation, removal and date-correction commands, exposed through the private HTTP API.
 Matching model names never merge instances. A second decoder in one vehicle is allowed; one
 physical decoder cannot have two active installations. Removal keeps the installation episode,
 its vehicle identity and prior notes. A later installation creates a new episode.
@@ -148,4 +148,17 @@ evidence returns `410 decoder_source_unavailable`; an unknown pair returns `404`
 OpenAPI and generated transport types distinguish recorded CV values from writable CV input.
 Historical unknown integers, exact profile text, source timestamps and index-page absence are
 preserved without presenting those records as valid programming commands. Read responses contain
-no internal storage paths or blob identifiers. All current decoder writes remain separate.
+no internal storage paths or blob identifiers. Decoder writes use separate explicit commands.
+
+## Confirmed write API
+
+Instance, installation, date, workspace, association and checkpoint routes require Editor or
+Admin, the existing CSRF protection and a current context revision. Every documented edit field
+is required, including empty optional text and explicit null dates/associations. Unknown fields,
+trailing JSON, invalid null text and requests exceeding 64 KiB are rejected before application
+commands run. Instance edits retain their ID and must match the path ID.
+
+Clients retain new instance/episode/group/checkpoint identities with the confirmation request.
+A lost reply must not trigger an automatic new identity or a modified replay. HTTP 409 requires
+reloading the saved context and reviewing the intended change. Checkpoints contain only saved
+working rows; open browser drafts are excluded. These inventory commands do not write to devices.
