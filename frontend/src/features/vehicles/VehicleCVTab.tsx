@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { Check, CircleHelp, Database, Download, FileCode, FileText, FolderOpen, Save, Trash2, Upload } from "lucide-react";
+import { Archive, Check, CircleHelp, Database, Download, FileCode, FileText, FolderOpen, Save, Trash2, Upload } from "lucide-react";
+import { DecoderCVArchive } from "./DecoderCVArchive";
 import { DecoderProfileStrip } from "./DecoderProfileStrip";
 import { useDecoderProfile } from "./DecoderProfileSelect";
 import { VehicleCVDetails } from "./VehicleCVDetails";
@@ -28,6 +29,8 @@ type ECoSDraftPreview = {
 
 export function VehicleCVTab({
   selected,
+  canReadArchive = false,
+  archiveOwnerKey = "",
   decoderType,
   ecosDraft,
   readonly,
@@ -71,6 +74,8 @@ export function VehicleCVTab({
   deleteCVFile
 }: {
   selected: Vehicle | null;
+  canReadArchive?: boolean;
+  archiveOwnerKey?: string;
   decoderType?: string;
   ecosDraft: ECoSDraftPreview | null;
   readonly: boolean;
@@ -142,17 +147,18 @@ export function VehicleCVTab({
     const body = sectionRef.current?.closest(".modal-body");
     if (body) body.scrollTop = 0;
   }, [view]);
-  const activeView = view;
+  const activeView = view === "snapshots" && (!canReadArchive || !selected) ? "explained" : view;
+  const archiveActive = activeView === "snapshots";
   const ecosProfile = useMemo(() => selected?.ecosDecoderProfile ||
     (ecosDraft?.source === "ecos" && ecosDraft.sourceSummary.profile
       ? { name: ecosDraft.sourceSummary.profile, objectId: String(ecosDraft.sourceSummary.objectId), host: "", readAt: "" }
       : undefined), [selected?.ecosDecoderProfile, ecosDraft]);
   const manualType = decoderType ?? selected?.decoderType ?? "";
   const decoder = useDecoderProfile(values, manualType, ecosProfile);
-  const viewIcons = { explained: CircleHelp, raw: Database, files: FolderOpen };
+  const viewIcons = { explained: CircleHelp, raw: Database, files: FolderOpen, snapshots: Archive };
   return <ManufacturerCVProvider values={values} profile={detailValue?.decoderProfile ?? decoder.profile}
     manualType={manualType} ecosProfile={ecosProfile}><section className="cv-tab" ref={sectionRef}>
-    <div className="cv-entry-actions"><h3>{t("vehicles.decoder.dataTitle")}</h3><div className="cv-toolbar">
+    <div className="cv-entry-actions"><h3>{t(archiveActive ? "decoderConfig.archive" : "vehicles.decoder.dataTitle")}</h3>{!archiveActive && <div className="cv-toolbar">
       <input ref={cvImportInputRef} type="file" accept=".json,.csv,.txt" className="visually-hidden"
         onChange={(event) => importCVValues(event.target.files)} disabled={readonly || !selected || saving} />
       <input ref={cvFileInputRef} type="file" multiple accept={cvFileAccept} className="visually-hidden"
@@ -162,7 +168,8 @@ export function VehicleCVTab({
       <button type="button" className="secondary-button" onClick={() => { setView("files"); cvFileInputRef.current?.click(); }} disabled={readonly || !selected || saving}>
         <FileText size={15} />{t("vehicles.decoder.uploadProject")}</button>
 
-    </div></div>
+    </div>}</div>
+    {!archiveActive && <>
     {!selected && !ecosDraft && <p className="empty-state compact">{t("vehicles.cv.emptyUntilSave")}</p>}
     {!selected && ecosDraft && <div className="ecos-draft-cv-preview">
       <p>{t("vehicles.ecosDraft.cvPreviewSubtitle", { count: ecosDraft.cvValues.length })}</p>
@@ -217,11 +224,16 @@ export function VehicleCVTab({
     {selected && manualDraft && manualDraft.changes.length > 0 && <VehicleCVDraftReview draft={manualDraft}
       stored={selected.cvValues || []} files={selected.cvFiles || []} disabled={readonly || saving}
       save={applyManualDraft} discard={discardManualDraft} discardChange={discardManualChange} rebase={rebaseManualChange} />}
+    </>}
     <nav className="cv-subtabs" aria-label={t("vehicles.decoder.cvViews")}>
-      {(["explained", "raw", "files"] as const).map((tab) => { const Icon = viewIcons[tab]; return <button type="button" key={tab}
+      {(["explained", "raw", "files", "snapshots"] as const).filter(tab => tab !== "snapshots" || (canReadArchive && selected)).map((tab) => { const Icon = viewIcons[tab]; return <button type="button" key={tab}
         className={activeView === tab ? "active" : ""} aria-pressed={activeView === tab} onClick={() => setView(tab)}>
-        <Icon size={16} aria-hidden="true" />{t(`vehicles.decoder.view.${tab}`)}{tab === "raw" && <span className="cv-tab-count" aria-hidden="true">{values.length}</span>}</button>; })}
+        <Icon size={16} aria-hidden="true" />{t(tab === "snapshots" ? "decoderConfig.archive" : `vehicles.decoder.view.${tab}`)}{tab === "raw" && <span className="cv-tab-count" aria-hidden="true">{values.length}</span>}</button>; })}
     </nav>
+    {archiveActive && selected && <>
+      {Boolean(manualDraft?.changes.length) && <p role="status">{t("decoderConfig.draftRetained")}</p>}
+      <DecoderCVArchive key={`${archiveOwnerKey}:${selected.id}`} vehicleId={selected.id} />
+    </>}
     {activeView === "explained" && <VehicleCVExplained key={decoder.profile} analysis={decoder.analysis} values={values} onOpenValue={value => setDetailId(value.id)} />}
     {activeView === "raw" && (selected || ecosDraft) && <section className="cv-table-section">
       <div className="cv-section-heading"><div><h3>{t("vehicles.decoder.view.raw")}</h3><p>{t("vehicles.decoder.rawIntro")}</p></div>

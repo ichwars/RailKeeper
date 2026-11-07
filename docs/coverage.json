@@ -74,6 +74,18 @@
       "screenshot": "cv-analysis"
     },
     {
+      "id": "vehicle-decoder-archive",
+      "audience": "user",
+      "status": "documented",
+      "englishPath": "guide/vehicles/cv-archive.md",
+      "germanPath": "de/guide/vehicles/cv-archive.md",
+      "labelDE": "Gespeicherte CV-Stände",
+      "labelEN": "Recorded CV states",
+      "reviewEvidence": "demo-ui",
+      "reviewedAt": "2026-11-07",
+      "screenshot": "cv-archive"
+    },
+    {
       "id": "vehicle-search-spares",
       "audience": "user",
       "status": "documented",
@@ -304,6 +316,7 @@
       "vehicles.articleSearch": "vehicle-search-spares",
       "vehicles.barcode": "vehicle-search-spares",
       "vehicles.cv": "vehicle-decoder-cv",
+      "decoderConfig": "vehicle-decoder-archive",
       "vehicles.functionMode": "vehicle-decoder-cv",
       "vehicles.functionType": "vehicle-decoder-cv",
       "vehicles.functions": "vehicle-decoder-cv",
@@ -351,7 +364,7 @@
       "/api/v1/vehicles/{id}/cv-values": "vehicle-decoder-cv",
       "/api/v1/vehicles/{id}/cv-files": "vehicle-decoder-cv",
       "/api/v1/vehicles/{id}/decoder-configurations": "development-architecture",
-      "/api/v1/decoder-configurations": "development-architecture",
+      "/api/v1/decoder-configurations": "vehicle-decoder-archive",
       "/api/v1/cv-files": "vehicle-decoder-cv",
       "/api/v1/article-search": "vehicle-search-spares",
       "/api/v1/overview": "overview",

@@ -4,7 +4,7 @@ description: Decoder, functions, and CV data.
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-11-06
+lastReviewed: 2026-11-07
 ---
 
 # Decoder, functions, and CV data
@@ -18,6 +18,7 @@ None of these exercises programs a decoder.
 | Check model, firmware and identification | [Identify a decoder](decoder-identification) |
 | Fill F0/F1/F3 together and protect manual details | [Apply function keys](functions-walkthrough) |
 | Look up a model or source | [Decoder library](decoder-library) |
+| Read recorded values, histories and originals | [CV archive](cv-archive) |
 | Understand manufacturer and firmware limits | [Model notes](decoder-model-notes) |
 | Read formats, raw-value rules and edge cases | [Technical reference](decoder-cv-reference) |
 
