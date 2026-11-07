@@ -116,3 +116,23 @@ Commands compare a current context revision inside their transaction. That revis
 physical-instance and installation records plus exact working CVs, histories and source-file
 metadata, including changes made without advancing a timestamp. Failed comparisons and duplicate
 create confirmations make no changes. Hardware changes and their audit record commit together.
+
+## Deliberate checkpoints and assignment
+
+Creating a named working group adds no CVs or hardware. Recording a checkpoint captures the exact
+selected group, its individual CV provenance/history, and its available original sources in one
+transaction. New checkpoint identities belong to the confirmation request; replaying an old
+confirmation or reusing an existing identity is rejected without duplicates.
+
+Assigning or clearing hardware is a separate command. Before changing the current association,
+it records the previous partial working state with its previous hardware description. A new
+association must refer to an active installation in the same vehicle. It neither copies nor
+retags CVs and does not change existing snapshots. Creating a separate named group is appropriate
+when starting work for a replacement decoder rather than reinterpreting old working values.
+
+The read layer exposes archived summaries, complete checkpoint contents and private original-source
+downloads independently of current vehicle/workspace records. Unavailable originals return an
+explicit unavailable result; a path or a different live file is never substituted. Source metadata
+and compressed original bytes are read together from the database. Archive readers expose no
+internal storage paths or blob identifiers. Checkpoint/association changes and their audit records
+commit together, including any newly captured blobs.
