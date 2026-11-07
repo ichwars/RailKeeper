@@ -7,8 +7,8 @@ import { readSidebarPrefs, sidebarPrefsKey } from "../../app/sidebarPreferences"
 import { SettingsProfileCard } from "./SettingsProfileCard";
 import { useSettingsPreferences } from "./useSettingsPreferences";
 
-function Profile() {
-  return <SettingsProfileCard preferences={useSettingsPreferences("editor")} />;
+function Profile({ username = "editor" }: { username?: string }) {
+  return <SettingsProfileCard preferences={useSettingsPreferences(username)} />;
 }
 
 describe("explicit personal view selection", () => {
@@ -74,5 +74,34 @@ describe("explicit personal view selection", () => {
     await waitFor(() => expect(api.updateProfileSettings).toHaveBeenCalledTimes(2));
     const final = vi.mocked(api.updateProfileSettings).mock.calls[1][0];
     expect(JSON.parse(final[sidebarPrefsKey("editor")]).hidden).toEqual([]);
+  });
+
+  it("does not send an old queued choice after the signed-in user changes", async () => {
+    let finish!: (value: { settings: Record<string, string> }) => void;
+    vi.mocked(api.updateProfileSettings).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const user = userEvent.setup();
+    const view = render(<Profile />);
+    await user.click(screen.getByRole("button", { name: "Sammlung" }));
+    await user.click(screen.getByRole("button", { name: "Alle Funktionen" }));
+    view.rerender(<Profile username="other-user" />);
+    await user.click(screen.getByRole("button", { name: "Sammlung" }));
+    await act(async () => finish({ settings: {} }));
+    await waitFor(() => expect(api.updateProfileSettings).toHaveBeenCalledTimes(2));
+    const last = vi.mocked(api.updateProfileSettings).mock.calls[1][0];
+    expect(Object.keys(last)).toEqual([sidebarPrefsKey("other-user")]);
+  });
+
+  it("invalidates queued saves after unmount and a new login", async () => {
+    let finish!: (value: { settings: Record<string, string> }) => void;
+    vi.mocked(api.updateProfileSettings).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const user = userEvent.setup();
+    const view = render(<Profile />);
+    await user.click(screen.getByRole("button", { name: "Sammlung" }));
+    await user.click(screen.getByRole("button", { name: "Alle Funktionen" }));
+    view.unmount();
+    vi.spyOn(globalThis,"fetch").mockResolvedValue(new Response(JSON.stringify({ csrfToken:"different-synthetic-session" }), { status:200 }));
+    await api.login({ username:"other-user", password:"synthetic-password" });
+    await act(async () => finish({ settings:{} }));
+    expect(api.updateProfileSettings).toHaveBeenCalledOnce();
   });
 });

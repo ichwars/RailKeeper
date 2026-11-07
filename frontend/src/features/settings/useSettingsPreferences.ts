@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AppView } from "../../app/App";
 import { availableStartView } from "../../app/navigationAvailability";
 import { applySidebarProfile, type SidebarProfile } from "../../app/sidebarPreferences";
-import { api, type SystemPrinters } from "../../shared/api";
+import { api, captureSessionGuard, type SystemPrinters } from "../../shared/api";
 import {
   applyStoredThemeOptions, applyThemePreference, readThemePreference, themePreferenceKey,
   type ThemePreference
@@ -15,6 +15,7 @@ import {
 
 export function useSettingsPreferences(username: string) {
   const sidebarRevision = useRef(0);
+  const sidebarOwner = useRef(0);
   const sidebarSaveQueue = useRef<Promise<void>>(Promise.resolve());
   const [sidebarSaveFailed, setSidebarSaveFailed] = useState(false);
   const [articleSearchEnabled, setArticleSearchEnabled] = useState(
@@ -41,6 +42,7 @@ export function useSettingsPreferences(username: string) {
 
   useEffect(() => {
     sidebarRevision.current += 1;
+    sidebarOwner.current += 1;
     setSidebarSaveFailed(false);
     const prefs = readSidebarPrefs(username);
     setSidebarOrder(prefs.order);
@@ -138,8 +140,10 @@ export function useSettingsPreferences(username: string) {
     const value = JSON.stringify({ order: nextOrder, hidden: nextHidden });
     window.localStorage.setItem(sidebarPrefsKey(username), value);
     const key = sidebarPrefsKey(username);
+    const owner = sidebarOwner.current;
+    const isCurrentSession = captureSessionGuard();
     sidebarSaveQueue.current = sidebarSaveQueue.current
-      .then(() => api.updateProfileSettings({ [key]: value }))
+      .then(() => sidebarOwner.current === owner && isCurrentSession() ? api.updateProfileSettings({ [key]: value }) : undefined)
       .then(() => undefined)
       .catch(() => {
         if (sidebarRevision.current === revision) setSidebarSaveFailed(true);
