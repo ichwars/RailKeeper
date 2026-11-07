@@ -2,75 +2,34 @@ package application
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"railkeeper/backend/internal/decoder"
 	"railkeeper/backend/internal/infrastructure/vehicledata"
 )
 
 const MaxVehicleCVChanges = 500
 
-var ErrVehicleCVConflict = errors.New("vehicle CV changed or target identity already exists")
+var ErrVehicleCVConflict = decoder.ErrCVConflict
 
-type VehicleCVChange struct {
-	ID                        string               `json:"id,omitempty"`
-	ExpectedRevision          string               `json:"expectedRevision"`
-	Delete                    bool                 `json:"delete,omitempty"`
-	Value                     *VehicleCVValueInput `json:"value,omitempty"`
-	WorkspaceID               string               `json:"workspaceId,omitempty"`
-	ExpectedWorkspaceRevision string               `json:"expectedWorkspaceRevision,omitempty"`
-}
+type VehicleCVChange = decoder.VehicleCVChange
 
-type VehicleCVChangesInput struct {
-	Changes []VehicleCVChange `json:"changes"`
-}
+type VehicleCVChangesInput = decoder.VehicleCVChangesInput
 
-func cvRecordRevision(item vehicledata.CVRecord) string {
-	data, _ := json.Marshal(item)
-	return fmt.Sprintf("%x", sha256.Sum256(data))
-}
-
-func cvRecordValue(item vehicledata.CVRecord) VehicleCVValue {
-	return VehicleCVValue{ID: item.ID, VehicleID: item.VehicleID, CVNumber: item.CVNumber,
-		IndexCV31: item.IndexCV31, IndexCV32: item.IndexCV32, Value: item.Value, Description: item.Description,
-		Category: item.Category, Protocol: item.Protocol, DecoderProfile: item.DecoderProfile,
-		SourceFileID: item.SourceFileID, SourceLine: item.SourceLine, SourceExportedAt: item.SourceExportedAt,
-		CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt, Revision: cvRecordRevision(item)}
-}
+func cvRecordValue(item vehicledata.CVRecord) VehicleCVValue { return decoder.CVRecordValue(item) }
 
 func cvRecordInput(vehicleID string, input VehicleCVValueInput) vehicledata.CVRecord {
-	return vehicledata.CVRecord{VehicleID: vehicleID, CVNumber: input.CVNumber, IndexCV31: input.IndexCV31,
-		IndexCV32: input.IndexCV32, Value: input.Value, Description: input.Description, Category: input.Category,
-		Protocol: input.Protocol, DecoderProfile: input.DecoderProfile, SourceFileID: input.SourceFileID,
-		SourceLine: input.SourceLine, SourceExportedAt: input.SourceExportedAt}
+	return decoder.CVRecordInput(vehicleID, input)
 }
 
-func validCVRevision(value string) bool {
-	data, err := hex.DecodeString(value)
-	return err == nil && len(data) == sha256.Size && strings.ToLower(value) == value
-}
+func validCVRevision(value string) bool { return decoder.ValidCVRevision(value) }
 
 func checkCVRevision(existing *vehicledata.CVRecord, expected *string) error {
-	if expected == nil {
-		return nil
-	} // Existing clients keep their legacy request contract.
-	if *expected != "" && !validCVRevision(*expected) {
-		return ErrVehicleValidation
-	}
-	if existing == nil {
-		if *expected != "" {
-			return ErrVehicleCVConflict
-		}
-	} else if cvRecordRevision(*existing) != *expected {
-		return ErrVehicleCVConflict
-	}
-	return nil
+	return cvRuleError(decoder.CheckCVRevision(existing, expected))
 }
 
 func beginVehicleCVWrite(ctx context.Context, db *sql.DB, vehicleID string) (*sql.Tx, error) {
@@ -263,7 +222,4 @@ func (s *VehicleService) ApplyCVChanges(ctx context.Context, vehicleID string, i
 	return len(input.Changes), nil
 }
 
-func vehicleCVIdentity(value VehicleCVValueInput) string {
-	return fmt.Sprintf("%s:%d:%d:%d", value.DecoderProfile, value.CVNumber,
-		cvIndexKey(value.IndexCV31), cvIndexKey(value.IndexCV32))
-}
+func vehicleCVIdentity(value VehicleCVValueInput) string { return decoder.CVIdentity(value) }

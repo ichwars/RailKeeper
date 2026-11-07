@@ -271,45 +271,17 @@ func isValidVehicleFunctionInput(input VehicleFunctionInput) bool {
 }
 
 func cleanVehicleCVValueInput(input VehicleCVValueInput) VehicleCVValueInput {
-	input.Description = strings.TrimSpace(input.Description)
-	input.Category = strings.TrimSpace(input.Category)
-	input.Protocol = strings.TrimSpace(input.Protocol)
-	input.DecoderProfile = strings.TrimSpace(input.DecoderProfile)
-	input.SourceFileID = strings.TrimSpace(input.SourceFileID)
-	input.SourceExportedAt = strings.TrimSpace(input.SourceExportedAt)
-	return input
+	return decoder.CleanCVValueInput(input)
 }
 
 func isValidVehicleCVValueInput(input VehicleCVValueInput) bool {
-	return validCVNumber(input.CVNumber) && validCVIndex(input) &&
-		(input.SourceLine == nil || (*input.SourceLine >= 1 && *input.SourceLine <= 10000000)) &&
-		validCVExportTimestamp(input.SourceExportedAt) &&
-		validCVValue(input.Value) &&
-		len(input.Description) <= 1000 &&
-		len(input.Category) <= 80 &&
-		len(input.Protocol) <= 80 &&
-		len(input.DecoderProfile) <= 160 &&
-		len(input.SourceFileID) <= 80
+	return decoder.ValidCVValueInput(input)
 }
 
-// LokProgrammer exports wall-clock time without a timezone. Do not invent an offset.
-func validCVExportTimestamp(value string) bool {
-	if value == "" {
-		return true
-	}
-	parsed, err := time.Parse("2006-01-02T15:04:05", value)
-	return err == nil && parsed.Year() >= 1 && parsed.Format("2006-01-02T15:04:05") == value
-}
+func validCVExportTimestamp(value string) bool { return decoder.ValidCVExportTimestamp(value) }
 
 func cleanVehicleCVFileInput(input VehicleCVFileInput) VehicleCVFileInput {
-	input.FileName = strings.TrimSpace(input.FileName)
-	input.OriginalName = strings.TrimSpace(input.OriginalName)
-	input.Description = strings.TrimSpace(input.Description)
-	input.DecoderProfile = strings.TrimSpace(input.DecoderProfile)
-	input.MimeType = strings.TrimSpace(input.MimeType)
-	input.StoragePath = strings.TrimSpace(input.StoragePath)
-	input.BlobID = strings.TrimSpace(input.BlobID)
-	return input
+	return decoder.CleanCVFileInput(input)
 }
 
 func normalizeFunctionKey(value string) string {
@@ -344,11 +316,3 @@ func functionSortOrder(value string) int {
 func validCVNumber(value int) bool { return decoder.ValidCVNumber(value) }
 
 func validCVValue(value int) bool { return decoder.ValidCVValue(value) }
-
-func validCVIndex(input VehicleCVValueInput) bool {
-	if input.IndexCV31 == nil && input.IndexCV32 == nil {
-		return true
-	}
-	return input.IndexCV31 != nil && input.IndexCV32 != nil &&
-		validCVValue(*input.IndexCV31) && validCVValue(*input.IndexCV32) && input.CVNumber >= 257 && input.CVNumber <= 512
-}

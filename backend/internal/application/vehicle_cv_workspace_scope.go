@@ -5,14 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
+
+	"railkeeper/backend/internal/decoder"
+	"railkeeper/backend/internal/infrastructure/vehicledata"
 )
 
-type VehicleCVDeletionInput struct {
-	ExpectedRevision          *string
-	WorkspaceID               string
-	ExpectedWorkspaceRevision string
-}
+type VehicleCVDeletionInput = decoder.VehicleCVDeletionInput
 
 func checkCVDeletionScopeTx(ctx context.Context, tx *sql.Tx, vehicleID, profile string, input VehicleCVDeletionInput) error {
 	if input.WorkspaceID == "" && input.ExpectedWorkspaceRevision == "" {
@@ -21,56 +19,38 @@ func checkCVDeletionScopeTx(ctx context.Context, tx *sql.Tx, vehicleID, profile 
 	if input.WorkspaceID == "" || !validCVRevision(input.ExpectedWorkspaceRevision) || input.ExpectedRevision == nil {
 		return ErrVehicleValidation
 	}
-	stored, revision, err := readCVWorkspaceBindingTx(ctx, tx, vehicleID, input.WorkspaceID)
+	binding, err := readCVBindingTx(ctx, tx, vehicleID, input.WorkspaceID)
 	if err != nil {
 		return err
 	}
-	if revision != input.ExpectedWorkspaceRevision {
-		return ErrVehicleCVConflict
-	}
-	if stored != profile {
-		return ErrVehicleValidation
-	}
-	return nil
+	return cvRuleError(decoder.CheckCVDeletionScope(vehicleID, profile, input, &binding))
 }
 
-func readCVWorkspaceBindingTx(ctx context.Context, tx *sql.Tx, vehicleID, workspaceID string) (string, string, error) {
-	var profile, installation, decoder, state string
-	err := tx.QueryRowContext(ctx, `SELECT w.profile_text,COALESCE(w.installation_id,''),COALESCE(i.decoder_id,''),COALESCE(i.state,'')
-FROM decoder_cv_workspaces w LEFT JOIN decoder_installations i ON i.id=w.installation_id
-WHERE w.id=? AND w.vehicle_id=?`, workspaceID, vehicleID).Scan(&profile, &installation, &decoder, &state)
+func readCVBindingTx(ctx context.Context, tx *sql.Tx, vehicleID, workspaceID string) (decoder.CVBinding, error) {
+	binding, err := vehicledata.ReadCVWorkspaceBinding(ctx, tx, vehicleID, workspaceID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", "", ErrVehicleValidation
+		return binding, ErrVehicleValidation
 	}
 	if err != nil {
-		return "", "", fmt.Errorf("read CV working group binding: %w", err)
+		return binding, fmt.Errorf("read CV working group binding: %w", err)
 	}
-	revision := recordRevision(struct{ WorkspaceID, VehicleID, Profile, InstallationID, DecoderID, State string }{workspaceID, vehicleID, profile, installation, decoder, state})
-	return profile, revision, nil
+	return binding, nil
 }
 
 func resolveCVWorkspaceProfileTx(ctx context.Context, tx *sql.Tx, vehicleID, workspaceID, expected, profile string) (string, error) {
-	profile = strings.TrimSpace(profile)
-	if workspaceID == "" {
-		if expected != "" {
-			return "", ErrVehicleValidation
+	if err := decoder.ValidateCVScope(workspaceID, expected); err != nil {
+		return "", cvRuleError(err)
+	}
+	var binding *decoder.CVBinding
+	if workspaceID != "" {
+		value, err := readCVBindingTx(ctx, tx, vehicleID, workspaceID)
+		if err != nil {
+			return "", err
 		}
-		return profile, nil
+		binding = &value
 	}
-	if !validCVRevision(expected) {
-		return "", ErrVehicleValidation
-	}
-	stored, revision, err := readCVWorkspaceBindingTx(ctx, tx, vehicleID, workspaceID)
-	if err != nil {
-		return "", err
-	}
-	if revision != expected {
-		return "", ErrVehicleCVConflict
-	}
-	if strings.TrimSpace(stored) != profile {
-		return "", ErrVehicleValidation
-	}
-	return stored, nil
+	resolved, err := decoder.ResolveCVProfile(vehicleID, workspaceID, expected, profile, binding)
+	return resolved, cvRuleError(err)
 }
 
 func resolveVehicleCVInputTx(ctx context.Context, tx *sql.Tx, vehicleID string, input VehicleCVValueInput) (VehicleCVValueInput, error) {
@@ -86,10 +66,6 @@ func resolveVehicleCVInputTx(ctx context.Context, tx *sql.Tx, vehicleID string, 
 	return input, nil
 }
 
-// Scoped inputs are resolved exactly inside the transaction before checking mixed scoped/legacy targets.
 func vehicleCVRequestIdentity(value VehicleCVValueInput) string {
-	if value.WorkspaceID != "" {
-		return fmt.Sprintf("workspace:%q:%d:%d:%d", value.WorkspaceID, value.CVNumber, cvIndexKey(value.IndexCV31), cvIndexKey(value.IndexCV32))
-	}
-	return "profile:" + vehicleCVIdentity(value)
+	return decoder.CVRequestIdentity(value)
 }

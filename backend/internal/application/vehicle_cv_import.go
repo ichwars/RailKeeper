@@ -62,13 +62,6 @@ func (s *VehicleService) ImportCVValues(ctx context.Context, vehicleID string, i
 	return len(input.Values), nil
 }
 
-func cvIndexKey(value *int) int {
-	if value == nil {
-		return -1
-	}
-	return *value
-}
-
 func importCVValueTx(ctx context.Context, tx *sql.Tx, vehicleID string, value VehicleCVValueInput, now string) error {
 	previous, err := vehicledata.FindCV(ctx, tx, cvRecordInput(vehicleID, value))
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {

@@ -4,20 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	"railkeeper/backend/internal/decoder"
 )
 
-// CVRecord contains only persisted fields, including nullable index/source identities.
-type CVRecord struct {
-	ID, VehicleID                   string
-	CVNumber                        int
-	IndexCV31, IndexCV32            *int
-	Value                           int
-	Description, Category, Protocol string
-	DecoderProfile, SourceFileID    string
-	SourceLine                      *int
-	SourceExportedAt                string
-	CreatedAt, UpdatedAt            string
-}
+type CVRecord = decoder.CVRecord
 
 const CVSelect = `SELECT id, vehicle_id, cv_number, value, COALESCE(description, ''), COALESCE(category, ''),
 COALESCE(protocol, ''), COALESCE(decoder_profile, ''), COALESCE(source_file_id, ''), created_at, updated_at,
