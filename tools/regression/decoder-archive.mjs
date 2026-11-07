@@ -33,8 +33,8 @@ export async function assertDecoderArchive(page, input, de, { actor, csrfToken }
     await dialog.getByRole("searchbox", { name: de ? "Teilstände durchsuchen" : "Search recorded states", exact: true }).fill(note);
     await dialog.getByText(note, { exact: true }).waitFor();
     assert.ok(await dialog.getByText("CV31=0 / CV32=0", { exact: true }).count());
-    await dialog.locator("details summary").first().click();
-    await dialog.getByText(/3 → 5/).waitFor();
+    await dialog.locator("details").filter({ hasText: /3 → 5/ }).first().locator("summary").click();
+    await dialog.getByText(/3 → 5/).first().waitFor();
     const source = dialog.getByRole("link", { name: de ? "Originaldatei herunterladen" : "Download original file", exact: true }).first();
     const original = await actor.get(await source.getAttribute("href"));
     assert.equal(original.status(), 200);
