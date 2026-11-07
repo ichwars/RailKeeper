@@ -4,6 +4,6 @@
   "description": "Pinned, isolated OpenAPI type generation toolchain",
   "dependencies": {
     "openapi-typescript": "7.13.0",
-    "typescript": "7.0.2"
+    "typescript": "5.9.3"
   }
 }

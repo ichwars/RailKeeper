@@ -35,6 +35,12 @@ updates:
 
   - package-ecosystem: npm
     directory: /tools/api-types
+    # openapi-typescript 7.13 requires TypeScript ^5.x; the frontend compiler is separate.
+    # Revisit this constraint when upgrading the generator's supported compiler API.
+    ignore:
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
     schedule:
       interval: weekly
       day: monday
