@@ -7,8 +7,12 @@ responsibility.
 
 - `api`: HTTP transport, request validation, response mapping
 - `application`: use cases, transactions, authorization decisions
+- `authentication`: independent login decisions behind narrow persistence/password ports
 - `domain`: vehicle inventory model and domain rules
 - `infrastructure`: SQLite, migrations, seed loading and filesystem adapters
+
+The first independent login slice, its compatibility facade and explicit transaction owners
+are described in [authentication boundaries](architecture/authentication-boundaries.md).
 
 ## API Contract
 

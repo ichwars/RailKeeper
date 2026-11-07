@@ -2,13 +2,13 @@ package application
 
 import (
 	"context"
-	"crypto/rand"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/credentials"
 )
 
 var (
@@ -133,9 +133,5 @@ WHERE id=1 AND token_hash=? AND consumed_at IS NULL`, now, proof.hash)); err != 
 }
 
 func randomID() string {
-	var bytes [16]byte
-	if _, err := rand.Read(bytes[:]); err != nil {
-		panic(err)
-	}
-	return hex.EncodeToString(bytes[:])
+	return credentials.RandomID()
 }

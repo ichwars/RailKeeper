@@ -2,19 +2,20 @@ package application
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha256"
 	"crypto/subtle"
 	"database/sql"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/authentication"
+	"railkeeper/backend/internal/credentials"
+	"railkeeper/backend/internal/infrastructure/authdata"
 )
 
 var (
-	ErrInvalidLogin         = errors.New("invalid credentials")
+	ErrInvalidLogin         = authentication.ErrInvalidLogin
 	ErrUnauthorized         = errors.New("unauthorized")
 	ErrInvalidCSRF          = errors.New("invalid csrf token")
 	ErrForbidden            = errors.New("forbidden")
@@ -24,15 +25,15 @@ var (
 	ErrDuplicateUser        = errors.New("user already exists")
 	ErrLastAdmin            = errors.New("last admin cannot be removed")
 	ErrPasswordResetInvalid = errors.New("password reset token invalid")
-	ErrTwoFactorRequired    = errors.New("two factor code required")
-	ErrLoginThrottled       = errors.New("login temporarily limited")
+	ErrTwoFactorRequired    = authentication.ErrTwoFactorRequired
+	ErrLoginThrottled       = authentication.ErrLoginThrottled
 )
 
 type AuthService struct {
-	db          *sql.DB
-	loginLimits *RateLimitService
-	loginWork   chan struct{}
-	now         func() time.Time
+	db         *sql.DB
+	loginStore authentication.Store
+	login      *authentication.Service
+	now        func() time.Time
 }
 
 const passwordResetTTL = 30 * time.Minute
@@ -147,11 +148,15 @@ type LoginResult struct {
 }
 
 func NewAuthService(db *sql.DB, options ...AuthOption) *AuthService {
-	service := &AuthService{db: db, loginLimits: NewRateLimitService(db), loginWork: make(chan struct{}, 2), now: time.Now}
+	service := &AuthService{db: db, now: time.Now}
 	for _, option := range options {
 		option(service)
 	}
-	service.loginLimits.now = service.now
+	if service.loginStore == nil {
+		// Compatibility for existing in-process callers. Production supplies the port at startup.
+		service.loginStore = authdata.NewStore(db)
+	}
+	service.login = authentication.NewService(service.loginStore, authentication.WithClock(service.now))
 	return service
 }
 
@@ -1036,14 +1041,9 @@ func (s *AuthService) auditTx(ctx context.Context, tx *sql.Tx, actorUserID, acti
 }
 
 func randomToken() string {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		panic(err)
-	}
-	return base64.RawURLEncoding.EncodeToString(bytes)
+	return credentials.RandomToken()
 }
 
 func hashToken(token string) string {
-	sum := sha256.Sum256([]byte(token))
-	return base64.RawURLEncoding.EncodeToString(sum[:])
+	return credentials.HashToken(token)
 }
