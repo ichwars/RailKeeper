@@ -3,7 +3,7 @@ import { Cpu, RefreshCw } from "lucide-react";
 import { useI18n } from "../../shared/i18n";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
 import { DecoderConfigurationForm } from "./DecoderConfigurationForm";
-import { decoderProfileLabel } from "./DecoderSnapshotDetails";
+import { decoderProfileLabel } from "./decoderProfileLabel";
 import type { DecoderConfigurationController } from "./useDecoderConfigurationController";
 
 export function DecoderConfigurationPanel({ controller: model }: { controller: DecoderConfigurationController }) {

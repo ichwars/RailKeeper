@@ -4,11 +4,7 @@ import { api, type DecoderCVSnapshot, type DecoderRecordedCVValue } from "../../
 import { useI18n } from "../../shared/i18n";
 import { CVPageControls, cvIndexLabel, cvPageSize } from "./CVPageControls";
 import { formatDateTime, formatFileSize } from "./vehicleFormat";
-
-export function decoderProfileLabel(profile: string, fallback: string) {
-  if (!profile) return fallback;
-  return profile !== profile.trim() || /["\\\r\n\t]/.test(profile) ? JSON.stringify(profile) : profile;
-}
+import { decoderProfileLabel } from "./decoderProfileLabel";
 
 function downloadSnapshot(snapshot: DecoderCVSnapshot) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" }));

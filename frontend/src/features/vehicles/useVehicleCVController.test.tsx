@@ -120,7 +120,7 @@ describe("useVehicleCVController", () => {
     expect(refreshSelectedVehicle).not.toHaveBeenCalled();
     rerender({ vehicle: { ...initialVehicle, cvValues: [cvValueFixture({ value: 7, revision: "d".repeat(64) })] } });
     expect(result.current.state.manualDraft.conflicts).toEqual(["cv-1"]);
-    act(() => result.current.commands.rebaseManualChange("cv-1"));
+    await act(() => result.current.commands.rebaseManualChange("cv-1"));
     expect(result.current.state.manualDraft.conflicts).toEqual([]);
     expect(result.current.state.manualDraft.changes[0]).toMatchObject({ original: { revision: "d".repeat(64) }, value: { value: 5 } });
   });

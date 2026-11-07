@@ -1,6 +1,6 @@
 import { useVehicleCollectionController } from "./useVehicleCollectionController";
 import { useVehicleSetController } from "./useVehicleSetController";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { ArticleSearchDialog } from "../../shared/articleSearch/ArticleSearchDialog";
@@ -16,6 +16,7 @@ import {
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
 import { DecoderArchiveDialog } from "./DecoderCVArchive";
 import { useDecoderConfigurationController } from "./useDecoderConfigurationController";
+import type { CVWorkingGroupOptions } from "./cvWorkingGroup";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
 import { VehicleCatalogPanel } from "./VehicleCatalogPanel";
 import { catalogFieldsFrom } from "./vehicleCatalogModel";
@@ -146,6 +147,16 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     readonly: readonly || !canEditVehicleSets, busy: saving, setBusy: setSaving,
     captureScope: () => captureScope(sessionKey)
   });
+  const cvGroupsCovered = useMemo(() => {
+    const profiles = new Set(decoderConfigurations.context?.workspaces.map(group => group.profile));
+    return [...(selected?.cvValues || []), ...(selected?.cvFiles || [])].every(value => profiles.has(value.decoderProfile || ""));
+  }, [decoderConfigurations.context?.workspaces, selected?.cvValues, selected?.cvFiles]);
+  const cvWorkingGroup: CVWorkingGroupOptions = {
+    ownerKey: `${username}:${sessionKey}`, context: decoderConfigurations.context,
+    groups: decoderConfigurations.context?.workspaces, target: decoderConfigurations.activeTarget,
+    ready: Boolean(decoderConfigurations.context && !decoderConfigurations.loading && decoderConfigurations.targetCurrent && cvGroupsCovered),
+    reload: () => decoderConfigurations.load(false, true)
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -258,7 +269,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
   const refreshSavedMedia = (vehicleId: string, kind: "image" | "attachment" | "decoder") =>
     refreshSelectedVehicle(vehicleId, kind === "decoder" ? "decoderFiles" : "media", true);
   const mediaUploads = useVehicleUploads({
-    selected, readonly, saving, setSaving, onMessage: setMessage, onStatus: setStatusMessage,
+    selected, readonly, saving, workingGroup: cvWorkingGroup, setSaving, onMessage: setMessage, onStatus: setStatusMessage,
     onImageStored: acknowledgeImage, refreshSaved: refreshSavedMedia,
     reload: vehicleId => refreshSelectedVehicle(vehicleId, undefined, true)
   });
@@ -372,6 +383,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     }
   } = useVehicleCVController({
     selected,
+    workingGroup: cvWorkingGroup,
     readonly,
     saving,
     decoderNumber: form.digitalDecoderNumber || form.dtDecoderNumber || "",
@@ -404,6 +416,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     }
   } = useVehicleDecoderFilesController({
     selected,
+    workingGroup: cvWorkingGroup,
     readonly,
     saving,
     setSaving,
@@ -847,6 +860,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
           mediaDialogs={<>
             {mediaUploads.batch && <VehicleMediaUploadDialog batch={mediaUploads.batch}
               onClose={mediaUploads.commands.close} onConfirm={() => void mediaUploads.commands.confirm()}
+              onReview={() => void mediaUploads.commands.reviewWorkingGroup()}
               onSkip={mediaUploads.commands.skip} />}
             {mediaDeletion.candidate && <VehicleMediaDeleteDialog candidate={mediaDeletion.candidate}
               onClose={mediaDeletion.commands.close} onConfirm={() => void mediaDeletion.commands.confirm()} />}
@@ -942,7 +956,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
               archiveOwnerKey: username,
               decoderType: form.decoderType,
               ecosDraft,
-              readonly: readonly || saving,
+              readonly: readonly || saving || Boolean(selected && !cvWorkingGroup.ready),
               saving,
               cvImportInputRef,
               cvFileInputRef,

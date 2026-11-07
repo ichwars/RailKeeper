@@ -17,6 +17,10 @@ export type VehicleUploadMetadata = {
   decoderProfile?: string;
   isPrimary?: boolean;
   imagesRevision?: string;
+  workspaceId?: string;
+  expectedWorkspaceRevision?: string;
+  workingGroupLabel?: string;
+  previousWorkingGroupLabel?: string;
 };
 export type VehicleUploadBatch = {
   id: string;
@@ -25,8 +29,9 @@ export type VehicleUploadBatch = {
   vehicleLabel: string;
   metadata: VehicleUploadMetadata;
   items: VehicleUploadItem[];
-  phase: "confirm" | "uploading" | "result";
+  phase: "confirm" | "uploading" | "reviewing" | "result";
   needsReview: boolean;
+  ownerKey?: string;
   notice?: string;
 };
 

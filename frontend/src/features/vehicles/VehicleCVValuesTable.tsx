@@ -10,6 +10,7 @@ import { useManufacturerCVHints } from "./ManufacturerCVProvider";
 import { CVPageControls, cvIndexLabel, cvPageSize } from "./CVPageControls";
 import { formatDateTime } from "./vehicleFormat";
 import { isECoSReading } from "../../shared/decoderLibrary";
+import { decoderProfileLabel } from "./decoderProfileLabel";
 
 export function VehicleCVValuesTable({ values, analysisValues = values, pendingIDs = [], decoderType = "", readonly, saving, edit, remove, onExplain }: {
   values: VehicleCVValue[]; readonly: boolean; saving: boolean;
@@ -55,7 +56,7 @@ export function VehicleCVValuesTable({ values, analysisValues = values, pendingI
     <div className="cv-value-filters">
       <label>{t("vehicle.field.decoderProfile")}<AppSelect value={profile} onChange={(event) => { setProfile(event.target.value); setIndex("*"); setPage(0); }}>
         <option value="*">{t("vehicles.cv.allProfiles")}</option>
-        {profiles.map((profile) => <option key={profile} value={profile}>{profile || t("vehicles.cv.noProfile")}</option>)}
+        {profiles.map((profile) => <option key={profile} value={profile}>{decoderProfileLabel(profile, t("vehicles.cv.noProfile"))}</option>)}
       </AppSelect></label>
       <label>{t("vehicles.cv.index")}<AppSelect value={index} onChange={(event) => { setIndex(event.target.value); setPage(0); }}>
         <option value="*">{t("vehicles.cv.allPages")}</option>
@@ -76,7 +77,7 @@ export function VehicleCVValuesTable({ values, analysisValues = values, pendingI
             <td>{meaning(value)}{info(value).manufacturerHint && <small> · {t("decoderLibrary.hintTitle")}</small>}
               {value.category && <small> · {value.category}</small>}
               {value.protocol && <small> · {value.protocol}</small>}</td>
-            <td>{value.value}</td><td>{pageLabel(value)}</td><td>{value.decoderProfile || "-"}</td>
+            <td>{value.value}</td><td>{pageLabel(value)}</td><td>{decoderProfileLabel(value.decoderProfile || "", "-")}</td>
             <td><div className="table-actions">
               {onExplain && !pending.has(value.id) && <button type="button" className="icon-button" aria-haspopup="dialog" onClick={() => onExplain(value)}
                 aria-label={t("vehicles.decoder.explainValue", { number: value.cvNumber })}><CircleHelp size={15} /></button>}

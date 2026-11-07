@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { api, ApiError, type Vehicle, type VehicleAttachment, type VehicleCVFile, type VehicleImage } from "../../shared/api";
+import { api, ApiError, type Vehicle, type VehicleAttachment, type VehicleCVDeletionScope, type VehicleCVFile, type VehicleImage } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import type { VehicleUploadKind } from "./vehicleUploadBatch";
 
 type Request = { kind: "image"; record: VehicleImage } | { kind: "attachment"; record: VehicleAttachment }
-  | { kind: "decoder"; record: VehicleCVFile };
+  | { kind: "decoder"; record: VehicleCVFile; scope?: VehicleCVDeletionScope; scopeLabel?: string };
 export type VehicleMediaDeletion = {
   kind: VehicleUploadKind; vehicleId: string; vehicleLabel: string; id: string; label: string;
   revision: string; references: number; busy: boolean; stale: boolean; error: string;
+  scope?: VehicleCVDeletionScope; scopeLabel?: string;
 };
 type Options = {
   selected: Vehicle | null; readonly: boolean; saving: boolean;
@@ -29,7 +30,8 @@ export function useVehicleMediaDeletion(options: Options) {
     if (busy.current) optionsRef.current.setSaving(false);
     busy.current = false; set(null);
   };
-  const prepare = ({ kind, record }: Request) => {
+  const prepare = (request: Request) => {
+    const { kind, record } = request;
     const opts = optionsRef.current, vehicle = opts.selected;
     if (!vehicle || opts.readonly || opts.saving || busy.current || record.vehicleId !== vehicle.id) return;
     if (kind === "image" && "maintenanceId" in record && record.maintenanceId) {
@@ -39,6 +41,7 @@ export function useVehicleMediaDeletion(options: Options) {
     set({ kind, vehicleId: vehicle.id, vehicleLabel: `${vehicle.inventoryNumber} · ${vehicle.name}`,
       id: record.id, label: "originalName" in record ? record.originalName : "title" in record ? record.title || record.id : record.id,
       revision: record.revision, references: "sourceReferenceCount" in record ? record.sourceReferenceCount || 0 : 0,
+      ...(request.kind === "decoder" && request.scope ? { scope: { ...request.scope }, scopeLabel: request.scopeLabel } : {}),
       busy: false, stale: false, error: "" });
   };
   const close = () => { if (!busy.current) set(null); };
@@ -52,6 +55,7 @@ export function useVehicleMediaDeletion(options: Options) {
     try {
       if (value.kind === "image") await api.deleteVehicleImage(value.vehicleId, value.id, value.revision);
       else if (value.kind === "attachment") await api.deleteVehicleAttachment(value.vehicleId, value.id, value.revision);
+      else if (value.scope) await api.deleteVehicleCVFile(value.vehicleId, value.id, value.revision, value.scope);
       else await api.deleteVehicleCVFile(value.vehicleId, value.id, value.revision);
       deleted = true;
       if (!active()) return;

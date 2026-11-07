@@ -7,6 +7,7 @@ import { CVPageControls, cvIndexLabel, cvPageSize } from "./CVPageControls";
 import { DecoderLibraryNotice } from "./DecoderLibraryNotice";
 import { useDecoderLibrary } from "../../shared/DecoderLibraryProvider";
 import { resolveDecoderLibrary, decoderDefinition } from "../../shared/decoderLibrary";
+import { decoderProfileLabel } from "./decoderProfileLabel";
 
 export function CVImportRowsTable({ preview, saving, readonly, toggle }: {
   preview: CVImportPreview; saving: boolean; readonly: boolean; toggle: (id: string, selected: boolean) => void;
@@ -26,8 +27,11 @@ export function CVImportRowsTable({ preview, saving, readonly, toggle }: {
     return match ? decoderDefinition(library.profiles, match, input)?.definition.name[language] : undefined;
   };
   return <>
-    <ImportReviewContext source={preview.fileName} target={t("importReview.target.cv")}
+    <ImportReviewContext source={preview.fileName} target={preview.workingTarget
+      ? `${t("importReview.target.cv")} · ${decoderProfileLabel(preview.workingTarget.profile, t("vehicles.cv.noProfile"))}` : t("importReview.target.cv")}
       effect={t("importReview.effect.cv")} selected={preview.rows.filter(row => row.selected).length} total={preview.rows.length} />
+    {preview.previousWorkingGroupLabels?.length ? <p className="cv-working-assignments">{t("cvScope.previousAssignment")}: {preview.previousWorkingGroupLabels.join("; ")}</p> : null}
+    {preview.workingGroupLabels?.length ? <p className="cv-working-assignments">{t("cvScope.confirmedAssignment")}: {preview.workingGroupLabels.join("; ")}</p> : null}
     {profiles.slice(0, 3).map(profile => <DecoderLibraryNotice key={profile} profile={profile} values={groups.get(profile) || []} />)}
     <RailComPlusPreview values={preview.rows.map(row => row.input)} />
     <CVPageControls page={page} total={preview.rows.length} onChange={setPage} />
@@ -44,7 +48,9 @@ export function CVImportRowsTable({ preview, saving, readonly, toggle }: {
             aria-label={t("vehicles.cv.applyCv", { cv: `${row.input.cvNumber}${row.input.indexCV31 == null ? "" : ` (${cvIndexLabel(row.input, "")})`}` })} /></td>
           <td>{row.input.cvNumber || "-"}<small>{meaning(row.input)}</small></td><td>{cvIndexLabel(row.input, t("vehicles.cv.base"))}</td>
           <td>{row.existing?.value ?? "-"}</td><td>{Number.isFinite(row.input.value) ? row.input.value : "-"}</td>
-          <td>{row.input.decoderProfile || "-"}</td><td>
+          <td>{decoderProfileLabel(row.input.decoderProfile || "", "-")}
+            {row.sourceProfile !== undefined && row.sourceProfile !== (row.input.decoderProfile || "") &&
+              <small>{t("cvScope.sourceProfile", { profile: decoderProfileLabel(row.sourceProfile, t("vehicles.cv.noProfile")) })}</small>}</td><td>
             <ImportReviewStatus state={row.status === "invalid" ? "excluded" : row.status} />
             {row.status === "invalid" && <small>{row.reason ? t(`importReview.cv.${row.reason}`) : row.message}</small>}
             {row.status === "changed" && <small>{row.changedFields ? t("importReview.cv.changes", {

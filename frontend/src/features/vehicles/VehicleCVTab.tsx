@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject }
 import { Archive, Check, CircleHelp, Cpu, Database, Download, FileCode, FileText, FolderOpen, Save, Trash2, Upload } from "lucide-react";
 import { DecoderCVArchive } from "./DecoderCVArchive";
 import { DecoderConfigurationPanel } from "./DecoderConfigurationPanel";
+import { CVWorkingGroupPicker } from "./CVWorkingGroupPicker";
+import { decoderProfileLabel } from "./decoderProfileLabel";
 import type { DecoderConfigurationController } from "./useDecoderConfigurationController";
 import { DecoderProfileStrip } from "./DecoderProfileStrip";
 import { useDecoderProfile } from "./DecoderProfileSelect";
@@ -177,6 +179,7 @@ export function VehicleCVTab({
 
     </div>}</div>
     {workingView && <>
+    {selected && configurations && <CVWorkingGroupPicker controller={configurations} />}
     {!selected && !ecosDraft && <p className="empty-state compact">{t("vehicles.cv.emptyUntilSave")}</p>}
     {!selected && ecosDraft && <div className="ecos-draft-cv-preview">
       <p>{t("vehicles.ecosDraft.cvPreviewSubtitle", { count: ecosDraft.cvValues.length })}</p>
@@ -229,6 +232,7 @@ export function VehicleCVTab({
       {t("vehicles.cv.draft.saved", { count: manualDraft?.lastSavedCount || 0 })}
     </p>}
     {selected && manualDraft && manualDraft.changes.length > 0 && <VehicleCVDraftReview draft={manualDraft}
+      context={configurations?.context}
       stored={selected.cvValues || []} files={selected.cvFiles || []} disabled={readonly || saving}
       save={applyManualDraft} discard={discardManualDraft} discardChange={discardManualChange} rebase={rebaseManualChange} />}
     </>}
@@ -344,7 +348,7 @@ export function VehicleCVTab({
                     </div>
                     {selected && (
                       <details className="cv-upload-options"><summary>{t("vehicles.decoder.fileOptions")}</summary><div className="cv-file-controls">
-                      <input value={cvFileProfile} onChange={(event) => setCVFileProfile(event.target.value)} disabled={readonly || saving} placeholder={t("vehicles.cv.fileProfilePlaceholder")} />
+                      <input value={cvFileProfile} onChange={(event) => setCVFileProfile(event.target.value)} disabled={readonly || saving || Boolean(cvFileUploadPreview?.workingTarget || (!cvFileUploadPreview && configurations?.activeTarget))} placeholder={t("vehicles.cv.fileProfilePlaceholder")} />
                         <input value={cvFileDescription} onChange={(event) => setCVFileDescription(event.target.value)} disabled={readonly || saving} placeholder={t("vehicles.cv.fileNotePlaceholder")} />
                         <span>{t("vehicles.cv.autoMetadata")}</span>
                       </div></details>
@@ -355,6 +359,7 @@ export function VehicleCVTab({
                           <div>
                             <h3>{t("vehicles.cv.uploadPreview")}</h3>
                             <p>{t("vehicles.cv.previewHelp")}</p>
+                            {cvFileUploadPreview.workingTarget && <p className="cv-working-assignments">{t("cvScope.confirmedAssignment")}: {cvFileUploadPreview.workingGroupLabels?.[cvFileUploadPreview.workingTarget.workspaceId] || cvFileUploadPreview.workingTarget.profile}</p>}
                           </div>
                           <div className="inline-actions">
                             <button type="button" className="secondary-button" onClick={applyFirstCVFileSuggestion} disabled={saving || !cvFileUploadPreview.previews.some((preview) => preview.hasMetadata)}>
@@ -433,7 +438,7 @@ export function VehicleCVTab({
                               </div>
                               <div className="attachment-main">
                                 <strong>{file.originalName}</strong>
-                                <span>{file.decoderProfile || t("vehicles.cv.noProfile")} - {file.mimeType || "Datei"} - {formatFileSize(file.sizeBytes)}</span>
+                                <span>{decoderProfileLabel(file.decoderProfile || "", t("vehicles.cv.noProfile"))} - {file.mimeType || "Datei"} - {formatFileSize(file.sizeBytes)}</span>
                                 {file.description && <span>{file.description}</span>}
                               </div>
                               <div className="attachment-actions">

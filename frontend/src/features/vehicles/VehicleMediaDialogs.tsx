@@ -5,6 +5,7 @@ import { useI18n } from "../../shared/i18n";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import { retryableUploadItem, vehicleUploadCounts, type VehicleUploadBatch } from "./vehicleUploadBatch";
 import type { VehicleMediaDeletion } from "./useVehicleMediaDeletion";
+import { decoderProfileLabel } from "./decoderProfileLabel";
 
 function MediaDialog({ title, busy, onClose, children, actions }: {
   title: string; busy: boolean; onClose: () => void; children: ReactNode; actions: ReactNode;
@@ -29,17 +30,20 @@ function MediaDialog({ title, busy, onClose, children, actions }: {
     </div>, document.body)}</>;
 }
 
-export function VehicleMediaUploadDialog({ batch, onClose, onConfirm, onSkip }: {
+export function VehicleMediaUploadDialog({ batch, onClose, onConfirm, onSkip, onReview }: {
   batch: VehicleUploadBatch; onClose: () => void; onConfirm: () => void; onSkip: (key: string) => void;
+  onReview?: () => void;
 }) {
   const { t } = useI18n();
-  const busy = batch.phase === "uploading", confirmation = batch.phase === "confirm";
+  const busy = batch.phase === "uploading" || batch.phase === "reviewing", confirmation = batch.phase === "confirm";
   const counts = vehicleUploadCounts(batch), metadata = batch.metadata;
   const title = t(confirmation ? "vehicles.mediaUpload.confirmTitle" : "vehicles.mediaUpload.resultTitle");
   return <MediaDialog title={title} busy={busy} onClose={onClose} actions={<>
     <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>
       {t(confirmation ? "vehicles.cancel" : "vehicles.close")}
     </button>
+    {batch.needsReview && metadata.workspaceId && onReview && <button type="button" className="secondary-button"
+      disabled={busy} onClick={onReview}>{t("cvScope.reviewFile")}</button>}
     {batch.items.some(retryableUploadItem) && <button type="button" className="primary-button"
       disabled={busy || batch.needsReview} onClick={onConfirm}>
       {t(confirmation ? "vehicles.mediaUpload.confirm" : "vehicles.mediaUpload.resume")}
@@ -50,7 +54,9 @@ export function VehicleMediaUploadDialog({ batch, onClose, onConfirm, onSkip }: 
     <p>{t("vehicles.mediaUpload.independent")}</p>
     {metadata.category && <p>{t("vehicles.mediaUpload.category")}: {metadata.category}</p>}
     {metadata.description && <p>{t("vehicles.mediaUpload.description")}: {metadata.description}</p>}
-    {metadata.decoderProfile && <p>{t("vehicles.mediaUpload.profile")}: {metadata.decoderProfile}</p>}
+    {metadata.decoderProfile && <p>{t("vehicles.mediaUpload.profile")}: {decoderProfileLabel(metadata.decoderProfile, t("decoderConfig.noProfile"))}</p>}
+    {metadata.previousWorkingGroupLabel && <p>{t("cvScope.previousAssignment")}: {metadata.previousWorkingGroupLabel}</p>}
+    {metadata.workingGroupLabel && <p>{t("cvScope.confirmedAssignment")}: {metadata.workingGroupLabel}</p>}
     {metadata.maintenanceId && <p>{t("vehicles.mediaUpload.maintenance")}</p>}
     {metadata.isPrimary && <p>{t("vehicles.mediaUpload.primary")}</p>}
     {!confirmation && <p role="status" aria-live="polite">{t("vehicles.mediaUpload.progress", counts)}</p>}
@@ -79,6 +85,7 @@ export function VehicleMediaDeleteDialog({ candidate, onClose, onConfirm }: {
     <p><strong>{candidate.vehicleLabel}</strong></p><p>{candidate.label}</p>
     <p>{t(`vehicles.mediaDelete.scope.${candidate.kind}`)}</p>
     {candidate.kind === "decoder" && <p>{t("vehicles.mediaDelete.references", { count: candidate.references })}</p>}
+    {candidate.scopeLabel && <p>{t("cvScope.confirmedAssignment")}: {candidate.scopeLabel}</p>}
     <p>{t("vehicles.mediaUpload.independent")}</p>
     {candidate.error && <p role="alert" className="form-message">{candidate.error}</p>}
   </MediaDialog>;

@@ -3,7 +3,7 @@ import { AppTextArea } from "../../shared/ui/AppTextArea";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { useI18n } from "../../shared/i18n";
 import { decoderDraftValid } from "./decoderConfigurationDraft";
-import { decoderProfileLabel } from "./DecoderSnapshotDetails";
+import { decoderProfileLabel } from "./decoderProfileLabel";
 import type { DecoderConfigurationController } from "./useDecoderConfigurationController";
 import { useEffect, useRef } from "react";
 

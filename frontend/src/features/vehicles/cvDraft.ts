@@ -1,25 +1,28 @@
-import type { VehicleCVChange, VehicleCVValue, VehicleCVValueInput } from "../../shared/api";
+import type { VehicleCVChange, VehicleCVDeletionScope, VehicleCVValue, VehicleCVValueInput } from "../../shared/api";
 import { cvValueKey, isValidCVValueInput } from "./cvImport";
 import { reconcileDraft } from "./vehicleDraftRefresh";
 
 export const maxManualCVChanges = 500;
-export type CVDraftChange = { id: string; original: VehicleCVValue | null; value: VehicleCVValueInput | null };
+export type CVDraftChange = { id: string; original: VehicleCVValue | null; value: VehicleCVValueInput | null; scope?: VehicleCVDeletionScope };
 export type CVDraftError = "invalid" | "occupied" | "limit" | "revision";
 
 // Form and transport records stay separate. Never send a response ID, history or revision as CV fields.
 export function cvDraftInput(value: VehicleCVValueInput): VehicleCVValueInput {
   return {
     cvNumber: Number(value.cvNumber), value: Number(value.value),
-    decoderProfile: (value.decoderProfile || "").trim(),
+    decoderProfile: value.decoderProfile || "",
     indexCV31: value.indexCV31 ?? null, indexCV32: value.indexCV32 ?? null,
     description: (value.description || "").trim(), category: (value.category || "").trim(),
     protocol: (value.protocol || "").trim(), sourceFileId: value.sourceFileId || "",
-    sourceLine: value.sourceLine ?? null, sourceExportedAt: value.sourceExportedAt || ""
+    sourceLine: value.sourceLine ?? null, sourceExportedAt: value.sourceExportedAt || "",
+    ...(value.workspaceId === undefined ? {} : { workspaceId: value.workspaceId }),
+    ...(value.expectedWorkspaceRevision === undefined ? {} : { expectedWorkspaceRevision: value.expectedWorkspaceRevision })
   };
 }
 
 export function sameCVInput(left: VehicleCVValueInput, right: VehicleCVValueInput) {
-  return JSON.stringify(cvDraftInput(left)) === JSON.stringify(cvDraftInput(right));
+  const content = (value: VehicleCVValueInput) => ({ ...cvDraftInput(value), workspaceId: undefined, expectedWorkspaceRevision: undefined });
+  return JSON.stringify(content(left)) === JSON.stringify(content(right));
 }
 
 export function cvDraftValues(stored: VehicleCVValue[], changes: CVDraftChange[], vehicleId: string) {
@@ -60,7 +63,7 @@ export function cvDraftConflicts(changes: CVDraftChange[], stored: VehicleCVValu
 
 export function stageCVInput(changes: CVDraftChange[], stored: VehicleCVValue[], vehicleId: string,
   form: VehicleCVValueInput, editingId: string | null, newID: string): { changes?: CVDraftChange[]; error?: CVDraftError } {
-  let input = cvDraftInput(form);
+  let input = cvDraftInput(form.workspaceId ? form : { ...form, decoderProfile: (form.decoderProfile || "").trim() });
   if (!isValidCVValueInput(input)) return { error: "invalid" };
   const byteLimits = { description: 1000, category: 80, protocol: 80, decoderProfile: 160, sourceFileId: 80 } as const;
   if (Object.entries(byteLimits).some(([key, limit]) =>
@@ -83,7 +86,7 @@ export function stageCVInput(changes: CVDraftChange[], stored: VehicleCVValue[],
   }
   const remaining = changes.filter(change => change.id !== id);
   const next = original && sameCVInput(original, input) ? remaining
-    : [...remaining, { id, original, value: input }];
+    : [...remaining, { id, original, value: input, ...(existing?.scope ? { scope: existing.scope } : {}) }];
   return { changes: next };
 }
 
@@ -94,14 +97,14 @@ export function stageCVDeletion(changes: CVDraftChange[], value: VehicleCVValue)
   const remaining = changes.filter(change => change.id !== value.id);
   if (!original) return remaining;
   if (!existing && changes.length >= maxManualCVChanges) return null;
-  return [...remaining, { id: value.id, original, value: null }];
+  return [...remaining, { id: value.id, original, value: null, ...(existing?.scope ? { scope: existing.scope } : {}) }];
 }
 
 export function cvDraftRequest(changes: CVDraftChange[]): VehicleCVChange[] {
   const plan = cvDraftOrder(changes);
   if (plan.blocked.length) throw new Error("CV draft contains cyclic identity moves");
   return plan.ordered.map(change => ({
-      ...(change.original ? { id: change.original.id } : {}), expectedRevision: change.original?.revision || "",
+      ...(change.original ? { id: change.original.id, ...change.scope } : {}), expectedRevision: change.original?.revision || "",
       ...(change.value ? { value: cvDraftInput(change.value) } : { delete: true })
     }));
 }

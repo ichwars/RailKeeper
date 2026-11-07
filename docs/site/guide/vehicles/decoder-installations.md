@@ -58,6 +58,27 @@ their actual histories, sources and current hardware description. Add a note to
 identify the checkpoint. Open CV drafts are excluded. Read the result in the
 [CV archive](cv-archive); its recording time does not establish a complete readout.
 
+## Confirm the target for new CV input
+
+<GuideFigure name="cv-working-groups" alt="Confirmed CV target group with its current decoder assignment." caption="The default applies to new input. Previously prepared changes retain their own target." />
+
+In the working view, select a **Default for new CV entries and file imports**.
+Review the displayed group and decoder assignment, then choose **Confirm target
+group now**. Selecting an option alone does not change the target. **Use each
+entry's profile** preserves the separate input profiles. Significant whitespace in
+legacy profile labels is shown in quotation marks.
+
+Staged changes, already open CV rows and prepared file adoptions retain their
+original target when you later change this default. The import preview shows
+different source profiles alongside the confirmed target. Storing an original
+file and adopting its CV values remain separate confirmations.
+
+If an involved decoder assignment changes, the action is retained and blocked.
+Reload working groups and reconfirm the default if needed, then compare the
+affected CV change or import again. Review the current assignment before confirming
+adoption. For files, **Compare file target again** provides the same recovery.
+Files and descriptions are retained; comparison does not start an upload.
+
 ## Confirmation and recovery
 
 Each form states what its own confirmation saves. Switching vehicle tabs preserves
