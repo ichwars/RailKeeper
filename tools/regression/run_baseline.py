@@ -18,7 +18,7 @@ from client import Client, setup
 from fixture import observations, seed
 from matrix import inventory
 from preservation import (
-    assert_same, backup_manifest, digest, expected_backup_upgrade, expected_fresh_restore, installation_manifest, vehicle_edit_manifest,
+    assert_same, backup_manifest, digest, expected_authentication_startup, expected_backup_upgrade, expected_fresh_restore, installation_manifest, vehicle_edit_manifest,
 )
 from runtime import Runtime
 
@@ -234,7 +234,10 @@ def run(args):
         startup_tables = installation_manifest(restored_data)["tables"]
         for name in ("users", "roles", "user_roles", "app_settings", "user_settings",
                      "data_transfer_jobs", "data_transfer_artifacts"):
-            assert_same(original["tables"][name], startup_tables[name], "Installation startup " + name)
+            expected = original["tables"][name]
+            if name == "users":
+                expected = expected_authentication_startup(cold_backup / "railkeeper.db", expected, startup_tables[name])
+            assert_same(expected, startup_tables[name], "Installation startup " + name)
         target.client.login(credentials)
         upgraded = target.client.request("GET", "/api/v1/backup/export")
         assert_same(backup_manifest(expected_backup_upgrade(backup, upgraded["version"],

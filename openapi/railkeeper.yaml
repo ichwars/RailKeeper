@@ -666,6 +666,7 @@ components:
           type: string
         twoFactorCode:
           type: string
+          description: A current TOTP code that has not already been used for activation or another action.
     ChangePasswordRequest:
       type: object
       required: [currentPassword, newPassword]
@@ -712,6 +713,7 @@ components:
       properties:
         code:
           type: string
+          description: A current unused TOTP code. Successful activation consumes this code.
     TwoFactorDisableRequest:
       type: object
       required: [currentPassword]
@@ -5338,6 +5340,16 @@ paths:
                 $ref: "#/components/schemas/Session"
         "401":
           description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "429":
+          description: IP or account login budget exhausted, or password verification is busy
+          headers:
+            Retry-After:
+              schema:
+                type: string
           content:
             application/json:
               schema:

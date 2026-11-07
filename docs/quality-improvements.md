@@ -40,6 +40,30 @@ Es gibt keine automatische Verbindung zu Preisportalen oder Cloud-Diensten.
 
 ## Vor jedem nächsten Schritt
 
+Anmeldungen behalten die bestehende IP-Begrenzung. Zusätzlich gilt pro exakt getrimmter
+Anmeldekennung ein Datenbankbudget von zehn Versuchen in fünf Minuten. Eine vollständig
+erfolgreiche Anmeldung leert nur das eigene Budget. Abgewiesene weitere Versuche verlängern
+das Fenster nicht. Gespeichert wird der SHA-256-Schlüssel der Kennung. Eine vorbereitete
+Dummy-Passwortprüfung behandelt unbekannte Konten ebenfalls mit Argon2id. Höchstens zwei
+Passwortprüfungen pro Authentifizierungsdienst laufen gleichzeitig; Überlastung liefert
+denselben vorübergehenden HTTP-429-Status. Kontoerstellung oder Passwortänderung folgen
+daraus nicht.
+
+Passwort-Hashes enthalten ihre Argon2id-Parameter und werden mit diesen Werten geprüft.
+Ungültige Formate und unbeschränkte Ressourcenanforderungen werden vor der Ableitung
+abgelehnt. Bisherige reguläre Hashes bleiben unverändert gültig. Ein notwendiges Upgrade
+erfolgt erst nach vollständiger Anmeldung samt zweitem Faktor; stärkere vorhandene
+Parameter werden dabei nicht abgesenkt. Die Standardparameter bleiben bei 64 MiB,
+einer Iteration, Parallelität vier und 32 Byte Schlüssel.
+
+Erfolgreich verwendete TOTP-Zeitschritte werden je Konto dauerhaft gespeichert.
+Aktivierung, Anmeldung und Deaktivierung verlangen jeweils einen noch nicht verbrauchten
+Code. Die bestehende Toleranz von einem Zeitschritt bleibt erhalten. Bei der Anmeldung
+werden Codeverbrauch, gegebenenfalls Hash-Upgrade, Sitzung, Audit und Budgetrücksetzung
+gemeinsam bestätigt oder vollständig zurückgerollt. Schema 78 ergänzt ausschließlich
+einen zunächst leeren Verbrauchszähler; bestehende Konten, Secrets und Sitzungen bleiben
+erhalten. Lokale Authentifizierung bleibt aus App-Backups ausgeschlossen.
+
 `cd frontend && npm run lint` prüft Produktionscode einschließlich React-Hook-Regeln.
 Die Syntaxwerkzeuge liegen mit Babels TypeScript-/JSX-Parser in `tools/frontend-lint`;
 die eigentliche Frontend-Typprüfung und der Build verwenden den Compiler aus

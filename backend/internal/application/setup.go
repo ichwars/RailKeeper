@@ -4,14 +4,11 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
-
-	"golang.org/x/crypto/argon2"
 )
 
 var (
@@ -109,18 +106,6 @@ func (s *SetupService) CreateAdmin(ctx context.Context, input CreateAdminInput) 
 	}
 
 	return nil
-}
-
-func hashPassword(password string) (string, error) {
-	salt := make([]byte, 16)
-	if _, err := rand.Read(salt); err != nil {
-		return "", err
-	}
-
-	hash := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
-	return "$argon2id$v=19$m=65536,t=1,p=4$" +
-		base64.RawStdEncoding.EncodeToString(salt) + "$" +
-		base64.RawStdEncoding.EncodeToString(hash), nil
 }
 
 func randomID() string {

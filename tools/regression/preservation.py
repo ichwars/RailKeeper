@@ -62,6 +62,24 @@ def installation_manifest(data_dir):
     return {"tables": database_manifest(Path(data_dir) / "railkeeper.db"), "files": file_manifest(data_dir)}
 
 
+def expected_authentication_startup(database, before, after):
+    """Schema 78 adds only a NULL replay counter to old accounts; preserve every original cell."""
+    if before["columns"] == after["columns"]:
+        return before
+    expected_column = (len(before["columns"]), "two_factor_last_step", "INTEGER", 0, None, 0)
+    expected_columns = before["columns"] + [expected_column]
+    if after["columns"] != expected_columns:
+        raise AssertionError("Unexpected authentication column change")
+    with closing(sqlite3.connect(Path(database).resolve().as_uri() + "?mode=ro", uri=True)) as db:
+        db.execute("PRAGMA query_only=ON")
+        db.execute("BEGIN")
+        columns = db.execute("PRAGMA table_info(users)").fetchall()
+        rows = [[encoded(value) for value in row] for row in db.execute("SELECT * FROM users")]
+    actual_before = {"columns": columns, "rows": sorted(digest(row) for row in rows), "count": len(rows)}
+    assert_same(before, actual_before, "Original authentication snapshot")
+    return {"columns": expected_columns, "rows": sorted(digest(row + [None]) for row in rows), "count": len(rows)}
+
+
 def assert_same(before, after, label):
     """Fail on any unexplained difference; print names, never row contents/secrets."""
     if before == after:

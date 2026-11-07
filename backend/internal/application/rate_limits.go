@@ -8,11 +8,22 @@ import (
 )
 
 type RateLimitService struct {
-	db *sql.DB
+	db  *sql.DB
+	now func() time.Time
 }
 
 func NewRateLimitService(db *sql.DB) *RateLimitService {
-	return &RateLimitService{db: db}
+	return &RateLimitService{db: db, now: time.Now}
+}
+
+func (s *RateLimitService) Reset(ctx context.Context, scope, key string) error {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM rate_limit_attempts WHERE scope=? AND key=?`, scope, key); err != nil {
+		return fmt.Errorf("reset rate limit: %w", err)
+	}
+	return nil
 }
 
 func (s *RateLimitService) Allow(ctx context.Context, scope, key string, limit int, window time.Duration) (allowed bool, err error) {
@@ -20,7 +31,7 @@ func (s *RateLimitService) Allow(ctx context.Context, scope, key string, limit i
 		return true, nil
 	}
 
-	now := time.Now().UTC()
+	now := s.now().UTC()
 	cutoff := now.Add(-window).Format(time.RFC3339Nano)
 
 	tx, err := s.db.BeginTx(ctx, nil)

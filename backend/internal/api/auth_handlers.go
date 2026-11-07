@@ -71,6 +71,11 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 
 	result, err := a.authService.Login(r.Context(), input)
 	if err != nil {
+		if errors.Is(err, application.ErrLoginThrottled) {
+			w.Header().Set("Retry-After", "300")
+			respondProblem(w, http.StatusTooManyRequests, "rate_limited", "Too many login attempts. Please try again later.")
+			return
+		}
 		if errors.Is(err, application.ErrTwoFactorRequired) {
 			respondProblem(w, http.StatusUnauthorized, "two_factor_required", "Zwei-Faktor-Code erforderlich.")
 			return

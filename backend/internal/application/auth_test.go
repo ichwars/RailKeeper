@@ -97,7 +97,8 @@ func TestTwoFactorProtectsLogin(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
 	setup := application.NewSetupService(db)
-	auth := application.NewAuthService(db)
+	now := time.Unix(1700000000, 0)
+	auth := application.NewAuthService(db, application.WithAuthClock(func() time.Time { return now }))
 
 	if err := setup.CreateAdmin(ctx, application.CreateAdminInput{
 		Username: "admin",
@@ -118,7 +119,7 @@ func TestTwoFactorProtectsLogin(t *testing.T) {
 	if prepared.Secret == "" || prepared.OtpauthURL == "" {
 		t.Fatalf("expected setup secret and provisioning url, got %#v", prepared)
 	}
-	code := testTOTPCode(t, prepared.Secret, time.Now().UTC())
+	code := testTOTPCode(t, prepared.Secret, now)
 	status, err := auth.EnableTwoFactor(ctx, userID, application.TwoFactorEnableInput{Code: code})
 	if err != nil {
 		t.Fatal(err)
@@ -129,10 +130,11 @@ func TestTwoFactorProtectsLogin(t *testing.T) {
 	if _, err := auth.Login(ctx, application.LoginInput{Username: "admin", Password: "very-secure-password"}); !errors.Is(err, application.ErrTwoFactorRequired) {
 		t.Fatalf("expected two factor required, got %v", err)
 	}
+	now = now.Add(90 * time.Second)
 	result, err := auth.Login(ctx, application.LoginInput{
 		Username:      "admin",
 		Password:      "very-secure-password",
-		TwoFactorCode: testTOTPCode(t, prepared.Secret, time.Now().UTC()),
+		TwoFactorCode: testTOTPCode(t, prepared.Secret, now),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -140,9 +142,10 @@ func TestTwoFactorProtectsLogin(t *testing.T) {
 	if !result.Session.TwoFactorEnabled {
 		t.Fatal("session should report enabled two-factor auth")
 	}
+	now = now.Add(90 * time.Second)
 	if err := auth.DisableTwoFactor(ctx, userID, result.SessionToken, application.TwoFactorDisableInput{
 		CurrentPassword: "very-secure-password",
-		Code:            testTOTPCode(t, prepared.Secret, time.Now().UTC()),
+		Code:            testTOTPCode(t, prepared.Secret, now),
 	}); err != nil {
 		t.Fatal(err)
 	}
