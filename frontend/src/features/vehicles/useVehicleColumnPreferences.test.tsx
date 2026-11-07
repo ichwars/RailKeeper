@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../../shared/api";
-import { defaultVehicleTableColumns } from "./vehicleTableColumns";
+import { compactInventoryTableColumns, defaultVehicleTableColumns } from "./vehicleTableColumns";
 import {
   useVehicleColumnPreferences,
   vehicleTableColumnSettingKey
@@ -97,5 +97,21 @@ describe("useVehicleColumnPreferences", () => {
 
     await waitFor(() => expect(onMessage).toHaveBeenCalledTimes(2));
     expect(result.current.columns).toContain("series");
+  });
+
+  it("offers compact columns only on request and retains saved widths", async () => {
+    vi.spyOn(api, "profileSettings").mockResolvedValue({ settings: {
+      [vehicleTableColumnSettingKey]: JSON.stringify({ version: 1, columns: ["series", "name"], widths: { name: 286, series: 150 } })
+    } });
+    const update = vi.spyOn(api, "updateProfileSettings").mockResolvedValue({ settings: {} });
+    const { result } = renderHook(() => useVehicleColumnPreferences(vi.fn()));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.columns).toEqual(["series", "name"]);
+    expect(update).not.toHaveBeenCalled();
+    act(() => result.current.applyCompactColumns());
+    await waitFor(() => expect(update).toHaveBeenCalledOnce());
+    expect(result.current.columns).toEqual(compactInventoryTableColumns);
+    expect(result.current.widths).toEqual({ name: 286, series: 150 });
+    expect(Object.keys(update.mock.calls[0]![0])).toEqual([vehicleTableColumnSettingKey]);
   });
 });

@@ -10,6 +10,17 @@ describe("VehicleColumnPicker", () => {
     window.localStorage.removeItem(languageSettingKey);
   });
 
+  it("offers the compact preset without applying it when opened", async () => {
+    const user = userEvent.setup();
+    const compact = vi.fn();
+    render(<VehicleColumnPicker columns={["series", "name"]} loading={false}
+      onToggle={vi.fn()} onMove={vi.fn()} onReset={vi.fn()} onApplyCompact={compact} />);
+    await user.click(screen.getByRole("button", { name: "Tabellenspalten auswählen" }));
+    expect(compact).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Kompakte Spalten" }));
+    expect(compact).toHaveBeenCalledOnce();
+  });
+
   it("toggles, moves, and resets columns", async () => {
     window.localStorage.setItem(languageSettingKey, "de");
     const user = userEvent.setup();

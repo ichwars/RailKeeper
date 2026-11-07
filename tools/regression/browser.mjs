@@ -94,7 +94,8 @@ try {
     await page.getByRole("dialog").getByRole("button", { name: de ? "Abbrechen" : "Cancel", exact: true }).click();
     await page.getByRole("dialog").waitFor({ state: "hidden" });
     checks.push(language + ":edit-cancel-save-reopen");
-    for (const width of [2580, 1440, 820, 390]) {
+    // 1024 and 640 CSS pixels also cover a 1280px display at 125% and 200% zoom.
+    for (const width of [2580, 1440, 1280, 1024, 820, 640, 390]) {
       for (const theme of ["light", "dark"]) {
         await page.setViewportSize({ width, height: 1000 });
         await page.evaluate((theme) => localStorage.setItem("railkeeper.theme", theme), theme);
@@ -108,7 +109,7 @@ try {
         await assertResponsiveWorkspaces(page, {
           base: input.base, width, de, screenshotPrefix: `${input.output}/${language}-${theme}-${width}`
         });
-        checks.push(`${language}:${theme}:${width}:settings-and-uploads`);
+        checks.push(`${language}:${theme}:${width}:filters-settings-and-uploads`);
       }
     }
     assert.deepEqual(errors, []);

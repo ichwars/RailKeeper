@@ -22,6 +22,13 @@ oder als historische Marktwerte ausgegeben. Frühere Zeitpunkte und unbekannte B
 werden nicht erfunden. Auswertungen nennen Bewertungsumfang und fehlende Angaben.
 Es gibt keine automatische Verbindung zu Preisportalen oder Cloud-Diensten.
 
+Im Fahrzeugbestand bleiben häufige Filter direkt sichtbar. „Weitere Filter“ bündelt
+Gattung, Bahngesellschaft, Epoche, Adapter, Datenprüfung und Ausstellungstauglichkeit.
+Aktive Filter erscheinen auch bei geschlossenem Bereich mit einzeln entfernbaren
+Beschriftungen. „Spalten“ bietet eine ausdrücklich auswählbare kompakte Ansicht;
+vorhandene Spalten und Breiten bleiben bis zur bewussten Änderung erhalten. Breite
+Tabellen scrollen innerhalb ihres gekennzeichneten, per Tastatur erreichbaren Bereichs.
+
 ## Codequalität als eigener Bereich
 
 - Fachliche Module haben schmale Verträge und überprüfbare Abhängigkeiten.
@@ -109,3 +116,7 @@ Existing data, public contracts and capabilities must survive each step. Synthet
 restore and browser checks complement platform qualification; actual user pilots and
 hardware acceptance remain separate evidence. Application backups continue to exclude
 local authentication. Valuations never fabricate past market values or contact external services.
+Inventory filters have visible labels and individually removable active chips. Additional
+filters can be collapsed without losing their effect. The column picker offers an explicit
+compact preset while retaining existing preferences until the user changes them. Wide tables
+remain in a labelled, keyboard-accessible scrolling region.

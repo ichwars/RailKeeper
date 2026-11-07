@@ -1,4 +1,4 @@
-import { Fragment, useState, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useId, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowUpDown,
   ChevronDown,
@@ -78,6 +78,7 @@ export function VehicleInventoryTable({
   renderQuickMenu
 }: VehicleInventoryTableProps) {
   const { language, t } = useI18n();
+  const scrollHelpID = useId();
   const [expandedSetIDs, setExpandedSetIDs] = useState<Set<string>>(() => new Set());
   const groupedVehicles = groupVehicleInventory(vehicles, sort);
   const columnLayout = { columns: [...columns], widths: columnWidths };
@@ -219,7 +220,9 @@ export function VehicleInventoryTable({
   );
 
   return (
-    <div className="table-wrap">
+    <div className="table-wrap inventory-table-scroll-region" role="region" tabIndex={0}
+      aria-label={t("vehicles.table.scrollRegion")} aria-describedby={scrollHelpID}>
+      <p className="inventory-table-scroll-help" id={scrollHelpID}>{t("vehicles.table.scrollHelp")}</p>
       <table
         className="inventory-table vehicle-inventory-table"
         style={{

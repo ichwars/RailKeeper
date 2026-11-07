@@ -24,6 +24,7 @@ type VehicleColumnPickerProps = {
   onToggle: (column: VehicleTableColumn) => void;
   onMove: (column: VehicleTableColumn, direction: VehicleColumnMove) => void;
   onReset: () => void;
+  onApplyCompact?: () => void;
 };
 
 export function VehicleColumnPicker({
@@ -31,7 +32,8 @@ export function VehicleColumnPicker({
   loading,
   onToggle,
   onMove,
-  onReset
+  onReset,
+  onApplyCompact
 }: VehicleColumnPickerProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -65,7 +67,7 @@ export function VehicleColumnPicker({
       <button
         ref={triggerRef}
         type="button"
-        className={`icon-button${open ? " active" : ""}`}
+        className={`icon-button vehicle-column-picker-trigger${open ? " active" : ""}`}
         aria-label={t("vehicles.columns.choose")}
         title={t("vehicles.columns.choose")}
         aria-haspopup="dialog"
@@ -74,6 +76,7 @@ export function VehicleColumnPicker({
         onClick={() => setOpen((current) => !current)}
       >
         <Columns3 size={16} aria-hidden="true" />
+        <span>{t("vehicles.columns.short")}</span>
       </button>
       {open ? (
         <div
@@ -81,6 +84,10 @@ export function VehicleColumnPicker({
           role="dialog"
           aria-label={t("vehicles.columns.dialogTitle")}
         >
+          {onApplyCompact && <button type="button" className="vehicle-column-reset"
+            onClick={onApplyCompact} disabled={loading}>
+            <Columns3 size={15} aria-hidden="true" />{t("vehicles.columns.compact")}
+          </button>}
           <section className="vehicle-column-order" aria-label={t("vehicles.columns.visibleOrder")}>
             <h3>{t("vehicles.columns.visibleOrder")}</h3>
             {columns.map((column, index) => {
