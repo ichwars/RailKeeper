@@ -47,7 +47,7 @@ Für das Heimnetz oder einen Reverse Proxy muss der Betreiber die Erreichbarkeit
 | --- | --- |
 | `RAILKEEPER_DATA_DIR` | Dauerhafter Datenordner; kein austauschbarer Programmordner |
 | `RAILKEEPER_PUBLIC_URL` | Adresse, unter der Benutzer RailKeeper erreichen, auch für Rücksetzlinks |
-| `RAILKEEPER_COOKIE_SECURE` | Bei HTTPS `true`; muss zur tatsächlich benutzten Verbindung passen |
+| `RAILKEEPER_COOKIE_SECURE` | Standard `auto`: sichere Cookies bei konfigurierter öffentlicher HTTPS-URL; `true`/`false` bleiben explizite Vorgaben |
 | `RAILKEEPER_TRUSTED_PROXY_CIDRS` | Nur die eigenen vertrauenswürdigen Proxy-Netze |
 
 Die vollständige Konfiguration mit TLS, Uploadgrenzen, SMTP, OCR und Druckern steht im [Betriebshandbuch](https://github.com/ichwars/RailKeeper/blob/main/docs/production-runbook.md). Danach: [erstes Fahrzeug](../guide/quick-start) und [Sicherung](backup-restore).
@@ -56,6 +56,15 @@ Die vollständige Konfiguration mit TLS, Uploadgrenzen, SMTP, OCR und Druckern s
 
 <GuideFigure name="installation-first-admin" alt="Ersteinrichtung einer tatsächlich leeren lokalen Installation." caption="Die echte leere Demo verlangt ein eigenes erstes Administratorkonto. Sie zeigt den Browserablauf, keine Windows-Installation oder Docker-Inbetriebnahme." />
 
-Trage einen eigenen Benutzernamen, eine gültige E-Mail-Adresse und ein Passwort mit mindestens zwölf Zeichen samt Wiederholung ein. Prüfe nach der Einrichtung die Anmeldung und unter **Einstellungen > Allgemein > Speichernutzung** den Datenpfad.
+Lies zuerst den einmaligen Code aus `setup-code.txt` im lokalen Datenordner des Servers.
+Bei Docker: `docker compose exec railkeeper cat /data/setup-code.txt`. Unter Windows
+Standalone liegt die Datei standardmäßig unter `%LOCALAPPDATA%\RailKeeper\data`.
+Ein eigener konfigurierter Datenpfad hat Vorrang. Der Code erscheint nicht in der
+öffentlichen Status-API, Backups oder Diagnoseexporten.
+
+Trage den Code, einen eigenen Benutzernamen, eine gültige E-Mail-Adresse und ein Passwort
+mit mindestens zwölf Zeichen samt Wiederholung ein. Der Code wird nur bei erfolgreicher
+Einrichtung verbraucht. Bereits eingerichtete Installationen behalten ihre Anmeldung.
+Prüfe danach die Anmeldung und unter **Einstellungen > Allgemein > Speichernutzung** den Datenpfad.
 
 [Konten und Zwei-Faktor-Anmeldung einrichten](account-security-example) · [SMTP und Rücksetzlinks](smtp-password-reset) · [Update-Schrittfolge](system-operations).

@@ -39,8 +39,29 @@ docker buildx imagetools inspect ghcr.io/ichwars/railkeeper:latest
    docker compose up -d
    ```
 
-3. Browser öffnen und den ersten Admin im Setup-Dialog anlegen.
-4. Unter Einstellungen prüfen:
+3. Den einmaligen Einrichtungscode lokal auslesen:
+
+   ```bash
+   docker compose exec railkeeper cat /data/setup-code.txt
+   ```
+
+   Bei direktem Serverstart liegt `setup-code.txt` im konfigurierten Datenverzeichnis.
+   Windows Standalone verwendet standardmäßig:
+
+   ```powershell
+   Get-Content "$env:LOCALAPPDATA\RailKeeper\data\setup-code.txt"
+   ```
+
+   Ein explizites `RAILKEEPER_DATA_DIR` hat Vorrang. Die Datei bleibt lokal und ist bei
+   Linux-Starts nur für den Dateieigentümer lesbar. Code nicht veröffentlichen oder in
+   Fehlerberichte übernehmen. Ein beschädigter Code kann bei gestopptem Server und noch
+   fehlenden Konten durch Entfernen ausschließlich dieser Datei neu erzeugt werden.
+4. Browser öffnen und den Code zusammen mit den eigenen Kontodaten im Setup-Dialog eingeben.
+   Verbrauch des Codes, Admin, Rollen und Audit werden atomar gespeichert. Vorhandene
+   Benutzer überspringen die Code-Erzeugung vollständig. Ein verbrauchter Code bleibt
+   ungültig, auch wenn die Datei noch vorhanden ist. App-Backups und Diagnoseexporte
+   enthalten diesen Code nicht.
+5. Unter Einstellungen prüfen:
    - Version und Update-Status
    - Speicherübersicht
    - Benutzer und Rollen
@@ -60,14 +81,22 @@ Mindestanforderungen:
 - Wenn der Proxy die Client-IP über `X-Forwarded-For` übermittelt, seine internen Netze explizit
   als kommaseparierte CIDRs in `RAILKEEPER_TRUSTED_PROXY_CIDRS` eintragen. Ohne diese Einstellung
   ignoriert RailKeeper Forwarding-Header für Rate-Limits.
-- Bei produktivem HTTPS setzen:
+- Bei produktivem HTTPS die öffentliche URL setzen. Der Standard `auto` aktiviert dann
+  sichere Cookies:
 
   ```env
-  RAILKEEPER_COOKIE_SECURE=true
+  RAILKEEPER_PUBLIC_URL=https://railkeeper.example.test
+  RAILKEEPER_COOKIE_SECURE=auto
   RAILKEEPER_TRUSTED_PROXY_CIDRS=172.18.0.0/16
   ```
 
-Wenn lokal oder nur über HTTP getestet wird, muss `RAILKEEPER_COOKIE_SECURE=false` bleiben, sonst sendet der Browser die Session-Cookies nicht.
+`auto` verwendet ausschließlich diese konfigurierte URL, keine Forwarding-Header. Ohne
+öffentliche URL oder mit einer HTTP-URL bleibt lokaler HTTP-/LAN-Betrieb möglich.
+Explizites `true` beziehungsweise `false` bleibt wirksam. Bei ausschließlich lokalem HTTP
+darf kein `true` gesetzt sein, sonst sendet der Browser die Session-Cookies nicht.
+Die Ersteinrichtung zeigt eine Abweichung zwischen tatsächlicher Verbindung und
+Cookie-Einstellung an. Ein aus einer älteren Compose-Konfiguration übernommenes `false`
+überschreibt die Automatik weiterhin und sollte bei HTTPS überprüft werden.
 
 ## ECoS-Lokbilder direkt übertragen
 
@@ -225,7 +254,7 @@ gespeichert und per Test-Mail geprüft werden. Die folgenden Variablen bleiben a
 Deployment-Defaults nutzbar:
 
 ```env
-RAILKEEPER_COOKIE_SECURE=true
+RAILKEEPER_COOKIE_SECURE=auto
 RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS=.pdf,.jpg,.jpeg,.png,.webp,.txt,.csv,.json,.xml,.zip
 RAILKEEPER_PUBLIC_URL=https://railkeeper.example.test
 RAILKEEPER_SMTP_HOST=smtp.example.test

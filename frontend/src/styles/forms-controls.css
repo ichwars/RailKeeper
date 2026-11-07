@@ -1508,6 +1508,12 @@ td {
   font-weight: var(--font-weight-bold);
 }
 
+.auth-form small {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
 .auth-form input {
   min-height: 42px;
   width: 100%;

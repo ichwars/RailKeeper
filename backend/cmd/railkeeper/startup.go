@@ -226,6 +226,23 @@ func buildApplicationHandler(
 
 	accessoryRepository := infrastructure.NewAccessoryRepository(database)
 	authService := application.NewAuthService(database)
+	setupService := application.NewSetupService(database)
+	setupRequired, err := setupService.SetupRequired(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if setupRequired {
+		code, err := startup.ReadOrCreateSetupCode(paths.DataDir)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := setupService.PrepareAuthorization(ctx, code); err != nil {
+			return nil, err
+		}
+		if options.Logger != nil {
+			options.Logger.Info("first administrator requires the local setup code", "file", filepath.Join(paths.DataDir, startup.SetupCodeFile))
+		}
+	}
 	vehicleService := application.NewVehicleService(database)
 	if err := application.BackfillLegacyDecoderCV(ctx, database, paths.BlobDataDir); err != nil {
 		return nil, fmt.Errorf("adopt legacy decoder working state: %w", err)
@@ -259,7 +276,7 @@ func buildApplicationHandler(
 		AllowedAttachmentExtensions: options.AllowedAttachmentExtensions,
 		TrustedProxyCIDRs:           options.TrustedProxyCIDRs,
 		Logger:                      options.Logger,
-		SetupService:                application.NewSetupService(database),
+		SetupService:                setupService,
 		AuthService:                 authService,
 		VehicleService:              vehicleService,
 		OverviewValuationService:    application.NewOverviewValuationService(database),

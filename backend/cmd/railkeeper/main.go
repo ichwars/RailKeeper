@@ -66,7 +66,6 @@ func main() {
 	standalone := runtimeConfig.Standalone
 	addr := env("RAILKEEPER_ADDR", runtimeConfig.AddrDefault)
 	staticDir := runtimeConfig.StaticDir
-	cookieSecure := env("RAILKEEPER_COOKIE_SECURE", "false") == "true"
 	maxImageBytes := envMegabytes("RAILKEEPER_MAX_IMAGE_MB", 10)
 	maxAttachmentBytes := envMegabytes("RAILKEEPER_MAX_ATTACHMENT_MB", 25)
 	allowedAttachmentExtensions := envExtensionSet("RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS")
@@ -84,6 +83,11 @@ func main() {
 	publicURL := env("RAILKEEPER_PUBLIC_URL", "")
 	if standalone && publicURL == "" {
 		publicURL = appURL
+	}
+	cookieSecure, err := startup.ResolveCookieSecurity(env("RAILKEEPER_COOKIE_SECURE", "auto"), publicURL)
+	if err != nil {
+		logger.Error("cookie security configuration failed", "error", err)
+		os.Exit(1)
 	}
 	smtpConfig := application.SMTPPasswordResetMailConfig{
 		Host:     env("RAILKEEPER_SMTP_HOST", ""),

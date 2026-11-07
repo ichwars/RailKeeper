@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	ErrAlreadySetup = errors.New("setup already completed")
-	ErrWeakSetup    = errors.New("username or password is too short")
+	ErrAlreadySetup     = errors.New("setup already completed")
+	ErrWeakSetup        = errors.New("username or password is too short")
+	ErrInvalidSetupCode = errors.New("invalid or consumed setup code")
 )
 
 type SetupService struct {
@@ -21,9 +22,10 @@ type SetupService struct {
 }
 
 type CreateAdminInput struct {
-	Username string
-	Email    string
-	Password string
+	Username  string
+	Email     string
+	Password  string
+	SetupCode string
 }
 
 func NewSetupService(db *sql.DB) *SetupService {
@@ -38,7 +40,13 @@ func (s *SetupService) SetupRequired(ctx context.Context) (bool, error) {
 	return count == 0, nil
 }
 
+// CreateAdmin is a trusted in-process bootstrap. HTTP setup uses CompleteSetup,
+// which additionally requires the locally provisioned one-use authorization.
 func (s *SetupService) CreateAdmin(ctx context.Context, input CreateAdminInput) error {
+	return s.createAdmin(ctx, input, nil)
+}
+
+func (s *SetupService) createAdmin(ctx context.Context, input CreateAdminInput, proof *setupCodeProof) error {
 	username := strings.TrimSpace(input.Username)
 	email := strings.TrimSpace(input.Email)
 	if len(username) < 3 || len(input.Password) < 12 || !isValidEmail(email) {
@@ -58,6 +66,22 @@ func (s *SetupService) CreateAdmin(ctx context.Context, input CreateAdminInput) 
 
 	userID := randomID()
 	now := time.Now().UTC().Format(time.RFC3339)
+	if proof != nil {
+		var users int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM users`).Scan(&users); err != nil {
+			return fmt.Errorf("check setup completion: %w", err)
+		}
+		if users != 0 {
+			return ErrAlreadySetup
+		}
+		if err := requireAuthMutation(tx.ExecContext(ctx, `UPDATE setup_authorizations SET consumed_at=?
+WHERE id=1 AND token_hash=? AND consumed_at IS NULL`, now, proof.hash)); err != nil {
+			if errors.Is(err, ErrInvalidLogin) {
+				return ErrInvalidSetupCode
+			}
+			return fmt.Errorf("consume setup authorization: %w", err)
+		}
+	}
 	result, err := tx.ExecContext(
 		ctx,
 		`INSERT INTO users(id, username, email, password_hash, created_at)

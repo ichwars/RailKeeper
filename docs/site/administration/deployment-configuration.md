@@ -47,7 +47,7 @@ The operator must configure network or reverse-proxy access explicitly. Use HTTP
 | --- | --- |
 | `RAILKEEPER_DATA_DIR` | Persistent data folder, outside replaceable application files |
 | `RAILKEEPER_PUBLIC_URL` | User-facing address, also used for password-reset links |
-| `RAILKEEPER_COOKIE_SECURE` | `true` for HTTPS; must match the actual connection |
+| `RAILKEEPER_COOKIE_SECURE` | Default `auto`: secure cookies for a configured public HTTPS URL; `true`/`false` remain explicit overrides |
 | `RAILKEEPER_TRUSTED_PROXY_CIDRS` | Only your own trusted proxy networks |
 
 The full configuration for TLS, upload limits, SMTP, OCR and printers is in the [production runbook](https://github.com/ichwars/RailKeeper/blob/main/docs/production-runbook.md). Next: [your first vehicle](../guide/quick-start) and [backups](backup-restore).
@@ -56,6 +56,15 @@ The full configuration for TLS, upload limits, SMTP, OCR and printers is in the 
 
 <GuideFigure name="installation-first-admin" alt="First-run setup on an actually empty local installation." caption="The real empty demo requires its own first administrator. This shows browser setup, not Windows installation or Docker commissioning." />
 
-Enter your own username, valid email and a password of at least twelve characters with confirmation. After setup, verify sign-in and the data path under **Settings > General > Storage usage**.
+First read the one-use code from `setup-code.txt` in the server's local data folder.
+For Docker: `docker compose exec railkeeper cat /data/setup-code.txt`. Windows Standalone
+defaults to `%LOCALAPPDATA%\RailKeeper\data`; an explicitly configured data folder takes
+precedence. The code never appears in public status responses, application backups or
+diagnostic exports.
+
+Enter the code, your own username, valid email and a password of at least twelve characters
+with confirmation. Successful setup consumes the code atomically. Existing installations
+keep their sign-in. After setup, verify sign-in and the data path under
+**Settings > General > Storage usage**.
 
 [Set up accounts and two-factor sign-in](account-security-example) · [SMTP and reset links](smtp-password-reset) · [Update walkthrough](system-operations).

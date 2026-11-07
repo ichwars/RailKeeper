@@ -36,7 +36,7 @@ describe("App navigation availability", () => {
 
   it("passes session roles into the data transfer workspace", async () => {
     window.history.replaceState(null, "", "/import-export");
-    vi.spyOn(api, "setupStatus").mockResolvedValue({ setupRequired: false });
+    vi.spyOn(api, "setupStatus").mockResolvedValue({ setupRequired: false, cookieSecure: false });
     vi.spyOn(api, "session").mockResolvedValue({
       username: "operator",
       roles: ["Messe", "Viewer"],
@@ -51,7 +51,7 @@ describe("App navigation availability", () => {
 
   it("keeps the data transfer workspace available to pure Messe users", async () => {
     window.history.replaceState(null, "", "/import-export");
-    vi.spyOn(api, "setupStatus").mockResolvedValue({ setupRequired: false });
+    vi.spyOn(api, "setupStatus").mockResolvedValue({ setupRequired: false, cookieSecure: false });
     vi.spyOn(api, "session").mockResolvedValue({
       username: "messe",
       roles: ["Messe"],
@@ -67,7 +67,7 @@ describe("App navigation availability", () => {
 
   it("renders the dedicated Digital Centers workspace for its direct route", async () => {
     window.history.replaceState(null, "", "/digital-centers");
-    vi.spyOn(api, "setupStatus").mockResolvedValue({ setupRequired: false });
+    vi.spyOn(api, "setupStatus").mockResolvedValue({ setupRequired: false, cookieSecure: false });
     vi.spyOn(api, "session").mockResolvedValue({
       username: "admin",
       roles: ["Admin"],

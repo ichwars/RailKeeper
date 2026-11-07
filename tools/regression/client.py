@@ -13,6 +13,7 @@ class Client:
             raise ValueError("A local regression port is required")
         self.base = f"http://127.0.0.1:{port}"
         self.token = ""
+        self.setup_code = ""
         self.cookies = http.cookiejar.CookieJar()
         self.opener = urllib.request.build_opener(
             urllib.request.ProxyHandler({}), urllib.request.HTTPCookieProcessor(self.cookies)
@@ -58,6 +59,9 @@ class Client:
 
 def setup(client, username):
     credentials = {"username": username, "password": secrets.token_urlsafe(32)}
-    client.request("POST", "/api/v1/setup/admin", {**credentials, "email": username + "@example.test"}, 201)
+    payload = {**credentials, "email": username + "@example.test"}
+    if client.setup_code:
+        payload["setupCode"] = client.setup_code
+    client.request("POST", "/api/v1/setup/admin", payload, 201)
     client.login(credentials)
     return credentials
