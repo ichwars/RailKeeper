@@ -68,6 +68,19 @@ describe("Shell article navigation", () => {
     expect(view.container.querySelector(".layout")).not.toHaveClass("nav-open");
   });
 
+  it("starts explicit sidebar destinations at the top and focuses their main content", async () => {
+    const user = userEvent.setup(), navigate = vi.fn();
+    render(<Shell username="admin" roles={["Admin"]} activeView="vehicles"
+      onLogout={vi.fn()} onNavigate={navigate}><p>Inhalt</p></Shell>);
+    const main = screen.getByRole("main");
+    main.scrollTop = 300; main.scrollLeft = 100;
+    await user.click(screen.getByRole("link", { name: "Einstellungen" }));
+    expect(navigate).toHaveBeenCalledWith("settings");
+    expect(main.scrollTop).toBe(0);
+    expect(main.scrollLeft).toBe(0);
+    expect(main).toHaveFocus();
+  });
+
   it("uses the approved vehicle and accessory navigation labels", async () => {
     render(
       <Shell username="editor" roles={["Editor"]} activeView="accessories" onLogout={vi.fn()}>
