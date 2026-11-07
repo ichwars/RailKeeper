@@ -101,8 +101,9 @@ func parse(encoded string) (decoded, error) {
 		}
 		values[key] = value
 	}
-	if values["p"] == 0 || values["p"] > 16 || values["t"] == 0 || values["t"] > 10 ||
-		values["m"] < 8*values["p"] || values["m"] > 256*1024 {
+	memory, iterations, parallel := values["m"], values["t"], values["p"]
+	if parallel == 0 || parallel > 16 || iterations == 0 || iterations > 10 ||
+		memory < 8*parallel || memory > 256*1024 {
 		return decoded{}, invalid
 	}
 	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
@@ -113,6 +114,6 @@ func parse(encoded string) (decoded, error) {
 	if err != nil || len(key) < 16 || len(key) > 64 {
 		return decoded{}, invalid
 	}
-	return decoded{parameters: parameters{uint32(values["m"]), uint32(values["t"]), uint8(values["p"])},
+	return decoded{parameters: parameters{uint32(memory), uint32(iterations), uint8(parallel)},
 		salt: salt, key: key}, nil
 }

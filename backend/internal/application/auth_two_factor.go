@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"time"
 
 	"railkeeper/backend/internal/credentials"
 )
@@ -136,10 +135,6 @@ func (s *AuthService) DisableTwoFactor(ctx context.Context, userID, sessionToken
 }
 
 func generateTOTPSecret() (string, error) { return credentials.GenerateTOTPSecret() }
-func verifyTOTPCode(secret, code string, now time.Time) bool {
-	_, ok := credentials.MatchTOTP(secret, code, now)
-	return ok
-}
 
 func totpProvisioningURI(issuer, account, secret string) string {
 	label := issuer + ":" + account

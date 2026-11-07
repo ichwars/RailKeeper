@@ -61,6 +61,7 @@ func TestMalformedOrUnboundedHashRejectedBeforeDerivation(t *testing.T) {
 		strings.Replace(valid, "m=32", "m=4294967296", 1), strings.Replace(valid, "m=32", "m=300000", 1),
 		strings.Replace(valid, "t=2", "t=0", 1), strings.Replace(valid, "t=2", "t=11", 1),
 		strings.Replace(valid, "p=1", "p=0", 1), strings.Replace(valid, "p=1", "p=17", 1),
+		strings.Replace(valid, "p=1", "p=256", 1), strings.Replace(valid, "p=1", "p=4294967295", 1),
 		strings.Replace(valid, "p=1", "m=32", 1), strings.Replace(valid, "m=32", "unknown=32", 1),
 		valid + "$extra", strings.Replace(valid, "m=32", "m=-32", 1),
 	} {
