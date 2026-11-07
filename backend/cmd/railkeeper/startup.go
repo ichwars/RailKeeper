@@ -13,8 +13,10 @@ import (
 
 	"railkeeper/backend/internal/api"
 	"railkeeper/backend/internal/application"
+	backupmodel "railkeeper/backend/internal/backup"
 	"railkeeper/backend/internal/infrastructure"
 	"railkeeper/backend/internal/infrastructure/authdata"
+	"railkeeper/backend/internal/infrastructure/backupdata"
 	"railkeeper/backend/internal/infrastructure/valuationdata"
 	"railkeeper/backend/internal/startup"
 	"railkeeper/backend/internal/valuation"
@@ -287,12 +289,14 @@ func buildApplicationHandler(
 		MasterDataService:           masterDataService,
 		ArticleSearch:               application.NewArticleSearchService(masterDataService),
 		InventoryNumbers:            application.NewInventoryNumberService(database),
-		BackupService:               application.NewBackupService(database, paths.BackupDataDir),
-		FileBlobService:             fileBlobService,
-		DatabaseMaintenance:         application.NewDatabaseMaintenanceService(database, paths.DataDir),
-		ExhibitionService:           application.NewExhibitionService(database),
-		AccessoryService:            application.NewAccessoryService(accessoryRepository, fileBlobService),
-		AccessoryAllocationService:  application.NewAccessoryAllocationService(accessoryRepository),
+		BackupService: backupmodel.New(
+			backupdata.NewStore(database, paths.BackupDataDir, application.BackupRestorePlanner()),
+			application.BackupValidationRules()),
+		FileBlobService:            fileBlobService,
+		DatabaseMaintenance:        application.NewDatabaseMaintenanceService(database, paths.DataDir),
+		ExhibitionService:          application.NewExhibitionService(database),
+		AccessoryService:           application.NewAccessoryService(accessoryRepository, fileBlobService),
+		AccessoryAllocationService: application.NewAccessoryAllocationService(accessoryRepository),
 		AccessoryDocumentService: application.NewAccessoryDocumentService(
 			accessoryRepository, fileBlobService,
 		),
