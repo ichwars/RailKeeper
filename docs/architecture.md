@@ -12,6 +12,8 @@ responsibility.
 - `transfer`: shared exchange contracts, compatibility encoding and preview identities
 - `ecosmodel`: pure ECoS read projections, comparison plans and copied telemetry records
 - `backup`: backup format, compatibility checks and restore orchestration behind storage/rule ports
+- `decoder`: physical decoder/installation and CV identity, scope, conflict and partial-state rules
+- `revision`: compatible JSON/SHA-256 comparison tokens without persistence or transport
 - `domain`: vehicle inventory model and domain rules
 - `infrastructure`: SQLite, migrations, seed loading and filesystem adapters
 
@@ -23,6 +25,8 @@ The [ECoS boundary](architecture/ecos-boundaries.md) separates protocol decision
 existing connection, monitoring and explicitly confirmed transport operations.
 The [backup boundary](architecture/backup-boundaries.md) separates format checks, domain validation,
 the SQLite/file restore owner and legacy compatibility work within that same transaction.
+The [decoder boundary](architecture/decoder-boundaries.md) separates identity and conflict decisions
+from caller-transaction SQL while preserving CV histories, source bytes and original profile labels.
 
 ## API Contract
 

@@ -2,14 +2,12 @@ package application
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"sort"
 	"time"
 
 	"railkeeper/backend/internal/infrastructure/vehicledata"
+	"railkeeper/backend/internal/revision"
 )
 
 var (
@@ -19,10 +17,7 @@ var (
 	ErrVehicleAttachmentConflict = errors.New("vehicle attachment changed since the draft was opened")
 )
 
-func recordRevision(value any) string {
-	data, _ := json.Marshal(value)
-	return fmt.Sprintf("%x", sha256.Sum256(data))
-}
+func recordRevision(value any) string { return revision.Hash(value) }
 
 func vehicleCoreRevision(vehicle Vehicle) string {
 	var set *VehicleSetSummary

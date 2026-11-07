@@ -3,28 +3,11 @@ package application
 import (
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 )
-
-func validDecoderID(value string) bool {
-	decoded, err := hex.DecodeString(value)
-	return err == nil && len(decoded) == 16 && hex.EncodeToString(decoded) == value
-}
-
-func validDecoderDates(installed, removed *string) bool {
-	for _, date := range []*string{installed, removed} {
-		if date != nil {
-			if _, err := time.Parse(time.DateOnly, *date); err != nil {
-				return false
-			}
-		}
-	}
-	return installed == nil || removed == nil || *installed <= *removed
-}
 
 func (s *VehicleService) changeDecoderConfiguration(ctx context.Context, vehicleID, expected, action, targetID, actor string,
 	apply func(*sql.Tx, *DecoderConfigurationContext, string) error) (*DecoderConfigurationContext, error) {
@@ -65,22 +48,4 @@ VALUES(?,NULLIF(?,''),?,'decoder_configuration',?,?,?)`, randomID(), actor, acti
 		return nil, fmt.Errorf("commit decoder configuration: %w", err)
 	}
 	return after, nil
-}
-
-func decoderInstanceIn(result *DecoderConfigurationContext, id string) *DecoderInstance {
-	for index := range result.Instances {
-		if result.Instances[index].ID == id {
-			return &result.Instances[index]
-		}
-	}
-	return nil
-}
-
-func decoderInstallationIn(result *DecoderConfigurationContext, id string) *DecoderInstallation {
-	for index := range result.Installations {
-		if result.Installations[index].ID == id {
-			return &result.Installations[index]
-		}
-	}
-	return nil
 }
