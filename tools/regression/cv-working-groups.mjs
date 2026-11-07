@@ -18,9 +18,13 @@ export async function assertCVWorkingGroups(page, input, de, { actor, csrfToken 
   await page.getByRole("row").filter({ has: page.getByRole("cell", { name: vehicle.name, exact: true }) })
     .getByRole("button", { name: de ? "Bearbeiten" : "Edit", exact: true }).click();
   const editor = page.locator(".vehicle-edit-modal");
+  await page.route(input.base + endpoint, route => route.fulfill({ status: 503, contentType: "application/json",
+    body: JSON.stringify({ error: "Synthetic context unavailable" }) }), { times: 1 });
   await editor.getByRole("button", { name: "CV", exact: true }).click();
-  await editor.locator(".cv-subtabs button").nth(1).click();
   const picker = editor.locator(".cv-working-group-picker"), form = editor.locator(".cv-manual-editor");
+  await picker.getByRole("alert").waitFor();
+  await picker.getByRole("button", { name: de ? "Arbeitsgruppen neu laden" : "Reload working groups", exact: true }).click();
+  await editor.locator(".cv-subtabs button").nth(1).click();
   const selection = picker.getByRole("button", { name: de ? "Voreinstellung für neue CV-Eingaben und Dateiübernahmen" : "Default for new CV entries and file imports", exact: true });
   const confirm = picker.getByRole("button", { name: de ? "Zielgruppe jetzt bestätigen" : "Confirm target group now", exact: true });
   const choose = async profile => { await selection.click(); await page.getByRole("option", { name: profile, exact: true }).click(); };
@@ -30,6 +34,9 @@ export async function assertCVWorkingGroups(page, input, de, { actor, csrfToken 
   await form.locator("summary").click();
   const profileInput = form.getByRole("textbox", { name: de ? "Decoder-Profil" : "Decoder profile", exact: true });
   await choose(profileA); assert.equal(await profileInput.inputValue(), "");
+  await selection.focus(); await page.keyboard.press("Tab");
+  assert.equal(await confirm.evaluate(element => element === document.activeElement), true);
+  checks.push(`${language}:context-failure-retry-and-keyboard-confirmation-focus`);
   await confirm.click(); await page.waitForFunction(profile => document.querySelector('.cv-manual-editor input[placeholder]')?.value === profile, profileA);
   await form.getByRole("spinbutton", { name: "CV-Nr.", exact: true }).fill("25");
   await form.getByRole("spinbutton", { name: de ? "Wert" : "Value", exact: true }).fill("9");
