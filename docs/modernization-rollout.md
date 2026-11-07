@@ -19,11 +19,21 @@ Dateninhalte, IDs, Beziehungen, CV-Indexseiten, Herkunft, Historien und Datei-Pr
 SQLite-Integrität und Fremdschlüssel werden zusätzlich geprüft. Der aktuelle Referenzlauf
 kann die getrennten Katalog- und Decoderübernahmen einschließen:
 
-```sh
+Aus dem Repository mit installiertem Go, Node und den
+[Browser-Voraussetzungen](testing-baseline.md#synthetic-reference-collection-and-process-checks):
+
+```bash
+set -euo pipefail
+rk_previous_source="$(mktemp -d /tmp/railkeeper-modernization-source.XXXXXX)"
+git archive debfad6198299052f07220883c1476581be691cc backend | tar -x -C "$rk_previous_source"
+mkdir -p output/regression
+go -C "$rk_previous_source/backend" build -o "$PWD/output/regression/railkeeper-v0.1.22" ./cmd/railkeeper
+go -C backend build -o "$PWD/output/regression/railkeeper" ./cmd/railkeeper
+npm --prefix frontend run build
 python3 tools/regression/run_baseline.py \
   --binary output/regression/railkeeper \
   --previous-binary output/regression/railkeeper-v0.1.22 \
-  --previous-backend /tmp/railkeeper-stage0-previous/backend \
+  --previous-backend "$rk_previous_source/backend" \
   --catalog-backfill --catalog-authority --catalog-writes \
   --decoder-model --decoder-backfill \
   --browser --output output/regression-modernization
