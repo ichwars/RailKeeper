@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"unicode"
+
+	"railkeeper/backend/internal/transfer"
 )
 
 var (
-	ErrDataTransferValidation = errors.New("data transfer validation failed")
-	ErrDataTransferNotFound   = errors.New("data transfer profile not found")
+	ErrDataTransferValidation = transfer.ErrDataTransferValidation
+	ErrDataTransferNotFound   = transfer.ErrDataTransferNotFound
 )
 
 type CreateDataTransferProfileInput struct {
@@ -338,21 +339,7 @@ func (s *DataTransferService) ensureUniqueActiveProfileName(
 	return nil
 }
 
-// DataTransferProfileNameKey returns the stable Unicode case-fold key used by
-// persistence to enforce active profile name uniqueness.
-func DataTransferProfileNameKey(name string) string {
-	var key strings.Builder
-	for _, current := range strings.TrimSpace(name) {
-		canonical := current
-		for folded := unicode.SimpleFold(current); folded != current; folded = unicode.SimpleFold(folded) {
-			if folded < canonical {
-				canonical = folded
-			}
-		}
-		key.WriteRune(canonical)
-	}
-	return key.String()
-}
+func DataTransferProfileNameKey(name string) string { return transfer.DataTransferProfileNameKey(name) }
 
 func (s *DataTransferService) DisableProfile(ctx context.Context, id string) (DataTransferProfile, error) {
 	profile, err := s.profile(ctx, strings.TrimSpace(id))

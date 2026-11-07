@@ -1,46 +1,46 @@
 package infrastructure
 
 import (
-	"context"
+"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 
-	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/transfer"
 )
 
 func (repository *DataTransferRepository) Snapshot(
 	ctx context.Context,
-	areas []application.TransferArea,
-) (application.DataTransferSnapshot, error) {
+	areas []transfer.TransferArea,
+) (transfer.DataTransferSnapshot, error) {
 	tx, err := repository.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
-		return application.DataTransferSnapshot{}, fmt.Errorf("begin transfer snapshot: %w", err)
+		return transfer.DataTransferSnapshot{}, fmt.Errorf("begin transfer snapshot: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	snapshot := application.DataTransferSnapshot{}
+	snapshot := transfer.DataTransferSnapshot{}
 	for _, area := range areas {
 		switch area {
-		case application.TransferVehicles:
+		case transfer.TransferVehicles:
 			snapshot.Vehicles, err = transferVehicleSnapshot(ctx, tx)
 			if err == nil {
 				snapshot.VehicleSets, err = transferVehicleSetSnapshot(ctx, tx)
 			}
-		case application.TransferAccessories:
+		case transfer.TransferAccessories:
 			snapshot.Accessories, err = transferAccessorySnapshot(ctx, tx)
-		case application.TransferExhibitionLists:
+		case transfer.TransferExhibitionLists:
 			snapshot.ExhibitionLists, err = transferExhibitionSnapshot(ctx, tx)
 		default:
-			err = fmt.Errorf("%w: unsupported snapshot area %q", application.ErrDataTransferValidation, area)
+			err = fmt.Errorf("%w: unsupported snapshot area %q", transfer.ErrDataTransferValidation, area)
 		}
 		if err != nil {
-			return application.DataTransferSnapshot{}, err
+			return transfer.DataTransferSnapshot{}, err
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		return application.DataTransferSnapshot{}, fmt.Errorf("commit transfer snapshot: %w", err)
+		return transfer.DataTransferSnapshot{}, fmt.Errorf("commit transfer snapshot: %w", err)
 	}
 	return snapshot, nil
 }
@@ -48,8 +48,8 @@ func (repository *DataTransferRepository) Snapshot(
 func (repository *DataTransferRepository) GetArtifact(
 	ctx context.Context,
 	id string,
-) (application.DataTransferArtifact, error) {
-	artifact := application.DataTransferArtifact{}
+) (transfer.DataTransferArtifact, error) {
+	artifact := transfer.DataTransferArtifact{}
 	err := repository.db.QueryRowContext(ctx, `
 SELECT id, job_id, relative_path, display_name, mime_type, size_bytes, sha256,
        COALESCE(deleted_at, ''), created_at
@@ -59,15 +59,15 @@ WHERE id=?`, id).Scan(
 		&artifact.SizeBytes, &artifact.SHA256, &artifact.DeletedAt, &artifact.CreatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return application.DataTransferArtifact{}, fmt.Errorf("get transfer artifact: %w", sql.ErrNoRows)
+		return transfer.DataTransferArtifact{}, fmt.Errorf("get transfer artifact: %w", sql.ErrNoRows)
 	}
 	if err != nil {
-		return application.DataTransferArtifact{}, fmt.Errorf("get transfer artifact: %w", err)
+		return transfer.DataTransferArtifact{}, fmt.Errorf("get transfer artifact: %w", err)
 	}
 	return artifact, nil
 }
 
-func transferVehicleSnapshot(ctx context.Context, tx *sql.Tx) ([]application.TransferVehicle, error) {
+func transferVehicleSnapshot(ctx context.Context, tx *sql.Tx) ([]transfer.TransferVehicle, error) {
 	rows, err := tx.QueryContext(ctx, `
 SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESCE(article_source_url, ''),
        name, gauge, COALESCE(epoch, ''), COALESCE(railway_company, ''), COALESCE(category, ''),
@@ -93,9 +93,9 @@ ORDER BY inventory_number COLLATE NOCASE, id`)
 		return nil, fmt.Errorf("query transfer vehicles: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	vehicles := []application.TransferVehicle{}
+	vehicles := []transfer.TransferVehicle{}
 	for rows.Next() {
-		vehicle := application.TransferVehicle{}
+		vehicle := transfer.TransferVehicle{}
 		var maximumSpeed sql.NullInt64
 		var digital, dtDecoder, exhibitionReady, exhibition, abcBrakes int
 		var couplingSame, driveEnabled, headlightsEnabled, lightingEnabled int
@@ -144,7 +144,7 @@ ORDER BY inventory_number COLLATE NOCASE, id`)
 	return vehicles, nil
 }
 
-func transferAccessorySnapshot(ctx context.Context, tx *sql.Tx) ([]application.TransferAccessory, error) {
+func transferAccessorySnapshot(ctx context.Context, tx *sql.Tx) ([]transfer.TransferAccessory, error) {
 	rows, err := tx.QueryContext(ctx, `
 SELECT id, inventory_number, manufacturer, article_number, name, category, tracking_mode, description,
        ean, manufacturer_status, article_type, subtype, gauges_json, scale, list_price, package_quantity,
@@ -156,9 +156,9 @@ ORDER BY inventory_number COLLATE NOCASE, id`)
 	if err != nil {
 		return nil, fmt.Errorf("query transfer accessories: %w", err)
 	}
-	accessories := []application.TransferAccessory{}
+	accessories := []transfer.TransferAccessory{}
 	for rows.Next() {
-		accessory := application.TransferAccessory{}
+		accessory := transfer.TransferAccessory{}
 		var gauges, alternativeNumbers, keywords string
 		var archived int
 		if err := rows.Scan(
@@ -218,7 +218,7 @@ func transferAccessoryStock(
 	ctx context.Context,
 	tx *sql.Tx,
 	productID string,
-) ([]application.TransferAccessoryStock, error) {
+) ([]transfer.TransferAccessoryStock, error) {
 	rows, err := tx.QueryContext(ctx, `
 SELECT stock.location_id, location.name, stock.quantity, stock.updated_at
 FROM accessory_stock stock
@@ -229,9 +229,9 @@ ORDER BY location.name COLLATE NOCASE, stock.location_id`, productID)
 		return nil, fmt.Errorf("query transfer accessory stock: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	stock := []application.TransferAccessoryStock{}
+	stock := []transfer.TransferAccessoryStock{}
 	for rows.Next() {
-		level := application.TransferAccessoryStock{}
+		level := transfer.TransferAccessoryStock{}
 		if err := rows.Scan(&level.LocationID, &level.LocationName, &level.Quantity, &level.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan transfer accessory stock: %w", err)
 		}
@@ -247,7 +247,7 @@ func transferAccessoryAssets(
 	ctx context.Context,
 	tx *sql.Tx,
 	productID string,
-) ([]application.TransferAccessoryAsset, error) {
+) ([]transfer.TransferAccessoryAsset, error) {
 	rows, err := tx.QueryContext(ctx, `
 SELECT asset.id, COALESCE(asset.inventory_number, ''), asset.serial_number, asset.condition_state,
        asset.lifecycle_state, COALESCE(asset.storage_location_id, ''), COALESCE(location.name, ''),
@@ -260,9 +260,9 @@ ORDER BY asset.inventory_number COLLATE NOCASE, asset.id`, productID)
 		return nil, fmt.Errorf("query transfer accessory assets: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	assets := []application.TransferAccessoryAsset{}
+	assets := []transfer.TransferAccessoryAsset{}
 	for rows.Next() {
-		asset := application.TransferAccessoryAsset{}
+		asset := transfer.TransferAccessoryAsset{}
 		if err := rows.Scan(
 			&asset.ID, &asset.InventoryNumber, &asset.SerialNumber, &asset.Condition, &asset.Lifecycle,
 			&asset.StorageLocationID, &asset.StorageLocationName, &asset.PurchaseDate, &asset.PurchasePrice,
@@ -282,11 +282,11 @@ func transferAccessoryFingerprintState(
 	ctx context.Context,
 	tx *sql.Tx,
 	productID string,
-) (application.TransferAccessoryFingerprintState, error) {
-	state := application.TransferAccessoryFingerprintState{
-		Reservations:     []application.TransferAccessoryReservationFingerprint{},
-		Installations:    []application.TransferAccessoryInstallationFingerprint{},
-		ConditionHistory: []application.TransferAccessoryConditionHistoryFingerprint{},
+) (transfer.TransferAccessoryFingerprintState, error) {
+	state := transfer.TransferAccessoryFingerprintState{
+		Reservations:     []transfer.TransferAccessoryReservationFingerprint{},
+		Installations:    []transfer.TransferAccessoryInstallationFingerprint{},
+		ConditionHistory: []transfer.TransferAccessoryConditionHistoryFingerprint{},
 	}
 	rows, err := tx.QueryContext(ctx, `
 SELECT id, COALESCE(asset_id, ''), location_id, quantity, status, updated_at
@@ -297,7 +297,7 @@ ORDER BY id`, productID)
 		return state, fmt.Errorf("query transfer accessory reservation fingerprints: %w", err)
 	}
 	for rows.Next() {
-		reservation := application.TransferAccessoryReservationFingerprint{}
+		reservation := transfer.TransferAccessoryReservationFingerprint{}
 		if err := rows.Scan(
 			&reservation.ID, &reservation.AssetID, &reservation.LocationID, &reservation.Quantity,
 			&reservation.Status, &reservation.UpdatedAt,
@@ -325,7 +325,7 @@ ORDER BY id`, productID)
 		return state, fmt.Errorf("query transfer accessory installation fingerprints: %w", err)
 	}
 	for rows.Next() {
-		installation := application.TransferAccessoryInstallationFingerprint{}
+		installation := transfer.TransferAccessoryInstallationFingerprint{}
 		if err := rows.Scan(
 			&installation.ID, &installation.AssetID, &installation.SourceLocationID, &installation.Quantity,
 			&installation.Condition, &installation.InstalledAt, &installation.RemovedAt,
@@ -354,7 +354,7 @@ ORDER BY history.id`, productID)
 	}
 	defer func() { _ = rows.Close() }()
 	for rows.Next() {
-		history := application.TransferAccessoryConditionHistoryFingerprint{}
+		history := transfer.TransferAccessoryConditionHistoryFingerprint{}
 		if err := rows.Scan(&history.ID, &history.InstallationID, &history.Condition, &history.ChangedAt); err != nil {
 			return state, fmt.Errorf("scan transfer accessory condition history fingerprint: %w", err)
 		}
@@ -366,7 +366,7 @@ ORDER BY history.id`, productID)
 	return state, nil
 }
 
-func transferExhibitionSnapshot(ctx context.Context, tx *sql.Tx) ([]application.TransferExhibitionList, error) {
+func transferExhibitionSnapshot(ctx context.Context, tx *sql.Tx) ([]transfer.TransferExhibitionList, error) {
 	rows, err := tx.QueryContext(ctx, `
 SELECT id, designation, list_date, end_date, location, description, organization_notes,
        status, locked, lock_reason, locked_at, completed_at, archived_at, created_at, updated_at
@@ -375,9 +375,9 @@ ORDER BY list_date, designation COLLATE NOCASE, id`)
 	if err != nil {
 		return nil, fmt.Errorf("query transfer exhibition lists: %w", err)
 	}
-	lists := []application.TransferExhibitionList{}
+	lists := []transfer.TransferExhibitionList{}
 	for rows.Next() {
-		list := application.TransferExhibitionList{}
+		list := transfer.TransferExhibitionList{}
 		var locked int
 		if err := rows.Scan(
 			&list.ID, &list.Designation, &list.Date, &list.EndDate, &list.Location, &list.Description,
@@ -410,7 +410,7 @@ func transferExhibitionEntries(
 	ctx context.Context,
 	tx *sql.Tx,
 	listID string,
-) ([]application.TransferExhibitionEntry, error) {
+) ([]transfer.TransferExhibitionEntry, error) {
 	rows, err := tx.QueryContext(ctx, `
 SELECT entry.id, entry.vehicle_id, COALESCE(vehicle.inventory_number, ''), entry.owner,
        COALESCE(entry.image_url, ''), entry.locomotive_name, entry.gattung, entry.series, entry.manufacturer,
@@ -427,9 +427,9 @@ ORDER BY entry.sort_order, entry.locomotive_name COLLATE NOCASE, entry.id`, list
 		return nil, fmt.Errorf("query transfer exhibition entries: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	entries := []application.TransferExhibitionEntry{}
+	entries := []transfer.TransferExhibitionEntry{}
 	for rows.Next() {
-		entry := application.TransferExhibitionEntry{}
+		entry := transfer.TransferExhibitionEntry{}
 		var dtDecoder, analog int
 		if err := rows.Scan(
 			&entry.ID, &entry.VehicleID, &entry.VehicleInventoryNumber, &entry.Owner, &entry.ImageURL,
@@ -464,6 +464,6 @@ func decodeTransferStringArray(value string, target *[]string) error {
 var _ dataTransferSnapshotRepository = (*DataTransferRepository)(nil)
 
 type dataTransferSnapshotRepository interface {
-	Snapshot(context.Context, []application.TransferArea) (application.DataTransferSnapshot, error)
-	GetArtifact(context.Context, string) (application.DataTransferArtifact, error)
+	Snapshot(context.Context, []transfer.TransferArea) (transfer.DataTransferSnapshot, error)
+	GetArtifact(context.Context, string) (transfer.DataTransferArtifact, error)
 }

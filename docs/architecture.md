@@ -8,11 +8,15 @@ responsibility.
 - `api`: HTTP transport, request validation, response mapping
 - `application`: use cases, transactions, authorization decisions
 - `authentication`: independent login decisions behind narrow persistence/password ports
+- `valuation`: exact manual valuation rules behind a transactional storage port
+- `transfer`: shared exchange contracts, compatibility encoding and preview identities
 - `domain`: vehicle inventory model and domain rules
 - `infrastructure`: SQLite, migrations, seed loading and filesystem adapters
 
 The first independent login slice, its compatibility facade and explicit transaction owners
 are described in [authentication boundaries](architecture/authentication-boundaries.md).
+The independent [transfer contracts](architecture/transfer-boundaries.md) keep storage adapters
+from depending on application-owned transport models. Compatibility aliases preserve callers.
 
 ## API Contract
 

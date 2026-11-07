@@ -8,11 +8,12 @@ import (
 	"strings"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/transfer"
 )
 
 func (repository *DataTransferRepository) ValidateTransferAccessoryReferences(
 	ctx context.Context,
-	accessory application.TransferAccessory,
+	accessory transfer.TransferAccessory,
 	targetID string,
 ) error {
 	return validateTransferAccessoryReferenceData(ctx, repository.db, accessory, targetID)
@@ -21,7 +22,7 @@ func (repository *DataTransferRepository) ValidateTransferAccessoryReferences(
 func validateTransferAccessoryReferenceData(
 	ctx context.Context,
 	db dataTransferApplyDB,
-	accessory application.TransferAccessory,
+	accessory transfer.TransferAccessory,
 	targetID string,
 ) error {
 	articleType, subtype := application.TransferAccessoryReferenceKeys(accessory)

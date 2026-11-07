@@ -4,46 +4,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"railkeeper/backend/internal/transfer"
 )
 
-type VehicleTransferValueKind string
+type VehicleTransferValueKind = transfer.VehicleTransferValueKind
+type VehicleTransferField = transfer.VehicleTransferField
+type DataTransferCSVMappingOrigin = transfer.DataTransferCSVMappingOrigin
+type DataTransferCSVColumnMapping = transfer.DataTransferCSVColumnMapping
+type DataTransferCSVMappingInput = transfer.DataTransferCSVMappingInput
 
 const (
-	VehicleTransferString  VehicleTransferValueKind = "string"
-	VehicleTransferInteger VehicleTransferValueKind = "integer"
-	VehicleTransferBoolean VehicleTransferValueKind = "boolean"
+	VehicleTransferString  = transfer.VehicleTransferString
+	VehicleTransferInteger = transfer.VehicleTransferInteger
+	VehicleTransferBoolean = transfer.VehicleTransferBoolean
+	CSVMappingAlias        = transfer.CSVMappingAlias
+	CSVMappingProfile      = transfer.CSVMappingProfile
+	CSVMappingManual       = transfer.CSVMappingManual
+	CSVMappingIgnored      = transfer.CSVMappingIgnored
+	CSVMappingUnmapped     = transfer.CSVMappingUnmapped
 )
-
-type VehicleTransferField struct {
-	Key     string                   `json:"key"`
-	LabelDE string                   `json:"labelDE"`
-	LabelEN string                   `json:"labelEN"`
-	Kind    VehicleTransferValueKind `json:"kind"`
-	Aliases []string                 `json:"aliases"`
-}
-
-type DataTransferCSVMappingOrigin string
-
-const (
-	CSVMappingAlias    DataTransferCSVMappingOrigin = "alias"
-	CSVMappingProfile  DataTransferCSVMappingOrigin = "profile"
-	CSVMappingManual   DataTransferCSVMappingOrigin = "manual"
-	CSVMappingIgnored  DataTransferCSVMappingOrigin = "ignored"
-	CSVMappingUnmapped DataTransferCSVMappingOrigin = "unmapped"
-)
-
-type DataTransferCSVColumnMapping struct {
-	Index            int                          `json:"index"`
-	SourceHeader     string                       `json:"sourceHeader"`
-	NormalizedHeader string                       `json:"normalizedHeader"`
-	TargetField      string                       `json:"targetField"`
-	Origin           DataTransferCSVMappingOrigin `json:"origin"`
-}
-
-type DataTransferCSVMappingInput struct {
-	Columns       []DataTransferCSVColumnMapping `json:"columns"`
-	SaveToProfile bool                           `json:"saveToProfile"`
-}
 
 const dataTransferCSVMappingOption = "csvMapping"
 const dataTransferCSVIgnoreTarget = "__ignore__"

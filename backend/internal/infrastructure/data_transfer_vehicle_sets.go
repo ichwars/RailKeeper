@@ -10,6 +10,7 @@ import (
 
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/infrastructure/vehicledata"
+	"railkeeper/backend/internal/transfer"
 )
 
 type transferVehicleSetApplyPolicy struct {
@@ -18,7 +19,7 @@ type transferVehicleSetApplyPolicy struct {
 	MemberRecordKeys map[string]bool
 }
 
-func transferVehicleSetSnapshot(ctx context.Context, tx *sql.Tx) ([]application.TransferVehicleSet, error) {
+func transferVehicleSetSnapshot(ctx context.Context, tx *sql.Tx) ([]transfer.TransferVehicleSet, error) {
 	rows, err := tx.QueryContext(ctx, `
 SELECT id, inventory_number, name, manufacturer, article_number, article_source_url, gauge, epoch,
        railway_company, category, gattung, description, ean, production_period, list_price,
@@ -29,10 +30,10 @@ ORDER BY inventory_number COLLATE NOCASE, id`)
 	if err != nil {
 		return nil, fmt.Errorf("query transfer vehicle sets: %w", err)
 	}
-	sets := []application.TransferVehicleSet{}
+	sets := []transfer.TransferVehicleSet{}
 	setIndexes := map[string]int{}
 	for rows.Next() {
-		set := application.TransferVehicleSet{}
+		set := transfer.TransferVehicleSet{}
 		if err := rows.Scan(
 			&set.ID, &set.InventoryNumber, &set.Name, &set.Manufacturer, &set.ArticleNumber,
 			&set.ArticleSourceURL, &set.Gauge, &set.Epoch, &set.RailwayCompany, &set.Category,
@@ -66,7 +67,7 @@ ORDER BY member.vehicle_set_id, member.position, member.vehicle_id`)
 	defer func() { _ = memberRows.Close() }()
 	for memberRows.Next() {
 		var setID string
-		member := application.TransferVehicleSetMember{}
+		member := transfer.TransferVehicleSetMember{}
 		if err := memberRows.Scan(
 			&setID, &member.SourceVehicleID, &member.VehicleInventoryNumber, &member.Position, &member.Label,
 		); err != nil {
@@ -87,9 +88,9 @@ ORDER BY member.vehicle_set_id, member.position, member.vehicle_id`)
 func revalidateTransferVehicleSetPreview(
 	ctx context.Context,
 	tx *sql.Tx,
-	previews []application.DataTransferVehicleSetPreview,
-	records []application.DataTransferPreviewRecord,
-	issues []application.DataTransferIssue,
+	previews []transfer.DataTransferVehicleSetPreview,
+	records []transfer.DataTransferPreviewRecord,
+	issues []transfer.DataTransferIssue,
 ) error {
 	if len(previews) == 0 {
 		return nil
@@ -98,9 +99,9 @@ func revalidateTransferVehicleSetPreview(
 	if err != nil {
 		return err
 	}
-	vehicleRecords := map[string]application.DataTransferPreviewRecord{}
+	vehicleRecords := map[string]transfer.DataTransferPreviewRecord{}
 	for _, record := range records {
-		if record.Area != application.TransferVehicles {
+		if record.Area != transfer.TransferVehicles {
 			continue
 		}
 		if _, duplicate := vehicleRecords[record.RecordKey]; duplicate {
@@ -112,8 +113,8 @@ func revalidateTransferVehicleSetPreview(
 	if err != nil {
 		return err
 	}
-	setsByID := make(map[string]application.TransferVehicleSet, len(sets))
-	setsByInventory := make(map[string]application.TransferVehicleSet, len(sets))
+	setsByID := make(map[string]transfer.TransferVehicleSet, len(sets))
+	setsByInventory := make(map[string]transfer.TransferVehicleSet, len(sets))
 	for _, set := range sets {
 		setsByID[set.ID] = set
 		setsByInventory[strings.ToLower(strings.TrimSpace(set.InventoryNumber))] = set
@@ -134,7 +135,7 @@ func revalidateTransferVehicleSetPreview(
 				return dataTransferApplyConflict("vehicle set member preview is inconsistent")
 			}
 			seenMembers[recordKey] = true
-			vehicle := application.TransferVehicle{}
+			vehicle := transfer.TransferVehicle{}
 			if err := json.Unmarshal(record.Data, &vehicle); err != nil ||
 				!transferVehicleSetMemberMatches(preview.Data.Members[index], vehicle) {
 				return dataTransferApplyConflict("vehicle set member reference changed")
@@ -144,7 +145,7 @@ func revalidateTransferVehicleSetPreview(
 		if preview.TargetID != "" {
 			target, found := setsByID[preview.TargetID]
 			if !found || preview.TargetFingerprint == "" ||
-				application.DataTransferTargetFingerprint(target) != preview.TargetFingerprint {
+				transfer.DataTransferTargetFingerprint(target) != preview.TargetFingerprint {
 				return dataTransferApplyConflict("vehicle set preview target changed")
 			}
 			if !inventoryExists || currentByInventory.ID != target.ID {
@@ -161,8 +162,8 @@ func revalidateTransferVehicleSetPreview(
 }
 
 func transferVehicleSetApplyPolicies(
-	previews []application.DataTransferVehicleSetPreview,
-	issues []application.DataTransferIssue,
+	previews []transfer.DataTransferVehicleSetPreview,
+	issues []transfer.DataTransferIssue,
 ) (map[string]transferVehicleSetApplyPolicy, map[string]transferVehicleSetApplyPolicy, error) {
 	setPolicies := make(map[string]transferVehicleSetApplyPolicy, len(previews))
 	memberPolicies := map[string]transferVehicleSetApplyPolicy{}
@@ -176,7 +177,7 @@ func transferVehicleSetApplyPolicies(
 		action := preview.ProposedAction
 		resolved := false
 		for _, issue := range issues {
-			if issue.Area != application.TransferVehicles || issue.RecordKey != preview.RecordKey {
+			if issue.Area != transfer.TransferVehicles || issue.RecordKey != preview.RecordKey {
 				continue
 			}
 			switch issue.Code {
@@ -216,9 +217,9 @@ func transferVehicleSetApplyPolicies(
 
 func validateTransferVehicleSetTargetMembers(
 	policy transferVehicleSetApplyPolicy,
-	preview application.DataTransferVehicleSetPreview,
-	records map[string]application.DataTransferPreviewRecord,
-	setsByID map[string]application.TransferVehicleSet,
+	preview transfer.DataTransferVehicleSetPreview,
+	records map[string]transfer.DataTransferPreviewRecord,
+	setsByID map[string]transfer.TransferVehicleSet,
 ) error {
 	if policy.Action == "skip" || policy.Action == "copy" {
 		return nil
@@ -251,9 +252,9 @@ func validateTransferVehicleSetTargetMembers(
 func applyTransferVehicleSets(
 	ctx context.Context,
 	tx *sql.Tx,
-	previews []application.DataTransferVehicleSetPreview,
-	csvMapping []application.DataTransferCSVColumnMapping,
-	issues []application.DataTransferIssue,
+	previews []transfer.DataTransferVehicleSetPreview,
+	csvMapping []transfer.DataTransferCSVColumnMapping,
+	issues []transfer.DataTransferIssue,
 	vehicles map[string]transferVehicleApplyResult,
 	actor string,
 ) error {
@@ -261,7 +262,7 @@ func applyTransferVehicleSets(
 	if err != nil {
 		return err
 	}
-	existingSetsByID := map[string]application.TransferVehicleSet{}
+	existingSetsByID := map[string]transfer.TransferVehicleSet{}
 	if len(previews) > 0 && len(csvMapping) > 0 {
 		existingSets, err := transferVehicleSetSnapshot(ctx, tx)
 		if err != nil {
@@ -360,7 +361,7 @@ VALUES(?, NULLIF(?, ''), 'VehicleSetImported', 'vehicle_set', ?, ?, ?)`,
 	return nil
 }
 
-func transferCSVFieldMapped(mapping []application.DataTransferCSVColumnMapping, targetField string) bool {
+func transferCSVFieldMapped(mapping []transfer.DataTransferCSVColumnMapping, targetField string) bool {
 	for _, column := range mapping {
 		if column.TargetField == targetField {
 			return true
@@ -425,8 +426,8 @@ func transferVehicleSetArguments(inventoryNumber string, input application.Vehic
 }
 
 func transferVehicleSetMemberMatches(
-	member application.TransferVehicleSetMember,
-	vehicle application.TransferVehicle,
+	member transfer.TransferVehicleSetMember,
+	vehicle transfer.TransferVehicle,
 ) bool {
 	if member.SourceVehicleID != "" && member.SourceVehicleID != vehicle.ID {
 		return false
