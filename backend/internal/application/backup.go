@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 27
+	backupVersion = 28
 )
 
 var (
@@ -103,6 +103,7 @@ var backupTableOrder = []string{
 	"catalog_article_revisions",
 	"vehicle_sets",
 	"vehicles",
+	"vehicle_valuations",
 	"vehicle_set_members",
 	"vehicle_article_links",
 	"vehicle_set_article_links",
@@ -165,6 +166,7 @@ type backupTableVersionPolicy struct {
 }
 
 var backupTableVersions = map[string]backupTableVersionPolicy{
+	"vehicle_valuations":                       {introduced: 28, required: 28},
 	"decoder_instances":                        {introduced: 27, required: 27},
 	"decoder_installations":                    {introduced: 27, required: 27},
 	"decoder_cv_workspaces":                    {introduced: 27, required: 27},
@@ -770,7 +772,7 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 			result.Errors = append(result.Errors, validateBackupCVProvenance(rows)...)
 		}
 		if len(item.UnknownColumns) > 0 {
-			if isVehicleCatalogBackupTable(table) || isDecoderConfigurationBackupTable(table) {
+			if isVehicleCatalogBackupTable(table) || isDecoderConfigurationBackupTable(table) || table == "vehicle_valuations" {
 				result.Errors = append(result.Errors, fmt.Sprintf("Fachtabelle %s enthält unbekannte Spalten. / Unknown model table columns.", table))
 			} else {
 				result.Warnings = append(result.Warnings, fmt.Sprintf("Tabelle %s enthält unbekannte Spalten, die beim Restore ignoriert werden.", table))
@@ -809,6 +811,7 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 	}
 	result.Errors = append(result.Errors, validateBackupVehicleCatalog(doc)...)
 	result.Errors = append(result.Errors, validateBackupDecoderConfiguration(doc)...)
+	result.Errors = append(result.Errors, validateBackupValuations(doc)...)
 
 	return finishBackupValidation(result), nil
 }

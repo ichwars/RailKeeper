@@ -23,6 +23,11 @@ lastReviewed: 2026-11-07
 
 Die Anwendungssicherung enthält Bestand, Zubehör, Wartungen, CVs mit Herkunft, Stammdaten, Ausstellungsdaten und gespeicherte Medien. Benutzerkonten, Passwörter, Sitzungen und lokale Systemeinstellungen sind nicht enthalten. Sie ist deshalb keine vollständige Serversicherung.
 
+Format 28 ergänzt datierte manuelle Fahrzeugbewertungen einschließlich unveränderter
+Originaleinträge, Berichtigungen, Rücknahmen, Herkunft und tatsächlicher Erfassungszeit.
+Die Vorprüfung kontrolliert auch Beziehungen und Korrekturketten, bevor Daten ersetzt werden.
+Ältere Sicherungen bleiben lesbar und erzeugen keine erfundene Bewertungshistorie.
+
 Format 27 enthält zusätzliche Tabellen für Decoderexemplare, Einbauten, CV-Arbeitsgruppen und
 unveränderliche Teilstände mit eingefrorenen Quellen. Unbekannte Einbaudaten bleiben unbekannt;
 ein Erfassungszeitpunkt ist kein Auslesezeitpunkt. Gesicherte Quellen bleiben auch nach dem Entfernen

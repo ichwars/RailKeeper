@@ -14,12 +14,12 @@ type Props = {
 export function VehicleSaveState({ tab, saved, conflicts, onResolve, scope = "vehicle" }: Props) {
   const { t } = useI18n();
   const timing = tab === "speedCurve" ? "read" : tab === "uploads" ? "media" : tab === "cv" ? "cv"
-    : tab === "maintenance" || tab === "spareParts" ? "side" : "draft";
+    : tab === "maintenance" || tab === "spareParts" || tab === "valuations" ? "side" : "draft";
   const display = (value: unknown) => typeof value === "boolean" ? t(value ? "common.yes" : "common.no")
     : value === undefined || value === null || value === "" ? t("vehicles.saveState.empty") : String(value);
   return (
     <aside className="vehicle-save-state" aria-label={t("vehicles.saveState.title")}>
-      <p>{t(scope === "set" ? `vehicles.set.saveState.${timing}` : `vehicles.saveState.${timing}`)}</p>
+      <p>{t(tab === "valuations" ? "valuation.saveTiming" : scope === "set" ? `vehicles.set.saveState.${timing}` : `vehicles.saveState.${timing}`)}</p>
       {saved && <p className="vehicle-save-result" role="status">
         {t("vehicles.saveState.saved", { area: t(`vehicles.saveState.area.${saved}`) })}
       </p>}

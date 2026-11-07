@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/valuation"
 )
 
 type Config struct {
@@ -24,6 +25,7 @@ type Config struct {
 	AuthService                 *application.AuthService
 	VehicleService              *application.VehicleService
 	OverviewValuationService    *application.OverviewValuationService
+	ValuationService            *valuation.Service
 	MasterDataService           *application.MasterDataService
 	ArticleSearch               *application.ArticleSearchService
 	InventoryNumbers            *application.InventoryNumberService
@@ -64,6 +66,7 @@ type App struct {
 	authService                 *application.AuthService
 	vehicleService              *application.VehicleService
 	overviewValuationService    *application.OverviewValuationService
+	valuationService            *valuation.Service
 	masterDataService           *application.MasterDataService
 	articleSearch               *application.ArticleSearchService
 	inventoryNumbers            *application.InventoryNumberService
@@ -119,6 +122,7 @@ func NewRouter(config Config) http.Handler {
 		authService:                 config.AuthService,
 		vehicleService:              config.VehicleService,
 		overviewValuationService:    config.OverviewValuationService,
+		valuationService:            config.ValuationService,
 		masterDataService:           config.MasterDataService,
 		articleSearch:               config.ArticleSearch,
 		inventoryNumbers:            config.InventoryNumbers,

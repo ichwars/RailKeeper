@@ -616,6 +616,85 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DataTransferArtifact"
+    VehicleValuationFields:
+      type: object
+      required: [id, amount, currency, valuedOn, source]
+      properties:
+        id: {type: string, pattern: '^[0-9a-f]{32}$'}
+        amount:
+          type: string
+          description: Nonnegative exact decimal, at most 12 integer and six fractional digits. Dot or comma always means the decimal separator; do not use grouping. Stored/returned values use a dot.
+        currency:
+          type: string
+          description: Three ASCII letters, trimmed and uppercased. No currency conversion or external code lookup.
+        valuedOn: {type: string, format: date}
+        source: {type: string, minLength: 1, maxLength: 1000}
+        notes: {type: string, maxLength: 4000, default: ""}
+        replacesId:
+          type: string
+          default: ""
+          description: Empty for a new estimate, otherwise the uncorrected predecessor ID. Corrections append a row and cannot fork.
+        withdrawn:
+          type: boolean
+          default: false
+          description: Only a correction may withdraw an earlier estimate. Original rows are retained.
+    VehicleValuationInput:
+      allOf:
+        - {$ref: "#/components/schemas/VehicleValuationFields"}
+      unevaluatedProperties: false
+      description: Reuse the same ID and content after an uncertain response; an identical replay returns the existing row. Changed content under that ID conflicts.
+    VehicleValuation:
+      allOf:
+        - {$ref: "#/components/schemas/VehicleValuationFields"}
+        - type: object
+          required: [vehicleId, recordedAt, replacedById, notes, replacesId, withdrawn]
+          properties:
+            vehicleId: {type: string}
+            recordedAt: {type: string, format: date-time}
+            replacedById: {type: string}
+            notes: {type: string}
+            replacesId: {type: string}
+            withdrawn: {type: boolean}
+      unevaluatedProperties: false
+    VehicleValuationHistory:
+      type: object
+      required: [entries, total]
+      properties:
+        entries:
+          type: array
+          maxItems: 100
+          items: {$ref: "#/components/schemas/VehicleValuation"}
+        total: {type: integer, minimum: 0}
+    VehicleValuationExport:
+      type: object
+      required: [format, version, vehicleId, exportedAt, entries]
+      properties:
+        format: {type: string, const: railkeeper-valuations}
+        version: {type: integer, const: 1}
+        vehicleId: {type: string}
+        exportedAt: {type: string, format: date-time}
+        entries:
+          type: array
+          description: Entire immutable history, including corrected and withdrawn entries. Not limited to the history page size.
+          items: {$ref: "#/components/schemas/VehicleValuation"}
+    VehicleValuationSummary:
+      type: object
+      required: [asOf, vehicleCount, valuedVehicles, missingVehicles, totals]
+      description: Latest uncorrected and nonwithdrawn estimate per vehicle with valuedOn at or before asOf, using current knowledge including retrospective corrections. Vehicle set prices are not added. Currencies remain separate, and no past estimates are inferred.
+      properties:
+        asOf: {type: string, format: date}
+        vehicleCount: {type: integer, minimum: 0}
+        valuedVehicles: {type: integer, minimum: 0}
+        missingVehicles: {type: integer, minimum: 0}
+        totals:
+          type: array
+          items:
+            type: object
+            required: [currency, amount, vehicles]
+            properties:
+              currency: {type: string, pattern: '^[A-Z]{3}$'}
+              amount: {type: string}
+              vehicles: {type: integer, minimum: 0}
     OverviewValuation:
       type: object
       required:
@@ -8498,6 +8577,99 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /valuations/summary:
+    get:
+      tags: [Overview]
+      summary: Summarize dated manual valuations with explicit coverage by currency
+      description: Viewer, Editor or Admin required. Messe is excluded. No exchange rates, fabricated history or external requests.
+      parameters:
+        - name: asOf
+          in: query
+          description: Valuation date; defaults to the current UTC date.
+          schema: {type: string, format: date}
+      responses:
+        "200":
+          description: Exact totals and missing valuation count
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/VehicleValuationSummary"}
+        "400": {description: Invalid date}
+        "401": {description: Authentication required}
+        "403": {description: Inventory read role required}
+        "500": {description: Summary could not be calculated}
+        "503": {description: Valuation service unavailable}
+  /vehicles/{id}/valuations:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    get:
+      tags: [Vehicles]
+      summary: Read a page of manual vehicle valuations, including corrections
+      description: Viewer, Editor or Admin required. Entries are ordered by valuation date, recording time and ID descending.
+      parameters:
+        - name: offset
+          in: query
+          schema: {type: integer, minimum: 0, maximum: 1000000, default: 0}
+      responses:
+        "200":
+          description: Up to 100 entries and total count
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/VehicleValuationHistory"}
+        "400": {description: Invalid offset}
+        "401": {description: Authentication required}
+        "403": {description: Inventory read role required}
+        "404": {description: Vehicle not found}
+        "500": {description: History unavailable}
+        "503": {description: Valuation service unavailable}
+    post:
+      tags: [Vehicles]
+      summary: Record a manual valuation or append an immutable correction
+      description: Editor or Admin and CSRF required. Predecessor check, row and audit commit atomically. An identical ID/content replay has no second effect; concurrent corrections conflict. Existing purchase/list prices remain unchanged.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/VehicleValuationInput"}
+      responses:
+        "201":
+          description: Recorded entry, or existing identical entry after replay
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/VehicleValuation"}
+        "400": {description: Invalid valuation or JSON}
+        "401": {description: Authentication required}
+        "403": {description: Editor role and CSRF required}
+        "404": {description: Vehicle or predecessor not found}
+        "409": {description: Predecessor already corrected or ID reused with other content}
+        "500": {description: No definite save acknowledgment; reload before retrying}
+        "503": {description: Valuation service unavailable}
+  /vehicles/{id}/valuations/export:
+    get:
+      tags: [Vehicles]
+      summary: Download the complete valuation history as JSON
+      description: Viewer, Editor or Admin required. A single read transaction preserves every history row, identity, source, date and correction relationship. Complete installation-independent restoration uses application backup format 28.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Complete history without pagination
+          headers:
+            Content-Disposition:
+              schema: {type: string}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/VehicleValuationExport"}
+        "401": {description: Authentication required}
+        "403": {description: Inventory read role required}
+        "404": {description: Vehicle not found}
+        "500": {description: Export unavailable}
+        "503": {description: Valuation service unavailable}
   /overview/valuation:
     get:
       tags: [Overview]

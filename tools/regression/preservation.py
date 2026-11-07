@@ -101,6 +101,15 @@ def backup_manifest(document):
 
 
 def expected_backup_upgrade(document, target_version, catalog_backfill=None, catalog_authority=False, decoder_model=False, decoder_backfill=False):
+    if target_version == 28:
+        if document["version"] == 28:
+            return copy.deepcopy(document)
+        expected = expected_backup_upgrade(document, 27, catalog_backfill, catalog_authority, decoder_model, decoder_backfill)
+        if expected["tables"].get("vehicle_valuations"):
+            raise AssertionError("Older backup unexpectedly contains valuation history")
+        expected["version"] = 28
+        expected["tables"]["vehicle_valuations"] = []
+        return expected
     """Apply explicit checked schema rules; never ignore actual rows or unknown upgrades."""
     if decoder_backfill and (target_version != 27 or catalog_backfill is None):
         raise AssertionError("Decoder adoption requires its observed format27 document")

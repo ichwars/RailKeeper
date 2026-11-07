@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ROUTES_SHA256 = "5b00e214da7e473514c7f876385ac20077632c6ffa1f3ec903784f50393a8829"
+ROUTES_SHA256 = "2818a1b730adf0bfb45c9e1d0bc673f02b9506949fd1f5c2deb78938098a68c9"
 
 # Longest matching prefix wins. New top-level areas must be classified explicitly.
 FEATURES = {
@@ -37,6 +37,13 @@ FEATURES = {
         "ui": "Bestand, Einzelstück, Set, Inventarnummer, Bericht und QR",
         "storage": "vehicles, vehicle_sets, vehicle_set_members, inventory_number_history, vehicle_external_mappings",
         "tests": ["backend/internal/application/vehicle_sets_test.go", "frontend/src/features/vehicles/vehicleReports.test.ts"],
+    },
+    "vehicle-valuations": {
+        "prefixes": ["/valuations", "/vehicles/{id}/valuations"],
+        "ui": "Manuelle datierte Bewertungen, unveränderliche Berichtigungen, Stichtag und getrennte Währungen",
+        "storage": "vehicle_valuations; full history in app backup 28, no local authentication",
+        "tests": ["backend/internal/valuation/service_test.go", "backend/internal/infrastructure/valuationdata/store_test.go",
+                  "backend/internal/api/vehicle_valuations_test.go", "frontend/src/features/vehicles/useVehicleValuations.test.tsx"],
     },
     "media": {
         "prefixes": ["/vehicles/{id}/images", "/vehicles/{id}/attachments"],
