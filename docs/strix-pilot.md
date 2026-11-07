@@ -72,7 +72,12 @@ weglassen; dann gilt Loopback:
 export STRIX_BIND_IP="$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')"
 docker compose -p railkeeper-strix-pilot -f deploy/strix-pilot/compose.yml up --build -d --wait
 mkdir -p .strix-pilot
-python3 tools/strix_pilot.py seed --url "http://${STRIX_BIND_IP:-127.0.0.1}:18080" --output .strix-pilot/accounts.json
+umask 077
+docker compose -p railkeeper-strix-pilot -f deploy/strix-pilot/compose.yml \
+  exec -T railkeeper cat /data/setup-code.txt > .strix-pilot/setup-code.private.txt
+python3 tools/strix_pilot.py seed --url "http://${STRIX_BIND_IP:-127.0.0.1}:18080" \
+  --output .strix-pilot/accounts.json --setup-code-file .strix-pilot/setup-code.private.txt
+rm -- .strix-pilot/setup-code.private.txt
 ```
 
 Für den Scan auf dieser VM anschließend:
@@ -136,3 +141,8 @@ rootful Linux. Validate local firewall isolation before scanning. Private addres
 `http://192.168.4.143` requires LAN connectivity and dedicated test
 credentials; the GitHub workflow always targets its own disposable instance. Never seed an
 existing installation or connect real railway controllers to the testing network.
+
+Fresh instances require their local one-use setup code. Copy it privately from the disposable
+container and pass its file with `seed --setup-code-file`; never pass the code as a command
+argument or include it in account files, logs or public reports. The workflow performs this
+local step automatically and removes its temporary code copy after successful setup.

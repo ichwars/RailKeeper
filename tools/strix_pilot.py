@@ -30,7 +30,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         raise ValueError("Redirect refused: test credentials must stay on the configured origin")
 
 
-def seed(url, output):
+def seed(url, output, setup_code_file):
     url = validate_url(url)
     output = Path(output)
     if output.exists():
@@ -49,10 +49,20 @@ def seed(url, output):
 
     if request("/setup/status").get("setupRequired") is not True:
         raise ValueError("Refusing to seed an existing installation: first-run setup is already complete")
+    code_path = Path(setup_code_file)
+    if code_path.is_symlink() or not code_path.is_file():
+        raise ValueError("Setup code must come from a local regular file")
+    with code_path.open("rb") as file:
+        content = file.read(257)
+    setup_code = content.decode("ascii").strip()
+    if len(content) > 256 or len(setup_code) != 43 or any(
+            character not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+            for character in setup_code):
+        raise ValueError("Invalid local setup code file")
     accounts = {role: {"username": "pilot-" + role, "email": role + "@pilot.invalid",
                        "password": secrets.token_urlsafe(24), "roles": [role.title()]}
                 for role in ("admin", "editor", "viewer", "messe")}
-    request("/setup/admin", accounts["admin"])
+    request("/setup/admin", {**accounts["admin"], "setupCode": setup_code})
     session = request("/auth/login", accounts["admin"])
     for role in ("editor", "viewer", "messe"):
         request("/users", accounts[role], session["csrfToken"])
@@ -169,6 +179,7 @@ def main():
     prepare = commands.add_parser("seed", help="Create accounts on a fresh disposable instance only")
     prepare.add_argument("--url", required=True)
     prepare.add_argument("--output", required=True)
+    prepare.add_argument("--setup-code-file", required=True, help="Private local code file from the disposable instance")
     run = commands.add_parser("scan", help="Scan a committed source snapshot and one authorized origin")
     run.add_argument("--url", required=True)
     run.add_argument("--source", default=str(ROOT))
@@ -182,7 +193,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == "seed":
-            seed(args.url, args.output)
+            seed(args.url, args.output, args.setup_code_file)
             return 0
         return scan(args)
     except (OSError, ValueError, subprocess.SubprocessError) as error:

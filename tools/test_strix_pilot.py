@@ -1,12 +1,62 @@
 import json
+import io
 import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import strix_pilot
+
+
+class SeedAuthorizationTests(unittest.TestCase):
+    class Response(io.BytesIO):
+        status = 200
+
+    def test_local_code_is_sent_only_to_setup_and_never_saved_with_accounts(self):
+        requests = []
+        code = "a" * 43
+
+        class Client:
+            def open(self, request, timeout):
+                body = json.loads(request.data) if request.data is not None else None
+                path = request.full_url.removeprefix("http://127.0.0.1:18080/api/v1")
+                requests.append((path, body))
+                response = {"setupRequired": True} if path == "/setup/status" else {"csrfToken": "fixture-csrf"}
+                return SeedAuthorizationTests.Response(json.dumps(response).encode())
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, output = root / "setup-code.private.txt", root / "accounts.private.json"
+            source.write_text(code + "\n")
+            public_output = io.StringIO()
+            with patch.object(strix_pilot.urllib.request, "build_opener", return_value=Client()), patch("sys.stdout", public_output):
+                strix_pilot.seed("http://127.0.0.1:18080", output, source)
+            self.assertEqual(next(body for path, body in requests if path == "/setup/admin")["setupCode"], code)
+            self.assertTrue(all("setupCode" not in (body or {}) for path, body in requests if path != "/setup/admin"))
+            self.assertNotIn(code, output.read_text() + public_output.getvalue())
+            self.assertEqual(set(json.loads(output.read_text())), {"admin", "editor", "viewer", "messe"})
+
+    def test_missing_or_invalid_local_code_never_creates_accounts(self):
+        requests = []
+
+        class Client:
+            def open(self, request, timeout):
+                requests.append(request.get_method())
+                return SeedAuthorizationTests.Response(b'{"setupRequired": true}')
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for content in ("", "invalid", "x" * 300):
+                source, output = root / "setup-code.private.txt", root / "accounts.private.json"
+                source.write_text(content)
+                with patch.object(strix_pilot.urllib.request, "build_opener", return_value=Client()):
+                    with self.assertRaises(ValueError):
+                        strix_pilot.seed("http://127.0.0.1:18080", output, source)
+                self.assertFalse(output.exists())
+            self.assertEqual(requests, ["GET"] * 3)
 
 
 class ScanResultTests(unittest.TestCase):
