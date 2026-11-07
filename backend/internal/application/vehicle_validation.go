@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"railkeeper/backend/internal/decoder"
 )
 
 func cleanVehicleInput(input CreateVehicleInput) CreateVehicleInput {
@@ -339,13 +341,9 @@ func functionSortOrder(value string) int {
 	return number
 }
 
-func validCVNumber(value int) bool {
-	return value >= 1 && value <= 1024
-}
+func validCVNumber(value int) bool { return decoder.ValidCVNumber(value) }
 
-func validCVValue(value int) bool {
-	return value >= 0 && value <= 255
-}
+func validCVValue(value int) bool { return decoder.ValidCVValue(value) }
 
 func validCVIndex(input VehicleCVValueInput) bool {
 	if input.IndexCV31 == nil && input.IndexCV32 == nil {

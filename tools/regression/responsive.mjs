@@ -10,11 +10,15 @@ export async function assertResponsiveWorkspaces(page, { base, username, width, 
   await assertPersonalViews(page, { base, username, width, de, screenshotPrefix });
   await page.evaluate(() => document.fonts.ready);
   await assertViewportFits(page, "general settings");
-  const toggle = page.locator('.settings-inline-table input[type="checkbox"]').first();
+  // Wait for stored rows. While they load, the next focus target after the create
+  // row changes, so a Tab/Shift+Tab round-trip would not describe a stable table.
+  const toggle = page.locator('.settings-inline-table tbody tr:not(.inventory-scheme-create-row) input[type="checkbox"]').first();
+  await toggle.waitFor();
   await toggle.focus();
   await page.keyboard.press("Tab");
   await page.keyboard.press("Shift+Tab");
-  assert.equal(await toggle.evaluate(input => document.activeElement === input), true);
+  assert.equal(await toggle.evaluate(input => document.activeElement === input), true,
+    `${de ? "de" : "en"}/${width}: stored inventory switch must retain keyboard focus`);
   assert.equal(await toggle.evaluate(input => getComputedStyle(input.nextElementSibling).outlineStyle), "solid");
   await assertViewportFits(page, "focused inventory-number switch");
   await page.screenshot({ path: screenshotPrefix + "-settings.png", fullPage: true });
