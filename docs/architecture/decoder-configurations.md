@@ -89,5 +89,12 @@ cannot escape that boundary. Legacy Windows separators are normalized only when 
 path text remains unchanged. Active filesystem references outside uploads fail backup preflight
 before destructive restore. Canonical blob references do not reread obsolete filesystem paths.
 
-Normal CV writes still use the existing authoritative working rows. The separate writer/UI stage
-will maintain their working-group metadata and add deliberate capture/installation commands.
+Normal CV writes use the existing authoritative working rows. Manual create/update/delete,
+reviewed batches, file/station imports and source-file create/delete maintain the affected
+working groups in the same transaction. A profile move touches both exact stored groups without
+changing their identity, adoption origin or confirmed installation. Newly introduced groups have
+origin `manual` and no inferred hardware. Empty groups remain available for deliberate later work.
+
+Ordinary writes do not create hidden full snapshots. Existing immutable evidence remains unchanged;
+recording a checkpoint and confirming an installation are separate commands. Restoring an existing
+workspace preserves its metadata and snapshots; older backups still receive legacy adoption.

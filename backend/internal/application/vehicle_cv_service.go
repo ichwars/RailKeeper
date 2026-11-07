@@ -118,6 +118,9 @@ func (s *VehicleService) DeleteCVValue(ctx context.Context, vehicleID, cvValueID
 	if err := vehicledata.DeleteCV(ctx, tx, vehicleID, cvValueID); err != nil {
 		return nil, fmt.Errorf("delete CV: %w", err)
 	}
+	if err := touchDecoderCVWorkspaceTx(ctx, tx, vehicleID, item.DecoderProfile, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit CV delete: %w", err)
 	}
@@ -207,9 +210,11 @@ func (s *VehicleService) CreateCVFile(ctx context.Context, vehicleID string, inp
 	if vehicleID == "" || input.FileName == "" || input.OriginalName == "" || (input.StoragePath == "" && input.BlobID == "") {
 		return nil, ErrVehicleValidation
 	}
-	if _, err := s.Get(ctx, vehicleID); err != nil {
+	tx, err := beginVehicleCVWrite(ctx, s.db, vehicleID)
+	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = tx.Rollback() }()
 	now := time.Now().UTC().Format(time.RFC3339)
 	file := VehicleCVFile{
 		ID:             randomID(),
@@ -225,11 +230,17 @@ func (s *VehicleService) CreateCVFile(ctx context.Context, vehicleID string, inp
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}
-	if _, err := s.db.ExecContext(ctx, `
+	if _, err := tx.ExecContext(ctx, `
 INSERT INTO vehicle_cv_files(id, vehicle_id, file_name, original_name, description, decoder_profile, mime_type, size_bytes, storage_path, blob_id, created_at, updated_at)
 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `, file.ID, file.VehicleID, file.FileName, file.OriginalName, file.Description, file.DecoderProfile, file.MimeType, file.SizeBytes, file.StoragePath, file.BlobID, file.CreatedAt, file.UpdatedAt); err != nil {
 		return nil, fmt.Errorf("create vehicle cv file: %w", err)
+	}
+	if err := touchDecoderCVWorkspaceTx(ctx, tx, vehicleID, file.DecoderProfile, now); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit CV file creation: %w", err)
 	}
 	file.Revision = cvFileRevision(file, "[]")
 	return &file, nil
@@ -254,6 +265,9 @@ func (s *VehicleService) DeleteCVFile(ctx context.Context, vehicleID, fileID str
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM vehicle_cv_files WHERE id=? AND vehicle_id=?`, file.ID, file.VehicleID); err != nil {
 		return nil, fmt.Errorf("delete vehicle CV file: %w", err)
+	}
+	if err := touchDecoderCVWorkspaceTx(ctx, tx, file.VehicleID, file.DecoderProfile, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit CV file delete: %w", err)
