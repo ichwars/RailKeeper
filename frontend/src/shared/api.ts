@@ -54,6 +54,7 @@ export type CreateAdminRequest = {
   username: string;
   email: string;
   password: string;
+  setupCode: string;
 };
 
 export type LoginRequest = {

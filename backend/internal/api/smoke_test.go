@@ -17,6 +17,9 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	dataDir := t.TempDir()
 	db := testRouterDBWithDataDir(t, dataDir)
 	setup := application.NewSetupService(db)
+	if _, err := setup.PrepareAuthorization(t.Context(), "synthetic-local-setup-code-for-test"); err != nil {
+		t.Fatal(err)
+	}
 	auth := application.NewAuthService(db)
 	vehicles := application.NewVehicleService(db)
 	masterData := application.NewMasterDataService(db)
@@ -41,7 +44,7 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 		),
 	})
 
-	doJSON(t, router, http.MethodPost, "/api/v1/setup/admin", `{"username":"admin","email":"admin@example.test","password":"very-secure-password"}`, nil, http.StatusCreated)
+	doJSON(t, router, http.MethodPost, "/api/v1/setup/admin", `{"username":"admin","email":"admin@example.test","password":"very-secure-password","setupCode":"synthetic-local-setup-code-for-test"}`, nil, http.StatusCreated)
 	adminSession, adminCookies := loginTestUser(t, router, "admin", "very-secure-password")
 
 	doJSON(t, router, http.MethodGet, "/api/v1/vehicles", "", nil, http.StatusUnauthorized)

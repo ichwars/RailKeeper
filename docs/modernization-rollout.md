@@ -1,6 +1,6 @@
 # Modernisierung erproben und ausliefern
 
-Dieser Ablauf gilt für den Entwicklungsstand mit Schema 77 und App-Backupformat 27.
+Dieser Ablauf gilt für den Entwicklungsstand mit Schema 79 und App-Backupformat 27.
 Er definiert die technische Qualifizierung und die verbleibende Anwendererprobung.
 Ein zusammengeführter PR ist noch kein veröffentlichter oder produktiv installierter Stand.
 Eine Veröffentlichung oder Produktivumstellung erfolgt mit einem eigenen Auftrag.

@@ -20,7 +20,7 @@ func (a *App) setupStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]bool{"setupRequired": required})
+	respondJSON(w, http.StatusOK, map[string]bool{"setupRequired": required, "cookieSecure": a.cookieSecure})
 }
 
 func (a *App) createAdmin(w http.ResponseWriter, r *http.Request) {
@@ -38,8 +38,10 @@ func (a *App) createAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.setupService.CreateAdmin(r.Context(), input); err != nil {
+	if err := a.setupService.CompleteSetup(r.Context(), input); err != nil {
 		switch {
+		case errors.Is(err, application.ErrInvalidSetupCode):
+			respondProblem(w, http.StatusForbidden, "invalid_setup_code", "A valid unused code from the local setup-code.txt file is required.")
 		case errors.Is(err, application.ErrWeakSetup):
 			respondProblem(w, http.StatusBadRequest, "weak_setup", "Username, valid email and password with at least 12 characters are required.")
 		case errors.Is(err, application.ErrAlreadySetup):

@@ -642,13 +642,16 @@ components:
           minimum: 0
     SetupStatus:
       type: object
-      required: [setupRequired]
+      required: [setupRequired, cookieSecure]
       properties:
         setupRequired:
           type: boolean
+        cookieSecure:
+          type: boolean
+          description: Effective Secure flag for session cookies, independent of forwarded request headers.
     CreateAdminRequest:
       type: object
-      required: [username, password]
+      required: [username, email, password, setupCode]
       properties:
         username:
           type: string
@@ -656,6 +659,14 @@ components:
         password:
           type: string
           minLength: 12
+        email:
+          type: string
+          format: email
+        setupCode:
+          type: string
+          minLength: 32
+          maxLength: 128
+          description: One-use code from the protected local setup-code.txt file. Never returned by the API.
     LoginRequest:
       type: object
       required: [username, password]
@@ -5295,6 +5306,12 @@ paths:
           description: Admin user created
         "400":
           description: Weak input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Missing, incorrect or consumed local setup code
           content:
             application/json:
               schema:

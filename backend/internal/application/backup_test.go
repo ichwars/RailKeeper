@@ -1770,6 +1770,7 @@ ORDER BY name
 		"roles":                           true,
 		"schema_migrations":               true,
 		"sessions":                        true,
+		"setup_authorizations":            true,
 		"user_roles":                      true,
 		"user_settings":                   true,
 		"users":                           true,

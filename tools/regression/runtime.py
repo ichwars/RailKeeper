@@ -74,6 +74,9 @@ class Runtime:
                 raise AssertionError("Regression server exited; inspect its local server.log")
             try:
                 self.client.request("GET", "/health")
+                code_file = self.data_dir / "setup-code.txt"
+                if code_file.is_file():
+                    self.client.setup_code = code_file.read_text(encoding="utf-8").strip()
                 return self
             except OSError:
                 time.sleep(0.1)

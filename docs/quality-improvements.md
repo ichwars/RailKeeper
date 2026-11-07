@@ -64,6 +64,14 @@ gemeinsam bestätigt oder vollständig zurückgerollt. Schema 78 ergänzt aussch
 einen zunächst leeren Verbrauchszähler; bestehende Konten, Secrets und Sitzungen bleiben
 erhalten. Lokale Authentifizierung bleibt aus App-Backups ausgeschlossen.
 
+Eine leere Installation verlangt für die öffentliche Ersteinrichtung einen lokal erzeugten
+Einmalcode aus `setup-code.txt`. Schema 79 speichert ausschließlich Hash und Verbrauch.
+Codeverbrauch, erstes Konto, Rollen und Audit gehören zu einer Transaktion. Bestehende
+Konten überspringen diese Vorbereitung. Interne Bootstrap-Aufrufe werden nicht als
+öffentlicher Setup-Endpunkt angeboten. Session-Cookies verwenden standardmäßig `auto`:
+Eine konfigurierte öffentliche HTTPS-URL aktiviert `Secure`, lokale HTTP-Nutzung bleibt
+möglich. Explizite Vorgaben bleiben wirksam, Forwarding-Header verändern die Wahl nicht.
+
 `cd frontend && npm run lint` prüft Produktionscode einschließlich React-Hook-Regeln.
 Die Syntaxwerkzeuge liegen mit Babels TypeScript-/JSX-Parser in `tools/frontend-lint`;
 die eigentliche Frontend-Typprüfung und der Build verwenden den Compiler aus

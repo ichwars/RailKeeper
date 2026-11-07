@@ -59,8 +59,12 @@ jobs:
       - name: Isolierte Testinstanz starten / Start isolated test instance
         run: |
           docker compose up --build --detach --wait --wait-timeout 150 > "$PILOT_DIRECTORY/build.private.log" 2>&1
+          umask 077
+          docker compose exec -T railkeeper cat /data/setup-code.txt > "$PILOT_DIRECTORY/setup-code.private.txt"
           python3 tools/strix_pilot.py seed \
-            --url "http://$STRIX_BIND_IP:18080" --output "$PILOT_DIRECTORY/accounts.private.json"
+            --url "http://$STRIX_BIND_IP:18080" --output "$PILOT_DIRECTORY/accounts.private.json" \
+            --setup-code-file "$PILOT_DIRECTORY/setup-code.private.txt"
+          rm -- "$PILOT_DIRECTORY/setup-code.private.txt"
 
       - name: Strix ausführen / Run Strix
         env:

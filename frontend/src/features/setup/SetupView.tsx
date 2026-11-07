@@ -1,5 +1,5 @@
-import { FormEvent, useState } from "react";
-import { api } from "../../shared/api";
+import { FormEvent, useEffect, useState } from "react";
+import { api, ApiError } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 
 export function SetupView({ onComplete }: { onComplete: () => void }) {
@@ -7,9 +7,19 @@ export function SetupView({ onComplete }: { onComplete: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordRepeat, setPasswordRepeat] = useState("");
+  const [setupCode, setSetupCode] = useState("");
+  const [cookieMismatch, setCookieMismatch] = useState(false);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const { t } = useI18n();
+
+  useEffect(() => {
+    let active = true;
+    api.setupStatus().then((status) => {
+      if (active) setCookieMismatch(status.cookieSecure !== (window.location.protocol === "https:"));
+    }).catch((error: Error) => { if (active) setMessage(error.message); });
+    return () => { active = false; };
+  }, []);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -23,9 +33,13 @@ export function SetupView({ onComplete }: { onComplete: () => void }) {
     setSaving(true);
 
     api
-      .createAdmin({ username, email, password })
+      .createAdmin({ username, email, password, setupCode: setupCode.trim() })
       .then(onComplete)
-      .catch((error: Error) => setMessage(error.message))
+      .catch((error: Error) => {
+        const key = error instanceof ApiError && error.code === "invalid_setup_code" ? "setup.invalidCode"
+          : error instanceof ApiError && error.code === "already_setup" ? "setup.alreadyComplete" : null;
+        setMessage(key ? t(key) : error.message);
+      })
       .finally(() => setSaving(false));
   };
 
@@ -35,8 +49,22 @@ export function SetupView({ onComplete }: { onComplete: () => void }) {
         <img className="auth-logo" src="/brand/railkeeper-logo.png" alt="RailKeeper" />
         <h1 id="setup-title">{t("setup.title")}</h1>
         <p>{t("setup.subtitle")}</p>
+        {cookieMismatch && <p className="form-message" role="alert">{t("setup.cookieMismatch")}</p>}
 
         <form className="auth-form" onSubmit={submit}>
+          <label>
+            <span id="setup-code-label">{t("setup.code")}</span>
+            <input
+              value={setupCode}
+              autoComplete="off"
+              spellCheck={false}
+              aria-labelledby="setup-code-label"
+              aria-describedby="setup-code-help"
+              onChange={(event) => setSetupCode(event.target.value)}
+              required
+            />
+            <small id="setup-code-help">{t("setup.codeHelp")}</small>
+          </label>
           <label>
             {t("auth.username")}
             <input

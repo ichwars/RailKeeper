@@ -184,11 +184,12 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
 
           {twoFactorRequired && (
             <label>
-              {t("auth.twoFactor.code")}
+              <span id="login-two-factor-label">{t("auth.twoFactor.code")}</span>
               <input
                 value={twoFactorCode}
                 inputMode="numeric"
                 autoComplete="one-time-code"
+                aria-labelledby="login-two-factor-label"
                 aria-describedby="login-two-factor-hint"
                 pattern="[0-9 ]{6,8}"
                 onChange={(event) => setTwoFactorCode(event.target.value)}
