@@ -169,6 +169,14 @@ def run(args):
                 raise AssertionError("App restore imported installation users")
             passed("fresh-app-restore-preserves-target-login-and-all-reference-data")
 
+            if args.catalog_writes:
+                from catalog import exercise_catalog_writes
+                before_catalog = exercise_catalog_writes(target.client, fixture["vehicleId"])
+                restore(target.client, before_catalog)
+                assert_same(backup_manifest(before_catalog),
+                            backup_manifest(target.client.request("GET", "/api/v1/backup/export")),
+                            "Catalog command backup round trip")
+
             if args.browser:
                 before_browser = target.client.request("GET", "/api/v1/backup/export")
                 result = subprocess.run(["node", str(Path(__file__).with_name("browser.mjs"))],
@@ -235,6 +243,7 @@ def run(args):
         verify_artifact(target.client, fixture)
         passed("restored-installation-startup-login-and-reference-workflows")
     report["backupVersion"] = backup["version"]
+    report["catalogWritesVerified"] = args.catalog_writes
     report["freshRestorePolicies"] = ["keep target bundled workshop symbols", "clear missing local profile creator"]
     report["tables"] = {name: {"count": item["count"], "sha256": digest(item)}
                         for name, item in original["tables"].items()}
@@ -260,6 +269,7 @@ if __name__ == "__main__":
     parser.add_argument("--browser", action="store_true")
     parser.add_argument("--catalog-backfill", action="store_true", help="Verify the separately checked legacy catalog backfill")
     parser.add_argument("--catalog-authority", action="store_true", help="Verify the checked catalog authority conversion")
+    parser.add_argument("--catalog-writes", action="store_true", help="Verify explicit catalog field selection and rejected replays")
     parser.add_argument("--image", help="Optional existing image on a rootless local Docker test daemon")
     arguments = parser.parse_args()
     for field in ("binary", "backend", "static_dir", "previous_binary", "previous_backend"):

@@ -24,6 +24,8 @@ func TestOpenAPITransportFieldsMatchRuntimeJSON(t *testing.T) {
 		"VehicleCatalogBackfillReport":   application.VehicleCatalogBackfillReport{},
 		"VehicleCatalogContext":          application.VehicleCatalogContext{},
 		"VehicleCatalogRevision":         application.VehicleCatalogRevision{},
+		"VehicleCatalogRevisionInput":    application.VehicleCatalogRevisionInput{},
+		"VehicleCatalogAdoptionInput":    application.VehicleCatalogAdoptionInput{},
 		"VehicleImage":                   application.VehicleImage{},
 		"VehicleImageCreation":           application.VehicleImageCreation{},
 		"VehicleImageInput":              application.VehicleImageInput{},

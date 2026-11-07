@@ -51,6 +51,13 @@ Aktuelle Fahrzeugangaben, festgelegte Revision und individuelle Abweichungen ble
 Der Vergleichstoken erkennt auch einen Revisionswechsel mit gleichen sichtbaren Werten.
 Der Abruf übernimmt keine Vorschläge und ergänzt keine fehlenden Beziehungen.
 
+Editor und Admin bestätigen neue Artikelrevisionen über `POST /catalog/{targetType}/{id}/revisions`
+und vorhandene Revisionen über `POST /catalog/{targetType}/{id}/adoption`, jeweils mit CSRF-Schutz.
+Vergleichstoken und `selectedFields` sind erforderlich; eine leere Auswahl erhält alle gespeicherten
+Werte. Neue Revisionen verwenden eine beim Wiederholen erhaltene 32-stellige Hex-Kennung.
+Bei HTTP 409 den gespeicherten Stand neu vergleichen. Die Anforderung nicht automatisch verändern
+und erneut senden. Bestehende Fahrzeug-/Set-Schreibaufrufe erhalten ihre bisherige Bedeutung.
+
 ## Grenzen erhalten
 
 Rollen und Schutzmaßnahmen werden serverseitig geprüft. Gerätedaten beginnen als lesende Vorschläge; Schreibvorgänge benötigen eine bewusst bestätigte Vorschau. CV-Werte bleiben von ihrer Bedeutung getrennt: Bibliotheksregeln erklären Rohdaten nur bei belegtem Modell-, Firmware- und Indexkontext.

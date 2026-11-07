@@ -49,6 +49,13 @@ Viewer, Editor and Admin can read a saved vehicle/set assignment using
 revision and individual overrides remain separate. Its comparison token detects revision changes
 even when visible values are identical. Reading adopts no proposals and fills no missing links.
 
+Editor and Admin confirm new revisions using `POST /catalog/{targetType}/{id}/revisions` and adopt
+existing revisions using `POST /catalog/{targetType}/{id}/adoption`, both with CSRF protection.
+The comparison token and `selectedFields` are required; an empty selection keeps every saved value.
+New revisions use a 32-character hexadecimal identity retained on retries. After HTTP 409, reload
+and review the saved assignment before confirming again. Do not automatically modify and replay
+the request. Existing vehicle/set write calls retain their previous meaning.
+
 ## Preserve the boundaries
 
 Roles and protections are enforced by the server. Device data starts as read-only suggestions; writes require an explicitly confirmed preview. CV values remain separate from their meaning: library rules interpret raw data only with documented model, firmware and index context.

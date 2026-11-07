@@ -75,6 +75,14 @@ projection keeps the current owned values. This retention time is new and is not
 Revision, assignment, compatibility projection and audit share one transaction. Projection or audit
 failure leaves none of them committed. Confirming an unchanged active assignment performs no write.
 
+Editor and Admin confirm these commands through `POST /catalog/{targetType}/{id}/revisions` and
+`POST /catalog/{targetType}/{id}/adoption`, with the existing CSRF protection. Both require one JSON
+object (at most 1 MiB), documented fields and an explicit `selectedFields` array; an empty selection
+pins the revision while preserving every saved value. Revision creation includes the complete field
+map and a stable client identity. Unknown fields, null catalog values and trailing JSON are rejected
+before any write. A 409 response requires reloading and reviewing the saved assignment; clients do
+not automatically repeat a changed confirmation. Public vehicle/set write contracts remain unchanged.
+
 `tools/regression/verify_upgrade.py` rehearses the schema on a separate copy of a marked synthetic
 cold reference backup. It compares every existing table and stored file, permits only the four new
 empty tables and appended migration-ledger rows, and checks the automatic SQLite snapshot against
@@ -85,6 +93,10 @@ files remain subject to exact comparison. Extra rows, incorrect fields/overrides
 source timestamp fail the comparison. The additional `--catalog-authority` profile independently
 derives the exact authority/source-authority conversion, while preserving original revisions,
 overrides, timestamps and every other column. The native Windows runner uses both profiles.
+Its `--catalog-writes` check confirms revision creation/adoption through HTTP, derives every allowed
+row/field change independently, rejects repeated/stale confirmations without changes, and restores
+the complete original app export before continuing the browser checks. Unselected data and every
+other table/file remain part of the exact comparison.
 
 Backup format 26 includes all four tables and the original-authority marker. Preflight validates complete revision
 fields, overrides, revision numbering, origin, timestamps and relationships against the backup itself.
