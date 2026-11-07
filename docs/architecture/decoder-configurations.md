@@ -64,3 +64,17 @@ version or restore the verified complete old installation before any new input h
 Backend tests cover multiple decoders, nullable dates, raw profiles, CV IDs/history, source content
 retention, immutable hardware evidence, inventory deletion, full restore and rejected malformed
 backups. Native Windows exercises the same model cases before the existing end-to-end reference.
+
+## Transactional adoption engine
+
+The prepared capture engine reads exact vehicle/profile groups and records their current values,
+individual provenance and real history in one transaction. It never matches hardware by model or
+profile label. Repeated legacy adoption keeps existing snapshot identities and timestamps.
+Transport revision tokens are excluded from historical evidence.
+
+Source content is reused from existing blobs or copied from a confined source directory inside
+the same transaction. An insertion failure rolls back source blobs, snapshots and new groups
+together. Missing originals can reuse unambiguous archived bytes, including identical content
+under different blob identities. Contradictory or unreadable originals remain unresolved.
+The engine is prepared separately from its startup/restore activation; normal CV writes and
+the existing application workflows remain unchanged in this preparation package.

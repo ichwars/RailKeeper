@@ -39,6 +39,13 @@ func (s *FileBlobService) Store(ctx context.Context, data []byte) (string, error
 	if s == nil || s.db == nil {
 		return "", errors.New("file blob service is not configured")
 	}
+	return storeFileBlob(ctx, s.db, data)
+}
+
+// Snapshot sources must be stored in their caller's transaction as well.
+func storeFileBlob(ctx context.Context, writer interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}, data []byte) (string, error) {
 	if len(data) == 0 {
 		return "", errors.New("file blob is empty")
 	}
@@ -56,7 +63,7 @@ func (s *FileBlobService) Store(ctx context.Context, data []byte) (string, error
 		Data:           compressed,
 		CreatedAt:      time.Now().UTC().Format(time.RFC3339),
 	}
-	if _, err := s.db.ExecContext(ctx, `
+	if _, err := writer.ExecContext(ctx, `
 INSERT INTO file_blobs(id, original_size, compressed_size, compression, sha256, data, created_at)
 VALUES(?, ?, ?, ?, ?, ?, ?)
 `, blob.ID, blob.OriginalSize, blob.CompressedSize, blob.Compression, blob.SHA256, blob.Data, blob.CreatedAt); err != nil {
