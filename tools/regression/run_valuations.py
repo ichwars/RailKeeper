@@ -70,8 +70,12 @@ def run(args):
             actor.request("GET", path, expected=expected)
             actor.request("GET", path + "/export", expected=expected)
             actor.request("GET", "/api/v1/valuations/summary", expected=expected)
-            actor.request("POST", path, {**entry, "id": secrets.token_hex(16)}, expected=201 if role == "Editor" else 403)
-            actor.request("POST", path, entry, expected=403, csrf=False)
+            if role == "Editor":
+                actor.request("POST", path, {**entry, "id": secrets.token_hex(16)}, expected=201)
+            else:
+                # Permission-only probes carry no unused body, matching the main reference runner.
+                actor.request("POST", path, expected=403)
+            actor.request("POST", path, expected=403, csrf=False)
         passed("valuation-real-login-role-and-csrf-boundaries")
         document = backup(source.client)
         if document["version"] != 28 or len(document["tables"]["vehicle_valuations"]) != 3:
