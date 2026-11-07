@@ -1,5 +1,6 @@
 import { validCVExportTimestamp } from "./cvProvenance";
-import { VehicleCVFilePreview, VehicleCVValue, VehicleCVValueInput, VehicleFunctionInput } from "../../shared/api";
+import { VehicleCVFilePreview, VehicleCVValue, VehicleCVValueInput, VehicleFunctionInput, type DecoderCVWorkspace } from "../../shared/api";
+import type { CVWorkingTarget } from "./cvWorkingGroup";
 
 export type FunctionMappingImport = VehicleFunctionInput & { functionKey: string };
 export type CVImportStatus = "new" | "changed" | "same" | "invalid";
@@ -13,15 +14,22 @@ export type CVImportRow = {
   message: string;
   reason?: "invalid" | "duplicate";
   changedFields?: CVImportChangeField[];
+  sourceProfile?: string;
 };
 export type CVImportPreview = {
   fileName: string;
   vehicleId?: string;
   rows: CVImportRow[];
+  workingTarget?: CVWorkingTarget | null;
+  workingGroupLabels?: string[];
+  previousWorkingGroupLabels?: string[];
 };
 export type CVFileUploadPreview = {
   files: File[];
   previews: VehicleCVFilePreview[];
+  workingTarget?: CVWorkingTarget | null;
+  workingGroups?: DecoderCVWorkspace[];
+  workingGroupLabels?: Record<string, string>;
 };
 
 export const functionKeys = Array.from({ length: 32 }, (_, index) => `F${index}`);
@@ -67,7 +75,7 @@ export function isValidFunctionMapping(value: FunctionMappingImport) {
 }
 
 export function cvValueKey(value: Pick<VehicleCVValueInput, "cvNumber" | "decoderProfile" | "indexCV31" | "indexCV32">) {
-  return `${Number(value.cvNumber)}::${(value.decoderProfile || "").trim()}::${value.indexCV31 ?? "base"}::${value.indexCV32 ?? "base"}`;
+  return `${Number(value.cvNumber)}::${value.decoderProfile || ""}::${value.indexCV31 ?? "base"}::${value.indexCV32 ?? "base"}`;
 }
 
 function normalizeCVText(value?: string) {

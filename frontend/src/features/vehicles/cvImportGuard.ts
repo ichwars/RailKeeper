@@ -20,7 +20,10 @@ export function guardedCVImportValues(preview: CVImportPreview): VehicleCVValueI
 export function recompareCVImport(preview: CVImportPreview, current: VehicleCVValue[]): CVImportPreview {
   const selected = new Set(preview.rows.filter(row => row.selected).map(row => row.id));
   const refreshed = buildCVImportPreview(preview.fileName, preview.rows.map(row => row.input), current);
-  return { ...refreshed, vehicleId: preview.vehicleId, rows: refreshed.rows.map(row => ({ ...row,
+  return { ...refreshed, vehicleId: preview.vehicleId, ...(preview.workingTarget === undefined ? {} : { workingTarget: preview.workingTarget }),
+    ...(preview.workingGroupLabels ? { workingGroupLabels: preview.workingGroupLabels } : {}),
+    ...(preview.previousWorkingGroupLabels ? { previousWorkingGroupLabels: preview.previousWorkingGroupLabels } : {}), rows: refreshed.rows.map((row, index) => ({ ...row,
+    ...(preview.rows[index]?.sourceProfile === undefined ? {} : { sourceProfile: preview.rows[index].sourceProfile }),
     selected: selected.has(row.id) && row.status !== "same" && row.status !== "invalid"
   })) };
 }

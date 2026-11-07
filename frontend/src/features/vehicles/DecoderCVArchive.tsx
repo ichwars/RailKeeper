@@ -4,7 +4,8 @@ import { Archive, Check, RefreshCw, X } from "lucide-react";
 import { api, type DecoderCVSnapshotSummary } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
-import { DecoderSnapshotDetails, decoderProfileLabel } from "./DecoderSnapshotDetails";
+import { DecoderSnapshotDetails } from "./DecoderSnapshotDetails";
+import { decoderProfileLabel } from "./decoderProfileLabel";
 import { formatDateTime } from "./vehicleFormat";
 
 export function DecoderCVArchive({ vehicleId }: { vehicleId?: string }) {

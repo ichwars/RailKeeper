@@ -330,6 +330,7 @@
       "vehicles.cv": "vehicle-decoder-cv",
       "decoderConfig": "vehicle-decoder-archive",
       "decoderManage": "vehicle-decoder-installations",
+      "cvScope": "vehicle-decoder-installations",
       "vehicles.functionMode": "vehicle-decoder-cv",
       "vehicles.functionType": "vehicle-decoder-cv",
       "vehicles.functions": "vehicle-decoder-cv",

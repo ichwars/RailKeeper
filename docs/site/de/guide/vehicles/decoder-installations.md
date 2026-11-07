@@ -61,6 +61,28 @@ Historien, Quellen und die aktuelle Hardwarebeschreibung fest. Eine Notiz macht
 den Stand wiedererkennbar. Offene CV-Entwürfe gehören nicht dazu. Das Ergebnis
 steht im [CV-Archiv](cv-archive). Seine Erfassungszeit belegt keine vollständige Auslesung.
 
+## Ziel für neue CV-Eingaben bestätigen
+
+<GuideFigure name="cv-working-groups" alt="Bestätigte CV-Zielgruppe mit der aktuellen Decoderzuordnung." caption="Die Voreinstellung gilt für neue Eingaben. Bereits vorbereitete Änderungen behalten ihr eigenes Ziel." />
+
+Im Arbeitsbestand wählst du eine **Voreinstellung für neue CV-Eingaben und
+Dateiübernahmen**. Prüfe die angezeigte Gruppe und Decoderzuordnung, dann wähle
+**Zielgruppe jetzt bestätigen**. Die Auswahl allein ändert das Ziel noch nicht.
+**Profil der jeweiligen Eingabe verwenden** erhält die getrennten Profile der Eingaben.
+Signifikante Leerzeichen in alten Profilbezeichnungen erscheinen in Anführungszeichen.
+
+Vorgemerkte Änderungen, bereits geöffnete CV-Zeilen und vorbereitete Dateiübernahmen
+behalten ihre ursprüngliche Zielgruppe bei einem späteren Wechsel dieser Voreinstellung.
+Die Importvorschau nennt abweichende Quellenprofile zusätzlich zum bestätigten Ziel.
+Die Ablage einer Originaldatei und die Übernahme ihrer CV-Werte bleiben getrennte Bestätigungen.
+
+Ändert sich die Zuordnung eines beteiligten Decoders, bleibt die Änderung erhalten
+und wird gesperrt. Lade die Arbeitsgruppen neu und bestätige gegebenenfalls die
+Voreinstellung erneut. Vergleiche anschließend die betroffene CV-Änderung oder den
+Import erneut. Prüfe die aktuelle Zuordnung und bestätige erst dann die Übernahme.
+Bei Dateien bietet **Dateiziel erneut vergleichen** denselben Ablauf. Dateien und
+Beschreibung bleiben erhalten; der Vergleich startet keinen Upload.
+
 ## Bestätigung und Wiederaufnahme
 
 Jedes Formular beschreibt die Wirkung seiner eigenen Bestätigung. Ein Wechsel

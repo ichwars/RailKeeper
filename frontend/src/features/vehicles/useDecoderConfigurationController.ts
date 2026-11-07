@@ -4,6 +4,7 @@ import { useI18n } from "../../shared/i18n";
 import { decoderConfigurationDraft, decoderDraftFromCurrent, decoderDraftStored, decoderDraftValid, saveDecoderConfigurationDraft,
   type DecoderCommand, type DecoderConfigurationDraft } from "./decoderConfigurationDraft";
 import { reconcileDraft, retainRefreshConflicts, type DraftRefreshConflict } from "./vehicleDraftRefresh";
+import { cvTargetCurrent, cvWorkingTarget, type CVWorkingTarget } from "./cvWorkingGroup";
 
 type Options = {
   ownerKey: string;
@@ -16,9 +17,11 @@ type Options = {
 };
 type ScopedState = { key: string; context: DecoderConfigurationContext | null; draft: DecoderConfigurationDraft | null;
   baseline: DecoderConfigurationDraft | null; conflicts: DraftRefreshConflict[];
+  requestedWorkspaceId: string; activeTarget: CVWorkingTarget | null;
   loading: boolean; saving: boolean; needsReview: boolean; error: string; status: string };
 const emptyState = (key: string): ScopedState => ({ key, context: null, draft: null,
-  baseline: null, conflicts: [], loading: false, saving: false, needsReview: false, error: "", status: "" });
+  baseline: null, conflicts: [], requestedWorkspaceId: "", activeTarget: null,
+  loading: false, saving: false, needsReview: false, error: "", status: "" });
 
 export function useDecoderConfigurationController(options: Options) {
   const { t } = useI18n();
@@ -36,8 +39,8 @@ export function useDecoderConfigurationController(options: Options) {
     return () => { request.current++; };
   }, [key]);
 
-  const load = useCallback(async (compare = false) => {
-    if (!vehicleId || writing.current || latest.current.busy) return;
+  const load = useCallback(async (compare = false, allowBusy = false) => {
+    if (!vehicleId || writing.current || (latest.current.busy && !allowBusy)) return;
     const sequence = ++request.current, validScope = latest.current.captureScope();
     const valid = () => sequence === request.current && scope.current === key && validScope();
     setStored(current => ({ ...(current.key === key ? current : emptyState(key)), loading: true, error: "" }));
@@ -60,6 +63,7 @@ export function useDecoderConfigurationController(options: Options) {
           needsReview: acknowledged || compare ? false : current.needsReview,
           status: acknowledged ? translate.current("decoderManage.alreadySaved") : current.status };
       });
+      return context;
     } catch {
       if (valid()) setStored(current => ({ ...current, error: translate.current("decoderManage.loadFailed") }));
     } finally {
@@ -79,6 +83,16 @@ export function useDecoderConfigurationController(options: Options) {
     if (!state.context || state.draft || options.readonly || options.busy || state.loading || writing.current) return;
     const draft = decoderConfigurationDraft(kind, state.context, targetId);
     setStored(current => ({ ...current, draft, baseline: draft, conflicts: [], needsReview: false, error: "", status: "" }));
+  };
+  const chooseWorkspace = (requestedWorkspaceId: string) => {
+    if (options.readonly || options.busy || state.loading || writing.current) return;
+    setStored(current => ({ ...current, requestedWorkspaceId }));
+  };
+  const activateWorkspace = () => {
+    if (!state.context || options.readonly || options.busy || state.loading || writing.current) return;
+    const group = state.context.workspaces.find(value => value.id === state.requestedWorkspaceId);
+    if (state.requestedWorkspaceId && !group) return;
+    setStored(current => ({ ...current, activeTarget: group ? cvWorkingTarget(group) : null }));
   };
   const update = (patch: Partial<Pick<DecoderConfigurationDraft, "label" | "manufacturer" | "model" | "serialNumber" |
     "notes" | "profile" | "decoderId" | "installationId" | "installedAt" | "removedAt" | "note">>) => {
@@ -128,8 +142,9 @@ export function useDecoderConfigurationController(options: Options) {
     }
   };
   return { ...state, readonly: options.readonly, busy: options.busy,
+    targetCurrent: !state.activeTarget || Boolean(state.context && cvTargetCurrent(state.activeTarget, state.context.workspaces)),
     stale: Boolean(state.draft && state.context && state.draft.expectedRevision !== state.context.revision),
-    load, start, update, discard, resolve, confirm };
+    load, chooseWorkspace, activateWorkspace, start, update, discard, resolve, confirm };
 }
 
 export type DecoderConfigurationController = ReturnType<typeof useDecoderConfigurationController>;

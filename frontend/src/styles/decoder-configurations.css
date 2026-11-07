@@ -85,6 +85,14 @@
 }
 
 .decoder-configurations { min-inline-size: 0; }
+.cv-working-group-picker { display: grid; gap: var(--space-sm); margin-block: var(--space-md); padding: var(--space-md); border: 1px solid var(--line); border-radius: var(--radius-md); min-inline-size: 0; }
+.cv-working-group-choice { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-sm); }
+.cv-working-group-choice > label { display: grid; gap: var(--space-sm); flex: 1 1 260px; min-inline-size: 0; }
+.vehicle-edit-modal .cv-working-group-picker :is(button, .app-select-trigger) { min-block-size: 44px; white-space: normal; }
+.cv-working-group-current { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-xs); margin: 0; overflow-wrap: anywhere; }
+.cv-working-group-current small { flex-basis: 100%; color: var(--muted); }
+.cv-working-group-help { margin: 0; font-size: var(--font-size-lg); font-weight: var(--font-weight-regular); }
+.cv-working-assignments { overflow-wrap: anywhere; }
 .decoder-configurations-intro, .decoder-command > p { font-size: var(--font-size-lg); line-height: var(--line-height-normal); }
 .decoder-configurations-toolbar, .decoder-command-actions, .decoder-record-actions, .decoder-instance-pages {
   display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center;

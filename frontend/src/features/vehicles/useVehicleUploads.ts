@@ -5,6 +5,7 @@ import { attachmentCategoryForFile, isAllowedImageFile, isBlockedAttachmentFile,
 import { createVehicleUploadBatch, maxVehicleUploadFiles, retryableUploadItem, validImagesRevision,
   vehicleUploadCounts, vehicleUploadFailure, type VehicleUploadBatch, type VehicleUploadItem,
   type VehicleUploadKind, type VehicleUploadMetadata } from "./vehicleUploadBatch";
+import { CVWorkingGroupUnavailable, cvWorkingGroupLabel, refreshCVInputScope, type CVWorkingGroupOptions } from "./cvWorkingGroup";
 
 type Options = {
   selected: Vehicle | null;
@@ -16,6 +17,7 @@ type Options = {
   onImageStored: (image: VehicleImage) => void;
   refreshSaved: (vehicleId: string, kind: VehicleUploadKind) => Promise<void>;
   reload: (vehicleId: string) => Promise<void>;
+  workingGroup?: CVWorkingGroupOptions;
 };
 
 export function useVehicleUploads(options: Options) {
@@ -48,7 +50,9 @@ export function useVehicleUploads(options: Options) {
       return { id: image.id, image, imagesRevision: image.imagesRevision };
     }
     const record = value.kind === "decoder"
-      ? await api.uploadVehicleCVFile(vehicleId, item.file, metadata.decoderProfile || "", metadata.description || "")
+      ? metadata.workspaceId
+        ? await api.uploadVehicleCVFile(vehicleId, item.file, metadata.decoderProfile || "", metadata.description || "", metadata.workspaceId, metadata.expectedWorkspaceRevision)
+        : await api.uploadVehicleCVFile(vehicleId, item.file, metadata.decoderProfile || "", metadata.description || "")
       : await api.uploadVehicleAttachment(vehicleId, item.file,
         metadata.category || attachmentCategoryForFile(item.file), metadata.description || "", metadata.maintenanceId || "");
     return { id: record.id, image: undefined, imagesRevision: undefined };
@@ -60,7 +64,8 @@ export function useVehicleUploads(options: Options) {
       opts.selected?.id !== original.vehicleId || !original.items.some(retryableUploadItem)) return;
     const version = ++generation.current;
     const active = () => alive.current && generation.current === version &&
-      optionsRef.current.selected?.id === original.vehicleId && batchRef.current?.id === original.id;
+      optionsRef.current.selected?.id === original.vehicleId && batchRef.current?.id === original.id &&
+      (original.ownerKey === undefined || optionsRef.current.workingGroup?.ownerKey === original.ownerKey);
     busy.current = true;
     opts.setSaving(true); opts.onMessage("");
     setBatch(current => current ? { ...current, phase: "uploading", notice: undefined } : current);
@@ -92,10 +97,11 @@ export function useVehicleUploads(options: Options) {
             setBatch(value => value ? { ...value, needsReview: true, notice: t("vehicles.mediaUpload.refreshFailed") } : value);
             break;
           }
-          const changed = error instanceof ApiError && error.code === "vehicle_image_conflict";
+          const groupChanged = original.kind === "decoder" && Boolean(original.metadata.workspaceId) && error instanceof ApiError && error.code === "cv_file_conflict";
+          const changed = groupChanged || error instanceof ApiError && error.code === "vehicle_image_conflict";
           patchItem(item.key, { status: vehicleUploadFailure(error),
             error: changed ? t("vehicles.mediaConflict.changed") : error instanceof Error ? error.message : String(error) });
-          if (changed) setBatch(value => value ? { ...value, needsReview: true, notice: t("vehicles.mediaUpload.reviewAgain") } : value);
+          if (changed) setBatch(value => value ? { ...value, needsReview: true, notice: t(groupChanged ? "cvScope.fileBindingChanged" : "vehicles.mediaUpload.reviewAgain") } : value);
           break;
         }
       }
@@ -130,11 +136,40 @@ export function useVehicleUploads(options: Options) {
       opts.onMessage(t("vehicles.mediaConflict.missingRevision")); return false;
     }
     opts.onMessage("");
-    setBatch(createVehicleUploadBatch(kind, opts.selected, files, {
+    const next = createVehicleUploadBatch(kind, opts.selected, files, {
       ...metadata, ...(kind === "image" ? { imagesRevision: opts.selected.imagesRevision } : {})
-    }));
+    });
+    setBatch({ ...next, ...(opts.workingGroup ? { ownerKey: opts.workingGroup.ownerKey } : {}) });
     if (confirmed) void run();
     return true;
+  };
+
+  const reviewWorkingGroup = async () => {
+    const original = batchRef.current, opts = optionsRef.current;
+    if (!original || original.kind !== "decoder" || !original.metadata.workspaceId || !original.needsReview ||
+      busy.current || opts.saving || opts.readonly || !opts.workingGroup || opts.selected?.id !== original.vehicleId) return;
+    const version = ++generation.current;
+    const active = () => alive.current && version === generation.current && batchRef.current?.id === original.id &&
+      optionsRef.current.workingGroup?.ownerKey === original.ownerKey;
+    busy.current = true; opts.setSaving(true); setBatch(current => current ? { ...current, phase: "reviewing" } : current);
+    try {
+      const context = await opts.workingGroup.reload();
+      if (!active()) return;
+      if (!context) throw new CVWorkingGroupUnavailable();
+      const scope = refreshCVInputScope({ cvNumber: 1, value: 0, decoderProfile: original.metadata.decoderProfile || "",
+        workspaceId: original.metadata.workspaceId, expectedWorkspaceRevision: original.metadata.expectedWorkspaceRevision }, context.workspaces);
+      const label = cvWorkingGroupLabel(context, scope.workspaceId, scope.decoderProfile, t);
+      setBatch(current => current ? { ...current, metadata: { ...current.metadata, expectedWorkspaceRevision: scope.expectedWorkspaceRevision,
+        workingGroupLabel: label, ...(original.metadata.workingGroupLabel !== label ? { previousWorkingGroupLabel: original.metadata.workingGroupLabel } : {}) },
+        needsReview: false, notice: t("cvScope.fileReviewed") } : current);
+    } catch {
+      if (active()) setBatch(current => current ? { ...current, notice: t("cvScope.unavailable") } : current);
+    } finally {
+      if (version === generation.current) {
+        busy.current = false; optionsRef.current.setSaving(false);
+        setBatch(current => current ? { ...current, phase: "result" } : current);
+      }
+    }
   };
 
   const skip = (key: string) => {
@@ -152,5 +187,5 @@ export function useVehicleUploads(options: Options) {
     }
     setBatch(null);
   };
-  return { batch, commands: { prepare, confirm: run, skip, close, reset } };
+  return { batch, commands: { prepare, confirm: run, reviewWorkingGroup, skip, close, reset } };
 }

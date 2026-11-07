@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   api, ApiError,
@@ -17,12 +17,14 @@ import {
   cvDraftCollision, cvDraftConflicts, cvDraftCurrent, cvDraftInput, cvDraftRequest, cvDraftValues, maxManualCVChanges,
   rebaseCVChange, stageCVDeletion, stageCVInput, type CVDraftChange
 } from "./cvDraft";
+import { CVWorkingGroupUnavailable, cvDeletionScope, refreshCVInputScope, scopeCVInput, type CVWorkingGroupOptions } from "./cvWorkingGroup";
 
 type UseVehicleCVControllerOptions = {
   selected: Vehicle | null;
   decoderNumber: string;
   readonly?: boolean;
   saving?: boolean;
+  workingGroup?: CVWorkingGroupOptions;
   refreshImportedValues?: (vehicleId: string) => Promise<void>;
   setSaving: (saving: boolean) => void;
   onMessage: (message: string) => void;
@@ -35,6 +37,7 @@ export function useVehicleCVController({
   decoderNumber,
   readonly = false,
   saving = false,
+  workingGroup,
   refreshImportedValues,
   setSaving,
   onMessage,
@@ -44,7 +47,7 @@ export function useVehicleCVController({
   const { t } = useI18n();
   const [form, setForm] = useState<VehicleCVValueInput>(emptyCVForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const imports = useVehicleCVImportController({ selected, readonly, saving, setSaving, onMessage,
+  const imports = useVehicleCVImportController({ selected, readonly, saving, workingGroup, setSaving, onMessage,
     refreshSaved: refreshImportedValues || refreshSelectedVehicle });
   const { preview: importPreview, needsReview: importNeedsReview, imported: lastImported } = imports.state;
   const { importInputRef } = imports.refs;
@@ -55,8 +58,23 @@ export function useVehicleCVController({
   const draftGeneration = useRef(0), nextDraftID = useRef(0);
   const workingCVValues = useMemo(() => cvDraftValues(selected?.cvValues || [], manualChanges, selected?.id || ""),
     [selected, manualChanges]);
-  const manualConflicts = useMemo(() => cvDraftConflicts(manualChanges, selected?.cvValues || []),
-    [manualChanges, selected]);
+  const bindingConflicts = useMemo(() => workingGroup?.groups ? manualChanges.filter(change => {
+    const matches = (scope: { workspaceId?: string; expectedWorkspaceRevision?: string }, profile?: string) => {
+      const current = workingGroup.groups?.find(group => group.id === scope.workspaceId);
+      return current && current.profile === (profile || "") && current.bindingRevision === scope.expectedWorkspaceRevision;
+    };
+    return Boolean((change.scope && !matches(change.scope, change.original?.decoderProfile)) ||
+      (change.value?.workspaceId && !matches(change.value, change.value.decoderProfile)));
+  }) : [], [manualChanges, workingGroup?.groups]);
+  const manualConflicts = useMemo(() => [...new Map([...cvDraftConflicts(manualChanges, selected?.cvValues || []), ...bindingConflicts]
+    .map(change => [change.id, change])).values()], [manualChanges, selected, bindingConflicts]);
+  const writable = () => {
+    if (readonly || saving) return false;
+    if (workingGroup && !workingGroup.ready) { onMessage(t("cvScope.loadFailed")); return false; }
+    return true;
+  };
+  const withOriginalScopes = (changes: CVDraftChange[]) => workingGroup?.groups ? changes.map(change => change.original && !change.scope
+    ? { ...change, scope: cvDeletionScope(change.original.decoderProfile, workingGroup.groups) } : change) : changes;
 
   const storedDecoderProfiles = useMemo(() => Array.from(new Set([
     ...(selected?.cvValues || []).map((value) => value.decoderProfile)
@@ -86,11 +104,14 @@ export function useVehicleCVController({
   );
 
   const updateForm = (patch: Partial<VehicleCVValueInput>) => {
-    setForm((current) => ({ ...current, ...patch }));
+    if (!writable()) return;
+    setForm((current) => ({ ...current, ...patch,
+      ...(patch.decoderProfile !== undefined && patch.decoderProfile !== current.decoderProfile
+        ? { workspaceId: undefined, expectedWorkspaceRevision: undefined } : {}) }));
   };
 
   const resetForm = () => {
-    setForm(emptyCVForm);
+    setForm(scopeCVInput(emptyCVForm, workingGroup?.groups, workingGroup?.target));
     setEditingId(null);
   };
 
@@ -101,15 +122,21 @@ export function useVehicleCVController({
     resetForm();
     imports.commands.reset();
   };
+  useEffect(() => { if (workingGroup) reset(); }, [workingGroup?.ownerKey]);
+  useEffect(() => {
+    if (workingGroup && !editingId) setForm(current => ({ ...current, decoderProfile: workingGroup.target?.profile || "",
+      workspaceId: workingGroup.target?.workspaceId, expectedWorkspaceRevision: workingGroup.target?.expectedWorkspaceRevision }));
+  }, [workingGroup?.target?.workspaceId, workingGroup?.target?.expectedWorkspaceRevision]);
 
   const edit = (value: VehicleCVValue) => {
-    setForm(cvDraftInput(value));
+    if (!writable()) return;
+    setForm(scopeCVInput(cvDraftInput(value), workingGroup?.groups));
     setEditingId(value.id);
   };
 
   const save = () => {
-    if (!selected) return;
-    const payload = { ...form, cvNumber: Number(form.cvNumber), value: Number(form.value) };
+    if (!selected || !writable()) return;
+    const payload = scopeCVInput({ ...form, cvNumber: Number(form.cvNumber), value: Number(form.value) }, workingGroup?.groups);
     if (!isValidCVValueInput(payload)) {
       onMessage(payload.indexCV31 != null || payload.indexCV32 != null
         ? t("vehicles.cv.indexInvalid") : "CV-Nummer muss 1-1024 und Wert 0-255 sein.");
@@ -118,28 +145,28 @@ export function useVehicleCVController({
     const result = stageCVInput(manualChanges, selected.cvValues || [], selected.id,
       payload, editingId, `cv-draft-${++nextDraftID.current}`);
     if (result.error) { onMessage(t(`vehicles.cv.draft.error.${result.error}`)); return; }
-    setManualChanges(result.changes || []);
+    setManualChanges(withOriginalScopes(result.changes || []));
     setLastManualSave(0);
     resetForm();
     onMessage("");
   };
 
   const remove = (value: VehicleCVValue) => {
-    if (!selected) return;
+    if (!selected || !writable()) return;
     const next = stageCVDeletion(manualChanges, value);
     if (!next) {
       onMessage(t(manualChanges.length >= maxManualCVChanges
         ? "vehicles.cv.draft.error.limit" : "vehicles.cv.draft.error.revision"));
       return;
     }
-    setManualChanges(next);
+    setManualChanges(withOriginalScopes(next));
     setLastManualSave(0);
     if (editingId === value.id) resetForm();
     onMessage("");
   };
 
   const applyManualDraft = async () => {
-    if (!selected || !manualChanges.length) return;
+    if (!selected || !manualChanges.length || !writable()) return;
     if (manualConflicts.length) { onMessage(t("vehicles.cv.draft.conflict")); return; }
     const generation = draftGeneration.current;
     setSaving(true);
@@ -172,17 +199,39 @@ export function useVehicleCVController({
     setManualChanges(current => current.filter(change => change.id !== id));
     if (editingId === id) resetForm();
   };
-  const rebaseManualChange = (id: string) => {
+  const rebaseManualChange = async (id: string) => {
+    if (!selected || !writable()) return;
+    const generation = draftGeneration.current;
+    let stored = selected.cvValues || [], groups = workingGroup?.groups;
+    if (workingGroup) {
+      setSaving(true);
+      try {
+        const [freshValues, freshContext] = await Promise.all([api.vehicleCVValues(selected.id), workingGroup.reload()]);
+        if (generation !== draftGeneration.current) return;
+        if (!freshContext) throw new CVWorkingGroupUnavailable();
+        stored = freshValues; groups = freshContext.workspaces;
+        await reloadSelectedVehicle(selected.id);
+      } catch {
+        if (generation === draftGeneration.current) onMessage(t("cvScope.unavailable"));
+        return;
+      } finally { if (generation === draftGeneration.current) setSaving(false); }
+    }
+    if (generation !== draftGeneration.current) return;
     const change = manualChanges.find(value => value.id === id);
-    const current = change && cvDraftCurrent(change, selected?.cvValues || [], manualChanges);
-    if (change?.original && cvDraftCollision(change, selected?.cvValues || [], manualChanges)) {
+    const current = change && cvDraftCurrent(change, stored, manualChanges);
+    if (change?.original && cvDraftCollision(change, stored, manualChanges)) {
       onMessage(t("vehicles.cv.draft.error.occupied"));
       return;
     }
-    if (!current) { onMessage(t("vehicles.cv.draft.missing")); return; }
-    const next = rebaseCVChange(manualChanges, id, current);
+    if (!change || (!current && change.original)) { onMessage(t("vehicles.cv.draft.missing")); return; }
+    let next = current ? rebaseCVChange(manualChanges, id, current) : manualChanges.map(entry => entry.id === id ? { ...entry } : entry);
     if (next === manualChanges) { onMessage(t("vehicles.cv.draft.error.occupied")); return; }
-    setManualChanges(next);
+    try {
+      if (groups) next = next.map(change => change.id === id ? { ...change,
+        scope: change.original ? cvDeletionScope(change.original.decoderProfile, groups) : undefined,
+        value: change.value ? refreshCVInputScope(change.value, groups) : null } : change);
+      setManualChanges(next);
+    } catch { onMessage(t("cvScope.unavailable")); return; }
     onMessage("");
   };
 
@@ -205,7 +254,8 @@ export function useVehicleCVController({
     state: {
       form,
       editingId,
-      manualDraft: { changes: manualChanges, values: workingCVValues, conflicts: manualConflicts.map(change => change.id), lastSavedCount: lastManualSave },
+      manualDraft: { changes: manualChanges, values: workingCVValues, conflicts: manualConflicts.map(change => change.id),
+        bindingChanged: bindingConflicts.length > 0, lastSavedCount: lastManualSave },
       importPreview,
       importNeedsReview,
       summary,
