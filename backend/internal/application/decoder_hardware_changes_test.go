@@ -74,7 +74,7 @@ func TestDecoderConfigurationHardwareCommandsKeepEpisodesDatesAndOldEvidence(t *
 			t.Fatal("removal lost notes or invented a date")
 		}
 	}
-	current, err = s.UpdateDecoderInstance(t.Context(), vehicle, application.DecoderInstanceInput{ID: "decoder-b", ExpectedRevision: current.Revision,
+	_, err = s.UpdateDecoderInstance(t.Context(), vehicle, application.DecoderInstanceInput{ID: "decoder-b", ExpectedRevision: current.Revision,
 		Label: "Corrected description", Model: "Corrected model"}, "")
 	if err != nil {
 		t.Fatal(err)
