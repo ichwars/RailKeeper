@@ -638,7 +638,7 @@
 
 .inventory-panel {
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   border: 0;
   border-radius: 8px;
   background: transparent;
@@ -675,155 +675,6 @@
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.inventory-filter-row {
-  display: flex;
-  grid-column: 1 / -1;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
-  padding: 0;
-}
-
-.inventory-filter-group {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--panel) 88%, transparent);
-}
-
-.inventory-filter-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  border: 0;
-  border-radius: 0;
-  padding: 0 12px;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  white-space: nowrap;
-}
-
-.inventory-filter-group .inventory-filter-pill + .inventory-filter-pill {
-  border-left: 1px solid var(--line);
-}
-
-.inventory-filter-pill svg {
-  color: currentColor;
-}
-
-.inventory-filter-pill:hover,
-.inventory-filter-pill:focus-visible {
-  color: var(--accent-strong);
-  outline: none;
-}
-
-.inventory-filter-pill.active {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
-  color: var(--accent-strong);
-}
-
-.inventory-filter-toggle {
-  flex: 0 0 auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--panel) 88%, transparent);
-}
-
-.inventory-filter-select {
-  flex: 0 1 176px;
-  min-width: 148px;
-  max-width: 176px;
-}
-
-.app-select.inventory-filter-select {
-  min-height: 32px;
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  background: transparent;
-}
-
-.app-select.inventory-filter-select .app-select-trigger {
-  min-height: 32px;
-  height: 32px;
-  border-radius: 8px;
-  padding: 0 10px 0 12px;
-  background: color-mix(in srgb, var(--panel) 88%, transparent);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-}
-
-.app-select.inventory-filter-select .app-select-options {
-  width: max(100%, 190px);
-}
-
-.app-select.inventory-filter-select .app-select-option {
-  min-height: 30px;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-}
-
-.inventory-filter-select:focus,
-.app-select.inventory-filter-select .app-select-trigger:focus-visible {
-  border-color: var(--accent);
-  outline: 2px solid color-mix(in srgb, var(--accent) 18%, transparent);
-}
-
-.inventory-filter-divider {
-  width: 1px;
-  height: 24px;
-  background: var(--line);
-}
-
-.inventory-filter-clear {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  border: 0;
-  border-radius: 8px;
-  padding: 0 9px;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  white-space: nowrap;
-}
-
-.inventory-filter-clear:hover,
-.inventory-filter-clear:focus-visible {
-  color: var(--danger);
-  outline: none;
-}
-
-.inventory-filter-result {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  min-height: 32px;
-  margin-left: auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0 12px;
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  color: var(--accent-strong);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  white-space: nowrap;
 }
 
 .inventory-toolbar {
@@ -1510,7 +1361,7 @@ td {
 
 .auth-form small {
   font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-regular);
   line-height: var(--line-height-normal);
 }
 

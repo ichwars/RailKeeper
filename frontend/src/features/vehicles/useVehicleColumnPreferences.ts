@@ -4,6 +4,7 @@ import { translate, useI18n } from "../../shared/i18n";
 import { setTableColumnWidth } from "../../shared/tableColumnLayout";
 import { useProfileTableLayout } from "../../shared/useProfileTableLayout";
 import {
+  compactInventoryTableColumns,
   defaultVehicleTableColumns,
   defaultVehicleTableLayout,
   moveVehicleTableColumn,
@@ -49,6 +50,10 @@ export function useVehicleColumnPreferences(onMessage: (message: string) => void
     preferences.commit(() => ({ columns: [...defaultVehicleTableColumns], widths: {} }));
   }, [preferences]);
 
+  const applyCompactColumns = useCallback(() => {
+    preferences.commit((current) => ({ ...current, columns: [...compactInventoryTableColumns] }));
+  }, [preferences]);
+
   const previewColumnWidth = useCallback((column: VehicleTableColumn, width: number) => {
     preferences.preview((current) => setTableColumnWidth(
       current,
@@ -68,6 +73,7 @@ export function useVehicleColumnPreferences(onMessage: (message: string) => void
   }, [preferences]);
 
   return {
+    applyCompactColumns,
     columns: preferences.layout.columns,
     widths: preferences.layout.widths,
     loading: preferences.loading,

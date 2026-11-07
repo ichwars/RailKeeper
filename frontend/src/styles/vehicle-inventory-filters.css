@@ -1,0 +1,213 @@
+.inventory-filter-row {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: var(--space-sm);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.inventory-filter-primary,
+.inventory-filter-summary,
+.inventory-active-filters,
+.inventory-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.inventory-filter-primary {
+  align-items: end;
+}
+
+.inventory-filter-main-fields {
+  display: flex;
+  flex: 1 1 460px;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-sm);
+  min-width: 0;
+  max-width: 680px;
+}
+
+.inventory-filter-group {
+  flex: 0 1 auto;
+  gap: var(--space-xs);
+}
+
+.inventory-filter-button-field {
+  display: grid;
+  flex: 0 1 auto;
+  gap: var(--space-xs);
+  min-width: 0;
+  max-width: 100%;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.inventory-filter-pill,
+.inventory-filter-clear,
+.inventory-active-filter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: var(--control-height-compact);
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-sm);
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.inventory-filter-pill svg,
+.inventory-active-filter svg {
+  flex: 0 0 auto;
+}
+
+.inventory-filter-pill.active,
+.inventory-active-filter {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  color: var(--accent-strong);
+}
+
+.inventory-filter-pill:hover,
+.inventory-filter-clear:hover,
+.inventory-active-filter:hover {
+  color: var(--accent-strong);
+}
+
+.inventory-filters button:focus-visible,
+.inventory-filters .app-select-trigger:focus-visible,
+.inventory-table-scroll-region:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.inventory-filter-field {
+  display: grid;
+  flex: 1 1 160px;
+  gap: var(--space-xs);
+  min-width: 0;
+  max-width: 240px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.app-select.inventory-filter-select {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.inventory-filter-select .app-select-trigger {
+  min-height: var(--control-height-compact);
+  height: auto;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  font-size: var(--font-size-sm);
+}
+
+.inventory-more-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  align-items: end;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--line);
+}
+
+.inventory-more-filters .inventory-filter-field {
+  max-width: none;
+}
+
+.inventory-active-filters {
+  flex: 1 1 auto;
+  gap: var(--space-xs);
+}
+
+.inventory-active-filter span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-filter-clear {
+  border-color: transparent;
+  background: transparent;
+}
+
+.inventory-filter-result {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.inventory-table-scroll-help {
+  margin: 0 0 var(--space-sm);
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.inventory-table-scroll-region {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: auto;
+}
+
+@media (max-width: 900px) {
+  .inventory-filter-pill,
+  .inventory-filter-clear,
+  .inventory-active-filter,
+  .inventory-filter-select .app-select-trigger {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .inventory-filter-field {
+    max-width: none;
+  }
+
+  .inventory-more-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inventory-toolbar-actions .vehicle-column-picker-trigger {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  height: auto;
+  min-height: var(--control-height-compact);
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+@media (max-width: 900px) {
+  .new-vehicle-button,
+  .inventory-toolbar-actions > .icon-button,
+  .inventory-view-tools > .icon-button,
+  .inventory-toolbar-actions .vehicle-column-picker-trigger,
+  .vehicle-column-picker-popover .vehicle-column-reset {
+    min-height: 44px;
+    min-width: 44px;
+    height: auto;
+  }
+}

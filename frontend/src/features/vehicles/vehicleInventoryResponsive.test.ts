@@ -23,9 +23,8 @@ describe("vehicle inventory column layout", () => {
     );
   });
 
-  it("bounds the long picker and uses a fixed mobile sheet", () => {
+  it("bounds the long column picker", () => {
     expect(css).toMatch(/\.vehicle-column-picker-popover\s*\{[^}]*width:\s*min\(680px,\s*calc\(100vw\s*-\s*32px\)\)/s);
-    expect(css).toMatch(/@media\s*\(max-width:\s*720px\)[\s\S]*\.vehicle-column-picker-popover\s*\{[^}]*position:\s*fixed[^}]*inset:\s*auto\s+12px\s+12px/s);
   });
 
   it("uses an expandable compact mobile card with a narrow fallback", () => {
@@ -71,12 +70,6 @@ describe("vehicle inventory column layout", () => {
   it("places four compact status cards before the wide next appointment card", () => {
     expect(inventoryPanelSource.indexOf('t("vehicles.imageCare")')).toBeLessThan(
       inventoryPanelSource.indexOf('t("vehicles.nextAppointment")'),
-    );
-  });
-
-  it("contains the mobile filter scroller without clipping its controls", () => {
-    expect(inventoryResponsiveCss).toMatch(
-      /@media\s*\(max-width:\s*640px\)[\s\S]*?\.inventory-filter-row\s*\{[^}]*min-width:\s*0[^}]*max-width:\s*100%[^}]*overflow-x:\s*auto[^}]*overscroll-behavior-x:\s*contain[^}]*scrollbar-gutter:\s*stable[^}]*scroll-padding-inline:\s*2px/s,
     );
   });
 

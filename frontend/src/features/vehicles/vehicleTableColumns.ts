@@ -168,6 +168,10 @@ export const defaultVehicleTableColumns: VehicleTableColumn[] = [
   "exhibition"
 ];
 
+export const compactInventoryTableColumns: readonly VehicleTableColumn[] = [
+  "image", "inventoryNumber", "manufacturer", "articleNumber", "name", "gauge"
+];
+
 const compactVehicleColumns = new Set<VehicleTableColumn>([
   "type", "image", "gauge", "epoch", "digital", "dtDecoder", "abcBrakes", "axles",
   "axleCount", "tractionTireCount", "driveEnabled", "headlightsEnabled", "lightingEnabled",

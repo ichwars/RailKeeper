@@ -797,6 +797,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
         onToggleColumn={columnPreferences.toggleColumn}
         onMoveColumn={columnPreferences.moveColumn}
         onResetColumns={columnPreferences.resetColumns}
+        onApplyCompactColumns={columnPreferences.applyCompactColumns}
         onPreviewColumnWidth={columnPreferences.loading ? undefined : columnPreferences.previewColumnWidth}
         onCommitColumnWidth={columnPreferences.loading ? undefined : columnPreferences.commitColumnWidth}
         onToggleSort={toggleSort}

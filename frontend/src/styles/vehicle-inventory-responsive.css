@@ -116,37 +116,6 @@
     justify-content: flex-start;
   }
 
-  .inventory-filter-row {
-    flex-wrap: nowrap;
-    min-width: 0;
-    max-width: 100%;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-gutter: stable;
-    scroll-padding-inline: 2px;
-    padding: 2px 2px 6px;
-    scrollbar-width: thin;
-  }
-
-  .inventory-filter-group,
-  .inventory-filter-toggle,
-  .inventory-filter-select,
-  .inventory-filter-clear,
-  .inventory-filter-result {
-    flex: 0 0 auto;
-  }
-
-  .inventory-filter-select,
-  .app-select.inventory-filter-select {
-    width: 158px;
-    min-width: 158px;
-    max-width: none;
-  }
-
-  .inventory-filter-result {
-    margin-left: 0;
-  }
-
   .inventory-mobile-list {
     gap: 7px;
     padding: 8px;
