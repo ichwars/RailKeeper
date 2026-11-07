@@ -141,6 +141,14 @@ func writeVehicleCVTx(ctx context.Context, tx *sql.Tx, vehicleID string, previou
 			}
 		}
 	}
+	if previous != nil && previous.DecoderProfile != item.DecoderProfile {
+		if err := touchDecoderCVWorkspaceTx(ctx, tx, vehicleID, previous.DecoderProfile, now); err != nil {
+			return item, err
+		}
+	}
+	if err := touchDecoderCVWorkspaceTx(ctx, tx, vehicleID, item.DecoderProfile, now); err != nil {
+		return item, err
+	}
 	return item, nil
 }
 
@@ -193,6 +201,9 @@ func (s *VehicleService) ApplyCVChanges(ctx context.Context, vehicleID string, i
 		if change.Delete {
 			if err := vehicledata.DeleteCV(ctx, tx, vehicleID, change.ID); err != nil {
 				return 0, fmt.Errorf("delete draft CV: %w", err)
+			}
+			if err := touchDecoderCVWorkspaceTx(ctx, tx, vehicleID, previous.DecoderProfile, now); err != nil {
+				return 0, err
 			}
 		} else {
 			value := *change.Value

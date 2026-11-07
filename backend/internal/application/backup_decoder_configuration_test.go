@@ -78,6 +78,10 @@ UPDATE vehicle_cv_values SET value=-1 WHERE cv_number=257 AND index_cv31 IS NULL
 	hardware, _ := json.Marshal(application.DecoderSnapshotHardware{DecoderID: "decoder-b", DecoderLabel: "Sound",
 		Manufacturer: "Test", Model: "Same model", InstallationID: "installation-b", InstallationState: "installed"})
 	now := "2026-11-07T01:00:00Z"
+	// The fixture below installs its own exact legacy and assigned workspace records.
+	if _, err := db.Exec(`DELETE FROM decoder_cv_workspaces`); err != nil {
+		t.Fatal(err)
+	}
 	for _, query := range []struct {
 		sql  string
 		args []any
@@ -94,6 +98,9 @@ UPDATE vehicle_cv_values SET value=-1 WHERE cv_number=257 AND index_cv31 IS NULL
 		}
 	}
 	if _, err := vehicles.DeleteCVFile(t.Context(), vehicle.ID, file.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DELETE FROM decoder_cv_workspaces WHERE profile_text='Legacy'`); err != nil {
 		t.Fatal(err)
 	}
 	if err := blobs.DeleteIfUnreferenced(t.Context(), blob); err != nil {

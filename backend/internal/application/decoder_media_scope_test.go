@@ -23,6 +23,10 @@ func TestDecoderConfigurationMediaMigrationDoesNotCopyPrivateRootFiles(t *testin
 			}); err != nil {
 				t.Fatal(err)
 			}
+			// Simulate an old writer that did not maintain workspace metadata.
+			if _, err := db.Exec(`DELETE FROM decoder_cv_workspaces`); err != nil {
+				t.Fatal(err)
+			}
 			before := decoderSnapshots(t, backup)
 			if err := application.NewFileBlobService(db, root).MigrateFilesystemBlobs(t.Context()); !errors.Is(err, application.ErrBackupPath) {
 				t.Fatalf("unsafe original path accepted: %v", err)
@@ -84,6 +88,10 @@ func TestDecoderConfigurationMediaMigrationRejectsSymlinkOutsideUploads(t *testi
 	if _, err := application.NewVehicleService(db).CreateCVFile(t.Context(), vehicle, application.VehicleCVFileInput{
 		FileName: "source.csv", OriginalName: "source.csv", StoragePath: "uploads/external/private.csv",
 	}); err != nil {
+		t.Fatal(err)
+	}
+	// This case exercises adoption of a legacy file, before workspace-aware writers.
+	if _, err := db.Exec(`DELETE FROM decoder_cv_workspaces`); err != nil {
 		t.Fatal(err)
 	}
 	before := decoderSnapshots(t, backup)
