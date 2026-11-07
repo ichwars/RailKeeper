@@ -11,20 +11,12 @@ import (
 	"time"
 
 	ecospkg "railkeeper/backend/internal/ecos"
+	"railkeeper/backend/internal/ecosmodel"
 )
 
-type ECoSFunctionValue struct {
-	Index       int  `json:"index"`
-	Description int  `json:"description"`
-	Momentary   bool `json:"momentary"`
-}
+type ECoSFunctionValue = ecosmodel.ECoSFunctionValue
 
-type ECoSFunctionSnapshot struct {
-	ObjectID  int                 `json:"objectId"`
-	Host      string              `json:"host"`
-	ReadAt    string              `json:"readAt"`
-	Functions []ECoSFunctionValue `json:"functions"`
-}
+type ECoSFunctionSnapshot = ecosmodel.ECoSFunctionSnapshot
 
 // ESU PC interface, edition 3, section 7.11: funcexists distinguishes hidden
 // (-1) and unavailable (-2) keys; the optional literal "moment" is a key mode.

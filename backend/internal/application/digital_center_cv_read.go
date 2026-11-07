@@ -9,15 +9,10 @@ import (
 	"time"
 
 	ecospkg "railkeeper/backend/internal/ecos"
+	"railkeeper/backend/internal/ecosmodel"
 )
 
-type ECoSCVReadState struct {
-	Source      string `json:"source,omitempty"`
-	NextCV      int    `json:"nextCV"`
-	Unavailable int    `json:"unavailable"`
-	ReadAt      string `json:"readAt"`
-	SourceHost  string `json:"sourceHost"`
-}
+type ECoSCVReadState = ecosmodel.ECoSCVReadState
 
 type ECoSCVReadInput struct {
 	Source  string `json:"source,omitempty"`
@@ -237,9 +232,4 @@ func validateStoredECoSCVs(values []ECoSCVValue) ([]ECoSCVValue, error) {
 	return copyValues, nil
 }
 
-func eCoSCVPage(value ECoSCVValue) int {
-	if value.IndexCV31 == nil || value.IndexCV32 == nil {
-		return -1
-	}
-	return *value.IndexCV31*256 + *value.IndexCV32
-}
+func eCoSCVPage(value ECoSCVValue) int { return ecosmodel.ECoSCVPage(value) }

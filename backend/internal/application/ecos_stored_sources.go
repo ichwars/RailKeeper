@@ -9,27 +9,12 @@ import (
 	"strings"
 
 	ecospkg "railkeeper/backend/internal/ecos"
+	"railkeeper/backend/internal/ecosmodel"
 )
 
-type ECoSCVSourceConflict struct {
-	Number        int    `json:"number"`
-	IndexCV31     *int   `json:"indexCV31,omitempty"`
-	IndexCV32     *int   `json:"indexCV32,omitempty"`
-	DatabaseValue int    `json:"databaseValue"`
-	BackupValue   int    `json:"backupValue"`
-	BackupSource  string `json:"backupSource,omitempty"`
-	RawCacheValue *int   `json:"rawCacheValue,omitempty"`
-}
+type ECoSCVSourceConflict = ecosmodel.ECoSCVSourceConflict
 
-type ECoSCVSourceInfo struct {
-	Sources           []string               `json:"sources"`
-	BackupStatus      string                 `json:"backupStatus"`
-	BackupAdded       int                    `json:"backupAdded"`
-	Conflicts         []ECoSCVSourceConflict `json:"conflicts"`
-	Warning           string                 `json:"warning,omitempty"`
-	StoredCacheStatus string                 `json:"storedCacheStatus,omitempty"`
-	UnverifiedValues  []ECoSCVValue          `json:"unverifiedValues,omitempty"`
-}
+type ECoSCVSourceInfo = ecosmodel.ECoSCVSourceInfo
 
 type storedECoSWeb interface {
 	Address() string

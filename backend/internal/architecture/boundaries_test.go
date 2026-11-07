@@ -17,6 +17,8 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 		"credentials":                  {},
 		"valuation":                    {},
 		"transfer":                     {"domain"},
+		"decoder":                      {},
+		"ecosmodel":                    {"decoder"},
 		"infrastructure/valuationdata": {"valuation", "credentials"},
 		"infrastructure/authdata":      {"authentication", "credentials", "infrastructure/ratelimit"},
 		"infrastructure/ratelimit":     {"credentials"},
@@ -48,7 +50,7 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 							t.Errorf("%s imports forbidden module %s", path, name)
 						}
 					}
-					if module == "authentication" || module == "credentials" || module == "valuation" || module == "transfer" {
+					if module == "authentication" || module == "credentials" || module == "valuation" || module == "transfer" || module == "decoder" || module == "ecosmodel" {
 						if strings.HasPrefix(name, "database/") || name == "os" || strings.HasPrefix(name, "os/") || name == "io/fs" || name == "path/filepath" ||
 							strings.HasPrefix(name, "net/") || strings.HasPrefix(name, "modernc.org/") {
 							t.Errorf("%s imports a transport or persistence dependency: %s", path, name)
