@@ -119,6 +119,16 @@ async function assertQueuedProfileNavigation(page, { base, key, de }) {
     assert.equal((await synchronized).status(), 200);
     await page.locator(".settings-dashboard-grid").waitFor();
     await page.waitForFunction(({ key, desired }) => localStorage.getItem(key) === desired, { key, desired });
+    const viewport = page.viewportSize();
+    await page.setViewportSize({ width: 1280, height: 500 });
+    const main = page.locator("main.main");
+    await main.evaluate(element => { element.scrollTop = 10000; });
+    assert.ok(await main.evaluate(element => element.scrollTop > 0), "scroll restoration reference must actually scroll");
+    await page.locator("#main-navigation").getByRole("link", { name: de ? "Einstellungen" : "Settings", exact: true }).click();
+    await page.locator(".settings-dashboard-grid").waitFor();
+    assert.equal(await main.evaluate(element => element.scrollTop), 0, "explicit navigation retained the old scroll offset");
+    assert.equal(await main.evaluate(element => document.activeElement === element), true);
+    await page.setViewportSize(viewport);
     await page.goto(base + "/settings?tab=digital", { waitUntil: "domcontentloaded" });
     const activeTab = page.locator(".settings-primary-tabs button.active");
     await activeTab.waitFor();

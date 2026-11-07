@@ -72,6 +72,16 @@ export function Shell({
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
   const [orderedNavItems, setOrderedNavItems] = useState(() => readNavItems(roles, username));
   const sidebarRevision = useRef(0);
+  const mainRef = useRef<HTMLElement>(null);
+  const navigate = onNavigate ? (view: AppView) => {
+    onNavigate(view);
+    const main = mainRef.current;
+    if (main) {
+      main.scrollTop = 0;
+      main.scrollLeft = 0;
+      main.focus({ preventScroll: true });
+    }
+  } : undefined;
   const [appVersion, setAppVersion] = useState("");
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [bugReportCapability, setBugReportCapability] = useState<BugReportCapability | null>(null);
@@ -255,7 +265,7 @@ export function Shell({
                 aria-current={activeView === item.view ? "page" : undefined}
                 onClick={event => {
                   setMobileMenuOpen(false);
-                  followAppLink(event, onNavigate ? () => onNavigate(item.view) : undefined);
+                  followAppLink(event, navigate ? () => navigate(item.view) : undefined);
                 }}
               >
                 <Icon size={16} aria-hidden="true" />
@@ -265,7 +275,7 @@ export function Shell({
           })}
 
           <SidebarAdditionalNavigation items={orderedNavItems.additional} activeView={activeView}
-            onNavigate={() => setMobileMenuOpen(false)} onSelect={onNavigate} />
+            onNavigate={() => setMobileMenuOpen(false)} onSelect={navigate} />
 
           <button
             type="button"
@@ -282,7 +292,7 @@ export function Shell({
               <a href="/settings" title={t("nav.system")} aria-label={t("nav.system")}
                 onClick={event => {
                   setMobileMenuOpen(false);
-                  followAppLink(event, onNavigate ? () => onNavigate("settings") : undefined);
+                  followAppLink(event, navigate ? () => navigate("settings") : undefined);
                 }}>
                 <Settings size={17} aria-hidden="true" />
               </a>
@@ -311,7 +321,7 @@ export function Shell({
         </nav>
       </aside>
 
-      <main className="main">{children}</main>
+      <main className="main" ref={mainRef} tabIndex={-1}>{children}</main>
 
       {bugReportCapability?.enabled ? (
         <button
