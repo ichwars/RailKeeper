@@ -199,3 +199,16 @@ calls remain for the named R5 owners. IDs, counters, membership-based price sele
 stored price strings and currency exclusions retain their existing semantics. Immutable
 valuation-history events remain distinct. Each extracted module retains the former 78%
 application coverage floor, with the complete backend still instrumented.
+
+## Master-data policy and reads (R5a, next slice)
+
+Shared master-data models, protected-type/custom-field/import preparation and decoder
+metadata validation live in the independent `inventory/masterdata` module. Five actual
+SQL reads move to `masterdatastore` behind a typed reader port. Transactional writes
+and service orchestration remain explicit for the next slice: 52 files/238 application
+SQL calls still remain, with two calls in `master_data.go`.
+
+A deterministic ownership test exposed shared nested metadata in cached responses.
+Cache copies now own mutable maps/arrays independently, including both active and
+complete views. Recorded number types, profile strings and missing/empty values are
+preserved. Structural extraction and this behavior correction are separate commits.

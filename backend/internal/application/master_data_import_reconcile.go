@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/infrastructure/masterdatastore"
 )
 
 type masterDataIdentity struct {
@@ -99,7 +101,7 @@ FROM master_data_entries`)
 	defer func() { _ = rows.Close() }()
 	entries := map[masterDataIdentity]MasterDataEntry{}
 	for rows.Next() {
-		entry, err := scanMasterDataEntry(rows)
+		entry, err := masterdatastore.ScanEntry(rows)
 		if err != nil {
 			return nil, err
 		}
