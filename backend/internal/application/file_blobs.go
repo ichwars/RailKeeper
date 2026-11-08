@@ -1,264 +1,75 @@
 package application
 
 import (
-	"bytes"
-	"compress/zlib"
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"errors"
-	"fmt"
-	"io"
-	"os"
 	"strings"
-	"time"
+
+	"railkeeper/backend/internal/infrastructure/blobdata"
+	"railkeeper/backend/internal/media"
 )
 
+type FileBlob = media.Blob
 type FileBlobService struct {
-	db      *sql.DB
+	service *media.Service
 	dataDir string
 }
 
-type FileBlob struct {
-	ID             string
-	OriginalSize   int64
-	CompressedSize int64
-	Compression    string
-	SHA256         string
-	Data           []byte
-	CreatedAt      string
-}
-
 func NewFileBlobService(db *sql.DB, dataDir string) *FileBlobService {
-	return &FileBlobService{db: db, dataDir: dataDir}
+	var repository media.Repository
+	if db != nil {
+		repository = blobdata.New(db)
+	}
+	var files media.LegacyFiles
+	if strings.TrimSpace(dataDir) != "" {
+		files = blobdata.NewLegacyFiles(dataDir)
+	}
+	return &FileBlobService{service: media.New(repository, files), dataDir: dataDir}
 }
-
 func (s *FileBlobService) Store(ctx context.Context, data []byte) (string, error) {
-	if s == nil || s.db == nil {
+	if s == nil {
 		return "", errors.New("file blob service is not configured")
 	}
-	return storeFileBlob(ctx, s.db, data)
+	return s.service.Store(ctx, data)
 }
-
-// Snapshot sources must be stored in their caller's transaction as well.
+func (s *FileBlobService) Load(ctx context.Context, id string) ([]byte, error) {
+	if s == nil {
+		return nil, errors.New("file blob service is not configured")
+	}
+	data, err := s.service.Load(ctx, id)
+	if errors.Is(err, media.ErrBlobNotFound) {
+		return nil, sql.ErrNoRows
+	}
+	return data, err
+}
+func (s *FileBlobService) DeleteIfUnreferenced(ctx context.Context, id string) error {
+	if s == nil {
+		return nil
+	}
+	return s.service.DeleteIfUnreferenced(ctx, id)
+}
+func (s *FileBlobService) MigrateFilesystemBlobs(ctx context.Context) error {
+	if s == nil {
+		return nil
+	}
+	return s.service.MigrateFilesystemBlobs(ctx)
+}
+func (s *FileBlobService) readConfinedDataFile(path string) ([]byte, error) {
+	return blobdata.ReadConfinedDataFile(s.dataDir, path)
+}
 func storeFileBlob(ctx context.Context, writer interface {
 	ExecContext(context.Context, string, ...any) (sql.Result, error)
 }, data []byte) (string, error) {
-	if len(data) == 0 {
-		return "", errors.New("file blob is empty")
-	}
-	compressed, err := compressBlobData(data)
+	blob, err := media.NewBlob(data)
 	if err != nil {
 		return "", err
 	}
-	sum := sha256.Sum256(data)
-	blob := FileBlob{
-		ID:             randomID(),
-		OriginalSize:   int64(len(data)),
-		CompressedSize: int64(len(compressed)),
-		Compression:    "zlib",
-		SHA256:         hex.EncodeToString(sum[:]),
-		Data:           compressed,
-		CreatedAt:      time.Now().UTC().Format(time.RFC3339),
-	}
-	if _, err := writer.ExecContext(ctx, `
-INSERT INTO file_blobs(id, original_size, compressed_size, compression, sha256, data, created_at)
-VALUES(?, ?, ?, ?, ?, ?, ?)
-`, blob.ID, blob.OriginalSize, blob.CompressedSize, blob.Compression, blob.SHA256, blob.Data, blob.CreatedAt); err != nil {
-		return "", fmt.Errorf("store file blob: %w", err)
+	if err := blobdata.Insert(ctx, writer, blob); err != nil {
+		return "", err
 	}
 	return blob.ID, nil
 }
-
-func (s *FileBlobService) Load(ctx context.Context, id string) ([]byte, error) {
-	if s == nil || s.db == nil {
-		return nil, errors.New("file blob service is not configured")
-	}
-	id = strings.TrimSpace(id)
-	if id == "" {
-		return nil, sql.ErrNoRows
-	}
-	var compression string
-	var compressed []byte
-	if err := s.db.QueryRowContext(ctx, `
-SELECT compression, data
-FROM file_blobs
-WHERE id=?
-`, id).Scan(&compression, &compressed); err != nil {
-		return nil, err
-	}
-	data, err := decompressBlobData(compressed, compression)
-	if err != nil {
-		return nil, fmt.Errorf("load file blob: %w", err)
-	}
-	return data, nil
-}
-
-func (s *FileBlobService) DeleteIfUnreferenced(ctx context.Context, id string) error {
-	if s == nil || s.db == nil {
-		return nil
-	}
-	id = strings.TrimSpace(id)
-	if id == "" {
-		return nil
-	}
-	if _, err := s.db.ExecContext(ctx, `
-DELETE FROM file_blobs WHERE id=?
-AND NOT EXISTS (SELECT 1 FROM vehicle_images WHERE blob_id=? OR thumbnail_blob_id=?)
-AND NOT EXISTS (SELECT 1 FROM vehicle_attachments WHERE blob_id=?)
-AND NOT EXISTS (SELECT 1 FROM vehicle_cv_files WHERE blob_id=?)
-AND NOT EXISTS (SELECT 1 FROM accessory_documents WHERE file_blob_id=?)
-AND NOT EXISTS (SELECT 1 FROM vehicle_sets WHERE set_image_blob_id=? OR set_image_thumbnail_blob_id=?)
-AND NOT EXISTS (SELECT 1 FROM decoder_cv_snapshot_sources WHERE blob_id=?)
-`, id, id, id, id, id, id, id, id, id); err != nil {
-		return fmt.Errorf("delete unreferenced file blob: %w", err)
-	}
-	return nil
-}
-
-func (s *FileBlobService) MigrateFilesystemBlobs(ctx context.Context) error {
-	if s == nil || s.db == nil || strings.TrimSpace(s.dataDir) == "" {
-		return nil
-	}
-	_, err := s.migrateTablePaths(ctx, "vehicle_images", "blob_id", "storage_path")
-	if err != nil {
-		return err
-	}
-	_, err = s.migrateTablePaths(ctx, "vehicle_images", "thumbnail_blob_id", "thumbnail_path")
-	if err != nil {
-		return err
-	}
-	_, err = s.migrateTablePaths(ctx, "vehicle_attachments", "blob_id", "storage_path")
-	if err != nil {
-		return err
-	}
-	_, err = s.migrateTablePaths(ctx, "vehicle_cv_files", "blob_id", "storage_path")
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *FileBlobService) migrateTablePaths(ctx context.Context, table, blobColumn, pathColumn string) ([]string, error) {
-	rows, err := s.db.QueryContext(ctx, fmt.Sprintf(`
-SELECT id, COALESCE(%s, '')
-FROM %s
-WHERE COALESCE(%s, '')='' AND COALESCE(%s, '')<>''
-`, quoteIdentifier(pathColumn), quoteIdentifier(table), quoteIdentifier(blobColumn), quoteIdentifier(pathColumn)))
-	if err != nil {
-		return nil, fmt.Errorf("list filesystem blobs for %s: %w", table, err)
-	}
-	defer func() { _ = rows.Close() }()
-
-	type pendingBlob struct {
-		rowID string
-		path  string
-	}
-	pending := []pendingBlob{}
-	for rows.Next() {
-		var item pendingBlob
-		if err := rows.Scan(&item.rowID, &item.path); err != nil {
-			return nil, fmt.Errorf("scan filesystem blob for %s: %w", table, err)
-		}
-		pending = append(pending, item)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate filesystem blobs for %s: %w", table, err)
-	}
-
-	migratedPaths := []string{}
-	blobByPath := map[string]string{}
-	for _, item := range pending {
-		blobID := blobByPath[item.path]
-		if blobID == "" {
-			data, err := s.readConfinedDataFile(item.path)
-			if errors.Is(err, os.ErrNotExist) {
-				continue
-			}
-			if err != nil {
-				return nil, err
-			}
-			blobID, err = s.Store(ctx, data)
-			if err != nil {
-				return nil, err
-			}
-			blobByPath[item.path] = blobID
-			migratedPaths = append(migratedPaths, item.path)
-		}
-		if _, err := s.db.ExecContext(ctx, fmt.Sprintf(
-			`UPDATE %s SET %s=? WHERE id=?`,
-			quoteIdentifier(table),
-			quoteIdentifier(blobColumn),
-		), blobID, item.rowID); err != nil {
-			return nil, fmt.Errorf("update blob reference for %s: %w", table, err)
-		}
-	}
-	return migratedPaths, nil
-}
-
-func (s *FileBlobService) readConfinedDataFile(relativePath string) ([]byte, error) {
-	relativePath, err := portableBackupMediaPath(relativePath)
-	if err != nil {
-		return nil, err
-	}
-	root, err := os.OpenRoot(s.dataDir)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = root.Close() }()
-	info, err := root.Lstat("uploads")
-	if err != nil {
-		return nil, err
-	}
-	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-		return nil, ErrBackupPath
-	}
-	uploads, err := root.OpenRoot("uploads")
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = uploads.Close() }()
-	file, err := uploads.Open(strings.TrimPrefix(relativePath, "uploads/"))
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = file.Close() }()
-	data, err := io.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-	if len(data) == 0 {
-		return nil, errors.New("file blob source is empty")
-	}
-	return data, nil
-}
-
-func compressBlobData(data []byte) ([]byte, error) {
-	var buffer bytes.Buffer
-	writer := zlib.NewWriter(&buffer)
-	if _, err := writer.Write(data); err != nil {
-		_ = writer.Close()
-		return nil, err
-	}
-	if err := writer.Close(); err != nil {
-		return nil, err
-	}
-	return buffer.Bytes(), nil
-}
-
 func decompressBlobData(data []byte, compression string) ([]byte, error) {
-	switch strings.ToLower(strings.TrimSpace(compression)) {
-	case "", "none":
-		return data, nil
-	case "zlib":
-		reader, err := zlib.NewReader(bytes.NewReader(data))
-		if err != nil {
-			return nil, err
-		}
-		defer func() { _ = reader.Close() }()
-		return io.ReadAll(reader)
-	default:
-		return nil, fmt.Errorf("unsupported blob compression %q", compression)
-	}
+	return media.Decode(data, compression)
 }

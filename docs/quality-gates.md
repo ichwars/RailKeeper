@@ -82,7 +82,7 @@ original groups remains intentional; every root runs once **within each original
 Logs and manifests remain CI diagnostic artifacts for 14 days. An isolated real-Go fixture
 also verifies nested cases, the original skip behavior and propagation of failed Go commands.
 Other race groups, the full non-race/minimum-compiler suites and bounded fuzz retain their scopes.
-The inventory/media group additionally covers set-image and set-transaction cases.
+The inventory/media group additionally covers set images, set transactions and blob/source preservation.
 
 ```sh
 python3 -m unittest discover -s tools -p test_go_race_shard.py

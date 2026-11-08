@@ -117,12 +117,6 @@
     "stage": "R5c"
   },
   {
-    "file": "file_blobs.go",
-    "calls": 5,
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
     "file": "function_symbol_seed.go",
     "calls": 2,
     "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",

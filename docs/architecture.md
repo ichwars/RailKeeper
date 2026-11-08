@@ -104,6 +104,12 @@ the original URL-parameter candidate was not a persistence call. Real SQL on oth
 receivers remains counted. Concrete vehicle lifecycle, set, numbering, catalog and workshop SQL is owned by focused
 storage adapters. Separately inventoried decoder and seed work remains explicit.
 
+`media` owns blob encoding, content hashes, read semantics and legacy-file migration behind
+repository/file ports. `infrastructure/blobdata` owns concrete blob/reference SQL and confined
+filesystem reads. Original files and stored path text remain intact; Windows separator normalization
+applies only to reading. Immutable decoder sources can insert blobs into their caller-owned
+transaction. Background cleanup retains every existing media, article and decoder-snapshot reference.
+
 CV writes similarly use caller-owned transactions through `vehicledata`. The additive
 [atomic CV changes API](architecture/cv-drafts.md) supports bounded manual batches, exact profile/index
 identity checks and computed row revisions. Existing single-value and import routes share the writer;

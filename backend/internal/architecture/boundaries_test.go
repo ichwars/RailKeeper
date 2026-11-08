@@ -15,6 +15,8 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 	modules := map[string][]string{
 		"authentication":                 {"credentials", "authentication"},
 		"credentials":                    {},
+		"media":                          {"credentials"},
+		"infrastructure/blobdata":        {"media", "backup"},
 		"valuation":                      {},
 		"transfer":                       {"domain", "transfer", "transfer/policy", "transfer/workflow", "credentials"},
 		"infrastructure/transferfiles":   {"transfer", "transfer/workflow", "credentials"},
