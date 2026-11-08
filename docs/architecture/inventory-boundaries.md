@@ -122,7 +122,7 @@ including private file references and the separate treatment of set main images.
 `infrastructure/vehicledata` owns the concrete single-vehicle and list queries, including
 nullable field mapping and set summaries. Query text, filter scope and ordering remain
 unchanged. Aggregate enrichment retains its existing application owner and read order.
-Vehicle/set mutation, media transactions and exhibition-expiry effects still have their
+Vehicle/set mutation, set-image transactions and exhibition-expiry effects still have their
 explicit remaining entries; this shared foundation does not claim those migrations complete.
 
 ## Vehicle images
@@ -144,5 +144,24 @@ times, private paths, blob references and file metadata. Stored zero order value
 their previous position rule; changed titles and source descriptions keep their old rules.
 Private-file metadata in the input cannot replace the original retained metadata.
 
-Attachment/set-image mutations and private-path reference counting remain explicitly
-inventoried under their existing owners until their separate follow-up slices complete.
+Set-image mutations remain explicitly inventoried under their existing owner until their
+separate follow-up slice completes.
+
+## Vehicle documents and private file references
+
+`inventory/vehicle.AttachmentService` owns document creation, scoped metadata edits and
+deletion through typed repository/mutation ports. Existing parent lookup, maintenance
+ownership, optional revision guards and acknowledgement encodings keep their previous order.
+Metadata update/deletion retain their transaction, including readback before commit for an
+update. The original single-statement document creation keeps its existing boundary.
+
+`vehicledata` owns the unchanged scoped reads/inserts/updates/deletes and the private-path
+reference query. Filesystem path normalization and legacy NULL handling remain there;
+blank paths still return zero without a query. The count includes original images,
+thumbnails, documents and CV files, preserving shared legacy files until their final
+reference is removed. No file activation or deletion is added to these SQL transactions.
+
+Real SQLite fault tests remove a just-updated row from its transaction's readback. The
+failed use case rolls back both metadata changes and that removal, retaining every original
+field and private file reference. A separate scoped deletion test preserves another
+vehicle's document. Existing HTTP revision and shared-file deletion tests remain in CI.
