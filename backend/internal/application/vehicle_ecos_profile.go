@@ -10,16 +10,11 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	vehiclemodel "railkeeper/backend/internal/inventory/vehicle"
 )
 
-// Source context is derived from the saved comparison workspace. It never
-// replaces decoder_type or inserts a manufacturer/firmware CV reading.
-type ECoSDecoderProfileEvidence struct {
-	Name     string `json:"name"`
-	ObjectID string `json:"objectId"`
-	Host     string `json:"host"`
-	ReadAt   string `json:"readAt"`
-}
+type ECoSDecoderProfileEvidence = vehiclemodel.ECoSDecoderProfileEvidence
 
 func (s *VehicleService) loadECoSDecoderProfile(ctx context.Context, vehicleID string) (*ECoSDecoderProfileEvidence, error) {
 	var data, status, protocol, completed, mappedAddress, mappedProtocol string

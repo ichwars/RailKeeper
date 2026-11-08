@@ -109,3 +109,18 @@ Legacy backfill and trigger suspension/restoration also execute in this adapter.
 passes its existing transaction to those helpers; they never begin or commit a separate
 one. Backfill reports cross the port as typed raw rows before pure comparison/aggregation;
 malformed stored fields fail the report instead of acknowledging a partial result.
+
+## Vehicle records, rules and core reads
+
+`inventory/vehicle` owns shared vehicle/set/media records, normalization, operational and
+function-input rules, input projections and the existing core/media comparison encodings.
+Application records and `vehicledata` write rows remain compatible aliases. Field names,
+JSON tags, embedded field names, stored price strings and error identities do not change.
+Golden tests derived from the previous record definitions protect outstanding draft tokens,
+including private file references and the separate treatment of set main images.
+
+`infrastructure/vehicledata` owns the concrete single-vehicle and list queries, including
+nullable field mapping and set summaries. Query text, filter scope and ordering remain
+unchanged. Aggregate enrichment retains its existing application owner and read order.
+Vehicle/set mutation, media transactions and exhibition-expiry effects still have their
+explicit remaining entries; this shared foundation does not claim those migrations complete.

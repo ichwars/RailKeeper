@@ -4,75 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	vehiclemodel "railkeeper/backend/internal/inventory/vehicle"
 )
 
-type Record struct {
-	ID                        string
-	InventoryNumber           string
-	Manufacturer              string
-	ArticleNumber             string
-	ArticleSourceURL          string
-	Name                      string
-	Gauge                     string
-	Epoch                     string
-	RailwayCompany            string
-	Category                  string
-	Gattung                   string
-	Description               string
-	Series                    string
-	VehicleNumber             string
-	MaximumSpeedKmh           *int
-	HomeBase                  string
-	Digital                   bool
-	DigitalDecoderNumber      string
-	DTDecoder                 bool
-	DTDecoderNumber           string
-	DecoderType               string
-	ExhibitionReady           bool
-	Exhibition                bool
-	ABCBrakes                 bool
-	EAN                       string
-	ProductionPeriod          string
-	ListPrice                 string
-	AcquisitionType           string
-	AcquiredFrom              string
-	PurchasePrice             string
-	PurchaseDate              string
-	StorageLocation           string
-	StorageDetails            string
-	Condition                 string
-	ConditionDetails          string
-	Packaging                 string
-	LengthMM                  string
-	WeightG                   string
-	Color                     string
-	Lettering                 string
-	Load                      string
-	Interior                  string
-	Axles                     string
-	AxleCount                 string
-	TractionTireCount         string
-	Wheelset                  string
-	CouplingSame              bool
-	CouplingFront             string
-	CouplingRear              string
-	PowerPickup               string
-	Adapter                   string
-	DriveEnabled              bool
-	DriveDescription          string
-	HeadlightsEnabled         bool
-	HeadlightsDescription     string
-	LightingEnabled           bool
-	LightingDescription       string
-	SoundGeneratorEnabled     bool
-	SoundGeneratorDescription string
-	SmokeGeneratorEnabled     bool
-	SmokeGeneratorDescription string
-	AdditionalInfo            string
-	QRCodeEnabled             bool
-	CreatedAt                 string
-	UpdatedAt                 string
-}
+type Record = vehiclemodel.Record
 
 // Insert writes through the caller's transaction; aggregate validation and commit stay in the use case.
 func Insert(ctx context.Context, tx *sql.Tx, vehicle Record) error {
