@@ -257,7 +257,7 @@
   },
   {
     "file": "vehicle_media.go",
-    "calls": 17,
+    "calls": 8,
     "transactions": [
       "CreateImageWithRevision",
       "DeleteImage",

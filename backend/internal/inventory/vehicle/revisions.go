@@ -27,16 +27,7 @@ func CoreRevision(vehicle Vehicle) string {
 		Set  *VehicleSetSummary
 	}{WriteRecord(vehicle), set})
 }
-func ImageRevision(image VehicleImage) string {
-	return revision.Hash(ImageRecord{
-		ID: image.ID, VehicleID: image.VehicleID, URL: image.URL, Title: image.Title,
-		SourceURL: image.SourceURL, FileName: image.FileName, MimeType: image.MimeType,
-		StoragePath: image.StoragePath, ThumbnailPath: image.ThumbnailPath,
-		BlobID: image.BlobID, ThumbnailBlobID: image.ThumbnailBlobID,
-		MaintenanceID: image.MaintenanceID, IsPrimary: image.IsPrimary, SortOrder: image.SortOrder,
-		CreatedAt: image.CreatedAt, UpdatedAt: image.UpdatedAt,
-	})
-}
+func ImageRevision(image VehicleImage) string { return revision.Hash(ImageWriteRecord(image)) }
 func ImagesRevision(images []VehicleImage) string {
 	items := make([]struct{ ID, Revision string }, len(images))
 	for index, image := range images {
