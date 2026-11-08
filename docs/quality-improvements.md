@@ -48,6 +48,9 @@ bewahren frühere Werte und Quellen. Beides ersetzt keinen Beleg für ein Decode
 
 ## Codequalität als eigener Bereich
 
+Die technische Fortsetzung R0–R9 einschließlich der verbleibenden Persistenzgrenzen und
+Abnahmekriterien ist in [Technical follow-up](quality-followup.md) festgelegt.
+
 - Fachliche Module haben schmale Verträge und überprüfbare Abhängigkeiten.
 - Reine Regeln benötigen weder HTTP noch SQLite; Persistenzadapter besitzen Integrationstests.
 - Fachlich atomare Änderungen behalten einen ausdrücklich benannten Transaktionsbesitzer.
