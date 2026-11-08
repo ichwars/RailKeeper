@@ -4,7 +4,7 @@ description: Sprache, Startseite, Datum, Zeit, Druckausgabe und Seitenleisten-Re
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-08
 ---
 
 # Persönliche Einstellungen
@@ -99,3 +99,11 @@ aktuellen Browser ein oder aus; dieser Zustand gehört nicht zu den Profileinste
 | Eine ausgeblendete Seite lässt sich weiterhin öffnen | Ausblenden ändert nur die Navigation, nicht Berechtigung oder Routing. |
 | Es erscheinen keine benannten Drucker | Die Systemdrucker-Erkennung erfordert Admin und hängt vom Server-Betriebssystem oder der Druckerkonfiguration ab. |
 | Gewählter Drucker oder Datumsformat zeigen keine Wirkung | Die Vorgaben werden gespeichert, aber derzeit noch nicht von jedem Arbeitsablauf global verwendet. |
+
+## Persönliche Ansicht
+
+**Sammlung** zeigt die alltäglichen Bestandsbereiche direkt. Ausstellung, Import/Export und
+Digitalzentralen bleiben unter **Weitere Funktionen** erreichbar. **Alle Funktionen** zeigt
+alle für deine Rolle erlaubten Bereiche. Die Auswahl erhält die Reihenfolge und deine Daten.
+Einzelne Bereiche kannst du danach weiterhin ausblenden oder verschieben. Neue Erstinstallationen
+bieten diese Auswahl nach der ersten Anmeldung an; bestehende Konten behalten ihre Vorgaben.

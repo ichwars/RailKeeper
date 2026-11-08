@@ -1,19 +1,19 @@
 ---
 title: Decoder units and installations
-description: Record individual decoder units, actual installation periods and working group assignments.
+description: Record individual decoder units, actual installation periods and CV group assignments.
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-11-07
+lastReviewed: 2026-11-08
 ---
 
 # Decoder units and installations
 
-Open a saved vehicle's **CV → Decoders and working groups** view. Editor and Admin
+Open a saved vehicle's **CV → Decoders and CV groups** view. Editor and Admin
 can confirm changes; Viewer can read the records. These are inventory records of
 actual units and installations.
 
-<GuideFigure name="decoder-installations" alt="Individual decoder installations and working groups in a synthetic vehicle." caption="The synthetic collection shows distinct units, recorded installations and removals, and explicitly unknown dates." />
+<GuideFigure name="decoder-installations" alt="Individual decoder installations and CV groups in a synthetic vehicle." caption="The synthetic collection shows distinct units, recorded installations and removals, and explicitly unknown dates." />
 
 ## Record a unit and its installation
 
@@ -35,23 +35,23 @@ Already recorded CV states retain their historical description.
 
 Choose **Record removal** on the installation, supply a known removal date or
 leave it unknown, and confirm. An additional note is appended to the installation's
-existing notes. CV working groups, sources and recorded states remain available.
+existing notes. CV groups, sources and recorded states remain available.
 
 **Correct dates** changes known dates, including explicitly clearing an incorrect
 date to unknown. It preserves the installed, removed or unresolved state. Invalid
 dates and a removal before installation cannot be confirmed. The recording time
 does not stand in for an unknown physical installation or removal date.
 
-## Working groups and recorded states
+## CV groups and recorded states
 
-Existing CV profiles remain working groups with their exact labels, values and
-histories. **Create working group** adds an empty group without renaming or
+Existing CV profiles remain CV groups with their exact labels, values and
+histories. **Create CV group** adds an empty group without renaming or
 merging existing data and without assigning hardware automatically.
 
 Choose **Review assignment** on a group, select an active installation in this
 vehicle or explicitly choose no assignment, then confirm. Before changing the
 assignment, RailKeeper records the saved partial working state and its previous
-hardware description. The CV values themselves remain in the working group.
+hardware description. The CV values themselves remain in the CV group.
 
 **Record partial state** deliberately captures the currently saved CV values,
 their actual histories, sources and current hardware description. Add a note to
@@ -74,7 +74,7 @@ different source profiles alongside the confirmed target. Storing an original
 file and adopting its CV values remain separate confirmations.
 
 If an involved decoder assignment changes, the action is retained and blocked.
-Reload working groups and reconfirm the default if needed, then compare the
+Reload CV groups and reconfirm the default if needed, then compare the
 affected CV change or import again. Review the current assignment before confirming
 adoption. For files, **Compare file target again** provides the same recovery.
 Files and descriptions are retained; comparison does not start an upload.

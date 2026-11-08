@@ -1,19 +1,19 @@
 ---
 title: Decoderexemplare und Einbauten
-description: Einzelne Decoderexemplare, tatsächliche Einbauzeiträume und Zuordnungen von Arbeitsgruppen erfassen.
+description: Einzelne Decoderexemplare, tatsächliche Einbauzeiträume und Zuordnungen von CV-Gruppen erfassen.
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-11-07
+lastReviewed: 2026-11-08
 ---
 
 # Decoderexemplare und Einbauten
 
-Öffne bei einem gespeicherten Fahrzeug **CV → Decoder und Arbeitsgruppen**.
+Öffne bei einem gespeicherten Fahrzeug **CV → Decoder und CV-Gruppen**.
 Editor und Admin können Änderungen bestätigen, Viewer kann die Angaben lesen.
 Die Einträge beschreiben tatsächliche Exemplare und Einbauten im Bestand.
 
-<GuideFigure name="decoder-installations" alt="Einzelne Decodereinbauten und Arbeitsgruppen eines synthetischen Fahrzeugs." caption="Der synthetische Bestand zeigt getrennte Exemplare, erfasste Ein- und Ausbauten sowie ausdrücklich unbekannte Datumsangaben." />
+<GuideFigure name="decoder-installations" alt="Einzelne Decodereinbauten und CV-Gruppen eines synthetischen Fahrzeugs." caption="Der synthetische Bestand zeigt getrennte Exemplare, erfasste Ein- und Ausbauten sowie ausdrücklich unbekannte Datumsangaben." />
 
 ## Exemplar und Einbau erfassen
 
@@ -37,7 +37,7 @@ Einbauten hinweg. Bereits gespeicherte CV-Teilstände behalten ihre damalige Bes
 
 Wähle am Einbau **Ausbau erfassen**, trage ein bekanntes Ausbaudatum ein oder lasse
 es unbekannt und bestätige. Eine zusätzliche Notiz ergänzt die bisherigen
-Einbaunotizen. CV-Arbeitsgruppen, Quellen und gespeicherte Teilstände bleiben erhalten.
+Einbaunotizen. CV-Gruppen, Quellen und gespeicherte Teilstände bleiben erhalten.
 
 **Datumsangaben berichtigen** ändert bekannte Daten. Ein irrtümlich eingetragenes
 Datum lässt sich ausdrücklich zu unbekannt leeren. Der Zustand eingebaut,
@@ -45,16 +45,16 @@ ausgebaut oder ungeklärt bleibt erhalten. Ungültige Daten und ein Ausbau vor d
 Einbau lassen sich nicht bestätigen. Die Erfassungszeit ersetzt kein unbekanntes
 tatsächliches Ein- oder Ausbaudatum.
 
-## Arbeitsgruppen und gespeicherte Teilstände
+## CV-Gruppen und gespeicherte Teilstände
 
-Vorhandene CV-Profile bleiben Arbeitsgruppen mit ihren genauen Bezeichnungen,
-Werten und Historien. **Arbeitsgruppe anlegen** ergänzt eine leere Gruppe, ohne
+Vorhandene CV-Profile bleiben CV-Gruppen mit ihren genauen Bezeichnungen,
+Werten und Historien. **CV-Gruppe anlegen** ergänzt eine leere Gruppe, ohne
 vorhandene Daten umzubenennen oder zusammenzuführen und ohne automatische Hardwarezuordnung.
 
 Wähle bei einer Gruppe **Zuordnung prüfen**, dann einen aktiven Einbau dieses
 Fahrzeugs oder ausdrücklich keine Zuordnung und bestätige. Vor der Änderung
 erfasst RailKeeper den gespeicherten Teilbestand mit seiner bisherigen
-Hardwarebeschreibung. Die CV-Werte selbst bleiben in der Arbeitsgruppe erhalten.
+Hardwarebeschreibung. Die CV-Werte selbst bleiben in der CV-Gruppe erhalten.
 
 **Teilstand erfassen** hält bewusst die derzeit gespeicherten CVs, echten
 Historien, Quellen und die aktuelle Hardwarebeschreibung fest. Eine Notiz macht
@@ -67,7 +67,7 @@ steht im [CV-Archiv](cv-archive). Seine Erfassungszeit belegt keine vollständig
 
 Im Arbeitsbestand wählst du eine **Voreinstellung für neue CV-Eingaben und
 Dateiübernahmen**. Prüfe die angezeigte Gruppe und Decoderzuordnung, dann wähle
-**Zielgruppe jetzt bestätigen**. Die Auswahl allein ändert das Ziel noch nicht.
+**CV-Zielgruppe jetzt bestätigen**. Die Auswahl allein ändert das Ziel noch nicht.
 **Profil der jeweiligen Eingabe verwenden** erhält die getrennten Profile der Eingaben.
 Signifikante Leerzeichen in alten Profilbezeichnungen erscheinen in Anführungszeichen.
 
@@ -77,7 +77,7 @@ Die Importvorschau nennt abweichende Quellenprofile zusätzlich zum bestätigten
 Die Ablage einer Originaldatei und die Übernahme ihrer CV-Werte bleiben getrennte Bestätigungen.
 
 Ändert sich die Zuordnung eines beteiligten Decoders, bleibt die Änderung erhalten
-und wird gesperrt. Lade die Arbeitsgruppen neu und bestätige gegebenenfalls die
+und wird gesperrt. Lade die CV-Gruppen neu und bestätige gegebenenfalls die
 Voreinstellung erneut. Vergleiche anschließend die betroffene CV-Änderung oder den
 Import erneut. Prüfe die aktuelle Zuordnung und bestätige erst dann die Übernahme.
 Bei Dateien bietet **Dateiziel erneut vergleichen** denselben Ablauf. Dateien und

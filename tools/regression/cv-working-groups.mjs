@@ -23,13 +23,13 @@ export async function assertCVWorkingGroups(page, input, de, { actor, csrfToken 
   await editor.getByRole("button", { name: "CV", exact: true }).click();
   const picker = editor.locator(".cv-working-group-picker"), form = editor.locator(".cv-manual-editor");
   await picker.getByRole("alert").waitFor();
-  await picker.getByRole("button", { name: de ? "Arbeitsgruppen neu laden" : "Reload working groups", exact: true }).click();
+  await picker.getByRole("button", { name: de ? "CV-Gruppen neu laden" : "Reload CV groups", exact: true }).click();
   await editor.locator(".cv-subtabs button").nth(1).click();
   const selection = picker.getByRole("button", { name: de ? "Voreinstellung für neue CV-Eingaben und Dateiübernahmen" : "Default for new CV entries and file imports", exact: true });
-  const confirm = picker.getByRole("button", { name: de ? "Zielgruppe jetzt bestätigen" : "Confirm target group now", exact: true });
+  const confirm = picker.getByRole("button", { name: de ? "CV-Zielgruppe jetzt bestätigen" : "Confirm target CV group now", exact: true });
   const choose = async profile => { await selection.click(); await page.getByRole("option", { name: profile, exact: true }).click(); };
   const activate = async profile => { await choose(profile); await confirm.click();
-    await picker.locator(".cv-working-group-current").filter({ hasText: `${de ? "Bestätigte Zielgruppe" : "Confirmed target group"}: ${profile}` }).waitFor(); };
+    await picker.locator(".cv-working-group-current").filter({ hasText: `${de ? "Bestätigte CV-Zielgruppe" : "Confirmed target CV group"}: ${profile}` }).waitFor(); };
   await selection.waitFor(); await page.waitForFunction(() => !document.querySelector(".cv-working-group-picker .app-select-trigger")?.disabled);
   await form.locator("summary").click();
   const profileInput = form.getByRole("textbox", { name: de ? "Decoder-Profil" : "Decoder profile", exact: true });
@@ -88,7 +88,7 @@ export async function assertCVWorkingGroups(page, input, de, { actor, csrfToken 
   assert.equal(assignment.status(), 200);
   await applyDraft.click(); await draft.getByRole("alert").waitFor();
   assert.equal((await read(path)).cvValues.find(value => value.id === original.id).value, 3);
-  await picker.getByRole("button", { name: de ? "Arbeitsgruppen neu laden" : "Reload working groups", exact: true }).click();
+  await picker.getByRole("button", { name: de ? "CV-Gruppen neu laden" : "Reload CV groups", exact: true }).click();
   await draft.getByRole("button", { name: de ? "Diesen CV als neue Entwurfsbasis verwenden" : "Use this CV as the new draft baseline", exact: true }).click();
   await page.waitForFunction(() => !document.querySelector(".cv-draft-actions .primary-button")?.disabled);
   await applyDraft.click(); await draft.waitFor({ state: "hidden" });

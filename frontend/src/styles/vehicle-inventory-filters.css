@@ -211,3 +211,24 @@
     height: auto;
   }
 }
+
+.inventory-toolbar-actions .inventory-labeled-action {
+  inline-size: auto;
+  block-size: auto;
+  min-block-size: var(--control-height-compact);
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .inventory-toolbar-actions .inventory-labeled-action { min-block-size: 44px; }
+}
+
+.inventory-toolbar { flex-wrap: wrap; }
+.inventory-toolbar-actions { flex-wrap: wrap; max-inline-size: 100%; }
+
+/* Anchor the wide column menu to the whole action row so labels cannot push it behind the sidebar. */
+.inventory-toolbar-actions { position: relative; }
+.inventory-toolbar-actions .vehicle-column-picker { position: static; }
+.inventory-toolbar-actions .inventory-labeled-action { display: inline-flex; align-items: center; }

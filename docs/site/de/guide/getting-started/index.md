@@ -4,7 +4,7 @@ description: Ersten Administrator anlegen, sicher anmelden und den Zugang zu Rai
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-08
 ---
 
 # Ersteinrichtung und Anmeldung
@@ -35,6 +35,7 @@ Für die einmalige Ersteinrichtung ist kein vorhandenes Konto und keine Rolle er
 
    | Feld | Anforderung | Zweck |
    | --- | --- | --- |
+   | Einrichtungscode | Erforderlich, lokaler Einmalcode aus `setup-code.txt` im Datenverzeichnis | Bestätigt den Zugriff auf diese Installation |
    | Benutzername | Erforderlich, nach Entfernen äußerer Leerzeichen mindestens 3 Zeichen | Identifiziert das Konto bei der Anmeldung |
    | E-Mail-Adresse | Erforderlich, gültige E-Mail-Adresse | Empfängt Wiederherstellungslinks, wenn der E-Mail-Versand eingerichtet ist |
    | Passwort | Erforderlich, mindestens 12 Zeichen | Schützt das erste Konto |
@@ -43,6 +44,14 @@ Für die einmalige Ersteinrichtung ist kein vorhandenes Konto und keine Rolle er
 3. Wähle **Admin erstellen**.
 4. Verwende nach erfolgreicher Ersteinrichtung das normale Anmeldeformular mit den neuen
    Zugangsdaten.
+
+Den Einrichtungscode erhältst du von der Person, die diese Installation betreibt. Nach
+Anlage und Anmeldung des ersten Administrators erscheint die **persönliche Ansicht**.
+**Sammlung** ist vorausgewählt. Bestätige **Mit dieser Ansicht starten**, wähle ausdrücklich
+**Alle Funktionen** oder behalte vorerst die bisherige Ansicht. Spezialwerkzeuge bleiben
+unter **Weitere Funktionen** erreichbar. Bestehende Konten erhalten diesen Einrichtungsdialog
+nicht allein wegen fehlender Einstellungen. Du kannst die Auswahl später unter
+[persönliche Einstellungen](../settings/personal-preferences) ändern.
 
 Das erste Konto erhält die Rollen Admin, Editor und Viewer. Die Ersteinrichtung kann keinen zweiten
 ersten Administrator anlegen. Zum Schutz vor wiederholten Versuchen akzeptiert RailKeeper höchstens

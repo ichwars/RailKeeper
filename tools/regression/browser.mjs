@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
+import { assertInventoryToolbar } from "./personal-entry.mjs";
 import { assertResponsiveWorkspaces } from "./responsive.mjs";
 
 let inputText = "";
@@ -35,6 +36,7 @@ try {
     await page.getByLabel(de ? "Passwort" : "Password", { exact: true }).fill(input.credentials.password);
     await page.getByRole("button", { name: de ? "Anmelden" : "Sign in", exact: true }).click();
     await page.waitForURL("**/overview");
+    await assertInventoryToolbar(page, input, de, checks);
     const workspaces = [
       ["/overview", de ? "Übersicht" : "Overview"],
       ["/vehicles", de ? "Bestand" : "Inventory"],

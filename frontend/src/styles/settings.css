@@ -3428,3 +3428,11 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+@media (max-width: 600px) {
+  .user-management-toolbar button,
+  .user-table .table-actions button {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
+}

@@ -103,10 +103,14 @@ async function assertInventoryFilters(page, { width, de, screenshotPrefix }) {
   const bounds = await compact.boundingBox();
   assert.ok(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width + 1,
     "compact column action must be inside the viewport");
-  assert.equal(await compact.evaluate(button => {
+  const hit = await compact.evaluate(button => {
     const r = button.getBoundingClientRect();
-    return button.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
-  }), true, "compact column action must be reachable above other layers");
+    const target = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    return { reachable: button.contains(target), target: target?.className, top: r.y, height: r.height,
+      viewport: innerHeight, pickerTop: button.closest(".vehicle-column-picker-popover")?.getBoundingClientRect().y };
+  });
+  if (!hit.reachable) await page.screenshot({ path: screenshotPrefix + "-column-overlap.png" });
+  assert.equal(hit.reachable, true, `compact column action must be reachable above other layers: ${JSON.stringify(hit)}`);
   if (width === 1280) {
     const [saved] = await Promise.all([
       page.waitForResponse(response => response.url().endsWith("/api/v1/profile/settings") && response.request().method() === "PUT"),

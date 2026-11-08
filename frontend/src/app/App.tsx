@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Shell } from "./Shell";
 import { DecoderLibraryProvider } from "../shared/DecoderLibraryProvider";
 import { LoginView } from "../features/auth/LoginView";
+import { PersonalViewWelcome } from "../features/setup/PersonalViewWelcome";
+import { readSetupWelcome, markSetupWelcome, clearSetupWelcome } from "./setupWelcome";
 import { SetupView } from "../features/setup/SetupView";
 import { api, Session } from "../shared/api";
 import { useI18n } from "../shared/i18n";
@@ -85,6 +87,7 @@ function ViewLoading() {
 }
 
 export function App() {
+  const [setupUsername, setSetupUsername] = useState(readSetupWelcome);
   const [setupRequired, setSetupRequired] = useState<boolean | null>(null);
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [loadError, setLoadError] = useState("");
@@ -152,7 +155,9 @@ export function App() {
   if (setupRequired) {
     return (
       <SetupView
-        onComplete={() => {
+        onComplete={username => {
+          markSetupWelcome(username);
+          setSetupUsername(username);
           setSetupRequired(false);
           setSession(null);
         }}
@@ -173,6 +178,13 @@ export function App() {
 
   if (session === null) {
     return <LoginView onLogin={handleLogin} />;
+  }
+
+  if (setupUsername === session.username && session.roles.some(role => ["Admin", "Editor", "Viewer"].includes(role))) {
+    return <PersonalViewWelcome username={session.username} onComplete={() => {
+      clearSetupWelcome();
+      setSetupUsername("");
+    }} />;
   }
 
   const effectiveView = canAccessView(view, session.roles) ? view : firstAllowedView(session.roles);

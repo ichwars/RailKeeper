@@ -1,0 +1,28 @@
+.personal-view-welcome { min-inline-size: 0; }
+.personal-view-welcome > p { font-size: var(--font-size-lg); }
+.personal-view-welcome fieldset {
+  display: grid;
+  gap: var(--space-sm);
+  min-inline-size: 0;
+  margin-block-end: var(--space-lg);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.personal-view-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  min-block-size: 44px;
+  padding-block: var(--space-sm);
+  cursor: pointer;
+}
+.personal-view-choice input { flex: 0 0 auto; margin-block-start: var(--space-xs); }
+.personal-view-choice span { display: grid; gap: var(--space-xs); min-inline-size: 0; }
+.personal-view-choice small { font-size: var(--font-size-md); line-height: var(--line-height-body); }
+.personal-view-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.personal-view-actions button { min-block-size: 44px; white-space: normal; }
+@media (max-width: 480px) {
+  .personal-view-welcome { padding: var(--space-lg); }
+  .personal-view-actions { display: grid; }
+}

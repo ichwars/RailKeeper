@@ -260,11 +260,11 @@ export function VehicleInventoryPanel({
             </label>
             <div className="table-actions inventory-toolbar-actions">
               <span className="inventory-view-tools" aria-label={t("vehicles.inventoryView.switch")}>
-                <button type="button" className={inventoryView === "table" ? "icon-button active" : "icon-button"} onClick={() => onInventoryViewChange("table")} aria-pressed={inventoryView === "table"} aria-label={t("vehicles.inventoryView.table")} title={t("vehicles.inventoryView.table")}>
-                  <Table2 size={16} />
+                <button type="button" className={`icon-button inventory-labeled-action${inventoryView === "table" ? " active" : ""}`} onClick={() => onInventoryViewChange("table")} aria-pressed={inventoryView === "table"} aria-label={t("vehicles.inventoryView.table")} title={t("vehicles.inventoryView.table")}>
+                  <Table2 size={16} aria-hidden="true" /><span>{t("vehicles.inventoryView.tableShort")}</span>
                 </button>
-                <button type="button" className={inventoryView === "cards" ? "icon-button active" : "icon-button"} onClick={() => onInventoryViewChange("cards")} aria-pressed={inventoryView === "cards"} aria-label={t("vehicles.inventoryView.cards")} title={t("vehicles.inventoryView.cards")}>
-                  <Grid2X2 size={16} />
+                <button type="button" className={`icon-button inventory-labeled-action${inventoryView === "cards" ? " active" : ""}`} onClick={() => onInventoryViewChange("cards")} aria-pressed={inventoryView === "cards"} aria-label={t("vehicles.inventoryView.cards")} title={t("vehicles.inventoryView.cards")}>
+                  <Grid2X2 size={16} aria-hidden="true" /><span>{t("vehicles.inventoryView.cardsShort")}</span>
                 </button>
               </span>
               <VehicleColumnPicker
@@ -275,13 +275,13 @@ export function VehicleInventoryPanel({
                 onReset={onResetColumns}
                 onApplyCompact={onApplyCompactColumns}
               />
-              {onOpenCVArchive && <button type="button" className="icon-button decoder-archive-open" onClick={onOpenCVArchive}
-                aria-label={t("decoderConfig.archive")} title={t("decoderConfig.archive")}><Archive size={16} /></button>}
-              <button type="button" className="icon-button" onClick={onOpenReport} aria-label={t("vehicles.report.open")} title={t("vehicles.report.open")} disabled={loading || vehicles.length === 0}>
-                <Printer size={16} />
+              {onOpenCVArchive && <button type="button" className="icon-button inventory-labeled-action decoder-archive-open" onClick={onOpenCVArchive}
+                aria-label={t("decoderConfig.archive")} title={t("decoderConfig.archive")}><Archive size={16} aria-hidden="true" /><span>{t("decoderConfig.archive")}</span></button>}
+              <button type="button" className="icon-button inventory-labeled-action" onClick={onOpenReport} aria-label={t("vehicles.report.open")} title={t("vehicles.report.open")} disabled={loading || vehicles.length === 0}>
+                <Printer size={16} aria-hidden="true" /><span>{t("vehicles.report.short")}</span>
               </button>
-              <button type="button" className="icon-button" onClick={onReload} aria-label={t("common.refresh")} title={t("common.refresh")} disabled={loading}>
-                <RefreshCw size={16} />
+              <button type="button" className="icon-button inventory-labeled-action" onClick={onReload} aria-label={t("common.refresh")} title={t("common.refresh")} disabled={loading}>
+                <RefreshCw size={16} aria-hidden="true" /><span>{t("common.refresh")}</span>
               </button>
             </div>
           </div>
