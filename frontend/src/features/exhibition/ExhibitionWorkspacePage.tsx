@@ -267,6 +267,7 @@ export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
   }, [activeDay, entryFilter, language, search, workspace?.entries]);
 
   const openEventDialog = (event?: ExhibitionList) => {
+    setMessage("");
     setEditingEvent(event || null);
     setEventForm(event ? {
       designation: event.designation, date: event.date, endDate: event.endDate || event.date,
@@ -297,6 +298,7 @@ export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
   };
 
   const openEntryDialog = (entry?: ExhibitionWorkspaceEntry) => {
+    setMessage("");
     setEditingEntry(entry || null);
     setEntryForm(entry ? {
       vehicleId: entry.vehicleId, owner: entry.owner, locomotiveName: entry.locomotiveName,
@@ -382,31 +384,46 @@ export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
     }
   };
 
+  const executeChange = async (change: () => Promise<void>, fallback: string) => {
+    setSaving(true);
+    setMessage("");
+    try { await change(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : fallback); }
+    finally { setSaving(false); }
+  };
+
   const deleteEntry = async (entry: ExhibitionWorkspaceEntry) => {
     if (!selectedID || !admin || locked) return;
     const confirmed = window.confirm(de ? `Eintrag „${entry.locomotiveName}“ löschen?` : `Delete “${entry.locomotiveName}”?`);
     if (!confirmed) return;
-    await api.deleteExhibitionEntry(selectedID, entry.id);
-    await loadWorkspace(selectedID);
-    await loadLists(selectedID);
+    await executeChange(async () => {
+      await api.deleteExhibitionEntry(selectedID, entry.id);
+      setDialog(null);
+      await loadWorkspace(selectedID);
+      await loadLists(selectedID);
+    }, de ? "Eintrag konnte nicht gelöscht werden." : "Entry could not be deleted.");
   };
 
   const deleteEvent = async () => {
     if (!selectedList || !admin) return;
     if (!window.confirm(de ? `Veranstaltung „${selectedList.designation}“ löschen?` : `Delete “${selectedList.designation}”?`)) return;
-    await api.deleteExhibitionList(selectedList.id);
-    setMenuOpen(false);
-    setSelectedID("");
-    await loadLists();
+    await executeChange(async () => {
+      await api.deleteExhibitionList(selectedList.id);
+      setMenuOpen(false);
+      setSelectedID("");
+      await loadLists();
+    }, de ? "Veranstaltung konnte nicht gelöscht werden." : "Event could not be deleted.");
   };
 
   const saveException = async (conflict: ExhibitionConflict) => {
     if (!selectedList || !workspace) return;
     const reason = (exceptionReasons[conflict.id] || "").trim();
     if (!reason) return;
-    const next = await api.setExhibitionConflictException(selectedList.id, conflict.id, reason, workspace.list.revision);
-    setWorkspace(next);
-    setExceptionReasons((current) => ({ ...current, [conflict.id]: "" }));
+    await executeChange(async () => {
+      const next = await api.setExhibitionConflictException(selectedList.id, conflict.id, reason, workspace.list.revision);
+      setWorkspace(next);
+      setExceptionReasons((current) => ({ ...current, [conflict.id]: "" }));
+    }, de ? "Ausnahme konnte nicht gespeichert werden." : "Exception could not be saved.");
   };
 
   if (loading && lists.length === 0) {
@@ -440,7 +457,7 @@ export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
         </div>
       </header>
 
-      {message && <div className="exhibition-alert" role="alert">{message}<button type="button" onClick={() => setMessage("")} aria-label={de ? "Meldung schließen" : "Dismiss message"}><X size={16} /></button></div>}
+      {message && !dialog && <div className="exhibition-alert" role="alert">{message}<button type="button" onClick={() => setMessage("")} aria-label={de ? "Meldung schließen" : "Dismiss message"}><X size={16} /></button></div>}
 
       {workspace && selectedList ? <>
         <section className="exhibition-event-summary" aria-label={de ? "Veranstaltungsübersicht" : "Event overview"}>
@@ -529,7 +546,7 @@ export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
 
       {dialog === "event" && <ExhibitionDialogLayer onClose={() => setDialog(null)}>{(closeRef) => <form className="vehicle-modal exhibition-event-modal" onSubmit={saveEvent} role="dialog" aria-modal="true" aria-labelledby="exhibition-event-dialog-title">
         <header><div><h2 id="exhibition-event-dialog-title">{editingEvent ? (de ? "Veranstaltung bearbeiten" : "Edit event") : (de ? "Neue Veranstaltung" : "New event")}</h2><p>{de ? "Termin, Ort und organisatorische Angaben." : "Dates, location and organisational details."}</p></div><button ref={closeRef} type="button" className="icon-button" onClick={() => setDialog(null)} aria-label={de ? "Schließen" : "Close"}><X size={19} /></button></header>
-        <div className="exhibition-form-grid"><label className="wide"><span>{de ? "Bezeichnung" : "Name"}</span><input required value={eventForm.designation} onChange={(event) => setEventForm({ ...eventForm, designation: event.target.value })} /></label>
+        <div className="exhibition-form-grid">{message && <p className="form-message wide" role="alert">{message}</p>}<label className="wide"><span>{de ? "Bezeichnung" : "Name"}</span><input required value={eventForm.designation} onChange={(event) => setEventForm({ ...eventForm, designation: event.target.value })} /></label>
           <label><span>{de ? "Beginn" : "Start"}</span><AppDateInput required value={eventForm.date} onChange={(event) => setEventForm({ ...eventForm, date: event.target.value })} /></label>
           <label><span>{de ? "Ende" : "End"}</span><AppDateInput required value={eventForm.endDate} onChange={(event) => setEventForm({ ...eventForm, endDate: event.target.value })} /></label>
           <label className="wide"><span>{de ? "Ort" : "Location"}</span><input value={eventForm.location} onChange={(event) => setEventForm({ ...eventForm, location: event.target.value })} /></label>
@@ -544,6 +561,7 @@ export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
         de={de}
         editingEntry={editingEntry}
         form={entryForm}
+        error={message}
         masterData={entryMasterData}
         saving={saving}
         symbols={symbols}
@@ -552,19 +570,20 @@ export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
         canReadInventory={canReadInventory(roles)}
         onChange={(patch) => setEntryForm((current) => ({ ...current, ...patch }))}
         onClose={() => setDialog(null)}
-        onDelete={(entry) => { setDialog(null); void deleteEntry(entry); }}
+        onDelete={(entry) => { void deleteEntry(entry); }}
         onSelectVehicle={selectVehicle}
         onSubmit={saveEntry}
       />}</ExhibitionDialogLayer>}
 
       {dialog === "conflicts" && workspace && <ExhibitionDialogLayer onClose={() => setDialog(null)}>{(closeRef) => <section className="vehicle-modal exhibition-conflict-modal" role="dialog" aria-modal="true" aria-labelledby="exhibition-conflicts-title">
         <header><div><h2 id="exhibition-conflicts-title">{de ? "Konflikte und Prüfungen" : "Conflicts and checks"}</h2><p>{de ? "Ausnahmen bleiben sichtbar und gelten nicht als vollständig gelöst." : "Exceptions remain visible and are not considered fully resolved."}</p></div><button ref={closeRef} type="button" className="icon-button" onClick={() => setDialog(null)} aria-label={de ? "Schließen" : "Close"}><X size={19} /></button></header>
-        <div className="exhibition-conflict-list">{workspace.conflicts.map((conflict) => <article key={conflict.id} className={conflict.excepted ? "excepted" : ""}><AlertTriangle size={20} /><div><strong>{conflictDescription(conflict, language)}</strong><span>{conflict.dayScopes?.join(", ")}</span>{conflict.excepted && <small>{de ? "Dokumentierte Ausnahme" : "Documented exception"}: {conflict.exceptionReason}</small>}</div>{!conflict.excepted && <div className="exhibition-exception-form"><input value={exceptionReasons[conflict.id] || ""} onChange={(event) => setExceptionReasons({ ...exceptionReasons, [conflict.id]: event.target.value })} placeholder={de ? "Begründung der Ausnahme" : "Exception reason"} /><button type="button" className="secondary-button" onClick={() => void saveException(conflict)}>{de ? "Ausnahme speichern" : "Save exception"}</button></div>}</article>)}{workspace.conflicts.length === 0 && <div className="exhibition-no-conflicts"><CheckCircle2 size={30} /><strong>{de ? "Keine Konflikte erkannt" : "No conflicts detected"}</strong></div>}</div>
+        <div className="exhibition-conflict-list">{message && <p className="form-message" role="alert">{message}</p>}{workspace.conflicts.map((conflict) => <article key={conflict.id} className={conflict.excepted ? "excepted" : ""}><AlertTriangle size={20} /><div><strong>{conflictDescription(conflict, language)}</strong><span>{conflict.dayScopes?.join(", ")}</span>{conflict.excepted && <small>{de ? "Dokumentierte Ausnahme" : "Documented exception"}: {conflict.exceptionReason}</small>}</div>{!conflict.excepted && <div className="exhibition-exception-form"><input value={exceptionReasons[conflict.id] || ""} onChange={(event) => setExceptionReasons({ ...exceptionReasons, [conflict.id]: event.target.value })} placeholder={de ? "Begründung der Ausnahme" : "Exception reason"} /><button type="button" className="secondary-button" onClick={() => void saveException(conflict)}>{de ? "Ausnahme speichern" : "Save exception"}</button></div>}</article>)}{workspace.conflicts.length === 0 && <div className="exhibition-no-conflicts"><CheckCircle2 size={30} /><strong>{de ? "Keine Konflikte erkannt" : "No conflicts detected"}</strong></div>}</div>
         <footer><button type="button" className="primary-button" onClick={() => setDialog(null)}>{de ? "Schließen" : "Close"}</button></footer>
       </section>}</ExhibitionDialogLayer>}
 
       {dialog === "lock" && workspace && <ExhibitionDialogLayer onClose={() => setDialog(null)}>{(closeRef) => <form className="vehicle-modal exhibition-lock-modal" onSubmit={(event) => { event.preventDefault(); void updateStatus("locked", lockReason, true); }} role="dialog" aria-modal="true" aria-labelledby="exhibition-lock-title">
         <header><div><h2 id="exhibition-lock-title">{de ? "Liste trotz Konflikten sperren?" : "Lock list despite conflicts?"}</h2><p>{de ? "Die Konflikte bleiben im Arbeitsbereich sichtbar." : "Conflicts remain visible in the workspace."}</p></div><button ref={closeRef} type="button" className="icon-button" onClick={() => setDialog(null)} aria-label={de ? "Schließen" : "Close"}><X size={19} /></button></header>
+        {message && <p className="form-message" role="alert">{message}</p>}
         <label><span>{de ? "Begründung" : "Reason"}</span><textarea required rows={4} value={lockReason} onChange={(event) => setLockReason(event.target.value)} /></label>
         <footer><button type="button" className="secondary-button" onClick={() => setDialog(null)}>{de ? "Abbrechen" : "Cancel"}</button><button type="submit" className="primary-button" disabled={!lockReason.trim() || saving}><Lock size={17} />{de ? "Trotzdem sperren" : "Lock anyway"}</button></footer>
       </form>}</ExhibitionDialogLayer>}

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -204,4 +204,146 @@ describe("SettingsDigitalTab commissioning workflow", () => {
     expect(screen.getByText(/es werden keine TCP-Anfragen gesendet/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Live-Monitor starten" })).toBeDisabled();
   });
+});
+
+describe("digital adapter failure and isolation contracts", () => {
+  const cases = [
+    { provider: "ecos", label: "ESU ECoS", hostLabel: "ECoS-IP oder Hostname", portLabel: "Port", port: "15471" },
+    { provider: "z21", label: "Roco/Fleischmann Z21", hostLabel: "Z21-IP oder Hostname", portLabel: "UDP-Port", port: "21105" },
+    { provider: "intellibox3", label: "Uhlenbrock Intellibox 3", hostLabel: "Intellibox-3-IP oder Hostname", portLabel: "Z21-UDP-Port", port: "21105" },
+    { provider: "cs3", label: "Märklin CS3", hostLabel: "CS3-IP oder Hostname", portLabel: "HTTP-Port", port: "80" }
+  ] as const;
+  beforeEach(() => {
+    const configured = settings();
+    configured.z21.host = "z21.test"; configured.intellibox3.host = "ibox.test"; configured.cs3.host = "cs3.test";
+    vi.spyOn(api,"digitalSettings").mockResolvedValue(configured);
+    vi.spyOn(api,"updateDigitalSettings").mockImplementation(async input=>input);
+    vi.spyOn(api,"getECoSLiveStatus").mockResolvedValue(liveStatus);
+  });
+
+  it.each(cases)("keeps each provider's host/port separate when editing $provider",async item=>{
+    const user=userEvent.setup();
+    render(<SettingsDigitalTab canManageUsers username="synthetic-admin" formatDateTime={value=>value}/>);
+    await screen.findByText("192.168.2.151:15471");
+    const selector=screen.getByRole("region",{name:"Adapter auswählen"});
+    await user.click(within(selector).getByRole("button",{name:new RegExp(item.label.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"))}));
+    await user.click(screen.getAllByRole("button",{name:"Konfiguration ändern"})[0]);
+    const dialog=screen.getByRole("dialog");
+    await user.clear(within(dialog).getByLabelText(item.hostLabel));
+    await user.type(within(dialog).getByLabelText(item.hostLabel),`${item.provider}.updated.test`);
+    await user.clear(within(dialog).getByLabelText(item.portLabel));
+    await user.type(within(dialog).getByLabelText(item.portLabel),"3456");
+    await user.click(within(dialog).getByRole("button",{name:"Speichern"}));
+    await waitFor(()=>expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(api.updateDigitalSettings).toHaveBeenLastCalledWith(expect.objectContaining({provider:item.provider,[item.provider]:{host:`${item.provider}.updated.test`,port:"3456",enabled:false}}));
+    const stored=JSON.parse(window.localStorage.getItem("railkeeper.digital.configurationMeta")||"{}");
+    expect(stored[item.provider].configuredBy).toBe("synthetic-admin");
+  });
+
+  it.each(cases)("keeps activation disabled after a failed $provider test and allows a fresh test",async item=>{
+    const methods={ecos:"testECoSConnection",z21:"testZ21Connection",intellibox3:"testIntellibox3Connection",cs3:"testCS3Connection"} as const;
+    const test=vi.spyOn(api,methods[item.provider]).mockRejectedValueOnce(new Error("Synthetic connection failure"));
+    if(item.provider==="ecos") vi.mocked(api.testECoSConnection).mockResolvedValue({connected:true,host:"station.test",port:Number(item.port),message:"Confirmed connection",compatibilityStatus:"unverified",missingFields:[]});
+    else test.mockResolvedValue({provider:item.provider,connected:true,host:"station.test",port:Number(item.port),message:"Confirmed connection"});
+    const user=userEvent.setup();
+    render(<SettingsDigitalTab canManageUsers username="admin" formatDateTime={value=>value}/>);
+    await screen.findByText("192.168.2.151:15471");
+    await user.click(within(screen.getByRole("region",{name:"Adapter auswählen"})).getByRole("button",{name:new RegExp(item.label.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"))}));
+    await user.click(screen.getByRole("button",{name:"Verbindung testen"}));
+    await screen.findAllByText("Synthetic connection failure");
+    expect(screen.getByRole("button",{name:"Adapter aktivieren"})).toBeDisabled();
+    await user.click(screen.getByRole("button",{name:"Verbindung testen"}));
+    await waitFor(()=>expect(screen.getByRole("button",{name:"Adapter aktivieren"})).toBeEnabled());
+    expect(test).toHaveBeenCalledTimes(2);
+  });
+
+  it("retains a configured connection after cancellation or a failed removal",async()=>{
+    vi.mocked(api.digitalSettings).mockResolvedValue(settings(true));
+    const confirm=vi.spyOn(window,"confirm").mockReturnValueOnce(false).mockReturnValue(true);
+    const user=userEvent.setup();
+    render(<SettingsDigitalTab canManageUsers username="admin" formatDateTime={value=>value}/>);
+    await screen.findByText("192.168.2.151:15471");
+    const remove=screen.getByRole("button",{name:"Verbindung entfernen"});
+    await user.click(remove);
+    expect(api.updateDigitalSettings).not.toHaveBeenCalled();
+    vi.mocked(api.updateDigitalSettings).mockRejectedValueOnce(new Error("Removal failed"));
+    await user.click(remove);
+    await screen.findByText("Removal failed");
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("192.168.2.151:15471")).toBeInTheDocument();
+    expect(remove).toBeEnabled();
+  });
+
+  it("starts, refreshes and stops the read-only monitor with explicit recoverable errors",async()=>{
+    vi.mocked(api.digitalSettings).mockResolvedValue(settings(true));
+    vi.mocked(api.getECoSLiveStatus).mockResolvedValue({...liveStatus,connected:true,state:"running"});
+    vi.spyOn(api,"stopECoSLive").mockRejectedValueOnce(new Error("Stop failed")).mockResolvedValue({...liveStatus,message:"Stopped safely"});
+    vi.spyOn(api,"startECoSLive").mockRejectedValueOnce(new Error("Start failed")).mockResolvedValue({...liveStatus,connected:true,state:"running",message:"Monitor connected"});
+    vi.spyOn(api,"countECoSLocomotives").mockResolvedValue({host:"station.test",port:15471,count:2,message:"Two synthetic locomotives"});
+    vi.spyOn(api,"testECoSConnection").mockResolvedValue({connected:true,host:"station.test",port:15471,message:"Connection rechecked",compatibilityStatus:"unverified",missingFields:[]});
+    const user=userEvent.setup();
+    render(<SettingsDigitalTab canManageUsers username="admin" formatDateTime={value=>value}/>);
+    await screen.findByText("192.168.2.151:15471");
+    await user.click(await screen.findByRole("button",{name:"Monitor stoppen"}));
+    await screen.findByText("Stop failed");
+    await user.click(screen.getByRole("button",{name:"Monitor stoppen"}));
+    await screen.findByText("Stopped safely");
+    expect(screen.getByRole("button",{name:"Live-Monitor starten"})).toBeDisabled();
+    await user.click(screen.getByRole("button",{name:"Verbindung testen"}));
+    await waitFor(()=>expect(screen.getByRole("button",{name:"Live-Monitor starten"})).toBeEnabled());
+    await user.click(screen.getByRole("button",{name:"Live-Monitor starten"}));
+    await screen.findByText("Start failed");
+    await user.click(screen.getByRole("button",{name:"Live-Monitor starten"}));
+    await waitFor(()=>expect(api.countECoSLocomotives).toHaveBeenCalledTimes(2));
+    await user.click(screen.getByRole("tab",{name:"ECoS-Meldungen"}));
+    vi.mocked(api.getECoSLiveStatus).mockRejectedValueOnce(new Error("Refresh failed"));
+    await user.click(screen.getByRole("button",{name:"Status aktualisieren"}));
+    await screen.findByText("Refresh failed");
+    expect(screen.getByRole("button",{name:"Status aktualisieren"})).toBeEnabled();
+  });
+
+  it("does not load administrator settings or start a monitor for a read-only viewer",async()=>{
+    render(<SettingsDigitalTab canManageUsers={false} username="viewer" formatDateTime={value=>value}/>);
+    expect(api.digitalSettings).not.toHaveBeenCalled();
+    expect(api.getECoSLiveStatus).not.toHaveBeenCalled();
+    expect(screen.getByRole("button",{name:"Verbindung testen"})).toBeDisabled();
+    expect(screen.getByRole("button",{name:"Adapter aktivieren"})).toBeDisabled();
+    expect(screen.getByRole("button",{name:"Live-Monitor starten"})).toBeDisabled();
+  });
+  it("keeps adapter inputs after a rejected save and acknowledges only the successful retry", async () => {
+    const user = userEvent.setup();
+    render(<SettingsDigitalTab canManageUsers username="admin" formatDateTime={value => value} />);
+    await screen.findByText("192.168.2.151:15471");
+    await user.click(screen.getAllByRole("button", { name: "Konfiguration ändern" })[0]);
+    const dialog = screen.getByRole("dialog");
+    await user.clear(within(dialog).getByLabelText("Port"));
+    await user.type(within(dialog).getByLabelText("Port"), "3456");
+    vi.mocked(api.updateDigitalSettings).mockRejectedValueOnce(new Error("Save unavailable"));
+    await user.click(within(dialog).getByRole("button", { name: "Speichern" }));
+    await within(dialog).findByText("Save unavailable");
+    expect(within(dialog).getByLabelText("Port")).toHaveValue("3456");
+    expect(window.localStorage.getItem("railkeeper.digital.configurationMeta")).toBeNull();
+    expect(screen.queryByText("Adapter-Konfiguration gespeichert.")).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Speichern" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(api.updateDigitalSettings).toHaveBeenCalledTimes(2);
+    expect(api.updateDigitalSettings).toHaveBeenLastCalledWith(expect.objectContaining({ ecos: expect.objectContaining({ port: "3456" }) }));
+  });
+
+  it("prevents editing or closing a configuration while its save acknowledgement is pending", async () => {
+    let finish: () => void = () => { throw new Error("save has not started"); };
+    vi.mocked(api.updateDigitalSettings).mockImplementationOnce(input => new Promise(resolve => { finish = () => resolve(input); }));
+    const user = userEvent.setup();
+    render(<SettingsDigitalTab canManageUsers username="admin" formatDateTime={value => value} />);
+    await screen.findByText("192.168.2.151:15471");
+    await user.click(screen.getAllByRole("button", { name: "Konfiguration ändern" })[0]);
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Speichern" }));
+    expect(within(dialog).getByLabelText("Port")).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Schließen" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Wird gespeichert..." })).toBeDisabled();
+    await act(async () => finish());
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
 });

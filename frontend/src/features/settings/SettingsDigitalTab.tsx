@@ -5,7 +5,7 @@ import { useI18n } from "../../shared/i18n";
 import { DigitalCenterWorkflowView, type DigitalDiagnosticsTab, type DigitalProvider } from "./DigitalCenterWorkflowView";
 import { localSettingKeys, readLocalBool, readLocalSetting } from "./settingsModel";
 
-type BusyState = "idle" | "testing" | "diagnosing" | "probing" | "starting" | "stopping" | "refreshing" | "activating" | "deactivating" | "removing";
+type BusyState = "idle" | "saving" | "testing" | "diagnosing" | "probing" | "starting" | "stopping" | "refreshing" | "activating" | "deactivating" | "removing";
 type ConfigurationMeta = Partial<Record<DigitalProvider, { configuredAt: string; configuredBy: string }>>;
 
 type SettingsDigitalTabProps = {
@@ -86,6 +86,10 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
     if (providerId === "intellibox3") return intellibox3Port.trim() || "21105";
     return cs3Port.trim() || "80";
   };
+
+  const providerPortDraft = (providerId: DigitalProvider) => ({
+    ecos: ecosPort, z21: z21Port, intellibox3: intellibox3Port, cs3: cs3Port
+  })[providerId];
 
   const providerInput = (providerId: DigitalProvider) => ({
     host: providerHost(providerId),
@@ -260,7 +264,7 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
     setProbeResult(null);
   };
 
-  const saveAdapter = () => {
+  const saveAdapter = async () => {
     if (!activeDialogProvider) return;
     if (!providerHost(activeDialogProvider)) {
       setDialogMessage(t("settings.digital.hostRequired"));
@@ -274,13 +278,20 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
         configuredBy: username
       }
     };
-    setProvider(savedProvider);
-    rememberSettings(savedProvider);
-    setConfigurationMeta(nextMeta);
-    window.localStorage.setItem(configurationMetaKey, JSON.stringify(nextMeta));
-    setLocomotiveSummary(null);
-    setMessage(t("settings.digital.saved"));
-    closeAdapter();
+    setBusy("saving");
+    setDialogMessage("");
+    try {
+      await persistSettings(currentDigitalSettings(savedProvider));
+      setConfigurationMeta(nextMeta);
+      window.localStorage.setItem(configurationMetaKey, JSON.stringify(nextMeta));
+      setLocomotiveSummary(null);
+      setMessage(t("settings.digital.saved"));
+      closeAdapter();
+    } catch (error) {
+      setDialogMessage(error instanceof Error ? error.message : t("settings.digital.error"));
+    } finally {
+      setBusy("idle");
+    }
   };
 
   const testConnection = async () => {
@@ -544,7 +555,7 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
                 <h2>{t("settings.digital.dialogTitle", { provider: providerLabel(activeDialogProvider) })}</h2>
                 <p>{t("settings.digital.dialogSubtitle")}</p>
               </div>
-              <button type="button" className="icon-button" onClick={closeAdapter} aria-label={t("vehicles.close")} title={t("vehicles.close")}>
+              <button type="button" className="icon-button" disabled={busy !== "idle"} onClick={closeAdapter} aria-label={t("vehicles.close")} title={t("vehicles.close")}>
                 <X size={18} />
               </button>
             </header>
@@ -561,6 +572,7 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
                   {activeDialogProvider ? t(`settings.digital.${activeDialogProvider}.host`) : t("settings.digital.ecos.host")}
                   <input
                     value={activeDialogProvider ? providerHost(activeDialogProvider) : ""}
+                    disabled={busy !== "idle"}
                     onChange={(event) => setActiveProviderHost(event.target.value)}
                     placeholder={activeDialogProvider ? t(`settings.digital.${activeDialogProvider}.hostPlaceholder`) : ""}
                   />
@@ -568,7 +580,8 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
                 <label>
                   {activeDialogProvider ? t(`settings.digital.${activeDialogProvider}.port`) : t("settings.digital.ecos.port")}
                   <input
-                    value={activeDialogProvider ? providerPort(activeDialogProvider) : ""}
+                    value={activeDialogProvider ? providerPortDraft(activeDialogProvider) : ""}
+                    disabled={busy !== "idle"}
                     onChange={(event) => setActiveProviderPort(event.target.value)}
                     inputMode="numeric"
                     placeholder={activeDialogProvider === "z21" || activeDialogProvider === "intellibox3" ? "21105" : activeDialogProvider === "cs3" ? "80" : "15471"}
@@ -576,7 +589,7 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
                 </label>
               </div>
 
-              {dialogMessage && <p className="form-message">{dialogMessage}</p>}
+              {dialogMessage && <p className="form-message" role="alert">{dialogMessage}</p>}
 
               {probeResult && (
                 <section className="digital-probe-panel">
@@ -673,9 +686,9 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
                 <RefreshCw size={16} />
                 {busy === "testing" ? t("settings.digital.testing") : t("settings.digital.test")}
               </button>
-              <button type="button" className="primary-button" onClick={saveAdapter} disabled={!dialogCanSave || !activeDialogProvider || !providerHost(activeDialogProvider)}>
+              <button type="button" className="primary-button" onClick={() => void saveAdapter()} disabled={busy !== "idle" || !dialogCanSave || !activeDialogProvider || !providerHost(activeDialogProvider)}>
                 <Save size={16} />
-                {t("settings.digital.save")}
+                {t(busy === "saving" ? "common.saving" : "settings.digital.save")}
               </button>
             </footer>
           </section>

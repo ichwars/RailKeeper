@@ -1,8 +1,8 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api, ExhibitionList, ExhibitionWorkspace, MasterDataEntry } from "../../shared/api";
+import { api, ApiError, ExhibitionList, ExhibitionWorkspace, MasterDataEntry } from "../../shared/api";
 import { ExhibitionView } from "./ExhibitionView";
 import { printFunctionChips } from "./exhibitionPrint";
 import * as exhibitionPrint from "./exhibitionPrint";
@@ -211,4 +211,119 @@ describe("Exhibition reference workspace", () => {
     expect(within(editDialog).getByRole("button", { name: "Funktion hinzufügen" })).toBeInTheDocument();
     expect(within(editDialog).queryByPlaceholderText("F0, F1, F2")).not.toBeInTheDocument();
   });
+});
+
+describe("exhibition mutation failures and retained input", () => {
+  beforeEach(() => {
+    vi.spyOn(api,"exhibitionLists").mockResolvedValue([list]);
+    vi.spyOn(api,"exhibitionWorkspace").mockResolvedValue(workspace);
+    vi.spyOn(api,"vehicles").mockResolvedValue([]);
+    vi.spyOn(api,"masterData").mockResolvedValue([]);
+    vi.spyOn(api,"masterDataAll").mockResolvedValue({});
+  });
+
+  it("retains edited event fields after a failed save and retries the original revision",async()=>{
+    const update=vi.spyOn(api,"updateExhibitionList").mockRejectedValueOnce(new Error("Event conflict")).mockResolvedValue(list);
+    const user=userEvent.setup();render(<ExhibitionView roles={["Admin"]}/>);
+    await screen.findByText("BR 103 113-7");
+    await user.click(screen.getByRole("button",{name:"Weitere Aktionen"}));
+    await user.click(screen.getByRole("button",{name:"Veranstaltung bearbeiten"}));
+    const dialog=screen.getByRole("dialog",{name:"Veranstaltung bearbeiten"});
+    for(const [label,value]of [["Bezeichnung","Updated event"],["Ort","Updated location"],["Beschreibung","Public details"],["Organisation (intern)","Keep internal details"]]) {
+      fireEvent.change(within(dialog).getByLabelText(label),{target:{value}});
+    }
+    fireEvent.change(within(dialog).getByLabelText("Beginn"),{target:{value:"2026-11-09"}});
+    fireEvent.blur(within(dialog).getByLabelText("Beginn"));
+    fireEvent.change(within(dialog).getByLabelText("Ende"),{target:{value:"2026-11-10"}});
+    fireEvent.blur(within(dialog).getByLabelText("Ende"));
+    fireEvent.submit(dialog);
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Event conflict");
+    expect(within(dialog).getByLabelText("Ort")).toHaveValue("Updated location");
+    fireEvent.submit(dialog);
+    await waitFor(()=>expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(update).toHaveBeenLastCalledWith(list.id,expect.objectContaining({designation:"Updated event",date:"2026-11-09",endDate:"2026-11-10",location:"Updated location",description:"Public details",organizationNotes:"Keep internal details",expectedRevision:4}));
+  });
+
+  it("shows a rejected entry save beside the retained guest input and never changes inventory",async()=>{
+    const save=vi.spyOn(api,"createExhibitionEntry").mockRejectedValueOnce(new Error("Entry conflict")).mockResolvedValue(workspace.entries[0]);
+    const user=userEvent.setup();render(<ExhibitionView roles={["Messe"]}/>);
+    await screen.findByText("BR 103 113-7");
+    await user.click(screen.getByRole("button",{name:"Eintrag hinzufügen"}));
+    const dialog=screen.getByRole("dialog",{name:"Eintrag hinzufügen"});
+    await user.type(within(dialog).getByLabelText("Besitzer"),"Guest owner");
+    await user.type(within(dialog).getByLabelText("Lok-Bezeichnung"),"Guest unit");
+    fireEvent.submit(dialog);
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Entry conflict");
+    expect(within(dialog).getByLabelText("Lok-Bezeichnung")).toHaveValue("Guest unit");
+    expect(api.vehicles).not.toHaveBeenCalled();
+    fireEvent.submit(dialog);
+    await waitFor(()=>expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(save).toHaveBeenLastCalledWith(list.id,expect.objectContaining({locomotiveName:"Guest unit",owner:"Guest owner"}));
+  });
+
+  it("retains a conflict reason after rejection and submits it against the unchanged list revision",async()=>{
+    const next={...workspace,conflicts:[{...workspace.conflicts[0],excepted:true,exceptionReason:"Reviewed reason"}]};
+    const save=vi.spyOn(api,"setExhibitionConflictException").mockRejectedValueOnce(new Error("Exception conflict")).mockResolvedValue(next);
+    const user=userEvent.setup();render(<ExhibitionView roles={["Messe"]}/>);
+    await screen.findByText("BR 103 113-7");
+    await user.click(screen.getByRole("button",{name:"Konflikte prüfen"}));
+    const dialog=screen.getByRole("dialog",{name:"Konflikte und Prüfungen"});
+    const reason=within(dialog).getByPlaceholderText("Begründung der Ausnahme");
+    await user.click(within(dialog).getByRole("button",{name:"Ausnahme speichern"}));
+    expect(save).not.toHaveBeenCalled();
+    await user.type(reason,"  Reviewed reason  ");
+    await user.click(within(dialog).getByRole("button",{name:"Ausnahme speichern"}));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Exception conflict");
+    expect(reason).toHaveValue("  Reviewed reason  ");
+    await user.click(within(dialog).getByRole("button",{name:"Ausnahme speichern"}));
+    await within(dialog).findByText(/Dokumentierte Ausnahme: Reviewed reason/);
+    expect(save).toHaveBeenLastCalledWith(list.id,"conflict-1","Reviewed reason",4);
+  });
+
+  it("keeps events and entries after failed deletion and respects cancelled confirmations",async()=>{
+    const remove=vi.spyOn(api,"deleteExhibitionList").mockRejectedValueOnce(new Error("Delete unavailable")).mockResolvedValue(undefined);
+    const confirm=vi.spyOn(window,"confirm").mockReturnValueOnce(false).mockReturnValue(true);
+    const user=userEvent.setup();render(<ExhibitionView roles={["Admin"]}/>);
+    await screen.findByText("BR 103 113-7");
+    await user.click(screen.getByRole("button",{name:"Weitere Aktionen"}));
+    const menu=screen.getByRole("button",{name:"Weitere Aktionen"}).parentElement!;
+    await user.click(within(menu).getByRole("button",{name:"Löschen"}));
+    expect(remove).not.toHaveBeenCalled();
+    await user.click(within(menu).getByRole("button",{name:"Löschen"}));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Delete unavailable");
+    expect(screen.getByText("BR 103 113-7")).toBeInTheDocument();
+    expect(confirm).toHaveBeenCalledTimes(2);
+  });
+
+  it("opens lock confirmation after a conflict response without silently confirming it",async()=>{
+    const change=vi.spyOn(api,"setExhibitionStatus").mockRejectedValueOnce(new ApiError("Conflicts","exhibition_conflicts",409)).mockResolvedValue({...list,status:"locked",locked:true});
+    const user=userEvent.setup();render(<ExhibitionView roles={["Admin"]}/>);
+    await screen.findByText("BR 103 113-7");
+    await user.click(screen.getByRole("button",{name:"Liste sperren"}));
+    const dialog=await screen.findByRole("dialog",{name:"Liste trotz Konflikten sperren?"});
+    expect(change).toHaveBeenCalledTimes(1);
+    await user.type(within(dialog).getByLabelText("Begründung"),"Explicit reason");
+    fireEvent.submit(dialog);
+    await waitFor(()=>expect(change).toHaveBeenLastCalledWith(list.id,{status:"locked",expectedRevision:4,reason:"Explicit reason",confirmConflicts:true}));
+  });
+  it("retains an edited entry when deletion is cancelled or rejected and closes only after confirmation", async () => {
+    const remove = vi.spyOn(api, "deleteExhibitionEntry").mockRejectedValueOnce(new Error("Entry delete unavailable")).mockResolvedValue(undefined);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValue(true);
+    const user = userEvent.setup(); render(<ExhibitionView roles={["Admin"]} />);
+    await screen.findByText("BR 103 113-7");
+    await user.click(screen.getByRole("button", { name: "BR 103 113-7 bearbeiten" }));
+    const dialog = screen.getByRole("dialog", { name: "Eintrag bearbeiten" });
+    await user.type(within(dialog).getByLabelText("Besitzer"), " retained draft");
+    await user.click(within(dialog).getByRole("button", { name: "Löschen" }));
+    expect(remove).not.toHaveBeenCalled();
+    expect(dialog).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Löschen" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Entry delete unavailable");
+    expect(within(dialog).getByLabelText("Besitzer")).toHaveValue("Michael Weber retained draft");
+    await user.click(within(dialog).getByRole("button", { name: "Löschen" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(confirm).toHaveBeenCalledTimes(3);
+    expect(remove).toHaveBeenLastCalledWith(list.id, "entry-1");
+  });
+
 });
