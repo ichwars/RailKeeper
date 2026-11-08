@@ -48,6 +48,10 @@ Für das Heimnetz oder einen Reverse Proxy muss der Betreiber die Erreichbarkeit
 | `RAILKEEPER_DATA_DIR` | Dauerhafter Datenordner; kein austauschbarer Programmordner |
 | `RAILKEEPER_PUBLIC_URL` | Adresse, unter der Benutzer RailKeeper erreichen, auch für Rücksetzlinks |
 | `RAILKEEPER_COOKIE_SECURE` | Standard `auto`: sichere Cookies bei konfigurierter öffentlicher HTTPS-URL; `true`/`false` bleiben explizite Vorgaben |
+| `RAILKEEPER_LOGIN_PARALLEL` | Aktive Passwortprüfungen, Standard 2, Bereich 1–4; je Vorgang bis 256 MiB einplanen |
+| `RAILKEEPER_LOGIN_QUEUE` | Begrenzte Warteplätze, Standard 8, Bereich 0–64 |
+| `RAILKEEPER_LOGIN_WAIT_MS` | Maximale Wartezeit, Standard 1000 ms, Bereich 0–2000; 0 weist sofort ab |
+| `RAILKEEPER_LOGIN_MEMORY_MB` | Budget aktiver Passwortarbeit, Standard 512 MiB, Bereich 256–1024; mindestens Parallelität × 256, zuzüglich Prozess-/GC-Reserve |
 | `RAILKEEPER_TRUSTED_PROXY_CIDRS` | Nur die eigenen vertrauenswürdigen Proxy-Netze |
 
 Die vollständige Konfiguration mit TLS, Uploadgrenzen, SMTP, OCR und Druckern steht im [Betriebshandbuch](https://github.com/ichwars/RailKeeper/blob/main/docs/production-runbook.md). Danach: [erstes Fahrzeug](../guide/quick-start) und [Sicherung](backup-restore).

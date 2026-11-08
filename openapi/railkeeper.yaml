@@ -5464,6 +5464,7 @@ paths:
           description: IP or account login budget exhausted, or password verification is busy
           headers:
             Retry-After:
+              description: Suggested delay in seconds; 1 for busy password work, 300 for the login attempt window.
               schema:
                 type: string
           content:

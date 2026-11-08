@@ -94,3 +94,16 @@ R9 qualifies Linux, native Windows and AMD64/ARM64 images for one selected final
 An isolated restore and the synthetic valuation/decoder workflows precede the KI update.
 Retain protected full installation backups outside Git and verify configuration, database
 integrity, original rows/files, build identity and protected routes after cutover.
+
+## Bounded login work (R1)
+
+Login work retains two active operations by default, with at most eight queued
+requests and a one-second wait. Deployment flags are validated before startup;
+invalid or insufficient password-memory budgets fail explicitly. Cancellation
+never frees an active derivation early. A full queue responds with HTTP 429 and
+`Retry-After: 1`; the five-minute account budget remains unchanged.
+
+The real-Argon2 burst and repeated maximum-memory tests exercise queue recovery
+and the accepted 256-MiB hash limit. Resource measurements inform installation
+sizing; the password-work budget is not a process RSS cap. See the
+[operator configuration](production-runbook.md#begrenzte-passwortprüfung).

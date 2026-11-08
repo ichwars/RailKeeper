@@ -81,6 +81,12 @@ func main() {
 	trustedProxyCIDRs := envList("RAILKEEPER_TRUSTED_PROXY_CIDRS")
 	bugReports := bugReportOptionsFromLookup(os.LookupEnv)
 
+	loginWork, err := startup.ResolveLoginWorkLimiter(os.LookupEnv)
+	if err != nil {
+		logger.Error("login resource configuration failed", "error", err)
+		os.Exit(1)
+	}
+
 	listener, appURL, err := listen(addr, standalone)
 	if err != nil {
 		logger.Error("server listen failed", "error", err, "addr", addr)
@@ -122,6 +128,7 @@ func main() {
 			PublicURL:                   publicURL,
 			CookieSecure:                cookieSecure,
 			BugReports:                  bugReports,
+			LoginWork:                   loginWork,
 		}),
 	)
 	if err != nil {

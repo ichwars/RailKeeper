@@ -48,6 +48,10 @@ The operator must configure network or reverse-proxy access explicitly. Use HTTP
 | `RAILKEEPER_DATA_DIR` | Persistent data folder, outside replaceable application files |
 | `RAILKEEPER_PUBLIC_URL` | User-facing address, also used for password-reset links |
 | `RAILKEEPER_COOKIE_SECURE` | Default `auto`: secure cookies for a configured public HTTPS URL; `true`/`false` remain explicit overrides |
+| `RAILKEEPER_LOGIN_PARALLEL` | Active password operations, default 2, range 1–4; allow up to 256 MiB per operation |
+| `RAILKEEPER_LOGIN_QUEUE` | Bounded waiting slots, default 8, range 0–64 |
+| `RAILKEEPER_LOGIN_WAIT_MS` | Maximum wait, default 1000 ms, range 0–2000; 0 rejects immediately |
+| `RAILKEEPER_LOGIN_MEMORY_MB` | Active password-work budget, default 512 MiB, range 256–1024; at least parallelism × 256, plus process/GC headroom |
 | `RAILKEEPER_TRUSTED_PROXY_CIDRS` | Only your own trusted proxy networks |
 
 The full configuration for TLS, upload limits, SMTP, OCR and printers is in the [production runbook](https://github.com/ichwars/RailKeeper/blob/main/docs/production-runbook.md). Next: [your first vehicle](../guide/quick-start) and [backups](backup-restore).

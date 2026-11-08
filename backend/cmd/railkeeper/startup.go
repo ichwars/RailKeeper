@@ -13,6 +13,7 @@ import (
 
 	"railkeeper/backend/internal/api"
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/authentication"
 	backupmodel "railkeeper/backend/internal/backup"
 	"railkeeper/backend/internal/infrastructure"
 	"railkeeper/backend/internal/infrastructure/authdata"
@@ -81,6 +82,7 @@ type applicationHandlerOptions struct {
 	PublicURL                   string
 	CookieSecure                bool
 	BugReports                  bugReportOptions
+	LoginWork                   *authentication.WorkLimiter
 }
 
 func prepareStartup(
@@ -230,7 +232,8 @@ func buildApplicationHandler(
 	}
 
 	accessoryRepository := infrastructure.NewAccessoryRepository(database)
-	authService := application.NewAuthService(database, application.WithLoginStore(authdata.NewStore(database)))
+	authService := application.NewAuthService(database, application.WithLoginStore(authdata.NewStore(database)),
+		application.WithLoginWorkLimiter(options.LoginWork))
 	setupService := application.NewSetupService(database)
 	setupRequired, err := setupService.SetupRequired(ctx)
 	if err != nil {
