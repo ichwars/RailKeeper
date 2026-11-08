@@ -10,6 +10,7 @@ responsibility.
 - `authentication`: independent login and account/session/reset/2FA decisions behind typed ports
 - `valuation`: exact manual valuation rules behind a transactional storage port
 - `transfer`: shared exchange contracts, compatibility encoding and preview identities
+- `inventory/numbering`, `inventory/money`, `inventory/overview`: numbering and collection-value rules behind typed storage ports
 - `ecosmodel`: pure ECoS read projections, comparison plans and copied telemetry records
 - `backup`: backup format, compatibility checks and restore orchestration behind storage/rule ports
 - `decoder`: physical decoder/installation and CV identity, scope, conflict and partial-state rules
@@ -21,6 +22,8 @@ The first independent login slice, its compatibility facade and explicit transac
 are described in [authentication boundaries](architecture/authentication-boundaries.md).
 The independent [transfer contracts](architecture/transfer-boundaries.md) keep storage adapters
 from depending on application-owned transport models. Compatibility aliases preserve callers.
+The [inventory boundaries](architecture/inventory-boundaries.md) preserve numbering transaction
+ownership and recorded collection prices while separating those rules from SQLite.
 The [ECoS boundary](architecture/ecos-boundaries.md) separates protocol decisions from the
 existing connection, monitoring and explicitly confirmed transport operations.
 The [backup boundary](architecture/backup-boundaries.md) separates format checks, domain validation,

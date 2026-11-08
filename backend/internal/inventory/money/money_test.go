@@ -1,4 +1,4 @@
-package application
+package money
 
 import (
 	"math"
@@ -27,7 +27,7 @@ func TestParseMoneyCents(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
-			cents, ok := parseMoneyCents(test.input)
+			cents, ok := ParseCents(test.input)
 			if cents != test.cents || ok != test.ok {
 				t.Fatalf("parseMoneyCents(%q) = (%d, %t), want (%d, %t)",
 					test.input, cents, ok, test.cents, test.ok)
@@ -42,29 +42,29 @@ func TestParseVehicleMoneyCentsAcceptsEuroDecorations(t *testing.T) {
 		"EUR 129":    12900,
 		"€ 1.299,90": 129990,
 	} {
-		if got, ok := parseVehicleMoneyCents(input); !ok || got != want {
+		if got, ok := ParseVehicleCents(input); !ok || got != want {
 			t.Fatalf("parseVehicleMoneyCents(%q) = (%d, %t), want (%d, true)", input, got, ok, want)
 		}
 	}
 }
 
 func TestFormatMoneyCents(t *testing.T) {
-	if got := formatMoneyCents(0); got != "0.00" {
+	if got := FormatCents(0); got != "0.00" {
 		t.Fatalf("formatMoneyCents(0) = %q", got)
 	}
-	if got := formatMoneyCents(129990); got != "1299.90" {
+	if got := FormatCents(129990); got != "1299.90" {
 		t.Fatalf("formatMoneyCents(129990) = %q", got)
 	}
 }
 
 func TestMoneyArithmeticRejectsOverflow(t *testing.T) {
-	if _, ok := parseMoneyCents("92233720368547758.08"); ok {
+	if _, ok := ParseCents("92233720368547758.08"); ok {
 		t.Fatal("expected parser overflow to be rejected")
 	}
-	if _, err := checkedMoneyMultiply(math.MaxInt64, 2); err == nil {
+	if _, err := CheckedMultiply(math.MaxInt64, 2); err == nil {
 		t.Fatal("expected multiplication overflow")
 	}
-	if _, err := checkedMoneyAdd(math.MaxInt64, 1); err == nil {
+	if _, err := CheckedAdd(math.MaxInt64, 1); err == nil {
 		t.Fatal("expected addition overflow")
 	}
 }

@@ -18,6 +18,11 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 		"valuation":                    {},
 		"transfer":                     {"domain", "transfer", "transfer/policy", "transfer/workflow", "credentials"},
 		"infrastructure/transferfiles": {"transfer", "transfer/workflow", "credentials"},
+		"inventory/numbering":          {},
+		"inventory/money":              {},
+		"inventory/overview":           {"inventory/money"},
+		"infrastructure/numberingdata": {"inventory/numbering", "credentials"},
+		"infrastructure/overviewdata":  {"inventory/overview"},
 		"decoder":                      {"revision"},
 		"revision":                     {},
 		"buildinfo":                    {},
@@ -56,7 +61,7 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 							t.Errorf("%s imports forbidden module %s", path, name)
 						}
 					}
-					if module == "authentication" || module == "credentials" || module == "valuation" || module == "transfer" || module == "decoder" || module == "revision" || module == "buildinfo" || module == "ecosmodel" || module == "backup" {
+					if strings.HasPrefix(module, "inventory/") || module == "authentication" || module == "credentials" || module == "valuation" || module == "transfer" || module == "decoder" || module == "revision" || module == "buildinfo" || module == "ecosmodel" || module == "backup" {
 						if strings.HasPrefix(name, "database/") || name == "os" || strings.HasPrefix(name, "os/") || name == "io/fs" || (name == "path/filepath" && module != "backup") ||
 							(strings.HasPrefix(name, "net/") && (module != "authentication" || name != "net/url")) || strings.HasPrefix(name, "modernc.org/") {
 							t.Errorf("%s imports a transport or persistence dependency: %s", path, name)
