@@ -4,19 +4,7 @@ import (
 	"railkeeper/backend/internal/decoder"
 )
 
-func cleanVehicleCVValueInput(input VehicleCVValueInput) VehicleCVValueInput {
-	return decoder.CleanCVValueInput(input)
-}
-
-func isValidVehicleCVValueInput(input VehicleCVValueInput) bool {
-	return decoder.ValidCVValueInput(input)
-}
-
 func validCVExportTimestamp(value string) bool { return decoder.ValidCVExportTimestamp(value) }
-
-func cleanVehicleCVFileInput(input VehicleCVFileInput) VehicleCVFileInput {
-	return decoder.CleanCVFileInput(input)
-}
 
 func validCVNumber(value int) bool { return decoder.ValidCVNumber(value) }
 

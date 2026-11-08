@@ -16,10 +16,6 @@ var (
 
 func vehicleImagesRevision(images []VehicleImage) string { return vehiclemodel.ImagesRevision(images) }
 
-func checkVehicleRevision(actual string, expected *string, conflict error) error {
-	return vehiclemodel.CheckRevision(actual, expected, conflict)
-}
-
 func (s *VehicleService) cleanupLocalizedVehicleImages(ctx context.Context, images []VehicleImageInput) {
 	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
