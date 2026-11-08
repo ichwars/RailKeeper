@@ -105,45 +105,6 @@
     "stage": "R5c"
   },
   {
-    "file": "vehicle_cv_changes.go",
-    "calls": 3,
-    "transactions": [
-      "beginVehicleCVWrite"
-    ],
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
-    "file": "vehicle_cv_file_reads.go",
-    "calls": 1,
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
-    "file": "vehicle_cv_import.go",
-    "calls": 1,
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
-    "file": "vehicle_cv_service.go",
-    "calls": 6,
-    "transactions": [
-      "DeleteCVFileCompared"
-    ],
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
-    "file": "vehicle_ecos_cvs.go",
-    "calls": 3,
-    "transactions": [
-      "ImportECoSStoredCVs"
-    ],
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
     "file": "vehicle_ecos_profile.go",
     "calls": 1,
     "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
