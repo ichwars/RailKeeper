@@ -72,3 +72,19 @@ Einrichtung verbraucht. Bereits eingerichtete Installationen behalten ihre Anmel
 Prüfe danach die Anmeldung und unter **Einstellungen > Allgemein > Speichernutzung** den Datenpfad.
 
 [Konten und Zwei-Faktor-Anmeldung einrichten](account-security-example) · [SMTP und Rücksetzlinks](smtp-password-reset) · [Update-Schrittfolge](system-operations).
+
+## Anmeldeverfügbarkeit und Browserbelege
+
+Nach vollständiger Anmeldung erhält der Browser einen zufälligen, HttpOnly-geschützten
+Beleg für ein eigenes Anmeldebudget (höchstens 30 Tage, zehn Browser pro Konto).
+Passwort und gegebenenfalls Zwei-Faktor-Code bleiben bei jeder Anmeldung erforderlich.
+Unbekannte Browser teilen das bisherige Kontobudget von zehn Versuchen in fünf Minuten.
+Ein unbekannter Angreifer kann das eigene Budget eines bekannten Browsers nicht verbrauchen.
+IP-Limit und globale Kapazitätsgrenzen gelten weiterhin, auch bei gemeinsamer NAT-Adresse.
+
+Unter **Einstellungen → Authentifizierung → Benutzerverwaltung → Anmeldung freigeben** kann
+ein angemeldeter Administrator die Kontobudgets zurücksetzen und Browserbelege widerrufen.
+Die Aktion wird protokolliert; Passwort, Zwei-Faktor-Schutz und bestehende Sitzungen bleiben
+erhalten. Konto-, Passwort-, Rollen- und Zwei-Faktor-Änderungen widerrufen die Belege ebenfalls.
+App-Backups enthalten diese lokalen Authentifizierungsdaten nicht. Neue Browser und
+andauernde Überlast bleiben durch die vorhandenen Limits begrenzt.

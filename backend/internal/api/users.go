@@ -66,6 +66,8 @@ func (a *App) deleteUser(w http.ResponseWriter, r *http.Request) {
 
 func handleUserError(a *App, w http.ResponseWriter, err error, code, message string) {
 	switch {
+	case errors.Is(err, application.ErrForbidden):
+		respondProblem(w, http.StatusForbidden, "forbidden", "Administrator permission is required.")
 	case errors.Is(err, application.ErrUserValidation):
 		respondProblem(w, http.StatusBadRequest, "user_validation", "Benutzername, gueltige E-Mail, Rollen und ein Passwort mit mindestens 12 Zeichen sind erforderlich.")
 	case errors.Is(err, application.ErrDuplicateUser):
@@ -78,4 +80,12 @@ func handleUserError(a *App, w http.ResponseWriter, err error, code, message str
 		a.logger.Error(message, "error", err)
 		respondProblem(w, http.StatusInternalServerError, code, message)
 	}
+}
+
+func (a *App) resetUserLoginBudget(w http.ResponseWriter, r *http.Request) {
+	if err := a.authService.ResetLoginBudget(r.Context(), actorUserID(r), r.PathValue("id")); err != nil {
+		handleUserError(a, w, err, "login_budget_reset_failed", "Anmeldung konnte nicht freigegeben werden.")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

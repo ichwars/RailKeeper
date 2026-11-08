@@ -66,6 +66,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodPost, "/api/v1/users", routeAccessAdmin, (*App).createUser, nil},
 		{http.MethodPut, "/api/v1/users/{id}", routeAccessAdmin, (*App).updateUser, nil},
 		{http.MethodDelete, "/api/v1/users/{id}", routeAccessAdmin, (*App).deleteUser, nil},
+		{http.MethodPost, "/api/v1/users/{id}/login-budget/reset", routeAccessAdmin, (*App).resetUserLoginBudget, nil},
 		{http.MethodGet, "/api/v1/sessions", routeAccessAdmin, (*App).listSessions, nil},
 		{http.MethodPut, "/api/v1/sessions/{id}/revoke", routeAccessAdmin, (*App).revokeSession, nil},
 		{http.MethodPost, "/api/v1/ecos/test", routeAccessAdmin, (*App).testECoSConnection, nil},

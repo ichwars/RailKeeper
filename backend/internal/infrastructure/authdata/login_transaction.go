@@ -48,6 +48,11 @@ WHERE id=? AND (two_factor_last_step IS NULL OR two_factor_last_step<?)`,
 		}
 	}
 	now := proof.Now.UTC().Format(time.RFC3339)
+	if proof.Origin != nil {
+		if err := saveOrigin(ctx, tx, *proof.Origin, now); err != nil {
+			return err
+		}
+	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO sessions(id,user_id,token_hash,csrf_token,expires_at,created_at)
 VALUES(?,?,?,?,?,?)`, credentials.RandomID(), proof.Account.ID, credentials.HashToken(proof.Session.SessionToken), proof.Session.CSRFToken,
 		proof.Session.ExpiresAt.UTC().Format(time.RFC3339), now); err != nil {
@@ -57,8 +62,11 @@ VALUES(?,?,?,?,?,?)`, credentials.RandomID(), proof.Account.ID, credentials.Hash
 VALUES(?,?,'Login','user',?,?,'{}')`, credentials.RandomID(), proof.Account.ID, proof.Account.ID, now); err != nil {
 		return fmt.Errorf("write audit log: %w", err)
 	}
+	if proof.AttemptScope == "" {
+		proof.AttemptScope = authentication.AccountBudgetScope
+	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM rate_limit_attempts WHERE scope=? AND key=?`,
-		authentication.AccountBudgetScope, proof.AttemptKey); err != nil {
+		proof.AttemptScope, proof.AttemptKey); err != nil {
 		return fmt.Errorf("reset successful login budget: %w", err)
 	}
 	if err := tx.Commit(); err != nil {

@@ -107,3 +107,30 @@ The real-Argon2 burst and repeated maximum-memory tests exercise queue recovery
 and the accepted 256-MiB hash limit. Resource measurements inform installation
 sizing; the password-work budget is not a process RSS cap. See the
 [operator configuration](production-runbook.md#begrenzte-passwortprüfung).
+
+## Recognized browser budgets (R2)
+
+An opaque random 256-bit browser token is issued only with a committed, complete
+password and second-factor login. A per-account HttpOnly/SameSite cookie follows
+the installation's Secure policy and expires after thirty days. SQLite stores
+only token hashes, account-bound budget keys and a credential-state fingerprint;
+at most ten browsers per account are retained. These auth-only records are never
+part of application backups. Restore preserves the target installation's auth.
+
+Unknown origins retain the ten-attempt/five-minute account budget. A recognized
+browser uses an independent ten-attempt budget and does not clear an attacker's
+unknown-origin window. One queue slot is reserved when there are at least two;
+mixed queued classes alternate with FIFO order within each class. Recognition
+lookups have separate bounded concurrency and a one-second deadline. All origins
+still require the password and any second factor and obey IP/global work limits.
+
+Credential and role changes revoke proofs. TOTP consumption alone does not.
+An authenticated administrator can reset a user's budgets and revoke proofs in
+one CSRF-protected, audited transaction. Existing passwords and sessions survive.
+
+Threat limits: a new browser has no protected proof until a complete login.
+Shared NAT can still exhaust the unchanged IP limit. A stolen proof can consume
+its own protected budget but cannot authenticate; distributed sustained overload
+can still exhaust global capacity. Recovery requires an existing admin session,
+another permitted origin, or expiry of the five-minute window. Independent human
+security review remains part of R10, alongside the documented automated checks.

@@ -212,6 +212,23 @@ export function useSettingsAuth({ username, activeSettingsTab, requestConfirmati
     });
   };
 
+  const resetLoginBudget = (user: UserAccount) => {
+    requestConfirmation({
+      title: t("settings.users.unlockLogin"),
+      body: t("settings.users.unlockLoginConfirm", { username: user.username }),
+      confirmLabel: t("settings.users.unlockLogin"),
+      onConfirm: () => {
+        setAuthMessage("");
+        api.resetLoginBudget(user.id)
+          .then(() => {
+            setAuthMessage(t("settings.users.loginUnlocked"));
+            loadAuditLog();
+          })
+          .catch((error: Error) => setAuthMessage(error.message));
+      }
+    });
+  };
+
   const smtp = useSettingsSMTP();
   const { loadSMTPSettings } = smtp;
   const twoFactor = useSettingsTwoFactor({
@@ -286,6 +303,7 @@ export function useSettingsAuth({ username, activeSettingsTab, requestConfirmati
     toggleUserRole,
     saveUser,
     deleteUser,
+    resetLoginBudget,
     ...smtp,
     ...twoFactor
   };

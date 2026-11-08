@@ -6132,6 +6132,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /users/{id}/login-budget/reset:
+    post:
+      tags: [Users]
+      summary: Reset login budgets and revoke remembered browser proofs
+      description: Admin-only, CSRF-protected and audited. Password, second factor, sessions and IP limits remain active.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Login budgets reset and browser proofs revoked
+        "403":
+          description: Admin role and valid CSRF token required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /sessions:
     get:
       tags: [Users]

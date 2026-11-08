@@ -73,12 +73,12 @@ func TestConfiguredCookieSecurityControlsActualSessionCookie(t *testing.T) {
 				t.Fatalf("login status=%d", response.Code)
 			}
 			cookies := response.Result().Cookies()
-			if len(cookies) != 2 {
-				t.Fatal("login must set the session and CSRF cookies")
+			if len(cookies) != 3 {
+				t.Fatal("login must set session, CSRF and browser-proof cookies")
 			}
 			for _, cookie := range cookies {
-				if (cookie.Name != "rk_session" && cookie.Name != "rk_csrf") || cookie.Secure != test.secure ||
-					cookie.HttpOnly != (cookie.Name == "rk_session") || cookie.SameSite != http.SameSiteLaxMode {
+				if (cookie.Name != "rk_session" && cookie.Name != "rk_csrf" && cookie.Name != loginOriginCookieName("admin")) || cookie.Secure != test.secure ||
+					cookie.HttpOnly != (cookie.Name != "rk_csrf") || cookie.SameSite != http.SameSiteLaxMode {
 					t.Fatal("actual cookie attributes do not match the configured policy")
 				}
 			}

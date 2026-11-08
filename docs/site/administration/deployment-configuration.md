@@ -72,3 +72,17 @@ keep their sign-in. After setup, verify sign-in and the data path under
 **Settings > General > Storage usage**.
 
 [Set up accounts and two-factor sign-in](account-security-example) · [SMTP and reset links](smtp-password-reset) · [Update walkthrough](system-operations).
+
+## Login availability and browser proofs
+
+After a complete login, the browser receives a random HttpOnly proof for an independent
+login-attempt budget (up to 30 days, ten browsers per account). Password and any required
+second factor remain mandatory on every login. Unknown browsers share the existing
+ten-attempt/five-minute account budget. Unknown attackers cannot spend a recognized
+browser's own budget. IP and global capacity limits still apply, including shared NAT.
+
+Under **Settings → Authentication → User management → Unlock login**, an authenticated admin
+can reset account budgets and revoke remembered browser proofs. The action is audited;
+password, second-factor protection and existing sessions remain intact. Account, password,
+role and second-factor changes also revoke proofs. Application backups exclude these
+local authentication records. New browsers and sustained overload remain subject to limits.
