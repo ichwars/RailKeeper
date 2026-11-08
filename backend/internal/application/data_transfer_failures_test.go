@@ -239,3 +239,21 @@ func TestDataTransferQueriesDoNotReportPartialResultsOnReadFailure(t *testing.T)
 		})
 	}
 }
+
+func TestDataTransferFolderDoesNotInvokePlatformOpenerForBlockedPath(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "exports")
+	if err := os.WriteFile(path, []byte("existing entry"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	called := false
+	service := NewDataTransferService(nil, directory, WithDataTransferFolderOpener(true,
+		func(context.Context, string) error { called = true; return nil }))
+	if err := service.OpenArtifactFolder(t.Context()); err == nil || called {
+		t.Fatal("blocked export path reached the platform opener", err)
+	}
+	content, err := os.ReadFile(path)
+	if err != nil || string(content) != "existing entry" {
+		t.Fatal("folder action changed an existing entry", err)
+	}
+}
