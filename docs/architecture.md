@@ -96,6 +96,14 @@ Separate completion ports retain the existing response subsets and order after c
 separately inventoried decoder/CV enrichment. No application models are imported by these adapters.
 Canonical records and compatible public aliases preserve response and stored values.
 
+Vehicle deletion keeps membership cleanup, cascading rows and its audit in one transaction behind
+its own narrow port. Exhibition expiry retains the existing two-step behavior and SQLite local-date
+rules. A failed legacy step can be retried without rewriting timestamps of already-reset vehicles.
+The application SQL ratchet distinguishes a directly inferred `net/url.URL.Query` from SQL;
+the original URL-parameter candidate was not a persistence call. Real SQL on other or shadowed
+receivers remains counted. Concrete vehicle lifecycle, set, numbering, catalog and workshop SQL is owned by focused
+storage adapters. Separately inventoried decoder and seed work remains explicit.
+
 CV writes similarly use caller-owned transactions through `vehicledata`. The additive
 [atomic CV changes API](architecture/cv-drafts.md) supports bounded manual batches, exact profile/index
 identity checks and computed row revisions. Existing single-value and import routes share the writer;

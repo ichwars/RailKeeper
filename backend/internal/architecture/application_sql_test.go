@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -49,22 +50,7 @@ func TestApplicationSQLMigrationCannotRegress(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		calls := 0
-		ast.Inspect(file, func(node ast.Node) bool {
-			call, ok := node.(*ast.CallExpr)
-			if !ok {
-				return true
-			}
-			selector, ok := call.Fun.(*ast.SelectorExpr)
-			if !ok {
-				return true
-			}
-			switch selector.Sel.Name {
-			case "Exec", "ExecContext", "Query", "QueryContext", "QueryRow", "QueryRowContext", "Prepare", "PrepareContext", "Begin", "BeginTx":
-				calls++
-			}
-			return true
-		})
+		calls := applicationSQLCalls(file)
 		name, err := filepath.Rel(root, path)
 		if err != nil {
 			return err
@@ -84,4 +70,69 @@ func TestApplicationSQLMigrationCannotRegress(t *testing.T) {
 	for name := range baseline {
 		t.Errorf("remove completed SQL migration entry %s", name)
 	}
+}
+
+func applicationSQLCalls(file *ast.File) int {
+	calls := 0
+	ast.Inspect(file, func(node ast.Node) bool {
+		call, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		selector, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		switch selector.Sel.Name {
+		case "Exec", "ExecContext", "Query", "QueryContext", "QueryRow", "QueryRowContext", "Prepare", "PrepareContext", "Begin", "BeginTx":
+			if selector.Sel.Name != "Query" || !isParsedURLQuery(file, selector) {
+				calls++
+			}
+		}
+		return true
+	})
+	return calls
+}
+
+// A direct short declaration from net/url.Parse infers *url.URL. Its Query method
+// reads URL parameters. Object identity keeps SQL calls on shadowed names counted.
+func isParsedURLQuery(file *ast.File, selector *ast.SelectorExpr) bool {
+	receiver, ok := selector.X.(*ast.Ident)
+	if !ok || receiver.Obj == nil {
+		return false
+	}
+	assignment, ok := receiver.Obj.Decl.(*ast.AssignStmt)
+	if !ok || assignment.Tok != token.DEFINE || len(assignment.Rhs) != 1 || len(assignment.Lhs) == 0 {
+		return false
+	}
+	first, ok := assignment.Lhs[0].(*ast.Ident)
+	if !ok || first.Obj != receiver.Obj {
+		return false
+	}
+	parsed, ok := assignment.Rhs[0].(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	parse, ok := parsed.Fun.(*ast.SelectorExpr)
+	if !ok || parse.Sel.Name != "Parse" {
+		return false
+	}
+	imported, ok := parse.X.(*ast.Ident)
+	if !ok || imported.Obj != nil {
+		return false
+	}
+	for _, entry := range file.Imports {
+		path, err := strconv.Unquote(entry.Path.Value)
+		if err != nil || path != "net/url" {
+			continue
+		}
+		name := "url"
+		if entry.Name != nil {
+			name = entry.Name.Name
+		}
+		if name == imported.Name {
+			return true
+		}
+	}
+	return false
 }

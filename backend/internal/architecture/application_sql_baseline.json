@@ -1,11 +1,5 @@
 [
   {
-    "file": "article_search_descriptions.go",
-    "calls": 1,
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
     "file": "backup_article_inventory_numbers.go",
     "calls": 3,
     "owner": "backupdata.Store.Restore: same restore transaction and staged file activation",
