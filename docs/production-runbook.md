@@ -197,9 +197,10 @@ Nachher:
 Rückweg:
 
 Ein altes Image ist nach einer Migration kein belegter verlustfreier Rückweg. Starte es nicht
-ungeprüft auf der aktuellen Datenbank. Schema 80 und App-Backupformat 28 enthalten unter anderem
-Decoderexemplare, Einbauzeiträume, unveränderliche CV-Teilstände und manuelle Bewertungsverläufe.
-Schema 78/79 ergänzen private Anmeldeschutzdaten, die nicht in App-Backups gehören. Ältere Modelle können diese
+ungeprüft auf der aktuellen Datenbank. Ab Schema 80 und App-Backupformat 28 gehören unter anderem
+Decoderexemplare, Einbauzeiträume, unveränderliche CV-Teilstände und manuelle Bewertungsverläufe zum Bestand.
+Schema 81 ergänzt private Browserbelege zur fairen Anmeldebegrenzung. Diese bleiben wie die
+Anmeldeschutzdaten aus Schema 78/79 ausschließlich in der Installationssicherung. Ältere Modelle können diese
 Angaben nicht vollständig ausdrücken. Die Formatnummer einer Sicherung darf nicht herabgesetzt werden.
 
 | Situation | Vorgehen |

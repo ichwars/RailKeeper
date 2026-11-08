@@ -1,131 +1,28 @@
-<p align="center">
-  <img src="frontend/public/brand/railkeeper-mark.png" alt="RailKeeper" width="128">
-</p>
+# RailKeeper
 
-<h1 align="center">RailKeeper</h1>
+Deine Modellbahnsammlung lokal verwalten: Fahrzeuge und Sets, Bilder, Dokumente,
+Wartung, Zubehör, Wertentwicklung und Decoder/CV. RailKeeper läuft auf Windows
+oder mit Docker auf deinem eigenen Server. Eine Zentrale ist dafür nicht erforderlich.
 
-<p align="center">
-  Deine Modellbahnsammlung an einem Ort. Lokal auf deinem Rechner oder Heimserver.
-</p>
+[Download](https://github.com/ichwars/RailKeeper/releases/latest) ·
+[Handbuch](https://ichwars.github.io/RailKeeper/de/guide/) ·
+[Beispieldaten ausprobieren](https://ichwars.github.io/RailKeeper/de/try) ·
+[English](#english)
 
-<p align="center">
-  <a href="https://github.com/ichwars/RailKeeper/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/ichwars/RailKeeper?style=for-the-badge"></a>
-  <a href="https://github.com/ichwars/RailKeeper/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ichwars/RailKeeper/ci.yml?branch=main&style=for-the-badge"></a>
-  <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white">
-  <a href="LICENSE.md"><img alt="Lizenz" src="https://img.shields.io/badge/License-AGPL--3.0--only-7AC943?style=for-the-badge"></a>
-  <a href="https://github.com/ichwars/RailKeeper/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/ichwars/RailKeeper/total?style=for-the-badge"></a>
-</p>
+## Start unter Windows
 
-<p align="center">
-  <a href="README.md">English</a> · <strong>Deutsch</strong> ·
-  <a href="https://ichwars.github.io/RailKeeper/de/">Dokumentation</a>
-</p>
+1. Das Windows-x64-ZIP aus dem [aktuellen Release](https://github.com/ichwars/RailKeeper/releases/latest)
+   vollständig in einen eigenen Programmordner entpacken.
+2. `start-railkeeper.bat` starten. Den lokalen Einrichtungscode aus
+   `%LOCALAPPDATA%\RailKeeper\data\setup-code.txt` verwenden und das eigene Administratorkonto anlegen.
+3. Die aktiven Daten liegen standardmäßig unter `%LOCALAPPDATA%\RailKeeper\data`.
 
-<p align="center">
-  <a href="https://github.com/ichwars/RailKeeper/releases/latest">Für Windows herunterladen</a> ·
-  <a href="https://ichwars.github.io/RailKeeper/de/try#docker">Mit Docker starten</a> ·
-  <a href="https://ichwars.github.io/RailKeeper/de/try#beispieldaten">Mit Beispieldaten ausprobieren</a>
-</p>
+Vor einem Update sichern und RailKeeper schließen. Das neue ZIP in einen neuen
+Programmordner entpacken, starten und den angezeigten Datenpfad und Bestand prüfen.
+Der Download in RailKeeper installiert oder ersetzt keine Dateien automatisch.
+[Details und ältere Datenordner](docs/project-overview.de.md#windows-standalone-ohne-installation).
 
-## Überblick
-
-RailKeeper bringt deine Modellbahnsammlung zusammen: Fahrzeuge, Bilder, Unterlagen,
-Wartung und Decoderdaten an einem Ort. Du kannst mit einer einzelnen Lok anfangen oder
-vorhandene Tabellen mit Vorschau importieren. Für die Bestandsverwaltung brauchst du keine Digitalzentrale.
-
-- **Den Bestand wiederfinden:** Loks, Wagen und Sets durchsuchen und ihre Daten nachschlagen.
-- **Unterlagen am Fahrzeug:** Bilder, Anleitungen und Beilagen beim passenden Modell ablegen.
-- **Wartung im Blick:** Reinigung, Reparaturen und Umbauten mit ihrem Verlauf dokumentieren.
-
-Der [Tester-Einstieg](https://ichwars.github.io/RailKeeper/de/try) führt vom Start bis zu
-Beispielfahrzeugen und einem eigenen Fahrzeug mit Bild. Das
-[Handbuch mit Bildern](https://ichwars.github.io/RailKeeper/de/guide/) hilft bei den nächsten Aufgaben.
-RailKeeper ist kostenlos und quelloffen und läuft unter Windows oder mit Docker auf deinem Heimserver.
-
-## Ansichten
-
-| Fahrzeugbestand | Bilder und Unterlagen | Wartung |
-| --- | --- | --- |
-| ![Fahrzeugbestand mit synthetischen Beispielfahrzeugen](docs/site/assets/screenshots/de/vehicles.png) | ![Bilder und Beilagen im Fahrzeugeditor](docs/site/assets/screenshots/de/media.png) | ![Geplante Reinigung in der Fahrzeugwartung](docs/site/assets/screenshots/de/maintenance.png) |
-
-Die Aufnahmen zeigen eine getrennte Demo-Installation mit künstlichen Daten und den dokumentierten
-Entwicklungsstand. Den Umfang des veröffentlichten Downloads findest du in den
-[Release-Notizen](https://github.com/ichwars/RailKeeper/releases/latest).
-Die [Abdeckungsübersicht](https://ichwars.github.io/RailKeeper/de/reference/coverage) hält
-Prüfnachweise und bekannte Grenzen fest.
-
-Teile deine Erfahrung in den [Discussions](https://github.com/ichwars/RailKeeper/discussions/categories/general).
-RailKeeper hilft dir? Mit einem [Stern auf GitHub](https://github.com/ichwars/RailKeeper) unterstützt du das Projekt.
-
-## Funktionsumfang
-
-- Responsive Betriebsübersicht mit Bestand, Werten, Wartung, Datenqualität und Zentralenstatus in einer Ansicht
-- Profilbasierter Import und Export für Fahrzeuge, Zubehör und Ausstellungslisten mit Vorschau,
-  Konfliktlösung, persistenten Aufträgen, Transferverlauf und lokalen Dateien. Stammdaten verbleiben
-  ausschließlich unter Einstellungen.
-- Eigener Digitalzentralen-Arbeitsplatz mit konfigurierten Zentralen, Lokvergleich, Live-Status,
-  Diagnose und Synchronisierung mit Vorschau vor jedem Schreibvorgang
-- Persistenter Ausstellungsbetrieb mit Veranstaltungen, Teilnehmern, mehrtägiger Fahrzeugzuordnung,
-  Bereitschaftsprüfung, Konfliktbehandlung, Bildern, Funktionstasten, Druck und Listensperre
-- Lokaler Bestand mit SQLite, Uploads und JSON-Backups
-- Fahrzeugdatensätze mit Modelldaten, technischen Feldern, Eigentumsangaben, Bildern, Anhängen, QR-Codes und übersichtlichen Leseansichten
-- Artikelbestand mit generierten Inventarnummern, sortierbarer Auswahlspalte, Mengen- oder Einzelverfolgung, Lagerortbeständen, Reservierungen, Einbauten, Dokumenten und Nutzungshistorie
-- Websuche nach Artikeldaten mit konfigurierbaren Quellen, Barcode-/EAN-Eingabe,
-  ZXing-Kamerascanner, typisierten Gleis-Fachangaben und ausdrücklicher feldweiser Prüfung
-- PDF-Berichtsdialog für Bestandsübersicht und Detaillisten mit auswählbaren Fahrzeugen, QR-Codes und Bildern
-- Responsiver Bestandsablauf mit mobil optimierten Dialogen, Filtern und Kameraersatz für die Barcode-Eingabe
-- Der kontrollierte ECoS-Lokabgleich liest Lokdaten, CV-Werte und statische Funktionstasten und
-  schreibt Name, Adresse und Protokoll erst nach Vorschau und Bestätigung. Geschwindigkeit,
-  Richtung, aktive Funktionszustände und ECoS-Anlagenobjektmanager werden nicht überwacht. Die CS3
-  liest Name, Adresse und Protokoll ausschließlich in den Vergleichsbereich ein. Z21 und
-  Intellibox 3 bleiben Verbindungs- und Diagnoseadapter.
-- Decoder-Funktionszuordnung von F0 bis F31 mit Symbolbibliothek und gespeicherten SVG-/PNG-Grafiken
-- Strukturierte CV-Werte, CV-Import und -Export, Decoderprofile, NMRA-CV8-Herstellerstammdaten und ESU-/LokProgrammer-Dateimetadaten
-- Wartungen, Zustandshistorie und durchsuchbare Dokumentation je Fahrzeug
-- Lokale Authentifizierung mit Ersteinrichtung, E-Mail-Adresse, Rollen, Sitzungen, Passwortänderung, tokenbasiertem Passwort-Reset und Audit-Log
-- Benutzerspezifische Reihenfolge und Sichtbarkeit der Sidebar-Einträge
-- Stammdatenverwaltung für Hersteller, Spurweiten, Epochen, Kategorien, Unterarten, Bahngesellschaften und Symbole
-- Docker-Compose-Bereitstellung mit gehärtetem Laufzeitcontainer und persistentem `/data`-Volume
-- Integrierte GitHub-Release-Prüfung mit Release-Notizen und benutzergesteuerter Aktualisierung
-
-## Schnellstart
-
-### Windows Standalone (ohne Installation)
-
-Lade das Windows-x64-ZIP aus einem Release herunter, entpacke es vollständig und starte:
-
-```text
-start-railkeeper.bat
-```
-
-RailKeeper läuft lokal ohne zusätzliche Software. Persistente Daten liegen standardmäßig außerhalb
-des austauschbaren Programmordners unter `%LOCALAPPDATA%\RailKeeper\data`. Das ZIP enthält bewusst
-keine Datenbank, Uploads, Backups oder einen Ordner `data`. Das Ersetzen des entpackten
-Programmordners ersetzt deshalb nicht die aktiven Benutzerdaten.
-
-Beim ersten Start nach einer älteren Portable- oder Standalone-Version kopiert RailKeeper einen
-vorhandenen Ordner `data` neben `RailKeeper.exe` in den sicheren Pfad und lässt die Quelle
-unverändert. Enthalten beide Pfade unterschiedliche Datenbanken oder sonstige persistente Dateien,
-stoppt der Start auf einer lokalen Sicherheitsseite und verändert keine der beiden Kopien. Den
-aktiven absoluten Datenpfad und eine beibehaltene Migrationsquelle sehen Administratoren unter
-**Einstellungen > Allgemein**. Setze `RAILKEEPER_DATA_DIR` nur für einen ausdrücklich gewünschten
-alternativen Datenpfad. Ein Pfad im Programmordner oder auf einem Wechseldatenträger kann weiterhin
-verloren gehen, wenn dieser Speicherort gelöscht oder ersetzt wird. Externe Backups bleiben nötig.
-
-Erkennt Windows Standalone unter **Einstellungen > Allgemein > Updates** ein neueres Release, nennt
-die Schaltfläche die verfügbare Version und startet den Download des passenden GitHub-ZIP. RailKeeper
-entpackt, installiert, ersetzt oder startet dabei nichts automatisch neu. Erstelle eine Sicherung,
-beende RailKeeper, entpacke das heruntergeladene ZIP in einen neuen Programmordner und prüfe nach dem
-Start den angezeigten Datenpfad sowie den Bestand. Fehlt ein vertrauenswürdiges passendes ZIP, nutze
-stattdessen die verlinkte GitHub-Release-Seite.
-
-### Docker Compose
-
-Docker-Builds unterstützen `linux/amd64` und `linux/arm64`. Auf einem Raspberry Pi ist ein
-64-Bit-ARM-Betriebssystem erforderlich; 32-Bit-ARM-Images werden nicht angeboten. Docker wählt
-die passende Architektur automatisch. Entferne auf ARM64 daher ein gesetztes `platform: linux/amd64`.
-Ab v0.1.22 enthalten die stabilen Images (`latest` und versionierte Release-Tags) auch ARM64.
-Ältere Release-Tags werden nicht automatisch neu gebaut. `edge` folgt der Entwicklung auf `main`.
+## Start mit Docker
 
 ```bash
 git clone https://github.com/ichwars/RailKeeper.git
@@ -134,223 +31,51 @@ docker compose pull
 docker compose up -d
 ```
 
-Öffne:
+Danach [localhost:8080](http://localhost:8080) öffnen. Den lokalen Einmalcode nach dem
+[Betriebshandbuch](docs/production-runbook.md#container-einrichten) lesen und das eigene Administratorkonto anlegen.
+AMD64 und ARM64 werden unterstützt; auf Raspberry Pi ist ein 64-Bit-System erforderlich.
+Der Bestand bleibt im persistenten Docker-Volume. Vor einem Update eine aktuelle,
+getrennt gespeicherte Sicherung erstellen und die Wiederherstellung erproben.
+[Installation und Upgrade](docs/production-runbook.md) · [Compose-Konfiguration](deploy/README.md).
 
-```text
-http://localhost:8080
-```
+## Dokumentation und Mitarbeit
 
-Beim ersten Start öffnet RailKeeper die Einrichtung. Lege dort das erste Administratorkonto an.
-RailKeeper enthält keine Standardzugangsdaten.
+| Aufgabe | Einstieg |
+| --- | --- |
+| Bedienung und Beispielsammlung | [Deutsches Handbuch](https://ichwars.github.io/RailKeeper/de/guide/) |
+| Funktionsumfang und Bildschirmbilder | [Ausführlicher Überblick](docs/project-overview.de.md) |
+| Entwicklung und Architektur | [Entwicklung](docs/site/de/development/index.md), [Architektur](docs/architecture.md), [Beiträge](CONTRIBUTING.md) |
+| Tests und unterstützte Compiler | [Qualitätsprüfungen](docs/quality-gates.md) |
+| Betrieb, Diagnose und Wiederherstellung | [Betriebshandbuch](docs/production-runbook.md), [Restore-Übung](docs/site/de/administration/restore-exercise.md) |
+| Unabhängig nachvollziehbare Qualifikation | [Build- und Restore-Abnahme](docs/independent-qualification.md) |
+| Sicherheit und private Daten | [Sicherheitskonzept](docs/security.md), [Meldungen](SECURITY.md) |
 
-### Bestehende Docker-Installation aktualisieren
+RailKeeper arbeitet lokal mit SQLite und privaten Dateien. App-Backups enthalten den
+Bestand, aber keine lokalen Konten oder Anmeldedaten. Für einen vollständigen Serverumzug
+wird zusätzlich eine geschützte Installationssicherung benötigt. Geräteänderungen erfolgen
+nur nach Vorschau und ausdrücklicher Bestätigung im jeweiligen Arbeitsablauf.
 
-```bash
-git pull
-docker compose pull
-docker compose up -d
-```
+## English
 
-SQLite-Datenbank, Uploads und lokale Dateien bleiben im Docker-Volume `railkeeper_data` erhalten.
+[English quick start and documentation](README.md#english).
 
-Um statt `latest` ein bestimmtes Release festzulegen, trage Folgendes in `.env` ein:
+## Bestehende Verweise
 
-```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.22
-```
+<a id="überblick"></a>[Überblick](docs/project-overview.de.md#überblick)
+<a id="ansichten"></a>[Ansichten](docs/project-overview.de.md#ansichten)
+<a id="funktionsumfang"></a>[Funktionsumfang](docs/project-overview.de.md#funktionsumfang)
+<a id="schnellstart"></a>[Schnellstart](docs/project-overview.de.md#schnellstart)
+<a id="windows-standalone-ohne-installation"></a>[Windows Standalone (ohne Installation)](docs/project-overview.de.md#windows-standalone-ohne-installation)
+<a id="docker-compose"></a>[Docker Compose](docs/project-overview.de.md#docker-compose)
+<a id="bestehende-docker-installation-aktualisieren"></a>[Bestehende Docker-Installation aktualisieren](docs/project-overview.de.md#bestehende-docker-installation-aktualisieren)
+<a id="optionale-umgebungsdatei"></a>[Optionale Umgebungsdatei](docs/project-overview.de.md#optionale-umgebungsdatei)
+<a id="optionale-fehlerberichte-direkt-aus-railkeeper"></a>[Optionale Fehlerberichte direkt aus RailKeeper](docs/project-overview.de.md#optionale-fehlerberichte-direkt-aus-railkeeper)
+<a id="lokale-entwicklung"></a>[Lokale Entwicklung](docs/project-overview.de.md#lokale-entwicklung)
+<a id="optionale-ocr-erkennung-für-gescannte-ersatzteil-pdfs"></a>[Optionale OCR-Erkennung für gescannte Ersatzteil-PDFs](docs/project-overview.de.md#optionale-ocr-erkennung-für-gescannte-ersatzteil-pdfs)
+<a id="architektur"></a>[Architektur](docs/project-overview.de.md#architektur)
+<a id="sicherheit"></a>[Sicherheit](docs/project-overview.de.md#sicherheit)
+<a id="zähler-und-badges"></a>[Zähler und Badges](docs/project-overview.de.md#zähler-und-badges)
+<a id="lizenz"></a>[Lizenz](docs/project-overview.de.md#lizenz)
+<a id="unterstützung"></a>[Unterstützung](docs/project-overview.de.md#unterstützung)
 
-Wenn du bewusst den ausgecheckten Quellstand bauen möchtest, verwende:
-
-```bash
-docker compose up -d --build
-```
-
-### Optionale Umgebungsdatei
-
-Kopiere `.env.example` nur dann nach `.env`, wenn du Betriebseinstellungen wie sichere Cookies,
-Upload-Limits, Druckerkonfiguration oder den GitHub-Release-Endpunkt überschreiben möchtest.
-
-Diese Containerpfade dürfen in Docker Compose nicht überschrieben werden:
-
-```env
-RAILKEEPER_DATA_DIR=/data
-RAILKEEPER_MIGRATIONS_DIR=/app/migrations
-RAILKEEPER_SEEDS_DIR=/app/seeds
-RAILKEEPER_STATIC_DIR=/app/web
-```
-
-### Optionale Fehlerberichte direkt aus RailKeeper
-
-Betreiber können das schwebende Formular **Fehler melden** aktivieren. Angemeldete Benutzer erstellen
-damit direkt aus RailKeeper ein beschriftetes GitHub-Issue. Dafür ist ein Fine-grained Token
-für das Issue-Repository erforderlich. Ein separates öffentliches Asset-Repository ermöglicht optional Screenshots. Schlägt
-die Startprüfung fehl oder fehlt die Konfiguration, bleibt die Schaltfläche ein externer Link zu
-GitHub Issues.
-
-Nutzer können automatische Diagnosen abschalten; die Auswahl bleibt im Browser gespeichert.
-Der Bericht enthält begrenzte Diagnosewerte zu RailKeeper-Laufzeit, Browser, Darstellung,
-Navigation, Rollen, aktivierten Digitalzentralen-Typen und bereinigten Browserfehlern. Nicht erfasst
-werden Bestandsdaten oder Bestandszahlen, Statistiken oder Verbindungsdetails zu verbundenen Geräten,
-Zugangsdaten, Anfrageinhalte oder lokale Pfade. Screenshots sind optional, werden bereinigt und nur
-nach ausdrücklicher Zustimmung öffentlich gespeichert.
-
-Die vollständige Einrichtung und Datenschutzabgrenzung stehen im
-[Leitfaden für Fehlerberichte](docs/site/de/guide/settings/bug-reporting.md) und in den
-[Bereitstellungshinweisen](deploy/README.md#in-app-bug-reporting).
-
-## Lokale Entwicklung
-
-Backend:
-
-```bash
-cd backend
-go test ./...
-go run ./cmd/railkeeper
-```
-
-Frontend:
-
-```bash
-cd frontend
-npm ci
-npm run build
-```
-
-Die Produktionslaufzeit stellt das gebaute Frontend aus `frontend/dist` bereit.
-
-Erstelle ein Windows-Standalone-Paket:
-
-```powershell
-.\tools\build_windows_standalone.ps1
-```
-
-Das Skript baut das Frontend, kompiliert `RailKeeper.exe` für Windows x64, weist Benutzerdaten im
-Paketbaum und ZIP zurück und erstellt
-`dist\windows-standalone\RailKeeper-windows-x64-v<version>.zip`.
-
-Nützliche lokale Standardwerte:
-
-```env
-RAILKEEPER_ADDR=:8080
-RAILKEEPER_DATA_DIR=./data
-RAILKEEPER_MIGRATIONS_DIR=./backend/migrations
-RAILKEEPER_SEEDS_DIR=./backend/seeds
-RAILKEEPER_STATIC_DIR=./frontend/dist
-RAILKEEPER_COOKIE_SECURE=false
-RAILKEEPER_UPDATE_CHECK_URL=https://api.github.com/repos/ichwars/RailKeeper/releases/latest
-```
-
-Optionale SMTP-Einstellungen für Passwort-Reset-E-Mails lassen sich in der Admin-Oberfläche unter
-`Einstellungen > Authentifizierung > SMTP für Passwort-Reset` konfigurieren. Die folgenden
-Umgebungsvariablen bleiben als Vorgaben für die Bereitstellung verfügbar:
-
-```env
-RAILKEEPER_PUBLIC_URL=https://railkeeper.example.test
-RAILKEEPER_SMTP_HOST=smtp.example.test
-RAILKEEPER_SMTP_PORT=587
-RAILKEEPER_SMTP_USER=railkeeper@example.test
-RAILKEEPER_SMTP_PASSWORD=change-me
-RAILKEEPER_SMTP_FROM=railkeeper@example.test
-RAILKEEPER_SMTP_TLS=starttls
-```
-
-Passwort-Reset-E-Mails werden nur versendet, wenn `RAILKEEPER_PUBLIC_URL` oder die in der
-Admin-Oberfläche gespeicherte öffentliche URL eine gültige HTTP(S)-Origin ist. RailKeeper leitet
-versendete Reset-Links niemals aus dem `Host`-Header der Anfrage ab.
-
-Ist SMTP nicht konfiguriert, gibt der Browser keine Passwort-Reset-Links zurück. Nur für die lokale
-Wiederherstellung schreibt das Backend den Link in das Serverprotokoll.
-
-### Optionale OCR-Erkennung für gescannte Ersatzteil-PDFs
-
-RailKeeper liest textbasierte PDF-Ersatzteillisten direkt. Installiere für gescannte PDFs ohne
-Textebene entweder `ocrmypdf` oder sowohl `pdftoppm` als auch `tesseract` auf dem Host und halte die
-Werkzeuge in `PATH` verfügbar. Der OCR-Ersatz wird nur verwendet, wenn die integrierte
-PDF-Texterkennung keinen verwertbaren Ersatzteiltext findet.
-
-```env
-RAILKEEPER_PDF_OCR=on
-RAILKEEPER_PDF_OCR_MAX_PAGES=4
-```
-
-Setze `RAILKEEPER_PDF_OCR=off`, um den Ersatz ausdrücklich zu deaktivieren.
-
-## Architektur
-
-```text
-backend/
-  cmd/railkeeper/          Go-Einstiegspunkt
-  internal/api/            HTTP-Routen, Middleware und Antwortabbildung
-  internal/application/    Anwendungsfälle, Validierung, Backup und Transaktionen
-  internal/infrastructure/ SQLite, Migrationen und Seed-Laden
-  migrations/              SQLite-Schemamigrationen
-  seeds/                   Stammdaten-Seed als JSON
-frontend/
-  src/app/                 Shell, Routing und globale Stile
-  src/features/            Einrichtung, Auth, Fahrzeuge, Ausstellung, Import/Export, Digitalzentralen, Einstellungen
-  src/shared/              API-Adapter, i18n und gemeinsame Frontend-Typen
-openapi/
-  railkeeper.yaml          API-Vertrag
-deploy/
-  README.md                Hinweise zur Bereitstellung
-docs/
-  architecture.md
-  production-runbook.md
-  roadmap.md
-  security.md
-```
-
-## Sicherheit
-
-RailKeeper ist für vertrauenswürdige, selbst gehostete Umgebungen vorgesehen. Die
-Standardinstallation vermeidet dennoch die üblichen Fehler:
-
-- kein Standard-Administratorkonto
-- Argon2id-Passworthashing
-- HTTP-only-Sitzungscookies
-- SameSite-Cookies und CSRF-Schutz
-- Rollenprüfungen für Viewer-, Editor-, Admin- und Messe-Abläufe
-- Ratenbegrenzung für Einrichtung, Anmeldung und Sitzungen
-- Passwort-Reset-Links per E-Mail, wenn SMTP konfiguriert ist
-- Audit-Log für relevante Sicherheits- und Datenaktionen
-- Upload-Größenbegrenzung und Sperre ausführbarer Anhänge
-- Laufzeitdaten werden von Git ignoriert
-
-Setze für HTTPS-Bereitstellungen:
-
-```env
-RAILKEEPER_COOKIE_SECURE=true
-```
-
-## Zähler und Badges
-
-Die README enthält einen GitHub-Zähler für Release-Downloads. GitHub stellt weder einen
-zuverlässigen öffentlichen README-Aufrufzähler noch einen allgemeinen Installationszähler für
-selbst gehostete Docker-Bereitstellungen bereit. Dafür wären Drittanbietertracking,
-Paketregistermetriken oder ausdrücklich aktivierte Telemetrie erforderlich. RailKeeper aktiviert
-nichts davon.
-
-## Lizenz
-
-RailKeeper wird unter `AGPL-3.0-only` veröffentlicht. Siehe [LICENSE.md](LICENSE.md).
-
-RailKeeper ist eine lokale, selbst gehostete Anwendung. Die AGPL-3.0 hält Weiterentwicklungen offen
-und verpflichtet Betreiber einer über ein Netzwerk bereitgestellten, veränderten Fassung, ihren
-Nutzern den korrespondierenden Quellcode zugänglich zu machen. Damit schützt sie die dauerhafte
-Offenheit des Projekts besser als die bisherige freizügige Lizenz. Die AGPL erlaubt kommerzielle
-Nutzung. Bereits veröffentlichte Fassungen behalten die Lizenzbedingungen, unter denen sie
-veröffentlicht wurden.
-
-Die Softwarelizenz überträgt keine Rechte an Projektkennzeichen oder fremden Marken, Grafiken,
-Dokumentationen oder Protokollrechten. Siehe [TRADEMARKS.md](TRADEMARKS.md) und
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-## Unterstützung
-
-Freiwillige Zuwendungen helfen bei Entwicklungs- und Projektkosten. Sie begründen keinen Anspruch
-auf kostenpflichtige Funktionen, Support, Reaktionszeiten oder besonderen Zugang.
-
-- [GitHub Sponsors](https://github.com/sponsors/ichwars)
-- [Ko-fi](https://ko-fi.com/ichwars)
-
-Supportwege und Abgrenzungen stehen in [SUPPORT.md](SUPPORT.md).
+[AGPL-3.0-only](LICENSE.md) · [Support](SUPPORT.md) · [Sicherheit](SECURITY.md).
