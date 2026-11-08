@@ -12,13 +12,6 @@ func isValidEmail(value string) bool {
 	return at > 0 && at < len(value)-3 && strings.Contains(value[at+1:], ".")
 }
 
-func nullableString(value string) any {
-	if strings.TrimSpace(value) == "" {
-		return nil
-	}
-	return value
-}
-
 func hashToken(token string) string {
 	return credentials.HashToken(token)
 }
