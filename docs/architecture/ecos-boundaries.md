@@ -20,6 +20,13 @@ direction and active function state remain excluded from the static locomotive p
 | `ecos_sync.go` | Preview or explicitly confirmed synchronization, including incomplete acknowledgments |
 | `ecos_model_compat.go` | Compatibility names for existing callers and tests |
 
+`ecosmodel` also owns protocol normalization, stored-CV validation/adoption plans and validity
+of cached decoder-profile observations. `vehicledata` reads the latest matching ready observation
+using the original host/port, single-mapping, backup-exclusion and ordering rules. Invalid optional
+evidence is omitted; it never changes manual decoder assignments or CV readings. The four-field
+profile-evidence record is shared through compatible aliases. Existing source limits, protocol
+error messages, sorted unknown/explicit pages and provenance timestamps are retained.
+
 The transport implementation remains `internal/ecos`. There is still one `ECoSService`,
 with the same mutexes, generation counters and connection lifetime. Splitting its methods
 does not introduce a second monitor, client state, persistence path or background queue.
