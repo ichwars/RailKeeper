@@ -14,8 +14,6 @@ var (
 	ErrVehicleAttachmentConflict = vehiclemodel.ErrVehicleAttachmentConflict
 )
 
-func vehicleImageRevision(image VehicleImage) string { return vehiclemodel.ImageRevision(image) }
-
 func vehicleImagesRevision(images []VehicleImage) string { return vehiclemodel.ImagesRevision(images) }
 
 func vehicleAttachmentRevision(attachment VehicleAttachment) string {

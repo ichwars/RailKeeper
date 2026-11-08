@@ -124,3 +124,25 @@ nullable field mapping and set summaries. Query text, filter scope and ordering 
 unchanged. Aggregate enrichment retains its existing application owner and read order.
 Vehicle/set mutation, media transactions and exhibition-expiry effects still have their
 explicit remaining entries; this shared foundation does not claim those migrations complete.
+
+## Vehicle images
+
+The independent `inventory/vehicle.ImageService` owns image creation/deletion, parent and
+maintenance-reference decisions, first/selected primary image rules, optional draft guards
+and acknowledgement tokens. Typed image/mutation ports contain no SQL. The existing parent
+callback preserves the aggregate lookup and exhibition-expiry behavior before image creation.
+
+`vehicledata` executes the actual scoped image reads, append/delete, primary-flag updates
+and commits. The existing revision check, primary updates, image mutation and final list
+token read retain one transaction. A stale comparison or later failure rolls it all back.
+Maintenance ownership is checked again within that same transaction before image creation.
+
+Whole-vehicle image replacement calls the independent `ReplaceImages` policy through a
+narrow adapter wrapping the vehicle mutation's existing transaction. It never starts or
+commits another one. Matching by recorded ID and then URL retains original IDs, creation
+times, private paths, blob references and file metadata. Stored zero order values retain
+their previous position rule; changed titles and source descriptions keep their old rules.
+Private-file metadata in the input cannot replace the original retained metadata.
+
+Attachment/set-image mutations and private-path reference counting remain explicitly
+inventoried under their existing owners until their separate follow-up slices complete.
