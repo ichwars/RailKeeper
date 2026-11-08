@@ -38,3 +38,21 @@ source never yields an acknowledged partial collection total.
 Immutable valuation history and corrections remain owned by `valuation`. The overview
 continues to sum recorded acquisition/list prices and does not create history events.
 No schema or JSON-contract change is required by these boundaries.
+
+## Master-data rules and reads
+
+`inventory/masterdata` owns the shared records, protected article-type configuration,
+input/custom-field definitions, import preparation, sorting, decoder metadata checks
+and cache-copy rules. It imports the existing decoder-library parser and shared domain
+attribute rules. It has no SQL, HTTP or filesystem dependency.
+
+`infrastructure/masterdatastore` owns the five existing list/snapshot/single-entry/
+relation queries through a typed reader port. Its row mapper is also reused by the
+existing caller-owned reconciliation transaction. The application retains its service
+and transactional writes during the next migration slice, including decoder/seed methods
+that require a local service type. This first slice does not complete that write migration.
+
+Cached metadata owns nested maps and arrays. Both active and complete snapshots, and
+returned copies, retain their own mutable containers; changing one cannot alter another.
+Scalar values, original profile strings and absent-versus-empty arrays retain their exact
+representation. The copy shares immutable string contents and uses no JSON roundtrip.

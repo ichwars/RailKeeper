@@ -276,8 +276,6 @@ const standardArticleType = masterdata.StandardArticleType
 
 const standardAccessorySubtype = masterdata.StandardAccessorySubtype
 
-const legacyArticleSubtype = masterdata.LegacyArticleSubtype
-
 const accessoryCustomField = masterdata.AccessoryCustomField
 
 type MasterDataEntry = masterdata.MasterDataEntry
