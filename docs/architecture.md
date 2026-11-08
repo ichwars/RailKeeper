@@ -116,6 +116,13 @@ Recorded labels, missing versus zero index pages, source bytes and unknown hardw
 Configured submodules receive their own dependency checks; every independent domain module also
 rejects concrete database, filesystem and network imports.
 
+Snapshot capture and legacy adoption also live in `decoder/workflow`. Typed storage/file ports
+retain the original transaction while freezing original bytes and recording partial state. Restore
+composes the same rules without a nested commit. Archived variants are compared through a streaming
+cursor; conflicting or unreadable originals stay unresolved. Foreign legacy references retain their
+original owner metadata and never become silently adopted local content. Profile/NULL asymmetries,
+original dates and history ordering are preserved.
+
 CV writes similarly use caller-owned transactions through `vehicledata`. The additive
 [atomic CV changes API](architecture/cv-drafts.md) supports bounded manual batches, exact profile/index
 identity checks and computed row revisions. Existing single-value and import routes share the writer;

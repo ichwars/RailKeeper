@@ -13,7 +13,6 @@ import (
 type FileBlob = media.Blob
 type FileBlobService struct {
 	service *media.Service
-	dataDir string
 }
 
 func NewFileBlobService(db *sql.DB, dataDir string) *FileBlobService {
@@ -25,7 +24,7 @@ func NewFileBlobService(db *sql.DB, dataDir string) *FileBlobService {
 	if strings.TrimSpace(dataDir) != "" {
 		files = blobdata.NewLegacyFiles(dataDir)
 	}
-	return &FileBlobService{service: media.New(repository, files), dataDir: dataDir}
+	return &FileBlobService{service: media.New(repository, files)}
 }
 func (s *FileBlobService) Store(ctx context.Context, data []byte) (string, error) {
 	if s == nil {
@@ -54,22 +53,4 @@ func (s *FileBlobService) MigrateFilesystemBlobs(ctx context.Context) error {
 		return nil
 	}
 	return s.service.MigrateFilesystemBlobs(ctx)
-}
-func (s *FileBlobService) readConfinedDataFile(path string) ([]byte, error) {
-	return blobdata.ReadConfinedDataFile(s.dataDir, path)
-}
-func storeFileBlob(ctx context.Context, writer interface {
-	ExecContext(context.Context, string, ...any) (sql.Result, error)
-}, data []byte) (string, error) {
-	blob, err := media.NewBlob(data)
-	if err != nil {
-		return "", err
-	}
-	if err := blobdata.Insert(ctx, writer, blob); err != nil {
-		return "", err
-	}
-	return blob.ID, nil
-}
-func decompressBlobData(data []byte, compression string) ([]byte, error) {
-	return media.Decode(data, compression)
 }
