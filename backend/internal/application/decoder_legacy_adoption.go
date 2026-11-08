@@ -8,11 +8,6 @@ import (
 	"railkeeper/backend/internal/infrastructure/vehicledata"
 )
 
-type decoderWorkspaceRecord struct {
-	ID, VehicleID, Profile string
-	InstallationID         sql.NullString
-}
-
 func BackfillLegacyDecoderCV(ctx context.Context, db *sql.DB, sourceRoot string) error {
 	return workflow.BackfillLegacySnapshots(ctx, vehicledata.NewLegacySnapshotStore(db, sourceRoot))
 }

@@ -123,6 +123,12 @@ cursor; conflicting or unreadable originals stay unresolved. Foreign legacy refe
 original owner metadata and never become silently adopted local content. Profile/NULL asymmetries,
 original dates and history ordering are preserved.
 
+Local decoder-instance, installation/date and working-group use cases also use
+`decoder/workflow` transaction ports. Their revision check, mutation, optional checkpoint,
+audit and response readback remain atomic. File roots are configured only by storage composition;
+no physical command-station operation is introduced. CV working-group touches share the existing
+CV transaction and preserve recorded profile text and origin.
+
 CV writes similarly use caller-owned transactions through `vehicledata`. The additive
 [atomic CV changes API](architecture/cv-drafts.md) supports bounded manual batches, exact profile/index
 identity checks and computed row revisions. Existing single-value and import routes share the writer;
