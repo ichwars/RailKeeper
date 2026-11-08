@@ -3,33 +3,19 @@ package application
 import (
 	"context"
 	"database/sql"
-	"encoding/hex"
-	"errors"
-	"fmt"
+	"railkeeper/backend/internal/infrastructure/vehicledata"
+	vehiclemodel "railkeeper/backend/internal/inventory/vehicle"
 )
 
 var (
-	ErrVehicleCreationConflict = errors.New("vehicle creation identity already exists")
-	ErrVehicleCreationIdentity = errors.New("invalid vehicle creation identity")
+	ErrVehicleCreationConflict = vehiclemodel.ErrVehicleCreationConflict
+	ErrVehicleCreationIdentity = vehiclemodel.ErrVehicleCreationIdentity
 )
 
-type VehicleCreationOptions struct {
-	CreationID      string
-	ExternalMapping *VehicleExternalMapInput
-}
+type VehicleCreationOptions = vehiclemodel.CreationOptions
 
 func (s *VehicleService) creationIdentity(ctx context.Context, requested string) (string, error) {
-	if requested == "" {
-		return randomID(), nil
-	}
-	decoded, err := hex.DecodeString(requested)
-	if err != nil || len(decoded) != 16 || hex.EncodeToString(decoded) != requested {
-		return "", ErrVehicleCreationIdentity
-	}
-	if err := checkCreationIdentity(ctx, s.db, requested); err != nil {
-		return "", err
-	}
-	return requested, nil
+	return vehiclemodel.ResolveCreationIdentity(ctx, vehicledata.NewCoreStore(s.db), requested)
 }
 
 type creationIdentityReader interface {
@@ -37,13 +23,5 @@ type creationIdentityReader interface {
 }
 
 func checkCreationIdentity(ctx context.Context, reader creationIdentityReader, id string) error {
-	var exists bool
-	if err := reader.QueryRowContext(ctx, `SELECT EXISTS(
-SELECT 1 FROM vehicles WHERE id=? UNION ALL SELECT 1 FROM vehicle_sets WHERE id=?)`, id, id).Scan(&exists); err != nil {
-		return fmt.Errorf("check vehicle creation identity: %w", err)
-	}
-	if exists {
-		return ErrVehicleCreationConflict
-	}
-	return nil
+	return vehicledata.CheckCreationIdentity(ctx, reader, id)
 }

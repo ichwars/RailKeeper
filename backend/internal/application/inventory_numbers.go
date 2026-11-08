@@ -27,10 +27,6 @@ func ReserveInventoryNumber(ctx context.Context, tx *sql.Tx, category, fallbackC
 	ensureAvailable InventoryNumberAvailability) (string, error) {
 	return numbering.Reserve(ctx, numberingdata.NewCounter(tx), category, fallbackCategory, ensureAvailable)
 }
-func cleanInventoryCategory(category string) string { return numbering.CleanCategory(category) }
-func inventoryCategoryForVehicle(category string) string {
-	return numbering.CategoryForVehicle(category)
-}
 func formatInventoryNumber(prefix string, number, padding int) string {
 	return numbering.Format(prefix, number, padding)
 }

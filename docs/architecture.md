@@ -85,12 +85,15 @@ another editor resets all sections. Closing is blocked during a save. Bilingual 
 pending drafts from actions already stored. See [vehicle save boundaries](architecture/vehicle-save-boundaries.md)
 for the individual write paths and cancellation semantics. These local actions add no physical device writes.
 
-Vehicle create/update use cases retain validation, inventory-number allocation, the transaction boundary,
-audit/history writes, media reconciliation and optimistic function conflicts. The focused
-`infrastructure/vehicledata` package executes core-row and image-metadata SQL against caller-owned
-transactions. It never begins or commits a transaction and imports no application models, avoiding a
-cycle with legacy infrastructure adapters that still depend on application types. The application maps
-its existing vehicle model to a typed storage record; public response types and stored values are unchanged.
+Vehicle create/update orchestration lives in `inventory/vehicle`, including validation, number
+reservation, optimistic revisions, image replacement, function conflicts and the single commit.
+`vehicledata` owns concrete SQL and creates that transaction; the core use case commits or rolls it
+back through a typed port. Existing set creation composes the same insertion rules in its own
+transaction. Number counters, core fields, images, functions, source mapping, history and audit stay
+atomic. File localization happens before the transaction; compensation runs after commit/rollback.
+Separate completion ports retain the existing response subsets and order after commit, including
+separately inventoried decoder/CV enrichment. No application models are imported by these adapters.
+Canonical records and compatible public aliases preserve response and stored values.
 
 CV writes similarly use caller-owned transactions through `vehicledata`. The additive
 [atomic CV changes API](architecture/cv-drafts.md) supports bounded manual batches, exact profile/index
