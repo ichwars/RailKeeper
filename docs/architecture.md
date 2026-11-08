@@ -279,6 +279,10 @@ Node.js is only used to build the frontend.
   collapsed at the end. Source text remains byte-for-byte in existing notes unless notes are edited;
   presentation splits only explicit generated source lines into a read-only provenance fold. Own-note
   edits preserve those source lines, including historical references, within the existing UTF-8 limit.
+- `inventory/vehicle` owns function CRUD rules, legacy flag decisions and revision-checked bulk
+  changes. `vehicledata` owns their SQL. Bulk changes use the caller-owned vehicle transaction
+  without beginning or committing another transaction. Existing function IDs and creation times
+  survive upserts; new IDs retain the deterministic vehicle-ID/function-key format.
 - Function inversion and direction dependency are independent nullable booleans. Migration 0071
   retains the former mislabelled checkbox as `legacy_direction_dependent` and clears both confirmed
   meanings to NULL. `flagsVersion: 2` identifies API/function-JSON writes with the corrected meanings;

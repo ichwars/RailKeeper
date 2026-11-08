@@ -13,14 +13,6 @@ func isValidVehicleOperationalInput(input CreateVehicleInput) bool {
 	return vehiclemodel.IsValidVehicleOperationalInput(input)
 }
 
-func cleanVehicleFunctionInput(input VehicleFunctionInput) VehicleFunctionInput {
-	return vehiclemodel.CleanVehicleFunctionInput(input)
-}
-
-func isValidVehicleFunctionInput(input VehicleFunctionInput) bool {
-	return vehiclemodel.IsValidVehicleFunctionInput(input)
-}
-
 func cleanVehicleCVValueInput(input VehicleCVValueInput) VehicleCVValueInput {
 	return decoder.CleanCVValueInput(input)
 }
@@ -34,12 +26,6 @@ func validCVExportTimestamp(value string) bool { return decoder.ValidCVExportTim
 func cleanVehicleCVFileInput(input VehicleCVFileInput) VehicleCVFileInput {
 	return decoder.CleanCVFileInput(input)
 }
-
-func normalizeFunctionKey(value string) string { return vehiclemodel.NormalizeFunctionKey(value) }
-
-func validFunctionKey(value string) bool { return vehiclemodel.ValidFunctionKey(value) }
-
-func functionSortOrder(value string) int { return vehiclemodel.FunctionSortOrder(value) }
 
 func validCVNumber(value int) bool { return decoder.ValidCVNumber(value) }
 
