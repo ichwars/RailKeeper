@@ -33,6 +33,13 @@ func (s *maintenanceStore) OptimizeDatabase(ctx context.Context) error {
 	return err
 }
 func (s *maintenanceStore) DatabaseFileBytes() (int64, error) {
+	root, err := os.Stat(s.dataDir)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return 0, fmt.Errorf("read database directory: %w", err)
+	}
+	if err == nil && !root.IsDir() {
+		return 0, errors.New("read database directory: data path is not a directory")
+	}
 	var total int64
 	for _, suffix := range []string{"", "-wal", "-shm"} {
 		info, err := os.Stat(filepath.Join(s.dataDir, "railkeeper.db"+suffix))
