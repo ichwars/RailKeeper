@@ -275,17 +275,6 @@
     "stage": "R5a"
   },
   {
-    "file": "vehicle_set_images.go",
-    "calls": 17,
-    "transactions": [
-      "SetSetMainImage",
-      "UpsertSetImage",
-      "DeleteSetImage"
-    ],
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
     "file": "vehicle_sets.go",
     "calls": 10,
     "transactions": [

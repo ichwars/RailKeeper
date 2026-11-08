@@ -70,7 +70,7 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 					}
 					if strings.HasPrefix(module, "inventory/") || module == "authentication" || module == "credentials" || module == "valuation" || module == "transfer" || module == "decoder" || module == "revision" || module == "buildinfo" || module == "ecosmodel" || module == "backup" {
 						if strings.HasPrefix(name, "database/") || name == "os" || strings.HasPrefix(name, "os/") || name == "io/fs" || (name == "path/filepath" && module != "backup") ||
-							(strings.HasPrefix(name, "net/") && (module != "authentication" || name != "net/url")) || strings.HasPrefix(name, "modernc.org/") {
+							(strings.HasPrefix(name, "net/") && (name != "net/url" || (module != "authentication" && module != "inventory/vehicle"))) || strings.HasPrefix(name, "modernc.org/") {
 							t.Errorf("%s imports a transport or persistence dependency: %s", path, name)
 						}
 					}

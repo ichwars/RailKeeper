@@ -122,7 +122,7 @@ including private file references and the separate treatment of set main images.
 `infrastructure/vehicledata` owns the concrete single-vehicle and list queries, including
 nullable field mapping and set summaries. Query text, filter scope and ordering remain
 unchanged. Aggregate enrichment retains its existing application owner and read order.
-Vehicle/set mutation, set-image transactions and exhibition-expiry effects still have their
+Vehicle/set mutation and exhibition-expiry effects still have their
 explicit remaining entries; this shared foundation does not claim those migrations complete.
 
 ## Vehicle images
@@ -144,9 +144,6 @@ times, private paths, blob references and file metadata. Stored zero order value
 their previous position rule; changed titles and source descriptions keep their old rules.
 Private-file metadata in the input cannot replace the original retained metadata.
 
-Set-image mutations remain explicitly inventoried under their existing owner until their
-separate follow-up slice completes.
-
 ## Vehicle documents and private file references
 
 `inventory/vehicle.AttachmentService` owns document creation, scoped metadata edits and
@@ -165,3 +162,24 @@ Real SQLite fault tests remove a just-updated row from its transaction's readbac
 failed use case rolls back both metadata changes and that removal, retaining every original
 field and private file reference. A separate scoped deletion test preserves another
 vehicle's document. Existing HTTP revision and shared-file deletion tests remain in CI.
+
+## Vehicle-set images
+
+`inventory/vehicle.SetImageService` owns main-image selection, dedicated-image upload and
+deletion, retained creation times, retired blob identities and the dedicated/member/automatic
+fallback decisions. `vehicledata` owns the exact original SQL, nullable row mapping and
+400-ID batch queries. Selection, dedicated metadata and audit retain one mutation transaction.
+No physical file deletion is added to that transaction.
+
+Optional member/automatic lookups return an absent candidate separately from a storage error.
+A missing selected member can fall back to automatic selection; a failed lookup is never
+hidden by that fallback. Batch ranking and ordering retain the original CTE/window query.
+Version URLs retain their original query escaping, and recorded blob IDs are never normalized
+by the retired-ID selection. `net/url` is used only for this pure string encoding; network
+transport remains forbidden in the independent module.
+
+An upload returns retired blob IDs only after successful commit. If subsequent aggregate
+readback fails, the new image remains committed and the original retired IDs remain available
+for safe cleanup, matching the previous receipt. Existing nonempty creation times survive
+replacement. Real SQLite tests verify upload/deletion rollback on audit failure and preservation
+of the committed image, original creation time and retired IDs after postcommit readback failure.
