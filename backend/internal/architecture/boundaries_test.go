@@ -49,7 +49,19 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 				if err != nil {
 					return err
 				}
-				if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+				if entry.IsDir() {
+					relative, err := filepath.Rel("..", path)
+					if err != nil {
+						return err
+					}
+					child := filepath.ToSlash(relative)
+					// Explicit submodules receive their own complete dependency and I/O check.
+					if _, configured := modules[child]; configured && child != module {
+						return filepath.SkipDir
+					}
+					return nil
+				}
+				if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 					return nil
 				}
 				file, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.ImportsOnly)
@@ -70,7 +82,7 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 							t.Errorf("%s imports forbidden module %s", path, name)
 						}
 					}
-					if strings.HasPrefix(module, "inventory/") || module == "authentication" || module == "credentials" || module == "valuation" || module == "transfer" || module == "decoder" || module == "revision" || module == "buildinfo" || module == "ecosmodel" || module == "backup" {
+					if !strings.HasPrefix(module, "infrastructure/") {
 						if strings.HasPrefix(name, "database/") || name == "os" || strings.HasPrefix(name, "os/") || name == "io/fs" || (name == "path/filepath" && module != "backup") ||
 							(strings.HasPrefix(name, "net/") && (name != "net/url" || (module != "authentication" && module != "inventory/vehicle"))) || strings.HasPrefix(name, "modernc.org/") {
 							t.Errorf("%s imports a transport or persistence dependency: %s", path, name)
