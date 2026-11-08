@@ -47,7 +47,9 @@ modules and coverage below `tools/go-coverage-baseline.json`.
 The measured starting result for this scope was 74.73%. The total floor is 74%, with
 separate floors for every current internal module, including authentication, credentials,
 decoder/CV, backup, transfer, valuation and their storage adapters. Those module floors
-are the rounded-down measured results. The subsequently added `buildinfo` module has a
+were originally rounded down from measured results. Separated application/storage slices
+have explicit fixed floors in the same baseline; splitting a package neither narrows the
+measurement scope nor lowers an existing floor. The subsequently added `buildinfo` module has a
 measured 100% statement floor. They are regression guards, not a declaration that
 uncovered branches or physical-device behavior have been qualified.
 
@@ -59,15 +61,40 @@ python3 -m unittest discover -s tools -p test_go_coverage.py
 ```
 
 The existing required **Backend tests** check succeeds only after coverage, the minimum-compiler
-suite, every race slice and bounded fuzz have all succeeded. Its final aggregation runs even
-when a dependency fails or is skipped and rejects those results.
+suite, every race slice, bounded fuzz and release/toolchain policy tests have all succeeded.
+Its final aggregation runs even when a dependency fails or is skipped and rejects those results.
 
-CI also runs separate race-instrumented rule/storage, authentication, transfer/ECoS, backup
-and decoder/CV groups. The decoder group targets configuration, drafts, imports, sources,
+CI runs separate race-instrumented rule/storage, inventory/media, authentication, transfer/ECoS,
+backup and decoder/CV groups. The decoder group targets configuration, drafts, imports, sources,
 files, binding conflicts and atomicity. Exhaustive bundled decoder-catalog combinations
 remain in the complete non-race suite; they are not mislabeled as concurrency tests.
 Each race slice has a 20-minute Go timeout and a 30-minute job limit to accommodate actual
 instrumented SQLite work. No test assertion or role boundary is disabled.
+
+Backup and decoder/CV each use three deterministic shards. Their original package and regex
+selections are retained in `tools/go_race_shard.py`. Each shard inventories matching top-level
+tests through Go's JSON listing, runs its exact selected roots with every nested subtest, and
+records the root executions actually observed in Go's JSON output. The final required check
+downloads all six manifests and rejects missing/duplicate shards, changed selections, different
+source revisions, failed commands, or missing/repeated root executions. Overlap between the two
+original groups remains intentional; every root runs once **within each original group**.
+
+Logs and manifests remain CI diagnostic artifacts for 14 days. An isolated real-Go fixture
+also verifies nested cases, the original skip behavior and propagation of failed Go commands.
+Other race groups, the full non-race/minimum-compiler suites and bounded fuzz retain their scopes.
+The inventory/media group additionally covers set-image and set-transaction cases.
+
+```sh
+python3 -m unittest discover -s tools -p test_go_race_shard.py
+cd backend
+python3 ../tools/go_race_shard.py run --group backup --index 0 --count 3 --log ../output/ci-race-backup-1.jsonl
+```
+
+All shard indexes must succeed. After collecting the six manifest files in one directory:
+
+```sh
+python3 tools/go_race_shard.py verify --directory output/ci-race
+```
 
 Bounded fuzzing runs for password-hash parsing, quoted protocol comparison names, immutable
 CV partial-state validation and backup path/content integrity. Inputs are synthetic and

@@ -22,12 +22,14 @@ jobs:
         run: python3 .github/scripts/test_compose_security.py
       - name: Test cross-package coverage guard
         run: python3 -m unittest discover -s tools -p test_go_coverage.py
+      - name: Test complete race shard verification
+        run: python3 -m unittest discover -s tools -p test_go_race_shard.py
       - name: Test disposable pilot bootstrap
         run: python3 -m unittest discover -s tools -p test_strix_pilot.py
 
   backend:
     name: Backend tests
-    needs: [backend-coverage, backend-minimum, backend-race, backend-fuzz]
+    needs: [backend-coverage, backend-minimum, backend-race, backend-fuzz, release-workflow]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -41,8 +43,17 @@ jobs:
           failed = {name: value["result"] for name, value in results.items() if value["result"] != "success"}
           if not results or failed:
               raise SystemExit(f"Backend quality checks did not all pass: {failed}")
-          print("Coverage, minimum compiler, race groups and bounded fuzz all passed.")
+          print("Coverage, minimum compiler, race groups, bounded fuzz and release/toolchain policy all passed.")
           PYTHON
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Download race execution manifests
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: race-shard-*
+          path: output/ci-race
+          merge-multiple: true
+      - name: Require complete original race group execution
+        run: python3 tools/go_race_shard.py verify --directory output/ci-race
 
   backend-coverage:
     name: Backend coverage
@@ -100,19 +111,37 @@ jobs:
             tests: .
           - scope: inventory-media
             packages: ./internal/application ./internal/api
-            tests: ^Test(VehicleImages|VehiclePersistsImages|VehicleCreatesAndDeletesLocalImages|VehicleLinksMediaToMaintenance|ImageCreation|VehicleConflictRollsBackImages|AttachmentRevision|GuardedImageUpload|VehicleAndMediaRevision|MediaDeletion)
+            tests: ^Test(VehicleImages|VehiclePersistsImages|VehicleCreatesAndDeletesLocalImages|VehicleLinksMediaToMaintenance|ImageCreation|VehicleConflictRollsBackImages|AttachmentRevision|GuardedImageUpload|VehicleAndMediaRevision|MediaDeletion|VehicleSet|CreateVehicleSet)
           - scope: authentication
             packages: ./internal/application ./internal/api
             tests: ^Test.*(Auth|Login|TOTP|TwoFactor|RateLimit|Password|Setup)
           - scope: transfer-ecos
             packages: ./internal/application ./internal/infrastructure
             tests: ^Test.*(DataTransfer|ECoS)
-          - scope: backup
-            packages: ./internal/application
-            tests: ^Test.*Backup
-          - scope: decoder-cv
-            packages: ./internal/application
-            tests: ^Test(DecoderConfiguration|CVDraft|CVFile|CVImport|CVProvenance|CVDatabaseWorkspace|StoredCVValidation|VehiclePersistsCV)
+          - scope: backup-1
+            shard_group: backup
+            shard_index: 0
+            shard_count: 3
+          - scope: backup-2
+            shard_group: backup
+            shard_index: 1
+            shard_count: 3
+          - scope: backup-3
+            shard_group: backup
+            shard_index: 2
+            shard_count: 3
+          - scope: decoder-cv-1
+            shard_group: decoder-cv
+            shard_index: 0
+            shard_count: 3
+          - scope: decoder-cv-2
+            shard_group: decoder-cv
+            shard_index: 1
+            shard_count: 3
+          - scope: decoder-cv-3
+            shard_group: decoder-cv
+            shard_index: 2
+            shard_count: 3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
@@ -124,7 +153,28 @@ jobs:
         env:
           RACE_PACKAGES: ${{ matrix.packages }}
           RACE_TESTS: ${{ matrix.tests }}
-        run: go test -race -timeout=20m $RACE_PACKAGES -run "$RACE_TESTS" -count=1
+          RACE_SHARD_GROUP: ${{ matrix.shard_group }}
+          RACE_SHARD_INDEX: ${{ matrix.shard_index || 0 }}
+          RACE_SHARD_COUNT: ${{ matrix.shard_count || 1 }}
+        run: |
+          if [ "$RACE_SHARD_COUNT" -eq 1 ]; then
+            go test -race -timeout=20m $RACE_PACKAGES -run "$RACE_TESTS" -count=1
+          else
+            python3 ../tools/go_race_shard.py run --group "$RACE_SHARD_GROUP" \
+              --index "$RACE_SHARD_INDEX" --count "$RACE_SHARD_COUNT" \
+              --log "../output/ci-race-${{ matrix.scope }}.jsonl"
+          fi
+      - name: Upload race execution evidence
+        if: always() && matrix.shard_count == 3
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: race-shard-${{ matrix.scope }}
+          path: |
+            output/ci-race-${{ matrix.scope }}.jsonl
+            output/ci-race-${{ matrix.scope }}.manifest.json
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: true
 
   backend-fuzz:
     name: Backend bounded fuzz
