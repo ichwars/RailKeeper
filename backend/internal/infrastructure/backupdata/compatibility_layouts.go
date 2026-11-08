@@ -1,15 +1,14 @@
-package application
+package backupdata
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+
 	"railkeeper/backend/migrations"
 )
 
-// Retired planning tables are retained only for lossless legacy backup compatibility.
-func backfillRestoredTrackGeometrySnapshots(ctx context.Context, tx *sql.Tx) error {
-	if _, err := tx.ExecContext(ctx, `
+func (m *legacyRestoreStore) BackfillTrackGeometrySnapshots(ctx context.Context) error {
+	if _, err := m.tx.ExecContext(ctx, `
 UPDATE plan_track_objects
 SET geometry_snapshot_json = (
   SELECT json_object(
@@ -34,8 +33,8 @@ WHERE geometry_snapshot_json IS NULL`); err != nil {
 	return nil
 }
 
-func retireRestoredLegacyAllocations(ctx context.Context, tx *sql.Tx) error {
-	if _, err := tx.ExecContext(ctx, migrations.LegacyLayoutRetirementSQL); err != nil {
+func (m *legacyRestoreStore) RetireLegacyAllocations(ctx context.Context) error {
+	if _, err := m.tx.ExecContext(ctx, migrations.LegacyLayoutRetirementSQL); err != nil {
 		return fmt.Errorf("retire legacy allocations: %w", err)
 	}
 	return nil

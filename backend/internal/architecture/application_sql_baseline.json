@@ -1,35 +1,5 @@
 [
   {
-    "file": "backup_article_inventory_numbers.go",
-    "calls": 3,
-    "owner": "backupdata.Store.Restore: same restore transaction and staged file activation",
-    "stage": "R5b"
-  },
-  {
-    "file": "backup_article_master_data.go",
-    "calls": 3,
-    "owner": "backupdata.Store.Restore: same restore transaction and staged file activation",
-    "stage": "R5b"
-  },
-  {
-    "file": "backup_legacy_layouts.go",
-    "calls": 2,
-    "owner": "backupdata.Store.Restore: same restore transaction and staged file activation",
-    "stage": "R5b"
-  },
-  {
-    "file": "backup_restore_compatibility.go",
-    "calls": 8,
-    "owner": "backupdata.Store.Restore: same restore transaction and staged file activation",
-    "stage": "R5b"
-  },
-  {
-    "file": "backup_vehicle_sets.go",
-    "calls": 4,
-    "owner": "backupdata.Store.Restore: same restore transaction and staged file activation",
-    "stage": "R5b"
-  },
-  {
     "file": "database_maintenance.go",
     "calls": 4,
     "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
