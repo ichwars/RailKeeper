@@ -121,6 +121,9 @@ Windows CI retains only qualification reports and screenshots as diagnostic arti
 including on failure. Runtime databases, original backup data, authentication files and
 launch credentials are excluded. Native package qualification still tests the actual
 resource-patched executable before an archive is published.
+The native Windows build runs the complete backend suite, including authentication,
+configuration and exhibition cases. App/installation restore additionally verifies local
+sessions, setup authorization and browser-origin proofs while excluding them from app backups.
 
 Full preservation, browser, platform and human acceptance remain governed by the
 [testing baseline](testing-baseline.md) and [pilot/rollback procedure](modernization-rollout.md).

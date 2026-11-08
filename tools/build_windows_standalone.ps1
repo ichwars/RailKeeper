@@ -243,9 +243,9 @@ try {
   $env:GOCACHE = Join-Path $repo ".cache\go-build"
   New-Item -ItemType Directory -Force -Path $env:GOCACHE | Out-Null
   if ($env:GITHUB_ACTIONS -eq "true" -and $env:OS -eq "Windows_NT") {
-    & go test ./internal/application ./internal/api -run 'Test(CVFile|ImageCreation|GuardedImageUpload|MediaDeletion|FileBlobCleanup|DataTransferConfirmRoute|VehicleMapping|VehicleCreationIdentity|VehicleCatalog|DecoderConfiguration)' -count=1 -v
+    & go test ./... -count=1 -timeout=20m
     if ($LASTEXITCODE -ne 0) {
-      throw "Native Windows media preservation tests failed with exit code $LASTEXITCODE"
+      throw "Native Windows backend qualification failed with exit code $LASTEXITCODE"
     }
   }
   $buildFlags = "-s -w -X railkeeper/backend/internal/buildinfo.commit=$($railKeeperBuild.Commit) -X railkeeper/backend/internal/buildinfo.kind=$($railKeeperBuild.Kind) -X railkeeper/backend/internal/buildinfo.modified=$($railKeeperBuild.Modified)"

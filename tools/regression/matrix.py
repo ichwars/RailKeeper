@@ -11,15 +11,18 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ROUTES_SHA256 = "2818a1b730adf0bfb45c9e1d0bc673f02b9506949fd1f5c2deb78938098a68c9"
+# All 222 previous method/path/access triples are retained. The sole addition is
+# POST /users/{id}/login-budget/reset with Admin access (reviewed for R2/R9).
+ROUTES_SHA256 = "0dbee8bbb04a6c705a5648540152a7365b9c826d6b2b7d848a76dbca619c1561"
 
 # Longest matching prefix wins. New top-level areas must be classified explicitly.
 FEATURES = {
     "setup-auth": {
         "prefixes": ["/setup", "/auth", "/users", "/roles", "/sessions"],
         "ui": "Setup, Anmeldung, Konten/Rollen, TOTP, Sitzungen",
-        "storage": "users, roles, user_roles, sessions, rate_limit_attempts; installation-local",
-        "tests": ["backend/internal/api/smoke_test.go", "backend/internal/application/auth_roles_test.go"],
+        "storage": "users, roles, user_roles, sessions, login_origins, rate_limit_attempts; installation-local",
+        "tests": ["backend/internal/api/smoke_test.go", "backend/internal/api/login_origin_test.go",
+                  "backend/internal/application/auth_test.go", "backend/internal/authentication/management/service_test.go"],
     },
     "system": {
         "prefixes": ["/health", "/version", "/system", "/profile"],

@@ -150,6 +150,15 @@ def run(args):
                      root / "app-restored-runtime", image=args.image, configuration=configuration) as target:
             report["candidate"] = read_candidate(target.client, args.expected_commit)
             recovery = setup(target.client, "restore-owner")
+            owner = target.client.request("GET", "/api/v1/users")[0]
+            reset_path = "/api/v1/users/" + owner["id"] + "/login-budget/reset"
+            target.client.request("POST", reset_path, expected=403, csrf=False)
+            anonymous = Client(int(target.client.base.rsplit(":", 1)[1]))
+            anonymous.request("GET", "/api/v1/users", expected=401)
+            # Global CSRF validation rejects unauthenticated mutations before route access.
+            anonymous.request("POST", reset_path, expected=403)
+            target.client.request("POST", reset_path, expected=204)
+            passed("login-budget-recovery-requires-authenticated-admin-and-csrf")
             settings = target.client.request("PUT", "/api/v1/profile/settings",
                                              {"settings": {"railkeeper.settings.defaultView": "overview"}})
             if settings["settings"].get("railkeeper.settings.defaultView") != "overview":
@@ -162,7 +171,8 @@ def run(args):
             expected = backup_manifest(expected_fresh_restore(backup, local_backup, local_users,
                 restored_backup if args.catalog_backfill else None, args.catalog_authority, args.decoder_model, args.decoder_backfill))
             after = installation_manifest(target.data_dir)["tables"]
-            for table in ("users", "roles", "user_roles", "app_settings", "user_settings"):
+            for table in ("users", "roles", "user_roles", "sessions", "password_reset_requests",
+                          "setup_authorizations", "login_origins", "app_settings", "user_settings"):
                 assert_same(before[table], after[table], "Local installation " + table)
             assert_same(expected, backup_manifest(restored_backup), "Fresh app restore")
             assert_same(observed, observations(target.client, fixture), "Fresh restore API observations")
@@ -241,6 +251,11 @@ def run(args):
             if name == "users":
                 expected = expected_authentication_startup(cold_backup / "railkeeper.db", expected, startup_tables[name])
             assert_same(expected, startup_tables[name], "Installation startup " + name)
+        for name in ("sessions", "password_reset_requests", "setup_authorizations", "login_origins"):
+            if name in original["tables"]:
+                assert_same(original["tables"][name], startup_tables[name], "Installation startup " + name)
+            elif startup_tables[name]["count"] != 0:
+                raise AssertionError("Authentication upgrade invented local records in " + name)
         target.client.login(credentials)
         upgraded = target.client.request("GET", "/api/v1/backup/export")
         assert_same(backup_manifest(expected_backup_upgrade(backup, upgraded["version"],

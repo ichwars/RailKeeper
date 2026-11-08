@@ -91,6 +91,12 @@ def assert_same(before, after, label):
 
 def backup_manifest(document):
     """Ignore only the export wall clock and ordering, not entity IDs or timestamps."""
+    local_tables = {"users", "roles", "user_roles", "sessions", "password_reset_requests",
+                    "setup_authorizations", "login_origins", "user_settings", "app_settings",
+                    "rate_limit_attempts", "audit_logs"}
+    unexpected = sorted(local_tables.intersection(document["tables"]))
+    if unexpected:
+        raise AssertionError("Local authentication/configuration escaped app backup: " + ", ".join(unexpected))
     return {
         "format": document["format"],
         "version": document["version"],
