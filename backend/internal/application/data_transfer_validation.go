@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"railkeeper/backend/internal/domain"
+	vehiclemodel "railkeeper/backend/internal/inventory/vehicle"
 )
 
 // ValidateTransferVehicle applies the same aggregate validation as the regular vehicle create flow.
@@ -12,7 +13,7 @@ func ValidateTransferVehicle(vehicle TransferVehicle) error {
 	if strings.TrimSpace(vehicle.InventoryNumber) == "" {
 		return fmt.Errorf("validate transferred vehicle inventory number: %w", ErrVehicleValidation)
 	}
-	_, err := validateCreateVehicleInput(CreateVehicleInput{
+	_, err := vehiclemodel.ValidateCreateInput(CreateVehicleInput{
 		InventoryNumber: vehicle.InventoryNumber, Manufacturer: vehicle.Manufacturer,
 		ArticleNumber: vehicle.ArticleNumber, ArticleSourceURL: vehicle.ArticleSourceURL, Name: vehicle.Name,
 		Gauge: vehicle.Gauge, Epoch: vehicle.Epoch, RailwayCompany: vehicle.RailwayCompany,
