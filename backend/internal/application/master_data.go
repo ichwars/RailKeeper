@@ -18,12 +18,6 @@ func NewMasterDataService(db *sql.DB) *MasterDataService { return newMasterDataS
 func newMasterDataService(db *sql.DB, loader func(context.Context) (map[string][]MasterDataEntry, error)) *MasterDataService {
 	return &MasterDataService{Service: masterdata.New(masterdatastore.New(db), loader), db: db}
 }
-func boolToInt(value bool) int {
-	if value {
-		return 1
-	}
-	return 0
-}
 func slugKey(value string) string { return masterdata.SlugKey(value) }
 func ParseAccessoryCustomAttributeDefinition(key string, active bool, metadata map[string]any) (domain.AccessoryAttributeDefinition, error) {
 	return masterdata.ParseAccessoryCustomAttributeDefinition(key, active, metadata)
