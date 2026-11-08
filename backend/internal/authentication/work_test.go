@@ -40,8 +40,8 @@ func waitForQueued(t *testing.T, work *WorkLimiter, count int) {
 	}
 }
 
-func TestWorkLimiterFIFOAndFullQueue(t *testing.T) {
-	work := testWorkLimiter(t, 3, 2*time.Second)
+func TestWorkLimiterFIFOAndReservedCapacity(t *testing.T) {
+	work := testWorkLimiter(t, 4, 2*time.Second)
 	if err := work.acquire(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func TestWorkLimiterGrantCancellationRaceDoesNotLeak(t *testing.T) {
 }
 
 func TestCanceledHandoffPassesCapacityToNextWaiter(t *testing.T) {
-	work := testWorkLimiter(t, 2, time.Second)
+	work := testWorkLimiter(t, 3, time.Second)
 	if err := work.acquire(t.Context()); err != nil {
 		t.Fatal(err)
 	}

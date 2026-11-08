@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { assertPersonalViews } from "./personal-views.mjs";
+import { assertLoginRecoveryLayout } from "./authentication.mjs";
 
 // Exercise real controls: invisible native switch inputs must stay inside the scrollable table,
 // and the visible maintenance selector must never cover the image-upload action.
@@ -31,6 +32,8 @@ export async function assertResponsiveWorkspaces(page, { base, username, width, 
   assert.equal(await toggle.evaluate(input => getComputedStyle(input.nextElementSibling).outlineStyle), "solid");
   await assertViewportFits(page, "focused inventory-number switch");
   await page.screenshot({ path: screenshotPrefix + "-settings.png", fullPage: true });
+
+  await assertLoginRecoveryLayout(page, { base, width, de, screenshotPrefix });
 
   // Open the existing table action before inspecting the same dialog at the requested width.
   await page.setViewportSize({ width: 1440, height: 1000 });

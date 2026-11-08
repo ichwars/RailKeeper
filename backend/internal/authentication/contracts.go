@@ -13,11 +13,13 @@ var (
 	ErrTwoFactorRequired = errors.New("two factor code required")
 	ErrLoginThrottled    = errors.New("login temporarily limited")
 	ErrLoginBusy         = fmt.Errorf("password work is busy: %w", ErrLoginThrottled)
+	ErrForbidden         = errors.New("forbidden")
+	ErrUserNotFound      = errors.New("user not found")
 )
 
 const AccountBudgetScope = "login-account"
 
-type Input struct{ Username, Password, TwoFactorCode string }
+type Input struct{ Username, Password, TwoFactorCode, OriginToken string }
 
 type Account struct {
 	ID, Username, PasswordHash, TwoFactorSecret string
@@ -29,9 +31,12 @@ type Result struct {
 	ExpiresAt                         time.Time
 	Roles                             []string
 	TwoFactorEnabled                  bool
+	OriginToken                       string
+	OriginExpiresAt                   time.Time
 }
 
 type Attempt struct {
+	Scope  string
 	Key    string
 	Now    time.Time
 	Limit  int
@@ -47,6 +52,9 @@ type Commit struct {
 	TwoFactorStep            int64
 	Session                  Result
 	Now                      time.Time
+	AttemptScope             string
+	Origin                   *Origin
+	OriginRecognized         bool
 }
 
 type Audit struct {

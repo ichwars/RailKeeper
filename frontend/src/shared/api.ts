@@ -1082,6 +1082,8 @@ export const api = {
     }),
   roles: () => request<Role[]>("/roles"),
   users: () => request<UserAccount[]>("/users"),
+  resetLoginBudget: (id: string) =>
+    request<void>(`/users/${encodeURIComponent(id)}/login-budget/reset`, { method: "POST" }),
   createUser: (input: UserAccountInput) =>
     request<UserAccount>("/users", {
       method: "POST",

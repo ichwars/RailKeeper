@@ -985,6 +985,11 @@
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  margin-inline-start: auto;
+}
+
+.user-management-card > .settings-section-head {
+  flex-wrap: wrap;
 }
 
 .settings-title-with-pill {

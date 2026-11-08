@@ -18,9 +18,9 @@ var (
 	ErrInvalidLogin         = authentication.ErrInvalidLogin
 	ErrUnauthorized         = errors.New("unauthorized")
 	ErrInvalidCSRF          = errors.New("invalid csrf token")
-	ErrForbidden            = errors.New("forbidden")
+	ErrForbidden            = authentication.ErrForbidden
 	ErrUserValidation       = errors.New("user validation failed")
-	ErrUserNotFound         = errors.New("user not found")
+	ErrUserNotFound         = authentication.ErrUserNotFound
 	ErrSessionNotFound      = errors.New("session not found")
 	ErrDuplicateUser        = errors.New("user already exists")
 	ErrLastAdmin            = errors.New("last admin cannot be removed")
@@ -44,6 +44,7 @@ type LoginInput struct {
 	Username      string `json:"username"`
 	Password      string `json:"password"`
 	TwoFactorCode string `json:"twoFactorCode"`
+	OriginToken   string `json:"-"`
 }
 
 type ChangePasswordInput struct {
@@ -143,10 +144,12 @@ type PasswordResetConfirmInput struct {
 }
 
 type LoginResult struct {
-	SessionToken string
-	CSRFToken    string
-	ExpiresAt    time.Time
-	Session      SessionView
+	SessionToken    string
+	CSRFToken       string
+	ExpiresAt       time.Time
+	Session         SessionView
+	OriginToken     string
+	OriginExpiresAt time.Time
 }
 
 func NewAuthService(db *sql.DB, options ...AuthOption) *AuthService {

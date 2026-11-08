@@ -1413,7 +1413,7 @@ func TestBackupExcludesAuthenticationTables(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, table := range []string{
-		"users", "roles", "user_roles", "sessions", "password_reset_requests", "rate_limit_attempts", "audit_logs",
+		"users", "roles", "user_roles", "sessions", "login_origins", "password_reset_requests", "rate_limit_attempts", "audit_logs",
 	} {
 		if _, ok := backup.Tables[table]; ok {
 			t.Fatalf("backup should not export authentication table %q", table)
@@ -1770,6 +1770,7 @@ ORDER BY name
 		"roles":                           true,
 		"schema_migrations":               true,
 		"sessions":                        true,
+		"login_origins":                   true,
 		"setup_authorizations":            true,
 		"user_roles":                      true,
 		"user_settings":                   true,

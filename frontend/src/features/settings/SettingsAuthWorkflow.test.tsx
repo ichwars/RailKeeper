@@ -102,6 +102,24 @@ describe("Authentication settings with the real controller", () => {
     expect(api.sessions).toHaveBeenCalledTimes(2);
   });
 
+  it("confirms login recovery, retains credentials and reports a rejected recovery", async () => {
+    const reset = vi.spyOn(api, "resetLoginBudget").mockRejectedValueOnce(new Error("Freigabe abgelehnt")).mockResolvedValue(undefined);
+    const user = await open();
+    await user.click(screen.getByRole("button", { name: "Anmeldung freigeben" }));
+    expect(reset).not.toHaveBeenCalled();
+    expect(screen.getByText(/Gespeicherte Browserbelege werden widerrufen/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Verwerfen" }));
+    expect(reset).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Anmeldung freigeben" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+    expect(await screen.findByText("Freigabe abgelehnt")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Anmeldung freigeben" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+    expect(await screen.findByText(/Anmeldung freigegeben/)).toBeInTheDocument();
+    expect(reset).toHaveBeenLastCalledWith(account.id);
+    expect(api.auditLog).toHaveBeenCalledTimes(2);
+  });
+
   it("prepares a second factor and activates only after an acknowledged fresh code", async () => {
     vi.spyOn(api, "setupTwoFactor").mockResolvedValue({ enabled: false, prepared: true, secret: "SYNTHETIC", otpauthUrl: "otpauth://totp/RailKeeper?secret=JBSWY3DPEHPK3PXP" });
     const enable = vi.spyOn(api, "enableTwoFactor").mockRejectedValueOnce(new Error("Code bereits verwendet")).mockResolvedValue({ enabled: true, prepared: true });

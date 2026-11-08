@@ -52,6 +52,7 @@ export function SettingsAuthTab({ controller }: { controller: SettingsAuthContro
     users,
     startUserEdit,
     deleteUser,
+    resetLoginBudget,
     loadSessions,
     sessionsLoading,
     sessions,
@@ -526,6 +527,9 @@ export function SettingsAuthTab({ controller }: { controller: SettingsAuthContro
                             <td>{formatDateTime(user.createdAt)}</td>
                             <td>
                               <div className="table-actions">
+                                <button type="button" className="secondary-button" onClick={() => resetLoginBudget(user)}>
+                                  {t("settings.users.unlockLogin")}
+                                </button>
                                 <button type="button" className="icon-button" onClick={() => openUserEditDialog(user)} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
                                   <Pencil size={16} />
                                 </button>

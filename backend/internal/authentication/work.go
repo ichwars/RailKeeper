@@ -33,14 +33,17 @@ func (limits WorkLimits) Validate() error {
 type workWaiter struct {
 	ready   chan struct{}
 	granted bool
+	known   bool
 }
 
 // WorkLimiter bounds whole login attempts, including any password hash upgrade.
 type WorkLimiter struct {
-	mu      sync.Mutex
-	limits  WorkLimits
-	active  int
-	waiting []*workWaiter
+	mu           sync.Mutex
+	limits       WorkLimits
+	active       int
+	waiting      []*workWaiter
+	lastKnown    bool
+	originChecks int
 }
 
 func NewWorkLimiter(limits WorkLimits) (*WorkLimiter, error) {
@@ -59,6 +62,26 @@ func WithWorkLimiter(limiter *WorkLimiter) Option {
 }
 
 func (limiter *WorkLimiter) acquire(ctx context.Context) error {
+	return limiter.acquireOrigin(ctx, false)
+}
+
+func (limiter *WorkLimiter) beginOriginCheck() bool {
+	limiter.mu.Lock()
+	defer limiter.mu.Unlock()
+	if limiter.originChecks >= limiter.limits.Parallel {
+		return false
+	}
+	limiter.originChecks++
+	return true
+}
+
+func (limiter *WorkLimiter) endOriginCheck() {
+	limiter.mu.Lock()
+	defer limiter.mu.Unlock()
+	limiter.originChecks--
+}
+
+func (limiter *WorkLimiter) acquireOrigin(ctx context.Context, known bool) error {
 	limiter.mu.Lock()
 	if err := ctx.Err(); err != nil {
 		limiter.mu.Unlock()
@@ -73,7 +96,21 @@ func (limiter *WorkLimiter) acquire(ctx context.Context) error {
 		limiter.mu.Unlock()
 		return ErrLoginBusy
 	}
-	waiter := &workWaiter{ready: make(chan struct{})}
+	// Reserve one waiting slot for recognized browsers. Active work and the
+	// total queue stay bounded; a stolen proof still needs password and 2FA.
+	if !known && limiter.limits.Queue >= 2 {
+		unknown := 0
+		for _, pending := range limiter.waiting {
+			if !pending.known {
+				unknown++
+			}
+		}
+		if unknown >= limiter.limits.Queue-1 {
+			limiter.mu.Unlock()
+			return ErrLoginBusy
+		}
+	}
+	waiter := &workWaiter{ready: make(chan struct{}), known: known}
 	limiter.waiting = append(limiter.waiting, waiter)
 	limiter.mu.Unlock()
 	timer := time.NewTimer(limiter.limits.Wait)
@@ -120,8 +157,17 @@ func (limiter *WorkLimiter) releaseLocked() {
 		limiter.active--
 		return
 	}
-	next := limiter.waiting[0]
-	limiter.waiting = slices.Delete(limiter.waiting, 0, 1)
+	// Alternate origins under mixed load, retaining FIFO within each class.
+	index := 0
+	for candidate, pending := range limiter.waiting {
+		if pending.known != limiter.lastKnown {
+			index = candidate
+			break
+		}
+	}
+	next := limiter.waiting[index]
+	limiter.lastKnown = next.known
+	limiter.waiting = slices.Delete(limiter.waiting, index, index+1)
 	next.granted = true
 	close(next.ready)
 }

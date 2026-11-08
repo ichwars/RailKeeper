@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/credentials"
 )
 
 func (a *App) setupStatus(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +71,9 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 	if !decodeBoundedJSON(w, r, &input) {
 		return
 	}
+	if cookie, err := r.Cookie(loginOriginCookieName(input.Username)); err == nil {
+		input.OriginToken = cookie.Value
+	}
 
 	result, err := a.authService.Login(r.Context(), input)
 	if err != nil {
@@ -96,7 +100,14 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 
 	setCookie(w, "rk_session", result.SessionToken, int(timeUntil(result.ExpiresAt).Seconds()), true, a.cookieSecure)
 	setCookie(w, "rk_csrf", result.CSRFToken, int(timeUntil(result.ExpiresAt).Seconds()), false, a.cookieSecure)
+	if result.OriginToken != "" {
+		setCookie(w, loginOriginCookieName(input.Username), result.OriginToken, int(timeUntil(result.OriginExpiresAt).Seconds()), true, a.cookieSecure)
+	}
 	respondJSON(w, http.StatusOK, result.Session)
+}
+
+func loginOriginCookieName(username string) string {
+	return "rk_login_origin_" + credentials.HashToken(strings.TrimSpace(username))
 }
 
 func (a *App) requestPasswordReset(w http.ResponseWriter, r *http.Request) {

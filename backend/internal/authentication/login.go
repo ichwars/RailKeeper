@@ -48,13 +48,21 @@ func (s *Service) Login(ctx context.Context, input Input) (*Result, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if err := s.work.acquire(ctx); err != nil {
+	username := strings.TrimSpace(input.Username)
+	origin, known, err := s.recognizeOrigin(ctx, username, input.OriginToken)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.work.acquireOrigin(ctx, known); err != nil {
 		return nil, err
 	}
 	defer s.work.release()
-	username := strings.TrimSpace(input.Username)
 	key := credentials.HashToken(username)
-	allowed, err := s.store.AllowAttempt(ctx, Attempt{Key: key, Now: s.now().UTC(), Limit: 10, Window: 5 * time.Minute})
+	scope := AccountBudgetScope
+	if known {
+		key, scope = origin.BudgetKey, OriginBudgetScope
+	}
+	allowed, err := s.store.AllowAttempt(ctx, Attempt{Scope: scope, Key: key, Now: s.now().UTC(), Limit: 10, Window: 5 * time.Minute})
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +78,7 @@ func (s *Service) Login(ctx context.Context, input Input) (*Result, error) {
 		passwordHash = s.passwords.DummyHash()
 	}
 	validPassword := s.passwords.Verify(input.Password, passwordHash)
-	if !found || !validPassword {
+	if !found || !validPassword || (known && origin.UserID != account.ID) {
 		s.failure(ctx, "", "LoginFailed", username)
 		return nil, ErrInvalidLogin
 	}
@@ -88,7 +96,22 @@ func (s *Service) Login(ctx context.Context, input Input) (*Result, error) {
 	}
 	result := &Result{SessionToken: credentials.RandomToken(), CSRFToken: credentials.RandomToken(),
 		Username: account.Username, ExpiresAt: s.now().UTC().Add(12 * time.Hour), Roles: roles, TwoFactorEnabled: account.TwoFactorEnabled}
-	proof := Commit{Account: account, AttemptKey: key, UpgradedHash: upgraded, TwoFactorStep: step, Session: *result, Now: s.now().UTC()}
+	proof := Commit{Account: account, AttemptKey: key, AttemptScope: scope, UpgradedHash: upgraded, TwoFactorStep: step, Session: *result, Now: s.now().UTC()}
+	if _, supportsOrigins := s.store.(OriginStore); supportsOrigins {
+		if !known || origin.UserID != account.ID {
+			input.OriginToken = credentials.RandomToken()
+			origin = Origin{UserID: account.ID, TokenHash: credentials.HashToken(input.OriginToken),
+				BudgetKey: credentials.HashToken(account.ID + ":" + input.OriginToken), ExpiresAt: proof.Now.Add(OriginTTL)}
+		}
+		state := account
+		if upgraded != "" {
+			state.PasswordHash = upgraded
+		}
+		origin.StateHash = CredentialState(state)
+		proof.Origin = &origin
+		proof.OriginRecognized = known
+		result.OriginToken, result.OriginExpiresAt = input.OriginToken, origin.ExpiresAt
+	}
 	if err := s.store.CommitLogin(ctx, proof); err != nil {
 		if errors.Is(err, ErrInvalidLogin) {
 			s.failure(ctx, account.ID, "LoginFailed", account.ID)

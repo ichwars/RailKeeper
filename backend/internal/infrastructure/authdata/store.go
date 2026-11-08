@@ -20,7 +20,10 @@ func NewStore(db *sql.DB) *Store { return &Store{db: db} }
 var _ authentication.Store = (*Store)(nil)
 
 func (s *Store) AllowAttempt(ctx context.Context, attempt authentication.Attempt) (bool, error) {
-	return ratelimit.NewStore(s.db).Allow(ctx, ratelimit.Attempt{Scope: authentication.AccountBudgetScope,
+	if attempt.Scope == "" {
+		attempt.Scope = authentication.AccountBudgetScope
+	}
+	return ratelimit.NewStore(s.db).Allow(ctx, ratelimit.Attempt{Scope: attempt.Scope,
 		Key: attempt.Key, Limit: attempt.Limit, Window: attempt.Window, Now: attempt.Now})
 }
 
