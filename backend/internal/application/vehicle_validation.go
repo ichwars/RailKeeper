@@ -13,10 +13,6 @@ func isValidVehicleOperationalInput(input CreateVehicleInput) bool {
 	return vehiclemodel.IsValidVehicleOperationalInput(input)
 }
 
-func cleanVehicleAttachmentInput(input VehicleAttachmentInput) VehicleAttachmentInput {
-	return vehiclemodel.CleanVehicleAttachmentInput(input)
-}
-
 func cleanVehicleFunctionInput(input VehicleFunctionInput) VehicleFunctionInput {
 	return vehiclemodel.CleanVehicleFunctionInput(input)
 }

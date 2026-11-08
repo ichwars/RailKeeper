@@ -49,15 +49,6 @@ func (r *imageReader) MaintenanceBelongs(ctx context.Context, id, maintenanceID 
 	return MaintenanceBelongsToVehicle(ctx, r.query, id, maintenanceID)
 }
 
-type maintenanceReader struct{ query queryRower }
-
-func MaintenanceReader(query queryRower) vehiclemodel.MaintenanceLookup {
-	return maintenanceReader{query: query}
-}
-func (r maintenanceReader) MaintenanceBelongs(ctx context.Context, id, maintenanceID string) (bool, error) {
-	return MaintenanceBelongsToVehicle(ctx, r.query, id, maintenanceID)
-}
-
 type vehicleMediaQuery interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }
