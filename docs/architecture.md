@@ -11,6 +11,8 @@ responsibility.
 - `valuation`: exact manual valuation rules behind a transactional storage port
 - `transfer`: shared exchange contracts, compatibility encoding and preview identities
 - `inventory/numbering`, `inventory/money`, `inventory/overview`: numbering and collection-value rules behind typed storage ports
+- `inventory/masterdata`: master-data use cases, reconciliation and cache ownership behind semantic storage ports
+- `inventory/workshop`: maintenance and spare-part rules behind vehicle lookup and storage ports
 - `ecosmodel`: pure ECoS read projections, comparison plans and copied telemetry records
 - `backup`: backup format, compatibility checks and restore orchestration behind storage/rule ports
 - `decoder`: physical decoder/installation and CV identity, scope, conflict and partial-state rules
