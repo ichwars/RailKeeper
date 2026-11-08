@@ -96,7 +96,7 @@ jobs:
       matrix:
         include:
           - scope: rules-storage
-            packages: ./internal/transfer/... ./internal/authentication/... ./internal/credentials ./internal/decoder ./internal/ecosmodel ./internal/backup ./internal/valuation ./internal/infrastructure/authdata ./internal/infrastructure/backupdata ./internal/infrastructure/valuationdata
+            packages: ./internal/transfer/... ./internal/authentication/... ./internal/credentials ./internal/decoder ./internal/ecosmodel ./internal/backup ./internal/valuation ./internal/infrastructure/authdata ./internal/infrastructure/transferfiles ./internal/infrastructure/backupdata ./internal/infrastructure/valuationdata
             tests: .
           - scope: authentication
             packages: ./internal/application ./internal/api

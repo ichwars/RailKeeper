@@ -59,7 +59,7 @@ WHERE id=?`, id).Scan(
 		&artifact.SizeBytes, &artifact.SHA256, &artifact.DeletedAt, &artifact.CreatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return transfer.DataTransferArtifact{}, fmt.Errorf("get transfer artifact: %w", sql.ErrNoRows)
+		return transfer.DataTransferArtifact{}, fmt.Errorf("get transfer artifact: %w: %w", transfer.ErrDataTransferNotFound, sql.ErrNoRows)
 	}
 	if err != nil {
 		return transfer.DataTransferArtifact{}, fmt.Errorf("get transfer artifact: %w", err)

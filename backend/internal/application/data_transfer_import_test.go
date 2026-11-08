@@ -14,7 +14,7 @@ import (
 
 func TestPreviewImportPersistsValidationIssues(t *testing.T) {
 	repository, service := newDataTransferImportFixture(t)
-	job := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
+	job := fixtureCreateImportJob(t, repository, service, TransferVehicles, TransferCSV)
 	upload := []byte(strings.Join([]string{
 		"Inventarnummer;Hersteller;Bezeichnung",
 		"RK-001;;BR 218",
@@ -52,7 +52,7 @@ func TestPreviewImportPersistsValidationIssues(t *testing.T) {
 
 func TestPreviewImportReturnsAndAppliesVehicleCSVMapping(t *testing.T) {
 	repository, service := newDataTransferImportFixture(t)
-	job := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
+	job := fixtureCreateImportJob(t, repository, service, TransferVehicles, TransferCSV)
 	upload := []byte("Eigene Nummer;Marke;Titel;Spur;Typ;Klasse\nRK-900;Roco;BR 218;H0;Lokomotive;Diesellokomotive\n")
 
 	automatic, err := service.UploadAndPreview(t.Context(), job.ID, "vehicles.csv", upload, "editor-1")
@@ -292,8 +292,8 @@ func TestTransferImportRejectsUnknownMasterDataAndUnsupportedVersion(t *testing.
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			_, service := newDataTransferImportFixture(t)
-			job := fixtureCreateImportJob(t, service, TransferVehicles, TransferJSON)
+			repository, service := newDataTransferImportFixture(t)
+			job := fixtureCreateImportJob(t, repository, service, TransferVehicles, TransferJSON)
 			_, err := service.UploadAndPreview(
 				t.Context(), job.ID, "transfer.json", []byte(testCase.payload), "editor-1",
 			)
@@ -359,7 +359,7 @@ func TestPreviewImportClassifiesDuplicatesAndLockedExhibitionReplacement(t *test
 		},
 	}
 
-	vehicleJob := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
+	vehicleJob := fixtureCreateImportJob(t, repository, service, TransferVehicles, TransferCSV)
 	vehiclePreview, err := service.UploadAndPreview(t.Context(), vehicleJob.ID, "vehicles.csv", []byte(
 		"Inventarnummer;Hersteller;Bezeichnung;Spurweite;Kategorie;Gattung\n"+
 			"RK-001;Roco;BR 01;H0;Lokomotive;Dampflokomotive\n"), "editor-1")
@@ -382,7 +382,7 @@ func TestPreviewImportClassifiesDuplicatesAndLockedExhibitionReplacement(t *test
 		t.Fatalf("persisted preview omitted target fingerprint: %s", persistedPreview)
 	}
 
-	accessoryJob := fixtureCreateImportJob(t, service, TransferAccessories, TransferCSV)
+	accessoryJob := fixtureCreateImportJob(t, repository, service, TransferAccessories, TransferCSV)
 	accessoryPreview, err := service.UploadAndPreview(t.Context(), accessoryJob.ID, "accessories.csv", []byte(
 		"Inventarnummer;Hersteller;Artikelnummer;Bezeichnung;Kategorie;Erfassungsart;Artikelart;Unterart;"+
 			"Packungsmenge;Bestandseinheit;Inventarstrategie\n"+
@@ -395,7 +395,7 @@ func TestPreviewImportClassifiesDuplicatesAndLockedExhibitionReplacement(t *test
 		t.Fatal("accessory duplicate preview has no aggregate target fingerprint")
 	}
 
-	exhibitionJob := fixtureCreateImportJob(t, service, TransferExhibitionLists, TransferJSON)
+	exhibitionJob := fixtureCreateImportJob(t, repository, service, TransferExhibitionLists, TransferJSON)
 	payload, err := json.Marshal(DataTransferPackage{
 		Format: DataTransferPackageFormat, Version: DataTransferPackageVersion,
 		Areas: DataTransferPackageAreas{ExhibitionLists: []TransferExhibitionList{{
@@ -431,7 +431,7 @@ func TestPreviewImportDoesNotTrustForeignExhibitionListIDWithoutMatchingIdentity
 	repository.snapshot = DataTransferSnapshot{ExhibitionLists: []TransferExhibitionList{{
 		ID: "list-collision", Designation: "Local show", Date: "2026-08-20", Locked: true,
 	}}}
-	job := fixtureCreateImportJob(t, service, TransferExhibitionLists, TransferJSON)
+	job := fixtureCreateImportJob(t, repository, service, TransferExhibitionLists, TransferJSON)
 	payload, err := json.Marshal(DataTransferPackage{
 		Format: DataTransferPackageFormat, Version: DataTransferPackageVersion,
 		Areas: DataTransferPackageAreas{ExhibitionLists: []TransferExhibitionList{{
@@ -490,21 +490,21 @@ func TestDataTransferPreviewIssuesHaveDeterministicRecordAndEntryIdentity(t *tes
 }
 
 func TestTransferImportRejectsMalformedOversizedAndMismatchedUploads(t *testing.T) {
-	_, service := newDataTransferImportFixture(t)
+	repository, service := newDataTransferImportFixture(t)
 
-	malformedJob := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
+	malformedJob := fixtureCreateImportJob(t, repository, service, TransferVehicles, TransferCSV)
 	if _, err := service.UploadAndPreview(t.Context(), malformedJob.ID, "vehicles.csv",
 		[]byte("Inventarnummer;Hersteller;Bezeichnung\n\"unterminated"), "editor-1"); !errors.Is(err, ErrDataTransferValidation) {
 		t.Fatalf("expected malformed CSV rejection, got %v", err)
 	}
 
-	mismatchJob := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
+	mismatchJob := fixtureCreateImportJob(t, repository, service, TransferVehicles, TransferCSV)
 	if _, err := service.UploadAndPreview(t.Context(), mismatchJob.ID, "vehicles.json",
 		[]byte("Inventarnummer;Hersteller;Bezeichnung\nRK-1;Roco;BR 01\n"), "editor-1"); !errors.Is(err, ErrDataTransferValidation) {
 		t.Fatalf("expected MIME/extension mismatch rejection, got %v", err)
 	}
 
-	oversizedJob := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
+	oversizedJob := fixtureCreateImportJob(t, repository, service, TransferVehicles, TransferCSV)
 	oversized := make([]byte, DataTransferMaxUploadBytes+1)
 	if _, err := service.UploadAndPreview(t.Context(), oversizedJob.ID, "vehicles.csv", oversized, "editor-1"); !errors.Is(err, ErrDataTransferUploadTooLarge) {
 		t.Fatalf("expected oversized upload rejection, got %v", err)
@@ -512,8 +512,8 @@ func TestTransferImportRejectsMalformedOversizedAndMismatchedUploads(t *testing.
 }
 
 func TestTransferImportEnforcesAreaScopeAndSupportsIssueResolutionAndCancel(t *testing.T) {
-	_, service := newDataTransferImportFixture(t)
-	job := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
+	repository, service := newDataTransferImportFixture(t)
+	job := fixtureCreateImportJob(t, repository, service, TransferVehicles, TransferCSV)
 	if _, err := service.UploadAndPreview(t.Context(), job.ID, "vehicles.csv", []byte(
 		"Inventarnummer;Hersteller;Bezeichnung;Spurweite;Kategorie;Gattung\n"+
 			"RK-001;;BR 01;H0;Lokomotive;Dampflokomotive\n"),
@@ -541,14 +541,14 @@ func TestTransferImportEnforcesAreaScopeAndSupportsIssueResolutionAndCancel(t *t
 	if cancelled.State != TransferJobCancelled {
 		t.Fatalf("cancelled job state = %q", cancelled.State)
 	}
-	if repository := service.repository.(*dataTransferImportRepositoryStub); repository.mutationCount != 3 {
+	if repository.mutationCount != 3 {
 		t.Fatalf("upload, resolve, and cancel used %d atomic mutations, want 3", repository.mutationCount)
 	}
 }
 
 func TestDataTransferConfirmImportRequiresExplicitConfirmationAndReadyResolvedPreview(t *testing.T) {
 	repository, service := newDataTransferImportFixture(t)
-	job := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
+	job := fixtureCreateImportJob(t, repository, service, TransferVehicles, TransferCSV)
 	job.State = TransferJobReady
 	job.SourceSHA256 = "source-sha"
 	job.Preview = map[string]any{"sourceSha256": "source-sha", "records": []any{}}
@@ -597,12 +597,12 @@ func newDataTransferImportFixture(t *testing.T) (*dataTransferImportRepositorySt
 
 func fixtureCreateImportJob(
 	t *testing.T,
+	repository *dataTransferImportRepositoryStub,
 	service *DataTransferService,
 	area TransferArea,
 	format TransferFormat,
 ) DataTransferJob {
 	t.Helper()
-	repository := service.repository.(*dataTransferImportRepositoryStub)
 	profileID := "profile-" + string(area) + "-" + string(format)
 	repository.profiles[profileID] = DataTransferProfile{
 		ID: profileID, Name: profileID, Direction: TransferImport, Format: format,

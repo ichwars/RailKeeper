@@ -333,7 +333,7 @@ func (a *App) downloadDataTransferArtifact(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	defer func() { _ = file.Close() }()
-	info, err := file.Stat()
+	info, err := file.Metadata()
 	if err != nil {
 		a.dataTransferError(w, err, "inspect data transfer artifact")
 		return
@@ -342,7 +342,7 @@ func (a *App) downloadDataTransferArtifact(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Disposition", disposition)
 	w.Header().Set("Content-Type", artifact.MIMEType)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	http.ServeContent(w, r, artifact.DisplayName, info.ModTime(), file)
+	http.ServeContent(w, r, artifact.DisplayName, info.ModifiedAt, file)
 }
 
 func (a *App) deleteDataTransferArtifact(w http.ResponseWriter, r *http.Request) {

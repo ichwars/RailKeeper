@@ -640,6 +640,17 @@ func TestDataTransferExportRoutesCreateExecuteDownloadAndDeleteArtifact(t *testi
 	if download.Header().Get("Content-Disposition") == "" || download.Body.Len() == 0 {
 		t.Fatalf("download lacks headers or content: headers=%v body=%q", download.Header(), download.Body.String())
 	}
+	partialRequest := httptest.NewRequest(http.MethodGet,
+		"/api/v1/data-transfer/artifacts/"+result.Artifact.ID+"/download", nil)
+	partialRequest.AddCookie(&http.Cookie{Name: "rk_session", Value: viewer.SessionToken})
+	partialRequest.Header.Set("Range", "bytes=0-9")
+	partial := httptest.NewRecorder()
+	router.ServeHTTP(partial, partialRequest)
+	assertStatus(t, partial, http.StatusPartialContent)
+	if !bytes.Equal(partial.Body.Bytes(), download.Body.Bytes()[:10]) ||
+		partial.Header().Get("X-Content-Type-Options") != "nosniff" || partial.Header().Get("Content-Range") == "" {
+		t.Fatal("partial artifact download lost bytes or security headers")
+	}
 
 	deleted := authedJSONRequest(t, router, admin, http.MethodDelete,
 		"/api/v1/data-transfer/artifacts/"+result.Artifact.ID, nil, true)

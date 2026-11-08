@@ -16,7 +16,11 @@ func (repository *DataTransferRepository) ValidateTransferAccessoryReferences(
 	accessory transfer.TransferAccessory,
 	targetID string,
 ) error {
-	return validateTransferAccessoryReferenceData(ctx, repository.db, accessory, targetID)
+	err := validateTransferAccessoryReferenceData(ctx, repository.db, accessory, targetID)
+	if errors.Is(err, application.ErrAccessoryValidation) {
+		return errors.Join(transfer.ErrDataTransferValidation, err)
+	}
+	return err
 }
 
 func validateTransferAccessoryReferenceData(
