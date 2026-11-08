@@ -36,12 +36,6 @@
     "stage": "R5c"
   },
   {
-    "file": "decoder_library_seed.go",
-    "calls": 3,
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
     "file": "exhibition.go",
     "calls": 17,
     "transactions": [
@@ -60,12 +54,6 @@
     ],
     "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
     "stage": "R5c"
-  },
-  {
-    "file": "function_symbol_seed.go",
-    "calls": 2,
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
   },
   {
     "file": "settings.go",
