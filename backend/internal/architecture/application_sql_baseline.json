@@ -91,11 +91,5 @@
     ],
     "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
     "stage": "R5c"
-  },
-  {
-    "file": "vehicle_ecos_profile.go",
-    "calls": 1,
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
   }
 ]
