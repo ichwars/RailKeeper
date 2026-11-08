@@ -41,16 +41,26 @@ No schema or JSON-contract change is required by these boundaries.
 
 ## Master-data rules and reads
 
-`inventory/masterdata` owns the shared records, protected article-type configuration,
-input/custom-field definitions, import preparation, sorting, decoder metadata checks
-and cache-copy rules. It imports the existing decoder-library parser and shared domain
-attribute rules. It has no SQL, HTTP or filesystem dependency.
+`inventory/masterdata` owns shared records, protected article-type configuration,
+input/custom-field definitions, import/reconciliation decisions, sorting, decoder metadata
+checks, cache ownership and the actual use cases. Its typed repository includes semantic
+read and mutation operations. It has no SQL, HTTP or filesystem dependency.
 
-`infrastructure/masterdatastore` owns the five existing list/snapshot/single-entry/
-relation queries through a typed reader port. Its row mapper is also reused by the
-existing caller-owned reconciliation transaction. The application retains its service
-and transactional writes during the next migration slice, including decoder/seed methods
-that require a local service type. This first slice does not complete that write migration.
+`infrastructure/masterdatastore` owns existing reads and writes in focused adapters.
+Custom-field changes, active-state batches, deletion and import each retain one transaction
+owner. Reference/usage callbacks use that same transaction after reserving the write lock.
+Original entry/relationship identities, bundled origins, raw metadata and timestamps retain
+their rules. Injected later failures roll back earlier updates, deletions and inserts.
+
+After a successful write the core invalidates its cache before final readback, preserving
+the invalidation even if readback fails. A rejected write retains the valid previous cache.
+Management capability calculations remain conservative for unknown reference types.
+
+The application service is local composition embedding the real core, preserving its extra
+decoder/library methods. Its database field remains only for explicitly inventoried legacy
+decoder/symbol seeds, which belong to their separate migration. It executes no master-data
+read/write SQL. Backup compatibility owns its separate bundled-identity row type until that
+legacy restore adapter is migrated.
 
 Cached metadata owns nested maps and arrays. Both active and complete snapshots, and
 returned copies, retain their own mutable containers; changing one cannot alter another.
