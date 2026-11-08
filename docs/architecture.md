@@ -8,6 +8,8 @@ responsibility.
 - `api`: HTTP transport, request validation, response mapping
 - `application`: compatibility composition and remaining legacy use cases/transactions
 - `authentication`: independent login and account/session/reset/2FA decisions behind typed ports
+- `exhibition`: planning, lifecycle, readiness and conflict rules behind typed repository ports
+- `infrastructure/exhibitiondata`: list/entry/exception SQLite storage and guarded transactions
 - `configuration`: personal/digital/SMTP settings and maintenance rules behind typed storage ports
 - `infrastructure/settingsdata`: setting queries/transactions and concrete SQLite maintenance/file sizes
 - `valuation`: exact manual valuation rules behind a transactional storage port
@@ -37,6 +39,8 @@ the SQLite/file restore owner and legacy compatibility work within that same tra
 The [decoder boundary](architecture/decoder-boundaries.md) separates identity and conflict decisions
 from caller-transaction SQL while preserving CV histories, source bytes and original profile labels.
 
+The [exhibition boundary](architecture/exhibition-boundaries.md) preserves planning revisions,
+conflict identities, lifecycle timestamps and the existing transaction ownership.
 The [configuration boundary](architecture/configuration-boundaries.md) preserves personal settings,
 SMTP credential/fallback rules and native SQLite maintenance through typed storage ports.
 

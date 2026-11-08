@@ -107,8 +107,11 @@ jobs:
       matrix:
         include:
           - scope: rules-storage
-            packages: ./internal/configuration ./internal/infrastructure/settingsdata ./internal/media ./internal/infrastructure/blobdata ./internal/inventory/... ./internal/transfer/... ./internal/authentication/... ./internal/credentials ./internal/decoder/... ./internal/ecosmodel ./internal/backup ./internal/valuation ./internal/infrastructure/vehicledata ./internal/infrastructure/catalogdata ./internal/infrastructure/workshopdata ./internal/infrastructure/masterdatastore ./internal/infrastructure/numberingdata ./internal/infrastructure/overviewdata ./internal/infrastructure/authdata ./internal/infrastructure/transferfiles ./internal/infrastructure/backupdata ./internal/infrastructure/valuationdata
+            packages: ./internal/exhibition ./internal/infrastructure/exhibitiondata ./internal/configuration ./internal/infrastructure/settingsdata ./internal/media ./internal/infrastructure/blobdata ./internal/inventory/... ./internal/transfer/... ./internal/authentication/... ./internal/credentials ./internal/decoder/... ./internal/ecosmodel ./internal/backup ./internal/valuation ./internal/infrastructure/vehicledata ./internal/infrastructure/catalogdata ./internal/infrastructure/workshopdata ./internal/infrastructure/masterdatastore ./internal/infrastructure/numberingdata ./internal/infrastructure/overviewdata ./internal/infrastructure/authdata ./internal/infrastructure/transferfiles ./internal/infrastructure/backupdata ./internal/infrastructure/valuationdata
             tests: .
+          - scope: exhibition
+            packages: ./internal/application ./internal/api
+            tests: ^Test(Exhibition|CompletedAndArchivedExhibitions)
           - scope: configuration
             packages: ./internal/application ./internal/api
             tests: ^Test(Configuration|UserSettings|DigitalCenter.*Settings|DigitalCenterWorkspace.*Settings)

@@ -57,9 +57,8 @@ Anwendungsbackups enthalten weiterhin keine lokalen Authentifizierungsdaten.
 ## Verbleibender Bestand und Nachweise
 
 Benutzerverwaltung, Rollen, Passwort-Reset und Zwei-Faktor-Verwaltung führen in
-`application` keine SQL-Befehle mehr aus. Andere Fachbereiche verwenden weiterhin
-die einzeln dokumentierten älteren Anwendungs-/SQL-Grenzen.
-Weitere Bereiche werden einzeln mit ihren tatsächlichen Transaktionen übernommen.
+`application` keine SQL-Befehle mehr aus. Auch die übrigen bisherigen SQL-Anwendungsfälle sind in fokussierten Fachmodulen und
+Speicheradaptern getrennt. Die SQL-Restliste der Anwendung ist leer und bleibt CI-geprüft.
 
 `go test ./internal/architecture` prüft die direkten Produktionsimporte der neuen Module.
 Reine Regeln dürfen keine Persistenz- oder Transportpakete importieren; die Adapter dürfen
@@ -80,4 +79,4 @@ preserves callers and transport contracts; startup wires the production store. C
 formats, existing accounts/sessions and public response fields remain compatible. Migration 81
 adds private browser proofs without changing application backup format 28. AST import checks,
 pure rule tests and real SQLite concurrency/rollback tests enforce these boundaries;
-other legacy application SQL remains explicitly outside this completed slice.
+the application SQL ratchet is empty and rejects new concrete SQL calls.

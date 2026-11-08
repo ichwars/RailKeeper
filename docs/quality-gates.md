@@ -64,7 +64,7 @@ The existing required **Backend tests** check succeeds only after coverage, the 
 suite, every race slice, bounded fuzz and release/toolchain policy tests have all succeeded.
 Its final aggregation runs even when a dependency fails or is skipped and rejects those results.
 
-CI runs separate race-instrumented rule/storage, configuration, inventory/media, authentication, transfer/ECoS,
+CI runs separate race-instrumented rule/storage, exhibition, configuration, inventory/media, authentication, transfer/ECoS,
 backup and decoder/CV groups. The decoder group targets configuration, drafts, imports, sources,
 files, binding conflicts and atomicity. Exhaustive bundled decoder-catalog combinations
 remain in the complete non-race suite; they are not mislabeled as concurrency tests.
@@ -83,6 +83,7 @@ Logs and manifests remain CI diagnostic artifacts for 14 days. An isolated real-
 also verifies nested cases, the original skip behavior and propagation of failed Go commands.
 Other race groups, the full non-race/minimum-compiler suites and bounded fuzz retain their scopes.
 The inventory/media group additionally covers set images, set transactions and blob/source preservation.
+The exhibition group exercises lifecycle, revision, exception, late rollback and Messe/API role cases.
 The configuration group exercises real preference, SMTP and maintenance integration cases, including
 password retention/clearing, transaction rollback, cancelled requests and postcommit readback errors.
 

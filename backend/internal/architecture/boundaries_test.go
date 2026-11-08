@@ -17,6 +17,8 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 		"authentication/bootstrap":       {"credentials", "authentication/management"},
 		"credentials":                    {},
 		"configuration":                  {},
+		"exhibition":                     {"domain", "credentials"},
+		"infrastructure/exhibitiondata":  {"exhibition"},
 		"infrastructure/settingsdata":    {"configuration"},
 		"media":                          {"credentials"},
 		"infrastructure/blobdata":        {"media", "backup"},
