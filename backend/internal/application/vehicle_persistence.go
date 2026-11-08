@@ -43,5 +43,3 @@ func (s *VehicleService) ensureInventoryNumberAvailable(ctx context.Context, tx 
 func vehicleImagesFromInput(vehicleID string, images []VehicleImageInput, now string) []VehicleImage {
 	return vehiclemodel.ImagesFromInput(vehicleID, images, now)
 }
-
-func withVehicleImageURLs(image VehicleImage) VehicleImage { return vehiclemodel.WithImageURLs(image) }
