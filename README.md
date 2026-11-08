@@ -3,6 +3,7 @@
 Deine Modellbahnsammlung lokal verwalten: Fahrzeuge und Sets, Bilder, Dokumente,
 Wartung, Zubehör, Wertentwicklung und Decoder/CV. RailKeeper läuft auf Windows
 oder mit Docker auf deinem eigenen Server. Eine Zentrale ist dafür nicht erforderlich.
+Die Beschreibung folgt Main; einzelne Funktionen können dem stabilen Release voraus sein.
 
 [Download](https://github.com/ichwars/RailKeeper/releases/latest) ·
 [Handbuch](https://ichwars.github.io/RailKeeper/de/guide/) ·
@@ -13,8 +14,8 @@ oder mit Docker auf deinem eigenen Server. Eine Zentrale ist dafür nicht erford
 
 1. Das Windows-x64-ZIP aus dem [aktuellen Release](https://github.com/ichwars/RailKeeper/releases/latest)
    vollständig in einen eigenen Programmordner entpacken.
-2. `start-railkeeper.bat` starten. Den lokalen Einrichtungscode aus
-   `%LOCALAPPDATA%\RailKeeper\data\setup-code.txt` verwenden und das eigene Administratorkonto anlegen.
+2. `start-railkeeper.bat` starten und das eigene Administratorkonto anlegen. Falls ein Einrichtungscode
+   abgefragt wird, steht er lokal in `%LOCALAPPDATA%\RailKeeper\data\setup-code.txt`.
 3. Die aktiven Daten liegen standardmäßig unter `%LOCALAPPDATA%\RailKeeper\data`.
 
 Vor einem Update sichern und RailKeeper schließen. Das neue ZIP in einen neuen
@@ -31,8 +32,9 @@ docker compose pull
 docker compose up -d
 ```
 
-Danach [localhost:8080](http://localhost:8080) öffnen. Den lokalen Einmalcode nach dem
-[Betriebshandbuch](docs/production-runbook.md#container-einrichten) lesen und das eigene Administratorkonto anlegen.
+Danach [localhost:8080](http://localhost:8080) öffnen und das eigene Administratorkonto anlegen.
+Falls ein Einmalcode abgefragt wird, diesen nach dem
+[Betriebshandbuch](docs/production-runbook.md#container-einrichten) lokal lesen.
 AMD64 und ARM64 werden unterstützt; auf Raspberry Pi ist ein 64-Bit-System erforderlich.
 Der Bestand bleibt im persistenten Docker-Volume. Vor einem Update eine aktuelle,
 getrennt gespeicherte Sicherung erstellen und die Wiederherstellung erproben.
@@ -60,21 +62,23 @@ nur nach Vorschau und ausdrücklicher Bestätigung im jeweiligen Arbeitsablauf.
 Manage your model railway collection on your own computer or server: vehicles and sets,
 pictures, documents, maintenance, accessories, valuation history and decoder/CV data.
 Windows and Docker are supported. Collection management does not require a command station.
+This description follows Main; some features may be newer than the stable release.
 
 [Download](https://github.com/ichwars/RailKeeper/releases/latest) ·
 [Handbook](https://ichwars.github.io/RailKeeper/guide/) ·
 [Try sample data](https://ichwars.github.io/RailKeeper/try)
 
 **Windows:** Extract the Windows x64 release ZIP completely and run `start-railkeeper.bat`.
-Use the local setup code from `%LOCALAPPDATA%\RailKeeper\data\setup-code.txt`
-to create your own administrator on first start. The default data directory is
+Create your own administrator on first start. If a setup code is requested, read it locally
+from `%LOCALAPPDATA%\RailKeeper\data\setup-code.txt`. The default data directory is
 `%LOCALAPPDATA%\RailKeeper\data`, outside the replaceable program folder.
 Before updating, back up your data, close RailKeeper and extract the new ZIP into a new
 program folder. Verify the displayed data path and inventory after starting it.
 
 **Docker:** Use the commands above, then open [localhost:8080](http://localhost:8080).
-Read the local setup code as described in the [runbook](docs/production-runbook.md#container-einrichten),
-then create your administrator. Images support AMD64 and ARM64; Raspberry Pi needs a 64-bit operating system.
+Create your administrator. If a setup code is requested, read it locally as described in the
+[runbook](docs/production-runbook.md#container-einrichten). Images support AMD64 and ARM64;
+Raspberry Pi needs a 64-bit operating system.
 The Docker volume retains the collection across container replacement.
 Create a fresh external backup and practice a separate restore before updating.
 

@@ -159,11 +159,16 @@ def run(args):
             anonymous.request("POST", reset_path, expected=403)
             target.client.request("POST", reset_path, expected=204)
             passed("login-budget-recovery-requires-authenticated-admin-and-csrf")
+            # Reset revokes origin proofs. Establish a new one so restore preservation
+            # compares real authentication records rather than an empty table.
+            target.client.login(recovery)
             settings = target.client.request("PUT", "/api/v1/profile/settings",
                                              {"settings": {"railkeeper.settings.defaultView": "overview"}})
             if settings["settings"].get("railkeeper.settings.defaultView") != "overview":
                 raise AssertionError("Target-local user preference was not persisted")
             before = installation_manifest(target.data_dir)["tables"]
+            if before["login_origins"]["count"] == 0:
+                raise AssertionError("Restore fixture has no local browser-origin proof to preserve")
             local_backup = target.client.request("GET", "/api/v1/backup/export")
             local_users = {user["id"] for user in target.client.request("GET", "/api/v1/users")}
             restore(target.client, backup)
