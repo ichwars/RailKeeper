@@ -244,18 +244,6 @@
     "stage": "R5b"
   },
   {
-    "file": "vehicle_function_changes.go",
-    "calls": 2,
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
-    "file": "vehicle_functions_service.go",
-    "calls": 4,
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
     "file": "vehicle_mutation.go",
     "calls": 4,
     "transactions": [
