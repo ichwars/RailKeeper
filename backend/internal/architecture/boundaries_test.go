@@ -13,7 +13,7 @@ import (
 func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 	const prefix = "railkeeper/backend/internal/"
 	modules := map[string][]string{
-		"authentication":               {"credentials"},
+		"authentication":               {"credentials", "authentication"},
 		"credentials":                  {},
 		"valuation":                    {},
 		"transfer":                     {"domain"},
@@ -25,7 +25,7 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 		"backup":                       {},
 		"infrastructure/backupdata":    {"backup", "credentials"},
 		"infrastructure/valuationdata": {"valuation", "credentials"},
-		"infrastructure/authdata":      {"authentication", "credentials", "infrastructure/ratelimit"},
+		"infrastructure/authdata":      {"authentication", "authentication/management", "credentials", "infrastructure/ratelimit"},
 		"infrastructure/ratelimit":     {"credentials"},
 	}
 	for module, allowed := range modules {
@@ -57,7 +57,7 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 					}
 					if module == "authentication" || module == "credentials" || module == "valuation" || module == "transfer" || module == "decoder" || module == "revision" || module == "buildinfo" || module == "ecosmodel" || module == "backup" {
 						if strings.HasPrefix(name, "database/") || name == "os" || strings.HasPrefix(name, "os/") || name == "io/fs" || (name == "path/filepath" && module != "backup") ||
-							strings.HasPrefix(name, "net/") || strings.HasPrefix(name, "modernc.org/") {
+							(strings.HasPrefix(name, "net/") && (module != "authentication" || name != "net/url")) || strings.HasPrefix(name, "modernc.org/") {
 							t.Errorf("%s imports a transport or persistence dependency: %s", path, name)
 						}
 					}

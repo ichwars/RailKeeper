@@ -1,4 +1,4 @@
-// Package authdata implements login persistence and its atomic SQLite commit.
+// Package authdata owns account, session and login persistence and SQLite commits.
 package authdata
 
 import (
@@ -9,15 +9,26 @@ import (
 	"time"
 
 	"railkeeper/backend/internal/authentication"
+	"railkeeper/backend/internal/authentication/management"
 	"railkeeper/backend/internal/credentials"
 	"railkeeper/backend/internal/infrastructure/ratelimit"
 )
 
-type Store struct{ db *sql.DB }
+type Store struct {
+	db  *sql.DB
+	now func() time.Time
+}
 
-func NewStore(db *sql.DB) *Store { return &Store{db: db} }
+func NewStore(db *sql.DB) *Store { return NewStoreWithClock(db, time.Now) }
+func NewStoreWithClock(db *sql.DB, clock func() time.Time) *Store {
+	if clock == nil {
+		clock = time.Now
+	}
+	return &Store{db: db, now: clock}
+}
 
 var _ authentication.Store = (*Store)(nil)
+var _ management.Store = (*Store)(nil)
 
 func (s *Store) AllowAttempt(ctx context.Context, attempt authentication.Attempt) (bool, error) {
 	if attempt.Scope == "" {

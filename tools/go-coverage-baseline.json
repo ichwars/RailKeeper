@@ -5,6 +5,7 @@
     "api": 54,
     "application": 78,
     "authentication": 98,
+    "authentication/management": 78,
     "backup": 83,
     "buildinfo": 100,
     "credentials": 91,

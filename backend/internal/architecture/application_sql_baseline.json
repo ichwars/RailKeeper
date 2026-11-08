@@ -6,38 +6,6 @@
     "stage": "R5a"
   },
   {
-    "file": "auth.go",
-    "calls": 40,
-    "transactions": [
-      "ChangeOwnPassword",
-      "CreateUser",
-      "UpdateUser",
-      "DeleteUser",
-      "ResetPassword"
-    ],
-    "owner": "authdata: account/session mutation and audit transaction",
-    "stage": "R3"
-  },
-  {
-    "file": "auth_two_factor.go",
-    "calls": 6,
-    "transactions": [
-      "PrepareTwoFactor"
-    ],
-    "owner": "authdata: account/session mutation and audit transaction",
-    "stage": "R3"
-  },
-  {
-    "file": "auth_two_factor_transaction.go",
-    "calls": 5,
-    "transactions": [
-      "commitTwoFactorEnable",
-      "commitTwoFactorDisable"
-    ],
-    "owner": "authdata: account/session mutation and audit transaction",
-    "stage": "R3"
-  },
-  {
     "file": "backup_article_inventory_numbers.go",
     "calls": 3,
     "owner": "backupdata.Store.Restore: same restore transaction and staged file activation",
