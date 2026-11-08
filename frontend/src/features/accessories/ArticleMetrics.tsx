@@ -90,7 +90,6 @@ export function ArticleMetrics({
           className={[
             "inventory-status-card",
             "article-metric",
-            key === "allocated" ? "wide" : "",
             active ? "active" : ""
           ].filter(Boolean).join(" ")}>
           {action ? <button type="button" onClick={action} aria-pressed={active} aria-label={actionLabel}>

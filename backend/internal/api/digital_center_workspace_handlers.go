@@ -17,7 +17,7 @@ func (a *App) digitalCenterWorkspaceSummary(w http.ResponseWriter, r *http.Reque
 	if !a.requireDigitalCenterWorkspace(w) {
 		return
 	}
-	centers, err := a.digitalCenterWorkspace.ListConfiguredCenters(r.Context())
+	centers, err := a.digitalCenterWorkspace.ListWorkspaceCenters(r.Context())
 	if err != nil {
 		a.respondDigitalCenterWorkspaceError(w, err)
 		return

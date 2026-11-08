@@ -118,6 +118,7 @@ type DigitalCenterWorkspaceRepository interface {
 	CreateSession(context.Context, DigitalCenterReadSession) (DigitalCenterReadSession, error)
 	UpdateSession(context.Context, DigitalCenterReadSession) error
 	GetSession(context.Context, string) (DigitalCenterReadSession, error)
+	LatestReadySession(context.Context, string, string, int) (*DigitalCenterReadSession, error)
 	ReplaceWorkItems(context.Context, string, []DigitalCenterWorkItem) error
 	ListWorkItems(context.Context, string) ([]DigitalCenterWorkItem, error)
 	GetWorkItem(context.Context, string, string) (DigitalCenterWorkItem, error)

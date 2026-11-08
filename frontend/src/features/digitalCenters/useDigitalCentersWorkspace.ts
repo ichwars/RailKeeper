@@ -74,6 +74,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   const readSessionIDRef = useRef<string | null>(null);
   const selectedItemIDRef = useRef<string | null>(null);
   const clampWorklistPageRef = useRef(false);
+  const completedReadRevisionRef = useRef(0);
   const requestsRef = useRef({ workspace: 0, live: 0, read: 0, worklist: 0, detail: 0, messages: 0, write: 0 });
 
   const [centers, setCenters] = useState<DigitalCenterSummary[]>([]);
@@ -169,12 +170,20 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
 
   const loadWorkspace = useCallback(async () => {
     const requestID = ++requestsRef.current.workspace;
+    const readRequestID = requestsRef.current.read;
+    const readRevision = completedReadRevisionRef.current;
     setError("workspace", "");
     setLoadingArea("workspace", true);
     try {
       const response = await api.digitalCenterWorkspace();
       if (!mountedRef.current || requestID !== requestsRef.current.workspace) return;
-      setCenters(response.centers);
+      setCenters(current => response.centers.map(center => {
+        const newer = completedReadRevisionRef.current !== readRevision
+          ? current.find(previous => previous.provider === center.provider &&
+            previous.host === center.host && previous.port === center.port)?.lastReadSession
+          : undefined;
+        return newer ? { ...center, lastReadSession: newer } : center;
+      }));
       const retained = selectedProviderRef.current &&
         response.centers.some((center) => center.provider === selectedProviderRef.current)
         ? selectedProviderRef.current
@@ -183,6 +192,11 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         response.centers.find((center) => center.active)?.provider ?? response.centers[0]?.provider ?? null;
       selectedProviderRef.current = next;
       setSelectedProvider(next);
+      const saved = response.centers.find(center => center.provider === next)?.lastReadSession;
+      if (saved && !readSessionIDRef.current && requestsRef.current.read === readRequestID) {
+        readSessionIDRef.current = saved.id;
+        setReadSession(saved);
+      }
     } catch (loadError) {
       if (mountedRef.current && requestID === requestsRef.current.workspace) {
         setError("workspace", localizedError(loadError));
@@ -371,11 +385,12 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     requestsRef.current.detail += 1;
     requestsRef.current.messages += 1;
     requestsRef.current.write += 1;
-    readSessionIDRef.current = null;
+    const saved = centers.find(center => center.provider === provider)?.lastReadSession ?? null;
+    readSessionIDRef.current = saved?.id ?? null;
     selectedItemIDRef.current = null;
     setSelectedProvider(provider);
     setLiveStatus(null);
-    setReadSession(null);
+    setReadSession(saved);
     setWorkItems(emptyDigitalCenterWorkItemPage);
     setSessionTotal(0);
     setMessages([]);
@@ -393,7 +408,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       write: false
     }));
     setErrors((current) => ({ ...emptyErrors, workspace: current.workspace }));
-  }, []);
+  }, [centers]);
 
   const readData = useCallback(async () => {
     const provider = selectedProviderRef.current;
@@ -411,9 +426,32 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       const session = await api.startDigitalCenterReadSession(provider);
       if (mountedRef.current && requestID === requestsRef.current.read &&
         selectedProviderRef.current === provider) {
+        if (session.state !== "ready") {
+          setError("read", workspaceText("digitalCenters.error.readTitle"));
+          if (readSessionIDRef.current) {
+            const messageRequestID = ++requestsRef.current.messages;
+            setError("messages", "");
+            try {
+              const result = await api.digitalCenterSessionMessages(session.id);
+              if (mountedRef.current && requestID === requestsRef.current.read &&
+                messageRequestID === requestsRef.current.messages &&
+                selectedProviderRef.current === provider) setMessages(result.messages);
+            } catch (messageError) {
+              if (mountedRef.current && requestID === requestsRef.current.read &&
+                messageRequestID === requestsRef.current.messages &&
+                selectedProviderRef.current === provider) setError("messages", localizedError(messageError));
+            }
+            return session;
+          }
+        }
         clearSessionDependents(true);
         readSessionIDRef.current = session.id;
         setReadSession(session);
+        if (session.state === "ready") {
+          completedReadRevisionRef.current += 1;
+          setCenters(current => current.map(center => center.provider === provider
+            ? { ...center, lastReadSession: session } : center));
+        }
       }
       return session;
     } catch (readError) {

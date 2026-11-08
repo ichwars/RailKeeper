@@ -35,7 +35,6 @@ export function ArticleToolbar({
   filters,
   options,
   articleTypeEntries,
-  resultCount,
   viewMode,
   hasActiveFilters,
   onViewModeChange,
@@ -50,7 +49,6 @@ export function ArticleToolbar({
   filters: ArticleOverviewFilters;
   options: AccessoryArticleFilterOptions;
   articleTypeEntries: MasterDataEntry[];
-  resultCount: number;
   viewMode: ArticleViewMode;
   hasActiveFilters: boolean;
   onViewModeChange: (mode: ArticleViewMode) => void;
@@ -67,8 +65,8 @@ export function ArticleToolbar({
 
   return (
     <div className="article-toolbar" aria-label={t("accessories.toolbar.label")}>
-      <div className="article-toolbar-primary">
-        <label className="search-field article-search-field">
+      <div className="inventory-toolbar article-toolbar-primary">
+        <label className="search-field inventory-search article-search-field">
           <span>
             <Search size={16} aria-hidden="true" />
             <input
@@ -80,27 +78,32 @@ export function ArticleToolbar({
             />
           </span>
         </label>
-        <span className="inventory-view-tools article-view-tools" aria-label={t("accessories.view.label")}>
+        <div className="table-actions inventory-toolbar-actions article-view-tools"
+          aria-label={t("accessories.view.label")}>
+        <span className="inventory-view-tools">
           <button
             type="button"
-            className={`icon-button${viewMode === "table" ? " active" : ""}`}
+            className={`icon-button inventory-labeled-action${viewMode === "table" ? " active" : ""}`}
             aria-label={t("accessories.view.table")}
             aria-pressed={viewMode === "table"}
             title={t("accessories.view.table")}
             onClick={() => onViewModeChange("table")}
           >
             <Table2 size={16} aria-hidden="true" />
+            <span>{t("accessories.view.tableShort")}</span>
           </button>
           <button
             type="button"
-            className={`icon-button${viewMode === "cards" ? " active" : ""}`}
+            className={`icon-button inventory-labeled-action${viewMode === "cards" ? " active" : ""}`}
             aria-label={t("accessories.view.cards")}
             aria-pressed={viewMode === "cards"}
             title={t("accessories.view.cards")}
             onClick={() => onViewModeChange("cards")}
           >
             <Grid2X2 size={16} aria-hidden="true" />
+            <span>{t("accessories.view.cardsShort")}</span>
           </button>
+        </span>
           {viewMode === "table" ? (
             <ArticleColumnPicker
               columns={columns}
@@ -110,7 +113,7 @@ export function ArticleToolbar({
               onReset={onResetColumns}
             />
           ) : null}
-        </span>
+        </div>
       </div>
       <div className="article-filter-row">
         <AppSelect
@@ -172,11 +175,6 @@ export function ArticleToolbar({
             {t("accessories.toolbar.reset")}
           </button>
         ) : null}
-        <span className="inventory-filter-result article-result-count" aria-live="polite">
-          {t(resultCount === 1 ? "accessories.toolbar.resultOne" : "accessories.toolbar.resultMany", {
-            count: resultCount
-          })}
-        </span>
       </div>
     </div>
   );

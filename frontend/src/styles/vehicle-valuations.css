@@ -1,9 +1,49 @@
-.vehicle-valuations,
-.manual-valuation-summary {
+.vehicle-valuations {
   display: grid;
   gap: var(--space-md);
   min-width: 0;
 }
+
+.manual-valuation-summary > .overview-analysis-head { border-bottom: 0; }
+.manual-valuation-summary h2 { width: 100%; }
+
+.manual-valuation-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: var(--control-height-compact);
+  padding: var(--space-xs) 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.manual-valuation-toggle:hover { color: var(--accent-strong); }
+.manual-valuation-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.manual-valuation-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+.manual-valuation-body {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-top: 1px solid var(--line);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-control-md);
+}
+
+.manual-valuation-body[hidden] { display: none; }
+.manual-valuation-body p,
+.manual-valuation-body dl { margin: 0; }
+.manual-valuation-body > p:not([role="alert"]) { color: var(--muted); }
+.manual-valuation-body .app-date { width: 168px; max-width: 100%; }
+.manual-valuation-body .secondary-button { display: inline-flex; align-items: center; gap: var(--space-xs); font: inherit; }
 
 .vehicle-edit-modal .vehicle-valuations { padding: var(--space-lg); }
 .vehicle-valuations p,
@@ -72,4 +112,11 @@
   .manual-valuation-summary input { min-height: 44px; }
   .vehicle-valuations input,
   .vehicle-valuations textarea { min-width: 0; width: 100%; min-height: 44px; }
+  .vehicle-valuations .app-date input,
+  .manual-valuation-summary .app-date input { min-height: 44px; }
+  .vehicle-valuations .app-date-toggle,
+  .vehicle-valuations .app-date-clear,
+  .manual-valuation-summary .app-date-toggle,
+  .manual-valuation-summary .app-date-clear { width: 44px; height: 44px; }
+  .manual-valuation-body .app-date { width: 200px; }
 }

@@ -1,11 +1,15 @@
 import { useEffect, useId, useState } from "react";
+import { ChevronDown, RefreshCw } from "lucide-react";
 import { api, type VehicleValuationSummary } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import { AppDateInput } from "../../shared/ui/AppDateInput";
 import { valuationChangedEvent, valuationLocalDate } from "../vehicles/valuationModel";
 
 export function ManualValuationSummary() {
   const { t } = useI18n();
   const dateID = useId();
+  const contentID = useId();
+  const [expanded, setExpanded] = useState(false);
   const [asOf, setAsOf] = useState(valuationLocalDate);
   const [summary, setSummary] = useState<VehicleValuationSummary | null>(null);
   const [failed, setFailed] = useState(false);
@@ -16,6 +20,7 @@ export function ManualValuationSummary() {
     return () => window.removeEventListener(valuationChangedEvent, refresh);
   }, []);
   useEffect(() => {
+    if (!expanded) return;
     let current = true;
     setSummary(null); setFailed(false);
     if (!asOf) return;
@@ -23,13 +28,22 @@ export function ManualValuationSummary() {
       if (current) setSummary(result);
     }).catch(() => { if (current) setFailed(true); });
     return () => { current = false; };
-  }, [asOf, revision]);
+  }, [asOf, expanded, revision]);
   return <article className="overview-card manual-valuation-summary" aria-label={t("valuation.summaryTitle")}>
-    <h2>{t("valuation.summaryTitle")}</h2>
+    <header className="overview-analysis-head">
+      <h2><button type="button" className="manual-valuation-toggle" aria-expanded={expanded}
+        aria-controls={contentID} onClick={() => setExpanded(previous => !previous)}>
+        <span>{t("valuation.summaryTitle")}</span><ChevronDown size={16} aria-hidden="true" />
+      </button></h2>
+    </header>
+    <div id={contentID} className="manual-valuation-body" hidden={!expanded}>
+    {expanded && <>
     <p>{t("valuation.summaryHelp")}</p>
     <div className="valuation-actions"><label htmlFor={dateID}>{t("valuation.asOf")}</label>
-      <input id={dateID} type="date" value={asOf} onChange={event => setAsOf(event.target.value)} />
-      <button type="button" className="secondary-button" onClick={() => setRevision(previous => previous + 1)}>{t("valuation.reload")}</button>
+      <AppDateInput id={dateID} value={asOf} onChange={event => setAsOf(event.target.value)} />
+      <button type="button" className="secondary-button" onClick={() => setRevision(previous => previous + 1)}>
+        <RefreshCw size={16} aria-hidden="true" />{t("valuation.reload")}
+      </button>
     </div>
     {!asOf ? <p>{t("valuation.chooseDate")}</p> : failed ? <p role="alert" className="form-message">{t("valuation.summaryFailed")}</p> :
       !summary ? <p role="status">{t("valuation.loading")}</p> : <>
@@ -40,5 +54,7 @@ export function ManualValuationSummary() {
         </dl>}
       </>}
     <p>{t("valuation.currenciesSeparate")}</p>
+    </>}
+    </div>
   </article>;
 }

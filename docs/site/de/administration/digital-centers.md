@@ -4,7 +4,7 @@ description: Einen Zentralenanschluss einrichten.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-08
 ---
 
 # Einen Zentralenanschluss einrichten
@@ -23,6 +23,17 @@ Eine Digitalzentrale ist optional. Du kannst Fahrzeuge, Bilder und CV-Dateien au
 5. Öffne danach **Digitalzentralen** in der Seitenleiste für die angebotenen Arbeitsabläufe.
 
 Ein erfolgreicher Ping bestätigt noch nicht, dass RailKeeper die benötigten Dienste erreichen kann. Entscheidend ist die Verbindung vom RailKeeper-Server zur Zentrale, nicht nur vom eigenen Browser.
+
+## Eingelesenes Ergebnis weiterverwenden
+
+Nach **Daten lesen** bleibt das zuletzt erfolgreich eingelesene Ergebnis erhalten, auch wenn du
+die Ansicht verlässt, die Seite neu lädst oder RailKeeper neu startest. Neue Zentralendaten holst
+du mit einem erneuten **Daten lesen**. Schlägt dieser Versuch fehl, bleibt der bisherige Stand erhalten.
+
+Der gespeicherte Stand gehört zur eingestellten Zentrale mit ihrer Adresse und ihrem Port.
+Beim Wechsel zu einem anderen Anschluss werden die Ergebnisse getrennt angezeigt. Das erneute
+Öffnen der Ansicht lädt den gespeicherten Stand; eine Übertragung zur Zentrale bestätigst du
+weiterhin ausdrücklich im jeweiligen Schreibablauf.
 
 ## Was unterstützt welcher Anschluss?
 

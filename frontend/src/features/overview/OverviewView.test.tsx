@@ -66,6 +66,18 @@ describe("OverviewView", () => {
     }
     expect(screen.getByText("150,00 €")).toBeInTheDocument();
     expect(screen.getByText("Fahrzeug anlegen")).toBeInTheDocument();
+    const manual = screen.getByRole("article", { name: "Manuell bewertete Sammlung" });
+    const secondary = document.querySelector(".overview-analysis-secondary");
+    expect(secondary?.children).toHaveLength(3);
+    expect(manual.previousElementSibling).toBe(secondary);
+    expect(within(manual).getByRole("button", { name: "Manuell bewertete Sammlung" }))
+      .toHaveAttribute("aria-expanded", "false");
+    expect(api.valuationSummary).not.toHaveBeenCalled();
+    const quality = screen.getByRole("progressbar", { name: "Bilder" });
+    expect(quality).toHaveAttribute("max", "100");
+    const row = quality.closest(".overview-quality-row");
+    expect(row?.querySelector("b")).toBeEmptyDOMElement();
+    expect(row).toHaveAttribute("tabindex", "0");
   });
 
   it("opens the dedicated Digital Centers workspace from the overview card", async () => {

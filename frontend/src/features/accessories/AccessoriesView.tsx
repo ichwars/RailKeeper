@@ -147,15 +147,19 @@ export function AccessoriesView({
       <section className="panel inventory-panel article-overview-panel"
         aria-label={t("accessories.overview.listTitle")} aria-busy={overview.loading}>
         <div className="panel-head inventory-list-head article-list-head">
-          <div>
+          <div className="inventory-title-line">
+            <div>
             <h2>{t("accessories.overview.listTitle")}</h2>
-            <p>{t("accessories.overview.listSubtitle")}</p>
+            <p aria-live="polite">{t(overview.data.items.length === 1
+              ? "accessories.toolbar.resultOne" : "accessories.toolbar.resultMany", {
+              count: overview.data.items.length
+            })}</p>
+            </div>
           </div>
           <ArticleToolbar
             filters={overview.filters}
             options={overview.data.filters}
             articleTypeEntries={articleTypeEntries}
-            resultCount={overview.data.items.length}
             viewMode={viewMode}
             hasActiveFilters={overview.hasActiveFilters}
             onViewModeChange={changeViewMode}

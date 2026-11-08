@@ -193,7 +193,7 @@ describe("AccessoriesView", () => {
     expect(screen.getByText("7 Lagerorte")).toBeInTheDocument();
     expect(screen.getByText("20 gebunden")).toBeInTheDocument();
     expect(screen.getByText("6 reserviert · 14 eingebaut")).toBeInTheDocument();
-    expect(screen.getByText("6 reserviert · 14 eingebaut").closest("article")).toHaveClass("wide");
+    expect(screen.getByText("6 reserviert · 14 eingebaut").closest("article")).not.toHaveClass("wide");
     expect(screen.getByText("3")).toBeInTheDocument();
     const careMetric = screen.getByText("3").closest("article");
     expect(careMetric).not.toBeNull();
@@ -204,6 +204,12 @@ describe("AccessoriesView", () => {
     expect(screen.getByText("1 Ergebnis")).toBeInTheDocument();
     const list = screen.getByRole("region", { name: "Artikel" });
     expect(list).toHaveClass("inventory-panel");
+    expect(within(list).getByText("1 Ergebnis").closest(".inventory-title-line")).not.toBeNull();
+    expect(within(list).getByRole("searchbox", { name: "Artikel suchen" })
+      .closest(".inventory-toolbar")).not.toBeNull();
+    for (const name of ["Tabellenansicht", "Kachelansicht", "Tabellenspalten auswählen"]) {
+      expect(within(list).getByRole("button", { name })).toHaveClass("inventory-labeled-action");
+    }
     expect(within(list).getByRole("searchbox", { name: "Artikel suchen" })).toBeInTheDocument();
     expect(within(list).getByRole("table")).toHaveClass("inventory-table");
   });

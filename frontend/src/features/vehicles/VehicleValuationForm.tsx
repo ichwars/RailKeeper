@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { useI18n } from "../../shared/i18n";
+import { AppDateInput } from "../../shared/ui/AppDateInput";
 import type { VehicleValuationController } from "./useVehicleValuations";
 
 export function VehicleValuationForm({ controller: model }: { controller: VehicleValuationController }) {
@@ -22,7 +23,7 @@ export function VehicleValuationForm({ controller: model }: { controller: Vehicl
           readOnly={draft.withdrawn} onChange={event => set("currency", event.target.value)} />
       </label>
       <label>{t("valuation.valuedOn")} *
-        <input type="date" value={draft.valuedOn} required readOnly={draft.withdrawn}
+        <AppDateInput value={draft.valuedOn} required disabled={draft.withdrawn}
           onChange={event => set("valuedOn", event.target.value)} />
       </label>
       <label className="valuation-wide">{t(draft.withdrawn ? "valuation.reason" : "valuation.source")} *

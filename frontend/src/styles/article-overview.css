@@ -2,9 +2,9 @@
   display: flex;
   grid-column: 2;
   align-items: center;
-  justify-self: end;
+  justify-self: stretch;
   gap: 8px;
-  width: min(430px, 100%);
+  width: 100%;
 }
 
 .article-toolbar-primary .article-search-field {
@@ -18,25 +18,6 @@
   flex: 0 0 auto;
   align-items: center;
   gap: 2px;
-}
-
-.article-view-tools .icon-button {
-  width: 30px;
-  height: 30px;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-}
-
-.article-view-tools .icon-button:hover,
-.article-view-tools .icon-button:focus-visible,
-.article-view-tools .icon-button.active {
-  background: transparent;
-  color: var(--accent-strong);
-}
-
-.article-view-tools .icon-button.active {
-  box-shadow: inset 0 -2px var(--accent);
 }
 
 .article-column-picker {

@@ -4,7 +4,7 @@ description: Connect a command station.
 audience: admin
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-08
 ---
 
 # Connect a command station
@@ -23,6 +23,16 @@ A command station is optional. You can manage vehicles, pictures, and CV files w
 5. Open **Digital command stations** in the sidebar for the supported workflows.
 
 A successful ping does not establish that RailKeeper can reach the required services. Connectivity from the RailKeeper server matters, not only connectivity from your browser.
+
+## Continue working with a saved read
+
+After **Read data**, RailKeeper retains the last successfully read result when you leave the view,
+reload the page, or restart RailKeeper. Use **Read data** again to fetch current station data.
+If that attempt fails, the previous result remains available.
+
+Each saved result belongs to the configured station, address, and port. Results stay separate when
+you switch connections. Reopening the view loads the saved result; sending changes to the station
+still requires your explicit confirmation in the corresponding write workflow.
 
 ## What does each connection support?
 
