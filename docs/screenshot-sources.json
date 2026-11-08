@@ -164,5 +164,24 @@
       "en"
     ],
     "evidence": "Actual clean Go 1.27.3 executable and real local Settings card. The existing local-version message is translated to English; both German and English were exercised. Synthetic installation, no filled credentials, blocked external browser requests and no devices."
+  },
+  "technicalFollowupCaptures": {
+    "baseCommit": "5724d8964849b3bcbbe3d02ab264f54b8c0e3963",
+    "workingTree": "codex/r7-branch-reserve",
+    "workingTreeModified": true,
+    "productionSourceChangesDuringCapture": false,
+    "capturedAt": "2026-11-08T21:41:59.667823+01:00",
+    "images": [
+      "vehicles.png",
+      "decoder-installations.png",
+      "cv-working-groups.png",
+      "cv-analysis.png",
+      "cv-details.png"
+    ],
+    "languages": [
+      "de",
+      "en"
+    ],
+    "evidence": "Actual application with a newly created isolated synthetic collection, published synthetic locomotive illustration, two distinct decoder units, an explicitly unknown installation date, exact CV index pages, original CSV provenance and a saved partial CV snapshot. Current toolbar and CV-group labels. Only the visible viewport was scrolled; no UI or image content altered. External browser requests blocked; no production data, filled credentials, setup codes or station connection."
   }
 }
