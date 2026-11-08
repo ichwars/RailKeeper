@@ -25,6 +25,8 @@ type decoded struct {
 	key  []byte
 }
 
+const MaxPasswordMemoryMiB = 256
+
 var policy = parameters{memory: 64 * 1024, iterations: 1, parallel: 4}
 
 var dummy = derive("RailKeeper-unknown-user", []byte("RailKeeper-dummy!"), policy, 32)
@@ -103,7 +105,7 @@ func parse(encoded string) (decoded, error) {
 	}
 	memory, iterations, parallel := values["m"], values["t"], values["p"]
 	if parallel == 0 || parallel > 16 || iterations == 0 || iterations > 10 ||
-		memory < 8*parallel || memory > 256*1024 {
+		memory < 8*parallel || memory > MaxPasswordMemoryMiB*1024 {
 		return decoded{}, invalid
 	}
 	salt, err := base64.RawStdEncoding.DecodeString(parts[4])

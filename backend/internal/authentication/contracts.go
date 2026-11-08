@@ -4,6 +4,7 @@ package authentication
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -11,6 +12,7 @@ var (
 	ErrInvalidLogin      = errors.New("invalid credentials")
 	ErrTwoFactorRequired = errors.New("two factor code required")
 	ErrLoginThrottled    = errors.New("login temporarily limited")
+	ErrLoginBusy         = fmt.Errorf("password work is busy: %w", ErrLoginThrottled)
 )
 
 const AccountBudgetScope = "login-account"

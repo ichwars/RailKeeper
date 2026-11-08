@@ -139,6 +139,37 @@ Restore-Grundsätze:
 
 ## Updates
 
+### Begrenzte Passwortprüfung
+
+Login-Anfragen warten bei belegten Arbeitsplätzen höchstens eine Sekunde, ohne während
+dieser Wartezeit eine weitere Argon2-Berechnung zu starten. Die Warteschlange ist begrenzt.
+Bei Überlast antwortet der Server mit 429 und Retry-After 1; das bestehende IP-/Kontobudget
+bleibt bei seinem Fünf-Minuten-Fenster. Passwort, zweiter Faktor und Dummy-Prüfung bleiben erforderlich.
+
+| Variable | Standard | Zulässiger Bereich |
+| --- | --- | --- |
+| RAILKEEPER_LOGIN_PARALLEL | 2 | 1–4, begrenzt durch das Speicherbudget |
+| RAILKEEPER_LOGIN_QUEUE | 8 | 0–64 wartende Anfragen |
+| RAILKEEPER_LOGIN_WAIT_MS | 1000 | 0–2000; 0 weist belegte Kapazität sofort ab |
+| RAILKEEPER_LOGIN_MEMORY_MB | 512 | 256–1024 MiB, mindestens Parallelität ×256 MiB |
+
+Das Budget berücksichtigt den maximal akzeptierten gespeicherten Hash mit 256 MiB,
+nicht nur den Standardhash mit 64 MiB. Es wird kein Speicher vorab reserviert; das Budget ist keine RSS-Obergrenze. Zusätzlich
+benötigen Prozess, SQLite und Betriebssystem Speicher; auf kleinen Hosts Parallelität 1
+mit mindestens 256 MiB Budget wählen. Bestehende gültige Hashes werden nicht abgeschwächt.
+Compose leitet diese Werte weiter; Windows-/direkte Starts verwenden dieselben Variablen.
+Ungültige Werte beenden den Start vor dem Öffnen der Datenbank. Eine Warteschlange
+schützt vor Lastspitzen, nicht vor jeder dauerhaften Überlast.
+
+Im isolierten Referenzlauf mit drei Laststößen zu je 16 Anfragen und
+256-MiB-Hashes liefen höchstens zwei Ableitungen gleichzeitig. Der gemessene
+Spitzenspeicher des Testprozesses betrug rund 1,2 GiB, einschließlich noch nicht
+freigegebener Argon2-Speicherbereiche. Für diese Konfiguration ist entsprechend
+Prozessreserve einzuplanen; das 512-MiB-Budget begrenzt gleichzeitig aktive
+Passwortarbeit, nicht den gesamten Prozessspeicher.
+
+### Aktualisieren
+
 Standardablauf:
 
 ```bash

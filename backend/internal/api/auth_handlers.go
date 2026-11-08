@@ -75,6 +75,9 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, application.ErrLoginThrottled) {
 			w.Header().Set("Retry-After", "300")
+			if errors.Is(err, application.ErrLoginBusy) {
+				w.Header().Set("Retry-After", "1")
+			}
 			respondProblem(w, http.StatusTooManyRequests, "rate_limited", "Too many login attempts. Please try again later.")
 			return
 		}

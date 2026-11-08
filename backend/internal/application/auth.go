@@ -27,12 +27,14 @@ var (
 	ErrPasswordResetInvalid = errors.New("password reset token invalid")
 	ErrTwoFactorRequired    = authentication.ErrTwoFactorRequired
 	ErrLoginThrottled       = authentication.ErrLoginThrottled
+	ErrLoginBusy            = authentication.ErrLoginBusy
 )
 
 type AuthService struct {
 	db         *sql.DB
 	loginStore authentication.Store
 	login      *authentication.Service
+	loginWork  *authentication.WorkLimiter
 	now        func() time.Time
 }
 
@@ -156,7 +158,7 @@ func NewAuthService(db *sql.DB, options ...AuthOption) *AuthService {
 		// Compatibility for existing in-process callers. Production supplies the port at startup.
 		service.loginStore = authdata.NewStore(db)
 	}
-	service.login = authentication.NewService(service.loginStore, authentication.WithClock(service.now))
+	service.login = authentication.NewService(service.loginStore, authentication.WithClock(service.now), authentication.WithWorkLimiter(service.loginWork))
 	return service
 }
 

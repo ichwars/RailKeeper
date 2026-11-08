@@ -14,7 +14,7 @@ type Service struct {
 	store     Store
 	passwords PasswordPolicy
 	now       func() time.Time
-	work      chan struct{}
+	work      *WorkLimiter
 }
 
 type Option func(*Service)
@@ -36,7 +36,8 @@ func WithPasswords(policy PasswordPolicy) Option {
 }
 
 func NewService(store Store, options ...Option) *Service {
-	service := &Service{store: store, passwords: passwordPolicy{}, now: time.Now, work: make(chan struct{}, 2)}
+	service := &Service{store: store, passwords: passwordPolicy{}, now: time.Now,
+		work: &WorkLimiter{limits: DefaultWorkLimits()}}
 	for _, option := range options {
 		option(service)
 	}
@@ -47,14 +48,10 @@ func (s *Service) Login(ctx context.Context, input Input) (*Result, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case s.work <- struct{}{}:
-		defer func() { <-s.work }()
-	default:
-		return nil, ErrLoginThrottled
+	if err := s.work.acquire(ctx); err != nil {
+		return nil, err
 	}
+	defer s.work.release()
 	username := strings.TrimSpace(input.Username)
 	key := credentials.HashToken(username)
 	allowed, err := s.store.AllowAttempt(ctx, Attempt{Key: key, Now: s.now().UTC(), Limit: 10, Window: 5 * time.Minute})

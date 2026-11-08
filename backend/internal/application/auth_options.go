@@ -8,6 +8,10 @@ import (
 
 type AuthOption func(*AuthService)
 
+func WithLoginWorkLimiter(limiter *authentication.WorkLimiter) AuthOption {
+	return func(service *AuthService) { service.loginWork = limiter }
+}
+
 func WithLoginStore(store authentication.Store) AuthOption {
 	return func(service *AuthService) { service.loginStore = store }
 }
