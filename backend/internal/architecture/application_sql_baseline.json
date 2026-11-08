@@ -1,0 +1,447 @@
+[
+  {
+    "file": "article_search_descriptions.go",
+    "calls": 1,
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "auth.go",
+    "calls": 40,
+    "transactions": [
+      "ChangeOwnPassword",
+      "CreateUser",
+      "UpdateUser",
+      "DeleteUser",
+      "ResetPassword"
+    ],
+    "owner": "authdata: account/session mutation and audit transaction",
+    "stage": "R3"
+  },
+  {
+    "file": "auth_two_factor.go",
+    "calls": 6,
+    "transactions": [
+      "PrepareTwoFactor"
+    ],
+    "owner": "authdata: account/session mutation and audit transaction",
+    "stage": "R3"
+  },
+  {
+    "file": "auth_two_factor_transaction.go",
+    "calls": 5,
+    "transactions": [
+      "commitTwoFactorEnable",
+      "commitTwoFactorDisable"
+    ],
+    "owner": "authdata: account/session mutation and audit transaction",
+    "stage": "R3"
+  },
+  {
+    "file": "backup_article_inventory_numbers.go",
+    "calls": 3,
+    "owner": "backupdata.Store.Restore: same restore transaction and staged file activation",
+    "stage": "R5b"
+  },
+  {
+    "file": "backup_article_master_data.go",
+    "calls": 3,
+    "owner": "backupdata.Store.Restore: same restore transaction and staged file activation",
+    "stage": "R5b"
+  },
+  {
+    "file": "backup_legacy_layouts.go",
+    "calls": 2,
+    "owner": "backupdata.Store.Restore: same restore transaction and staged file activation",
+    "stage": "R5b"
+  },
+  {
+    "file": "backup_restore_compatibility.go",
+    "calls": 8,
+    "owner": "backupdata.Store.Restore: same restore transaction and staged file activation",
+    "stage": "R5b"
+  },
+  {
+    "file": "backup_vehicle_sets.go",
+    "calls": 4,
+    "owner": "backupdata.Store.Restore: same restore transaction and staged file activation",
+    "stage": "R5b"
+  },
+  {
+    "file": "database_maintenance.go",
+    "calls": 4,
+    "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
+    "stage": "R5c"
+  },
+  {
+    "file": "decoder_configuration_changes.go",
+    "calls": 2,
+    "transactions": [
+      "changeDecoderConfiguration"
+    ],
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "decoder_configuration_context.go",
+    "calls": 1,
+    "transactions": [
+      "DecoderConfigurationContext"
+    ],
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "decoder_cv_snapshot.go",
+    "calls": 5,
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "decoder_legacy_adoption.go",
+    "calls": 3,
+    "transactions": [
+      "BackfillLegacyDecoderCV"
+    ],
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "decoder_library_seed.go",
+    "calls": 3,
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "decoder_snapshot_reads.go",
+    "calls": 4,
+    "transactions": [
+      "ListDecoderCVSnapshots",
+      "DecoderCVSnapshot"
+    ],
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "decoder_snapshot_sources.go",
+    "calls": 5,
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "decoder_workspace_writes.go",
+    "calls": 1,
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "exhibition.go",
+    "calls": 17,
+    "transactions": [
+      "CreateEntry",
+      "UpdateEntry",
+      "DeleteEntry"
+    ],
+    "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
+    "stage": "R5c"
+  },
+  {
+    "file": "exhibition_workspace.go",
+    "calls": 5,
+    "transactions": [
+      "SetConflictException"
+    ],
+    "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
+    "stage": "R5c"
+  },
+  {
+    "file": "file_blobs.go",
+    "calls": 5,
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "function_symbol_seed.go",
+    "calls": 2,
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "inventory_numbers.go",
+    "calls": 7,
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "master_data.go",
+    "calls": 7,
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "master_data_custom_fields.go",
+    "calls": 4,
+    "transactions": [
+      "updateAccessoryCustomField"
+    ],
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "master_data_import_reconcile.go",
+    "calls": 7,
+    "transactions": [
+      "importReconciledMasterData"
+    ],
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "master_data_lifecycle.go",
+    "calls": 8,
+    "transactions": [
+      "SetActiveMany",
+      "Delete"
+    ],
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "overview_valuation.go",
+    "calls": 4,
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "settings.go",
+    "calls": 6,
+    "transactions": [
+      "UpdateUserSettings",
+      "UpdateDigitalSettings"
+    ],
+    "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
+    "stage": "R5c"
+  },
+  {
+    "file": "setup.go",
+    "calls": 7,
+    "transactions": [
+      "createAdmin"
+    ],
+    "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
+    "stage": "R5c"
+  },
+  {
+    "file": "setup_authorization.go",
+    "calls": 4,
+    "transactions": [
+      "PrepareAuthorization"
+    ],
+    "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
+    "stage": "R5c"
+  },
+  {
+    "file": "smtp_settings.go",
+    "calls": 3,
+    "transactions": [
+      "Update"
+    ],
+    "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
+    "stage": "R5c"
+  },
+  {
+    "file": "vehicle_catalog_authority.go",
+    "calls": 3,
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_catalog_backfill.go",
+    "calls": 6,
+    "transactions": [
+      "CatalogBackfillReport",
+      "BackfillLegacyCatalog"
+    ],
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_catalog_changes.go",
+    "calls": 7,
+    "transactions": [
+      "CreateCatalogRevision",
+      "AdoptCatalogRevision"
+    ],
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_catalog_context.go",
+    "calls": 3,
+    "transactions": [
+      "CatalogContext"
+    ],
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_catalog_projection.go",
+    "calls": 2,
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_create_persistence.go",
+    "calls": 1,
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_creation_identity.go",
+    "calls": 1,
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_cv_changes.go",
+    "calls": 3,
+    "transactions": [
+      "beginVehicleCVWrite"
+    ],
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "vehicle_cv_file_reads.go",
+    "calls": 1,
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "vehicle_cv_import.go",
+    "calls": 1,
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "vehicle_cv_service.go",
+    "calls": 7,
+    "transactions": [
+      "DeleteCVFileCompared"
+    ],
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "vehicle_ecos_cvs.go",
+    "calls": 3,
+    "transactions": [
+      "ImportECoSStoredCVs"
+    ],
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "vehicle_ecos_profile.go",
+    "calls": 1,
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "vehicle_external_mapping_write.go",
+    "calls": 1,
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "vehicle_external_mappings.go",
+    "calls": 6,
+    "transactions": [
+      "RebindExternalMapping"
+    ],
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "vehicle_function_changes.go",
+    "calls": 2,
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "vehicle_functions_service.go",
+    "calls": 4,
+    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
+    "stage": "R5b"
+  },
+  {
+    "file": "vehicle_maintenance_service.go",
+    "calls": 5,
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_media.go",
+    "calls": 17,
+    "transactions": [
+      "CreateImageWithRevision",
+      "DeleteImage",
+      "UpdateAttachment",
+      "DeleteAttachment"
+    ],
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_mutation.go",
+    "calls": 4,
+    "transactions": [
+      "CreateWithOptions",
+      "Update"
+    ],
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_repository.go",
+    "calls": 6,
+    "transactions": [
+      "Delete"
+    ],
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_set_images.go",
+    "calls": 17,
+    "transactions": [
+      "SetSetMainImage",
+      "UpsertSetImage",
+      "DeleteSetImage"
+    ],
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_sets.go",
+    "calls": 10,
+    "transactions": [
+      "CreateSet",
+      "UpdateSet"
+    ],
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicle_spare_parts_service.go",
+    "calls": 5,
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  },
+  {
+    "file": "vehicles.go",
+    "calls": 3,
+    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
+    "stage": "R5a"
+  }
+]
