@@ -1,6 +1,9 @@
+import userEvent from "@testing-library/user-event";
+import { setLanguage, translate } from "../../shared/i18n";
+import { cvCategories, cvProtocols } from "./cvImport";
 import { createRef } from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cvValueFixture, vehicleFixture } from "../../test/fixtures/vehicles";
 import type { VehicleCVValueInput } from "../../shared/api";
@@ -205,5 +208,53 @@ describe("VehicleCVTab", () => {
     fireEvent.click(screen.getByText("Einzelnen CV-Wert hinzufügen oder bearbeiten"));
     expect(screen.getByRole("button", { name: "Im CV-Entwurf vormerken" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Decoderdatei hochladen" })).toBeDisabled();
+  });
+});
+
+describe("CV form identity and provenance contracts", () => {
+  let scrollDescriptor: PropertyDescriptor | undefined;
+  beforeEach(() => {
+    scrollDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
+  });
+  afterEach(() => {
+    if (scrollDescriptor) Object.defineProperty(HTMLElement.prototype, "scrollIntoView", scrollDescriptor);
+    else Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+  });
+  it.each(["de", "en"] as const)("retains zero versus missing pages, exact profile spelling and selected source in %s", async language => {
+    setLanguage(language);
+    const t = (key: string) => translate(language, key), user = userEvent.setup();
+    const selected = vehicleFixture(), file = selected.cvFiles![0];
+    const props = renderTab({ selected, editingCVID: "cv-1", cvForm: { ...cvForm, indexCV31: 1, indexCV32: 2, decoderProfile: " Old profile " } });
+    await user.click(screen.getByRole("button", { name: t("vehicles.decoder.view.raw") }));
+    const form = document.querySelector(".cv-manual-editor")!;
+    const controls = within(form as HTMLElement);
+    fireEvent.change(controls.getByLabelText("CV31"), { target: { value: "0" } });
+    fireEvent.change(controls.getByLabelText("CV32"), { target: { value: "" } });
+    fireEvent.change(controls.getByLabelText("CV-Nr."), { target: { value: "257" } });
+    fireEvent.change(controls.getByLabelText(t("vehicle.field.value")), { target: { value: "255" } });
+    fireEvent.change(controls.getByLabelText(t("vehicle.field.decoderProfile")), { target: { value: "  Separate profile  " } });
+    fireEvent.change(controls.getByLabelText(t("vehicles.cv.description")), { target: { value: "Keep provenance details" } });
+    for (const [label, option] of [[t("vehicle.field.category"), cvCategories[0]], [t("vehicle.field.protocol"), cvProtocols[0]], [t("vehicles.cv.sourceFile"), file.originalName]]) {
+      await user.click(controls.getByRole("button", { name: label }));
+      await user.click(screen.getByRole("option", { name: option }));
+    }
+    for (const patch of [{ indexCV31: 0 }, { indexCV32: null }, { cvNumber: 257 }, { value: 255 }, { decoderProfile: "  Separate profile  " }, { sourceFileId: file.id }, { description: "Keep provenance details" }]) {
+      expect(props.updateCVForm).toHaveBeenCalledWith(patch);
+    }
+    await user.click(controls.getByRole("button", { name: t("vehicles.cancel") }));
+    expect(props.resetCVForm).toHaveBeenCalledOnce();
+    expect(props.saveCVValue).not.toHaveBeenCalled();
+  });
+
+  it("keeps indexed values read-only while still allowing export", async () => {
+    setLanguage("en"); const user = userEvent.setup();
+    const props = renderTab({ readonly: true, selected: vehicleFixture(), editingCVID: "cv-1", cvForm: { ...cvForm, indexCV31: 0, indexCV32: 0 } });
+    await user.click(screen.getByRole("button", { name: translate("en", "vehicles.decoder.view.raw") }));
+    const form = within(document.querySelector(".cv-manual-editor") as HTMLElement);
+    expect(form.getByLabelText("CV31")).toHaveValue(0); expect(form.getByLabelText("CV32")).toHaveValue(0);
+    expect(form.getByLabelText("CV31")).toBeDisabled(); expect(form.getByLabelText("CV32")).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: translate("en", "vehicles.decoder.exportValues") }));
+    expect(props.exportCVValues).toHaveBeenCalledOnce(); expect(props.saveCVValue).not.toHaveBeenCalled();
   });
 });
