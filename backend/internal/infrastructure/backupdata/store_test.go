@@ -48,7 +48,7 @@ func (op faultOperation) Finish(ctx context.Context, tx *sql.Tx, _ string) error
 }
 
 func TestRestoreFaultsPreserveAllRowsUploadsAndAuthentication(t *testing.T) {
-	for _, stage := range []string{"rows", "finish", "commit", "sqlite-full", "upload-stage"} {
+	for _, stage := range []string{"rows", "finish", "commit", "sqlite-full", "upload-stage", "path", "checksum", "base64"} {
 		t.Run(stage, func(t *testing.T) {
 			root := t.TempDir()
 			db, err := sql.Open("sqlite", filepath.Join(root, "test.db"))
@@ -119,6 +119,14 @@ func TestRestoreFaultsPreserveAllRowsUploadsAndAuthentication(t *testing.T) {
 					backup.BackupFile{Path: "uploads/conflict", ContentBase64: base64.StdEncoding.EncodeToString([]byte("file"))},
 					backup.BackupFile{Path: "uploads/conflict/child.txt", ContentBase64: base64.StdEncoding.EncodeToString([]byte("blocked child"))})
 			}
+			switch stage {
+			case "path":
+				doc.Files = append(doc.Files, backup.BackupFile{Path: "uploads/../../outside.txt"})
+			case "checksum":
+				doc.Files[0].SHA256 = strings.Repeat("0", 64)
+			case "base64":
+				doc.Files[0].ContentBase64 = "!not-base64!"
+			}
 			_, restoreErr := store.Restore(t.Context(), doc)
 			if restoreErr == nil {
 				t.Fatal("injected restore failure succeeded")
@@ -134,6 +142,12 @@ func TestRestoreFaultsPreserveAllRowsUploadsAndAuthentication(t *testing.T) {
 				if !errors.As(restoreErr, &pathErr) {
 					t.Fatal("expected actual staged-filesystem failure", restoreErr)
 				}
+			}
+			if stage == "path" && !errors.Is(restoreErr, backup.ErrBackupPath) {
+				t.Fatal("expected invalid path rejection", restoreErr)
+			}
+			if (stage == "checksum" || stage == "base64") && !errors.Is(restoreErr, backup.ErrBackupInvalid) {
+				t.Fatal("expected invalid file rejection", restoreErr)
 			}
 			after, err := store.Snapshot(t.Context())
 			if err != nil {

@@ -66,47 +66,58 @@ func (s *Store) stageRestoreFiles(files []BackupFile) (*stagedRestoreFiles, erro
 	if err := os.MkdirAll(s.dataDir, 0o755); err != nil {
 		return nil, fmt.Errorf("prepare restore data directory: %w", err)
 	}
-	root := filepath.Join(s.dataDir, ".restore-staging-"+credentials.RandomID())
-	uploadsDir := filepath.Join(root, "uploads")
-	if err := os.MkdirAll(uploadsDir, 0o755); err != nil {
+	root, err := os.MkdirTemp(s.dataDir, ".restore-staging-")
+	if err != nil {
 		return nil, fmt.Errorf("create restore staging directory: %w", err)
 	}
-
-	staged := &stagedRestoreFiles{root: root, uploadsDir: uploadsDir}
 	cleanup := true
 	defer func() {
 		if cleanup {
 			_ = os.RemoveAll(root)
 		}
 	}()
+	uploadsDir := filepath.Join(root, "uploads")
+	if err := os.MkdirAll(uploadsDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create restore staging uploads: %w", err)
+	}
+	uploads, err := os.OpenRoot(uploadsDir)
+	if err != nil {
+		return nil, fmt.Errorf("open restore staging uploads: %w", err)
+	}
+	defer func() { _ = uploads.Close() }()
 
+	staged := &stagedRestoreFiles{root: root, uploadsDir: uploadsDir}
 	for _, file := range files {
-		if err := backup.ValidateBackupFilePath(file.Path); err != nil {
+		if err := writeStagedRestoreFile(uploads, file); err != nil {
 			return nil, err
-		}
-		data, err := base64.StdEncoding.DecodeString(file.ContentBase64)
-		if err != nil {
-			return nil, ErrBackupInvalid
-		}
-		sum := sha256.Sum256(data)
-		if file.SHA256 != "" && !strings.EqualFold(file.SHA256, hex.EncodeToString(sum[:])) {
-			return nil, ErrBackupInvalid
-		}
-		relative := strings.TrimPrefix(backup.PathClean(file.Path), "uploads/")
-		absTarget, err := ConfinedChildPath(uploadsDir, relative)
-		if err != nil {
-			return nil, err
-		}
-		if err := os.MkdirAll(filepath.Dir(absTarget), 0o755); err != nil {
-			return nil, fmt.Errorf("create restore staging directory: %w", err)
-		}
-		if err := os.WriteFile(absTarget, data, 0o600); err != nil {
-			return nil, fmt.Errorf("stage restore file: %w", err)
 		}
 		staged.restoredFiles++
 	}
 	cleanup = false
 	return staged, nil
+}
+
+func writeStagedRestoreFile(uploads *os.Root, file BackupFile) error {
+	if err := backup.ValidateBackupFilePath(file.Path); err != nil {
+		return err
+	}
+	data, err := base64.StdEncoding.DecodeString(file.ContentBase64)
+	if err != nil {
+		return ErrBackupInvalid
+	}
+	sum := sha256.Sum256(data)
+	if file.SHA256 != "" && !strings.EqualFold(file.SHA256, hex.EncodeToString(sum[:])) {
+		return ErrBackupInvalid
+	}
+	relative := strings.TrimPrefix(backup.PathClean(file.Path), "uploads/")
+	// Keep both directory creation and file writes confined even if a symlink changes.
+	if err := uploads.MkdirAll(filepath.Dir(relative), 0o755); err != nil {
+		return fmt.Errorf("create restore staging directory: %w", err)
+	}
+	if err := uploads.WriteFile(relative, data, 0o600); err != nil {
+		return fmt.Errorf("stage restore file: %w", err)
+	}
+	return nil
 }
 
 type uploadsRestoreSwap struct {
@@ -157,20 +168,4 @@ func (s *uploadsRestoreSwap) cleanup() {
 		return
 	}
 	_ = os.RemoveAll(s.backupDir)
-}
-
-func ConfinedChildPath(baseDir, relativePath string) (string, error) {
-	base, err := filepath.Abs(baseDir)
-	if err != nil {
-		return "", err
-	}
-	target := filepath.Join(baseDir, filepath.FromSlash(relativePath))
-	absTarget, err := filepath.Abs(target)
-	if err != nil {
-		return "", err
-	}
-	if absTarget != base && !strings.HasPrefix(absTarget, base+string(os.PathSeparator)) {
-		return "", ErrBackupPath
-	}
-	return absTarget, nil
 }
