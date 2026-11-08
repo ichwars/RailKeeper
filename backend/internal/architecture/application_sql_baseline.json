@@ -135,12 +135,6 @@
     "stage": "R5b"
   },
   {
-    "file": "inventory_numbers.go",
-    "calls": 7,
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
     "file": "master_data.go",
     "calls": 7,
     "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
@@ -171,12 +165,6 @@
       "SetActiveMany",
       "Delete"
     ],
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
-    "file": "overview_valuation.go",
-    "calls": 4,
     "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
     "stage": "R5a"
   },

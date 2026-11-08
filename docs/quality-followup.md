@@ -185,3 +185,17 @@ returns; cleanup now uses the immutable temporary pathname. Existing stored byte
 formats, confirmation rules and transaction ownership remain unchanged. The new workflow
 and file adapter inherit the previous application coverage floor of 78% with the same
 whole-backend measurement scope.
+
+## Numbering and collection overview (R5a, first package)
+
+`inventory/numbering` owns actual validation, fallback/formatting and bounded reservation
+decisions behind semantic scheme/counter ports. `numberingdata` executes the existing
+queries and counter advancement in the caller's transaction. `inventory/overview` owns
+actual collection arithmetic and error handling through typed rows; `overviewdata`
+retains the four existing SQL queries. Shared legacy money rules live in `inventory/money`.
+
+The two completed application files leave the SQL inventory: 52 files and 243 concrete
+calls remain for the named R5 owners. IDs, counters, membership-based price selection,
+stored price strings and currency exclusions retain their existing semantics. Immutable
+valuation-history events remain distinct. Each extracted module retains the former 78%
+application coverage floor, with the complete backend still instrumented.
