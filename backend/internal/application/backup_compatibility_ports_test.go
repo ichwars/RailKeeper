@@ -52,7 +52,7 @@ source_url,typeof(source_url),metadata_json,created_at,updated_at,origin)) FROM
 	}
 }
 
-func TestLegacyRestoreFinalizationFailuresPreserveRowsTriggersAndOriginalFiles(t *testing.T) {
+func TestLegacyBackupRestoreFinalizationFailuresPreserveRowsTriggersAndOriginalFiles(t *testing.T) {
 	for _, stage := range []struct{ name, event, predicate, context string }{
 		{"articles", "INSERT", "NEW.type='article_type'", "restore current article master data"},
 		{"symbols", "INSERT", "NEW.type='symbols'", "restore bundled function symbol"},
@@ -110,7 +110,7 @@ WHEN ` + stage.predicate + ` BEGIN SELECT RAISE(FAIL,'synthetic compatibility fa
 	}
 }
 
-func TestLegacyRestoreProfileCreatorsRespectLocalAccountsWithoutRestoringAuthentication(t *testing.T) {
+func TestLegacyBackupRestoreProfileCreatorsRespectLocalAccountsWithoutRestoringAuthentication(t *testing.T) {
 	db := backupTestDB(t, t.TempDir())
 	db.SetMaxOpenConns(1)
 	if _, err := db.Exec(`INSERT INTO users(id,username,email,password_hash,created_at)
