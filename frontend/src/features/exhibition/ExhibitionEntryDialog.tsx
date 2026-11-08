@@ -37,6 +37,7 @@ type ExhibitionEntryDialogProps = {
   form: ExhibitionEntryInput;
   masterData: ExhibitionEntryMasterData;
   saving: boolean;
+  error?: string;
   symbols: MasterDataEntry[];
   vehicles: Vehicle[];
   workspace: ExhibitionWorkspace;
@@ -139,6 +140,7 @@ export function ExhibitionEntryDialog({
   form,
   masterData,
   saving,
+  error = "",
   symbols,
   vehicles,
   workspace,
@@ -335,6 +337,7 @@ export function ExhibitionEntryDialog({
         )}
       </div>
 
+      {error && <p className="form-message" role="alert">{error}</p>}
       <footer>
         {editingEntry && admin && <button type="button" className="secondary-button danger" onClick={() => onDelete(editingEntry)}><Trash2 size={16} />{de ? "Löschen" : "Delete"}</button>}
         <span />
