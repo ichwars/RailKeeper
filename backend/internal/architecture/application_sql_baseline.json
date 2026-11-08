@@ -75,16 +75,6 @@
     "stage": "R5b"
   },
   {
-    "file": "decoder_snapshot_reads.go",
-    "calls": 4,
-    "transactions": [
-      "ListDecoderCVSnapshots",
-      "DecoderCVSnapshot"
-    ],
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
     "file": "decoder_snapshot_sources.go",
     "calls": 5,
     "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",

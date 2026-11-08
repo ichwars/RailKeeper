@@ -28,11 +28,3 @@ func readDecoderConfigurationContextTx(ctx context.Context, tx *sql.Tx, vehicleI
 	result, err := vehicledata.ReadDecoderConfigurationContext(ctx, tx, vehicleID)
 	return result, cvRuleError(err)
 }
-
-func readDecoderRows(ctx context.Context, tx *sql.Tx, statement string, args []any, scan func(*sql.Rows) error) error {
-	return vehicledata.ReadDecoderRows(ctx, tx, statement, args, scan)
-}
-
-func readDecoderSnapshotSummaries(ctx context.Context, tx *sql.Tx, vehicleID string) ([]DecoderCVSnapshotSummary, error) {
-	return vehicledata.ReadDecoderSnapshotSummaries(ctx, tx, vehicleID)
-}
