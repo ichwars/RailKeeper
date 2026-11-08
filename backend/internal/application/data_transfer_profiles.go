@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"railkeeper/backend/internal/transfer"
+	transferpolicy "railkeeper/backend/internal/transfer/policy"
 )
 
 var (
@@ -76,11 +77,11 @@ func (s *DataTransferService) CreateProfile(
 ) (DataTransferProfile, error) {
 	input.Name = strings.TrimSpace(input.Name)
 	actorUserID = strings.TrimSpace(actorUserID)
-	if input.Name == "" || actorUserID == "" || !validTransferDirection(input.Direction) ||
-		!validTransferFormat(input.Format) {
+	if input.Name == "" || actorUserID == "" || !transferpolicy.ValidTransferDirection(input.Direction) ||
+		!transferpolicy.ValidTransferFormat(input.Format) {
 		return DataTransferProfile{}, ErrDataTransferValidation
 	}
-	if err := validateTransferSelection(input.Format, input.Areas); err != nil {
+	if err := transferpolicy.ValidateTransferSelection(input.Format, input.Areas); err != nil {
 		return DataTransferProfile{}, err
 	}
 	if err := s.ensureUniqueActiveProfileName(ctx, "", input.Name, input.Direction); err != nil {
@@ -115,7 +116,7 @@ func (s *DataTransferService) Summary(
 	visibleJobs := make(map[string]DataTransferJob, len(jobs))
 	for _, job := range jobs {
 		visibleJobs[job.ID] = job
-		if dataTransferJobOpen(job.State) {
+		if transferpolicy.DataTransferJobOpen(job.State) {
 			summary.OpenJobs++
 			summary.SelectedRecords += job.TotalRecords
 		}
@@ -138,7 +139,7 @@ func (s *DataTransferService) ListJobs(
 	filter DataTransferJobFilter,
 	allowedAreas ...TransferArea,
 ) ([]DataTransferJob, error) {
-	if err := validateDataTransferJobFilter(filter); err != nil {
+	if err := transferpolicy.ValidateDataTransferJobFilter(filter); err != nil {
 		return nil, err
 	}
 	repositoryFilter := filter
@@ -151,7 +152,7 @@ func (s *DataTransferService) ListJobs(
 	}
 	filtered := make([]DataTransferJob, 0, len(jobs))
 	for _, job := range jobs {
-		if dataTransferAreasAllowed(job.Areas, allowedAreas) {
+		if transferpolicy.DataTransferAreasAllowed(job.Areas, allowedAreas) {
 			filtered = append(filtered, job)
 			if filter.Limit > 0 && len(filtered) == filter.Limit {
 				break
@@ -201,7 +202,7 @@ func (s *DataTransferService) RetryJob(
 	if err != nil {
 		return DataTransferJob{}, err
 	}
-	if !dataTransferJobRetryable(job.State) {
+	if !transferpolicy.DataTransferJobRetryable(job.State) {
 		return DataTransferJob{}, fmt.Errorf("%w: job is %s", ErrDataTransferConflict, job.State)
 	}
 	return s.repository.CreateJob(ctx, DataTransferJob{
@@ -209,7 +210,7 @@ func (s *DataTransferService) RetryJob(
 		Direction:       job.Direction,
 		Format:          job.Format,
 		Areas:           slices.Clone(job.Areas),
-		Options:         cloneTransferOptions(job.Options),
+		Options:         transferpolicy.CloneTransferOptions(job.Options),
 		State:           TransferJobDraft,
 		Stage:           "created",
 		PackageVersion:  DataTransferPackageVersion,
@@ -249,42 +250,10 @@ func (s *DataTransferService) getJob(
 	if err != nil {
 		return DataTransferJob{}, err
 	}
-	if !dataTransferAreasAllowed(job.Areas, allowedAreas) {
+	if !transferpolicy.DataTransferAreasAllowed(job.Areas, allowedAreas) {
 		return DataTransferJob{}, ErrDataTransferForbidden
 	}
 	return job, nil
-}
-
-func validateDataTransferJobFilter(filter DataTransferJobFilter) error {
-	if filter.Limit < 0 || filter.Limit > 200 {
-		return ErrDataTransferValidation
-	}
-	if filter.Direction != "" && !validTransferDirection(filter.Direction) {
-		return ErrDataTransferValidation
-	}
-	for _, state := range filter.States {
-		if !validDataTransferJobState(state) {
-			return ErrDataTransferValidation
-		}
-	}
-	return nil
-}
-
-func validDataTransferJobState(state TransferJobState) bool {
-	return slices.Contains([]TransferJobState{
-		TransferJobDraft, TransferJobReading, TransferJobReviewRequired, TransferJobReady, TransferJobRunning,
-		TransferJobCompleted, TransferJobCompletedWithWarnings, TransferJobFailed, TransferJobCancelled,
-	}, state)
-}
-
-func dataTransferJobOpen(state TransferJobState) bool {
-	return state == TransferJobDraft || state == TransferJobReading || state == TransferJobReviewRequired ||
-		state == TransferJobReady || state == TransferJobRunning
-}
-
-func dataTransferJobRetryable(state TransferJobState) bool {
-	return state == TransferJobCompleted || state == TransferJobCompletedWithWarnings ||
-		state == TransferJobFailed || state == TransferJobCancelled
 }
 
 func (s *DataTransferService) UpdateProfile(
@@ -294,10 +263,10 @@ func (s *DataTransferService) UpdateProfile(
 ) (DataTransferProfile, error) {
 	id = strings.TrimSpace(id)
 	input.Name = strings.TrimSpace(input.Name)
-	if id == "" || input.Name == "" || !validTransferDirection(input.Direction) || !validTransferFormat(input.Format) {
+	if id == "" || input.Name == "" || !transferpolicy.ValidTransferDirection(input.Direction) || !transferpolicy.ValidTransferFormat(input.Format) {
 		return DataTransferProfile{}, ErrDataTransferValidation
 	}
-	if err := validateTransferSelection(input.Format, input.Areas); err != nil {
+	if err := transferpolicy.ValidateTransferSelection(input.Format, input.Areas); err != nil {
 		return DataTransferProfile{}, err
 	}
 	profile, err := s.profile(ctx, id)
@@ -359,35 +328,4 @@ func (s *DataTransferService) profile(ctx context.Context, id string) (DataTrans
 		return DataTransferProfile{}, ErrDataTransferNotFound
 	}
 	return profile, err
-}
-
-func validateTransferSelection(format TransferFormat, areas []TransferArea) error {
-	allowed := map[TransferArea]bool{
-		TransferVehicles: true, TransferAccessories: true, TransferExhibitionLists: true,
-	}
-	if len(areas) == 0 {
-		return fmt.Errorf("%w: select at least one area", ErrDataTransferValidation)
-	}
-	seen := map[TransferArea]bool{}
-	for _, area := range areas {
-		if !allowed[area] || seen[area] {
-			return fmt.Errorf("%w: unsupported or repeated area %q", ErrDataTransferValidation, area)
-		}
-		seen[area] = true
-	}
-	if format == TransferCSV && len(areas) != 1 {
-		return fmt.Errorf("%w: csv requires exactly one area", ErrDataTransferValidation)
-	}
-	if format == TransferCSV && areas[0] == TransferExhibitionLists {
-		return fmt.Errorf("%w: exhibition lists require railkeeper-json", ErrDataTransferValidation)
-	}
-	return nil
-}
-
-func validTransferDirection(direction TransferDirection) bool {
-	return direction == TransferImport || direction == TransferExport
-}
-
-func validTransferFormat(format TransferFormat) bool {
-	return format == TransferCSV || format == TransferJSON
 }

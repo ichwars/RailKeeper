@@ -41,7 +41,7 @@ SELECT
 SELECT article_type, subtype FROM accessory_products WHERE id=?`, targetID).
 			Scan(&current.ArticleType, &current.Subtype)
 		if errors.Is(err, sql.ErrNoRows) {
-			return application.ErrDataTransferConflict
+			return transfer.ErrDataTransferConflict
 		}
 		if err != nil {
 			return fmt.Errorf("load transfer accessory reference target: %w", err)

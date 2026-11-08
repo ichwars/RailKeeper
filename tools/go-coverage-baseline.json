@@ -24,6 +24,7 @@
     "safefetch": 78,
     "startup": 76,
     "transfer": 91,
+    "transfer/policy": 78,
     "valuation": 94
   }
 }

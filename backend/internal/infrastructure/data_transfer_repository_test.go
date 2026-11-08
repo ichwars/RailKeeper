@@ -9,6 +9,7 @@ import (
 
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/infrastructure"
+	"railkeeper/backend/internal/transfer"
 )
 
 func TestDataTransferRepositoryPersistsJobSnapshot(t *testing.T) {
@@ -136,7 +137,7 @@ func TestDataTransferImportMutationConcurrentPreviewsCommitOneConsistentResult(t
 		switch {
 		case result.err == nil:
 			successes++
-		case errors.Is(result.err, application.ErrDataTransferConflict):
+		case errors.Is(result.err, transfer.ErrDataTransferConflict):
 			conflicts++
 		default:
 			t.Fatalf("%s mutation failed unexpectedly: %v", result.marker, result.err)
@@ -184,7 +185,7 @@ func TestDataTransferImportMutationRejectsStalePreviewAfterCancel(t *testing.T) 
 	_, err = repo.CompareAndUpdateImportJob(t.Context(), application.DataTransferImportMutation{
 		ExpectedState: job.State, ExpectedRevision: job.Revision, Job: stalePreview, ReplaceIssues: true,
 	})
-	if !errors.Is(err, application.ErrDataTransferConflict) {
+	if !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("stale preview error = %v, want conflict", err)
 	}
 	loaded, err := repo.GetJob(t.Context(), job.ID)
@@ -252,7 +253,7 @@ func TestDataTransferRepositoryRejectsDuplicateActiveProfileNameAtomically(t *te
 		Name: " import fahrzeuge ", Direction: application.TransferImport, Format: application.TransferJSON,
 		Areas: []application.TransferArea{application.TransferVehicles}, Enabled: true,
 	})
-	if !errors.Is(err, application.ErrDataTransferConflict) {
+	if !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("duplicate create error = %v, want conflict", err)
 	}
 	disabled, err := repo.CreateProfile(t.Context(), application.DataTransferProfile{
@@ -263,7 +264,7 @@ func TestDataTransferRepositoryRejectsDuplicateActiveProfileNameAtomically(t *te
 		t.Fatal(err)
 	}
 	disabled.Enabled = true
-	if _, err := repo.UpdateProfile(t.Context(), disabled); !errors.Is(err, application.ErrDataTransferConflict) {
+	if _, err := repo.UpdateProfile(t.Context(), disabled); !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("duplicate enable error = %v, want conflict", err)
 	}
 }
@@ -295,7 +296,7 @@ func TestDataTransferRepositorySerializesConcurrentDuplicateProfileCreates(t *te
 		switch {
 		case err == nil:
 			successes++
-		case errors.Is(err, application.ErrDataTransferConflict):
+		case errors.Is(err, transfer.ErrDataTransferConflict):
 			conflicts++
 		default:
 			t.Fatalf("concurrent profile create failed unexpectedly: %v", err)
@@ -335,7 +336,7 @@ func TestDataTransferImportMutationRollsBackJobWhenProfileMappingIsStale(t *test
 			Options: map[string]any{"marker": "new"},
 		},
 	})
-	if !errors.Is(err, application.ErrDataTransferConflict) {
+	if !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("stale profile mapping error = %v, want conflict", err)
 	}
 	loadedJob, err := repo.GetJob(t.Context(), job.ID)
@@ -531,7 +532,7 @@ func TestDataTransferRepositoryAllowsOnlyOneActiveArtifactPerJob(t *testing.T) {
 		JobID: job.ID, RelativePath: "exports/second.csv", DisplayName: "second.csv",
 		MIMEType: "text/csv", SHA256: "second",
 	})
-	if !errors.Is(err, application.ErrDataTransferConflict) {
+	if !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("second active artifact error = %v, want conflict", err)
 	}
 	if err := repo.MarkArtifactDeleted(t.Context(), first.ID, "2026-08-20T14:00:00Z"); err != nil {

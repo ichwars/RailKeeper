@@ -3,6 +3,8 @@ package application
 import (
 	"errors"
 	"testing"
+
+	transferpolicy "railkeeper/backend/internal/transfer/policy"
 )
 
 func TestVehicleTransferFieldCatalogContainsStable62Fields(t *testing.T) {
@@ -48,7 +50,7 @@ func TestVehicleSetTransferFieldCatalogContainsStable26Fields(t *testing.T) {
 }
 
 func TestDataTransferCSVMappingRecognizesAliasesAndLeavesUnknownColumnsOpen(t *testing.T) {
-	mapping := defaultDataTransferCSVMapping([]string{"Inventarnummer", "Vereinsnotiz"}, nil)
+	mapping := transferpolicy.DefaultDataTransferCSVMapping([]string{"Inventarnummer", "Vereinsnotiz"}, nil)
 	if len(mapping) != 2 {
 		t.Fatalf("mapping length = %d, want 2", len(mapping))
 	}
@@ -61,7 +63,7 @@ func TestDataTransferCSVMappingRecognizesAliasesAndLeavesUnknownColumnsOpen(t *t
 }
 
 func TestDataTransferCSVMappingRecognizesLegacyArticleNumberAndRepairsInvalidDefault(t *testing.T) {
-	mapping := defaultDataTransferCSVMapping(
+	mapping := transferpolicy.DefaultDataTransferCSVMapping(
 		[]string{"Artikelnummer", "Hersteller"},
 		map[string]string{"artikelnummer": "removedField", "hersteller": "removedField"},
 	)
@@ -79,7 +81,7 @@ func TestDataTransferCSVMappingRejectsDuplicateTargets(t *testing.T) {
 		{Index: 0, SourceHeader: header[0], NormalizedHeader: "inventarnummer", TargetField: "inventoryNumber", Origin: CSVMappingAlias},
 		{Index: 1, SourceHeader: header[1], NormalizedHeader: "vereinsnummer", TargetField: "inventoryNumber", Origin: CSVMappingManual},
 	}
-	if err := validateDataTransferCSVMapping(header, mapping); !errors.Is(err, ErrDataTransferValidation) {
+	if err := transferpolicy.ValidateDataTransferCSVMapping(header, mapping); !errors.Is(err, ErrDataTransferValidation) {
 		t.Fatalf("duplicate target error = %v, want validation error", err)
 	}
 }
@@ -90,12 +92,12 @@ func TestRequestedDataTransferCSVMappingRejectsUnresolvedColumns(t *testing.T) {
 		{Index: 0, SourceHeader: header[0], NormalizedHeader: "inventarnummer", TargetField: "inventoryNumber", Origin: CSVMappingAlias},
 		{Index: 1, SourceHeader: header[1], NormalizedHeader: "vereinsnotiz", Origin: CSVMappingUnmapped},
 	}
-	if err := validateRequestedDataTransferCSVMapping(mapping); !errors.Is(err, ErrDataTransferValidation) {
+	if err := transferpolicy.ValidateRequestedDataTransferCSVMapping(mapping); !errors.Is(err, ErrDataTransferValidation) {
 		t.Fatalf("unresolved mapping error = %v, want validation error", err)
 	}
 
 	mapping[1].Origin = CSVMappingIgnored
-	if err := validateRequestedDataTransferCSVMapping(mapping); err != nil {
+	if err := transferpolicy.ValidateRequestedDataTransferCSVMapping(mapping); err != nil {
 		t.Fatalf("explicitly ignored mapping error = %v, want nil", err)
 	}
 }
@@ -106,7 +108,7 @@ func TestDataTransferCSVMappingRejectsIgnoredColumnWithTarget(t *testing.T) {
 		Index: 0, SourceHeader: header[0], NormalizedHeader: "vereinsnotiz",
 		TargetField: "additionalInfo", Origin: CSVMappingIgnored,
 	}}
-	if err := validateDataTransferCSVMapping(header, mapping); !errors.Is(err, ErrDataTransferValidation) {
+	if err := transferpolicy.ValidateDataTransferCSVMapping(header, mapping); !errors.Is(err, ErrDataTransferValidation) {
 		t.Fatalf("ignored mapping with target error = %v, want validation error", err)
 	}
 }

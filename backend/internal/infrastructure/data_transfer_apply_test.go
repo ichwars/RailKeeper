@@ -9,6 +9,7 @@ import (
 
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/infrastructure"
+	"railkeeper/backend/internal/transfer"
 )
 
 func TestDataTransferApplyCommitsTwoVehiclesAndAudit(t *testing.T) {
@@ -211,7 +212,7 @@ func TestDataTransferApplyRejectsAggregateInvalidPreviewData(t *testing.T) {
 			Area: application.TransferVehicles, RecordKey: "RK-INVALID-VEHICLE", Classification: "ready",
 			ProposedAction: "create", Data: data,
 		}})
-		if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+		if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 			t.Fatalf("ApplyImport(invalid vehicle) error = %v, want conflict", err)
 		}
 		assertApplyJobStillReady(t, repository, job.ID)
@@ -232,7 +233,7 @@ func TestDataTransferApplyRejectsAggregateInvalidPreviewData(t *testing.T) {
 			Area: application.TransferAccessories, RecordKey: "RK-INVALID-ACCESSORY", Classification: "ready",
 			ProposedAction: "create", Data: data,
 		}})
-		if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+		if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 			t.Fatalf("ApplyImport(invalid accessory) error = %v, want conflict", err)
 		}
 		assertApplyJobStillReady(t, repository, job.ID)
@@ -255,7 +256,7 @@ func TestDataTransferApplyRejectsAggregateInvalidPreviewData(t *testing.T) {
 			Area: application.TransferAccessories, RecordKey: "RK-INACTIVE-SUBTYPE", Classification: "ready",
 			ProposedAction: "create", Data: data,
 		}})
-		if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+		if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 			t.Fatalf("ApplyImport(inactive subtype) error = %v, want conflict", err)
 		}
 		assertApplyJobStillReady(t, repository, job.ID)
@@ -323,7 +324,7 @@ func TestDataTransferApplyCASAllowsOneConcurrentConfirmation(t *testing.T) {
 	for _, err := range errorsByWorker {
 		if err == nil {
 			successes++
-		} else if errors.Is(err, application.ErrDataTransferConflict) {
+		} else if errors.Is(err, transfer.ErrDataTransferConflict) {
 			conflicts++
 		} else {
 			t.Fatalf("unexpected concurrent apply error: %v", err)
@@ -415,7 +416,7 @@ func TestDataTransferApplyRejectsStaleTargetChangedSourceAndUnresolvedIssues(t *
 			repository := infrastructure.NewDataTransferRepository(db)
 			job := test.setup(t, db, repository)
 			err := repository.ApplyImport(t.Context(), job, "editor-1")
-			if !errors.Is(err, application.ErrDataTransferConflict) {
+			if !errors.Is(err, transfer.ErrDataTransferConflict) {
 				t.Fatalf("ApplyImport() error = %v, want conflict", err)
 			}
 			assertApplyJobStillReady(t, repository, job.ID)
@@ -448,7 +449,7 @@ func TestDataTransferApplyRejectsSameSecondVehicleMutation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("ApplyImport() error = %v, want same-second fingerprint conflict", err)
 	}
 	assertApplyJobStillReady(t, repository, job.ID)
@@ -488,7 +489,7 @@ func TestDataTransferApplyRejectsSameSecondAccessoryChildMutation(t *testing.T) 
 		t.Fatal(err)
 	}
 
-	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("ApplyImport() error = %v, want accessory aggregate conflict", err)
 	}
 	assertApplyJobStillReady(t, repository, job.ID)
@@ -513,7 +514,7 @@ func TestDataTransferApplyRejectsReservationAddedAfterPreview(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("ApplyImport() error = %v, want reservation fingerprint conflict", err)
 	}
 	assertApplyJobStillReady(t, repository, job.ID)
@@ -549,7 +550,7 @@ func TestDataTransferApplyRejectsImportedQuantityBelowActiveReservation(t *testi
 	incoming.Stock[0].Quantity = 2
 	job, _ := createAccessoryReplaceJob(t, repository, "sha-reserved-stock", target, incoming)
 
-	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("ApplyImport() error = %v, want reserved stock conflict", err)
 	}
 	assertApplyJobStillReady(t, repository, job.ID)
@@ -638,7 +639,7 @@ func TestDataTransferApplyRejectsIncompatibleAccessoryStrategyTransitions(t *tes
 			}
 			job, _ := createAccessoryReplaceJob(t, repository, "sha-strategy-"+test.name, target, incoming)
 
-			if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+			if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 				t.Fatalf("ApplyImport() error = %v, want strategy conflict", err)
 			}
 			assertApplyJobStillReady(t, repository, job.ID)
@@ -675,7 +676,7 @@ func TestDataTransferApplyRejectsIndividualAssetWhenCreatingQuantityAccessory(t 
 	}
 	job := createApplyJob(t, repository, "sha-quantity-asset-create", []application.DataTransferPreviewRecord{record})
 
-	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("ApplyImport() error = %v, want quantity asset conflict", err)
 	}
 	assertApplyJobStillReady(t, repository, job.ID)
@@ -705,7 +706,7 @@ func TestDataTransferApplyRejectsUnmatchedIndividualAssetOnQuantityReplacement(t
 	}}
 	job, _ := createAccessoryReplaceJob(t, repository, "sha-quantity-asset-replace", target, incoming)
 
-	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("ApplyImport() error = %v, want quantity asset conflict", err)
 	}
 	assertApplyJobStillReady(t, repository, job.ID)
@@ -761,7 +762,7 @@ func TestDataTransferApplyRejectsSameSecondExhibitionEntryMutation(t *testing.T)
 		t.Fatal(err)
 	}
 
-	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("ApplyImport() error = %v, want exhibition aggregate conflict", err)
 	}
 	assertApplyJobStillReady(t, repository, job.ID)
@@ -791,7 +792,7 @@ func TestDataTransferApplyNeverReplacesLockedExhibitionList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("ApplyImport() error = %v, want conflict", err)
 	}
 	var count int
@@ -1035,7 +1036,7 @@ func TestDataTransferApplyAccessoryReplacePreservesPurchaseAndRelationships(t *t
 		conflictingRecord,
 	})
 	resolveApplyIssue(t, repository, conflictingJob.ID, conflictingRecord, "duplicate_inventory_number", "replace")
-	if err := repository.ApplyImport(t.Context(), conflictingJob, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+	if err := repository.ApplyImport(t.Context(), conflictingJob, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("ApplyImport() invariant error = %v, want conflict", err)
 	}
 	var reservedLocation string
@@ -1068,7 +1069,7 @@ func TestDataTransferApplyAccessoryReplacePreservesPurchaseAndRelationships(t *t
 		orphanedRecord,
 	})
 	resolveApplyIssue(t, repository, orphanedJob.ID, orphanedRecord, "duplicate_inventory_number", "replace")
-	if err := repository.ApplyImport(t.Context(), orphanedJob, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+	if err := repository.ApplyImport(t.Context(), orphanedJob, "editor-1"); !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("ApplyImport() orphan lifecycle error = %v, want conflict", err)
 	}
 	var orphanCount int

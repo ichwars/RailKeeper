@@ -1,7 +1,7 @@
 package infrastructure
 
 import (
-"context"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"

@@ -14,6 +14,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	transferpolicy "railkeeper/backend/internal/transfer/policy"
 )
 
 func TestCombinedTransferPackageExcludesMasterData(t *testing.T) {
@@ -57,11 +59,11 @@ func TestDataTransferPackageVersionThreeRoundTripsVehicleSet(t *testing.T) {
 			},
 		}},
 	}
-	payload, err := marshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
+	payload, err := transferpolicy.MarshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
 	if err != nil {
 		t.Fatal(err)
 	}
-	document, err := decodeDataTransferPackage(bytes.NewReader(payload))
+	document, err := transferpolicy.DecodeDataTransferPackage(bytes.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,11 +81,11 @@ func TestDataTransferExportNormalizesVehicleSetsOnlyDuringSerialization(t *testi
 	singleton.Members = append([]TransferVehicleSetMember(nil), singleton.Members[:1]...)
 	snapshot.VehicleSets = append(snapshot.VehicleSets, singleton)
 
-	payload, err := marshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
+	payload, err := transferpolicy.MarshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
 	if err != nil {
 		t.Fatal(err)
 	}
-	document, err := decodeDataTransferPackage(bytes.NewReader(payload))
+	document, err := transferpolicy.DecodeDataTransferPackage(bytes.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +109,7 @@ func TestDataTransferExportPreservesUnselectedVehicleSets(t *testing.T) {
 		InventoryNumber: "RK-ART-1", Manufacturer: "Viessmann", ArticleNumber: "4011",
 		Name: "Signal", Category: "signal", TrackingMode: "bulk",
 	}}}
-	payload, err := marshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
+	payload, err := transferpolicy.MarshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +123,7 @@ func TestDataTransferExportVehicleCSVUsesStableSemicolonColumns(t *testing.T) {
 		{InventoryNumber: "RK-002", Manufacturer: "Märklin", Name: "BR 218; Cargo", Gauge: "H0"},
 		{InventoryNumber: "RK-001", Manufacturer: "Roco", Name: "BR 01", Gauge: "H0"},
 	}}
-	payload, err := marshalDataTransferCSV(TransferVehicles, snapshot)
+	payload, err := transferpolicy.MarshalDataTransferCSV(TransferVehicles, snapshot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +147,7 @@ func TestDataTransferExportVehicleCSVUsesStableSemicolonColumns(t *testing.T) {
 }
 
 func TestDataTransferExportVehicleCSVContainsAllScalarAndSetFields(t *testing.T) {
-	payload, err := marshalDataTransferCSV(TransferVehicles, DataTransferSnapshot{Vehicles: []TransferVehicle{{
+	payload, err := transferpolicy.MarshalDataTransferCSV(TransferVehicles, DataTransferSnapshot{Vehicles: []TransferVehicle{{
 		InventoryNumber: "RK-001", Manufacturer: "Roco", Name: "BR 01", Gauge: "H0",
 	}}})
 	if err != nil {
@@ -173,7 +175,7 @@ func TestDataTransferExportCSVNeutralizesSpreadsheetFormulas(t *testing.T) {
 		ArticleNumber: "-2+3", Name: "@SUM(1+1)", Gauge: "H0", Category: "Lokomotive",
 		Gattung: "Dampflokomotive", Description: "ordinary text",
 	}}}
-	payload, err := marshalDataTransferCSV(TransferVehicles, snapshot)
+	payload, err := transferpolicy.MarshalDataTransferCSV(TransferVehicles, snapshot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +198,7 @@ func TestDataTransferExportAccessoryCSVIncludesCurrentStockAndAssets(t *testing.
 		Category: "signal", Stock: []TransferAccessoryStock{{LocationID: "loc-1", LocationName: "Schrank", Quantity: 2}},
 		Assets: []TransferAccessoryAsset{{ID: "asset-1", InventoryNumber: "RK-ASSET-1", SerialNumber: "S1"}},
 	}}}
-	payload, err := marshalDataTransferCSV(TransferAccessories, snapshot)
+	payload, err := transferpolicy.MarshalDataTransferCSV(TransferAccessories, snapshot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,7 +230,7 @@ func TestDataTransferExportCombinedJSONHasStableOrdering(t *testing.T) {
 			{ID: "e-1", Designation: "Erste", Date: "2026-08-20"},
 		},
 	}
-	payload, err := marshalDataTransferPackage(snapshot, "2026-08-20T12:00:00Z")
+	payload, err := transferpolicy.MarshalDataTransferPackage(snapshot, "2026-08-20T12:00:00Z")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,11 +267,11 @@ func TestDataTransferExportJSONSortsVehicleSetsAndMembers(t *testing.T) {
 			}},
 		},
 	}
-	payload, err := marshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
+	payload, err := transferpolicy.MarshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
 	if err != nil {
 		t.Fatal(err)
 	}
-	document, err := decodeDataTransferPackage(bytes.NewReader(payload))
+	document, err := transferpolicy.DecodeDataTransferPackage(bytes.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}

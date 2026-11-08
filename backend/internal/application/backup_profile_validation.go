@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	transferpolicy "railkeeper/backend/internal/transfer/policy"
 )
 
 func validateBackupDataTransferProfiles(rows []map[string]any) []string {
@@ -39,12 +41,12 @@ func validateBackupDataTransferProfiles(rows []map[string]any) []string {
 			errorsFound = append(errorsFound, prefix+" verwendet eine doppelte ID.")
 		}
 		seen[id] = true
-		if !validTransferDirection(TransferDirection(direction)) || !validTransferFormat(TransferFormat(format)) {
+		if !transferpolicy.ValidTransferDirection(TransferDirection(direction)) || !transferpolicy.ValidTransferFormat(TransferFormat(format)) {
 			errorsFound = append(errorsFound, prefix+" enthält Richtung oder Format außerhalb des Vertrags.")
 		}
 		areas := []TransferArea{}
 		if err := json.Unmarshal([]byte(areasJSON), &areas); err != nil ||
-			validateTransferSelection(TransferFormat(format), areas) != nil {
+			transferpolicy.ValidateTransferSelection(TransferFormat(format), areas) != nil {
 			errorsFound = append(errorsFound, prefix+" enthält eine ungültige Bereichsauswahl.")
 		}
 		options := map[string]any{}
