@@ -257,3 +257,19 @@ func TestDataTransferFolderDoesNotInvokePlatformOpenerForBlockedPath(t *testing.
 		t.Fatal("folder action changed an existing entry", err)
 	}
 }
+
+func TestDataTransferJobCreationRequiresActorBeforeStorageAccess(t *testing.T) {
+	service := NewDataTransferService(nil, t.TempDir())
+	operations := map[string]func() error{
+		"export": func() error { _, err := service.CreateExportJob(t.Context(), "profile", "  "); return err },
+		"import": func() error { _, err := service.CreateImportJob(t.Context(), "profile", "  "); return err },
+		"retry":  func() error { _, err := service.RetryJob(t.Context(), "job", "  "); return err },
+	}
+	for name, operation := range operations {
+		t.Run(name, func(t *testing.T) {
+			if err := operation(); !errors.Is(err, ErrDataTransferValidation) {
+				t.Fatal("unattributed job reached storage", err)
+			}
+		})
+	}
+}
