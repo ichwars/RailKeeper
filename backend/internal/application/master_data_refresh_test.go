@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	_ "modernc.org/sqlite"
 	"sync"
 	"testing"
 	"time"
 
-	_ "modernc.org/sqlite"
+	"railkeeper/backend/internal/infrastructure/masterdatastore"
 )
 
 func TestMasterDataRefreshCannotLoseConcurrentUpdateInvalidation(t *testing.T) {
@@ -30,7 +31,7 @@ func TestMasterDataRefreshCannotLoseConcurrentUpdateInvalidation(t *testing.T) {
 			<-releaseRefresh
 			return map[string][]MasterDataEntry{"test": {before}}, nil
 		}
-		return loadMasterDataSnapshot(ctx, db)
+		return masterdatastore.New(db).Snapshot(ctx)
 	})
 
 	refreshDone := make(chan error, 1)

@@ -1,4 +1,4 @@
-package application
+package masterdata
 
 import (
 	"cmp"
@@ -8,7 +8,7 @@ import (
 
 // Sort only the decoded entries. Sorting large metadata blobs inside SQLite can
 // spill to temporary files, which are unavailable in the read-only container.
-func sortMasterDataEntries(entries []MasterDataEntry) {
+func SortEntries(entries []MasterDataEntry) {
 	slices.SortStableFunc(entries, func(a, b MasterDataEntry) int {
 		if a.Active != b.Active {
 			if a.Active {
