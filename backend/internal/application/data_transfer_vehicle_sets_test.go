@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 	"testing"
+
+	transferpolicy "railkeeper/backend/internal/transfer/policy"
 )
 
 func TestClassifyDataTransferVehicleSetStructure(t *testing.T) {
@@ -60,7 +62,7 @@ func TestClassifyDataTransferVehicleSetStructure(t *testing.T) {
 			incoming := validTransferVehicleSetSnapshot()
 			test.edit(&incoming)
 			records, _ := classifyDataTransferImport("job-set", incoming, DataTransferSnapshot{}, nil)
-			previews, issues := classifyDataTransferVehicleSets(
+			previews, issues := transferpolicy.ClassifyDataTransferVehicleSets(
 				"job-set", incoming, DataTransferSnapshot{}, records,
 			)
 			if len(previews) != 1 || previews[0].Classification != "error" {
@@ -80,13 +82,13 @@ func TestClassifyDataTransferVehicleSetStructure(t *testing.T) {
 func TestClassifyDataTransferVehicleSetReadyAndCountsMembersOnly(t *testing.T) {
 	incoming := validTransferVehicleSetSnapshot()
 	records, vehicleIssues := classifyDataTransferImport("job-set", incoming, DataTransferSnapshot{}, nil)
-	previews, setIssues := classifyDataTransferVehicleSets("job-set", incoming, DataTransferSnapshot{}, records)
+	previews, setIssues := transferpolicy.ClassifyDataTransferVehicleSets("job-set", incoming, DataTransferSnapshot{}, records)
 	if len(vehicleIssues) != 0 || len(setIssues) != 0 || len(previews) != 1 ||
 		previews[0].Classification != "ready" || len(previews[0].MemberRecordKeys) != 2 {
 		t.Fatalf("valid set classification = records %#v, previews %#v, issues %#v/%#v",
 			records, previews, vehicleIssues, setIssues)
 	}
-	ready, warnings, failures := countDataTransferPreviewRecords(records)
+	ready, warnings, failures := transferpolicy.CountDataTransferPreviewRecords(records)
 	if ready != 2 || warnings != 0 || failures != 0 {
 		t.Fatalf("vehicle record counts = %d/%d/%d", ready, warnings, failures)
 	}
@@ -111,7 +113,7 @@ func TestClassifyDataTransferVehicleSetsRejectsDuplicateImportedInventoryNumbers
 		},
 	})
 	records, _ := classifyDataTransferImport("job-duplicate-set", incoming, DataTransferSnapshot{}, nil)
-	previews, issues := classifyDataTransferVehicleSets(
+	previews, issues := transferpolicy.ClassifyDataTransferVehicleSets(
 		"job-duplicate-set", incoming, DataTransferSnapshot{}, records,
 	)
 	if len(previews) != 2 || previews[0].Classification != "ready" || previews[1].Classification != "error" {
@@ -139,7 +141,7 @@ func TestClassifyDataTransferVehicleSetsRejectsDuplicateSourceIDs(t *testing.T) 
 		},
 	})
 	records, _ := classifyDataTransferImport("job-duplicate-set-id", incoming, DataTransferSnapshot{}, nil)
-	previews, issues := classifyDataTransferVehicleSets(
+	previews, issues := transferpolicy.ClassifyDataTransferVehicleSets(
 		"job-duplicate-set-id", incoming, DataTransferSnapshot{}, records,
 	)
 	if len(previews) != 2 || previews[0].Classification != "ready" || previews[1].Classification != "error" {
@@ -158,7 +160,7 @@ func TestClassifyDataTransferVehicleSetConflicts(t *testing.T) {
 	current.VehicleSets[0].Members[0].SourceVehicleID = "target-a"
 	current.VehicleSets[0].Members[1].SourceVehicleID = "target-b"
 	records, _ := classifyDataTransferImport("job-set", incoming, current, nil)
-	previews, issues := classifyDataTransferVehicleSets("job-set", incoming, current, records)
+	previews, issues := transferpolicy.ClassifyDataTransferVehicleSets("job-set", incoming, current, records)
 	if len(previews) != 1 || previews[0].TargetID != "target-set" ||
 		previews[0].TargetFingerprint == "" || previews[0].ProposedAction != "replace" {
 		t.Fatalf("duplicate set preview = %#v", previews)
@@ -167,7 +169,7 @@ func TestClassifyDataTransferVehicleSetConflicts(t *testing.T) {
 
 	current.VehicleSets = nil
 	records, _ = classifyDataTransferImport("job-external", incoming, current, nil)
-	previews, issues = classifyDataTransferVehicleSets("job-external", incoming, current, records)
+	previews, issues = transferpolicy.ClassifyDataTransferVehicleSets("job-external", incoming, current, records)
 	if len(previews) != 1 || previews[0].ProposedAction != "copy" {
 		t.Fatalf("external member conflict preview = %#v", previews)
 	}
@@ -180,7 +182,7 @@ func TestClassifyDataTransferVehicleSetConflicts(t *testing.T) {
 	current.VehicleSets[0].Members = current.VehicleSets[0].Members[:1]
 	current.VehicleSets[0].Members[0].SourceVehicleID = "target-a"
 	records, _ = classifyDataTransferImport("job-target-external", incoming, current, nil)
-	previews, issues = classifyDataTransferVehicleSets("job-target-external", incoming, current, records)
+	previews, issues = transferpolicy.ClassifyDataTransferVehicleSets("job-target-external", incoming, current, records)
 	if len(previews) != 1 || previews[0].ProposedAction != "copy" ||
 		previews[0].TargetID != "target-set" || previews[0].TargetFingerprint == "" {
 		t.Fatalf("target set external conflict preview = %#v", previews)
@@ -230,9 +232,9 @@ func TestVehicleSetConflictSuppressesMemberLevelDuplicateIssues(t *testing.T) {
 	current.VehicleSets[0].Members[0].SourceVehicleID = "target-a"
 	current.VehicleSets[0].Members[1].SourceVehicleID = "target-b"
 	records, issues := classifyDataTransferImport("job-set", incoming, current, nil)
-	sets, setIssues := classifyDataTransferVehicleSets("job-set", incoming, current, records)
+	sets, setIssues := transferpolicy.ClassifyDataTransferVehicleSets("job-set", incoming, current, records)
 	issues = append(issues, setIssues...)
-	records, issues = suppressDataTransferVehicleSetMemberConflicts(records, issues, sets)
+	records, issues = transferpolicy.SuppressDataTransferVehicleSetMemberConflicts(records, issues, sets)
 	for _, issue := range issues {
 		if issue.Code == "duplicate_inventory_number" {
 			t.Fatalf("member conflict was not suppressed: %#v", issues)

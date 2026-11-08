@@ -5,6 +5,12 @@ CSV mapping records, package encoding for versions 1–3 and target fingerprint 
 It imports the standard library and shared domain records. It performs no SQL, filesystem,
 HTTP or device operations. Architecture tests enforce this boundary.
 
+`transfer/policy` owns field catalogs, CSV mapping/decoding, package decoding, preview
+classification, conflict/group decisions, snapshot ordering and export encoding. It has
+no SQL, HTTP or filesystem dependency. Typed aggregate-validation callbacks reuse the
+same vehicle/accessory rules as ordinary inventory writes; absent callbacks fail closed.
+Set normalization/required-field rules are shared through `domain`.
+
 `application` retains compatibility aliases and delegates fingerprint/name identity functions
 to that package. Existing JSON field names, field order, omitted fields, selected empty areas,
 Unicode case folding and stored preview fingerprints remain compatible. Shared set input and
@@ -13,7 +19,8 @@ exhibition status types live in `domain`; both application and transfer use the 
 | Owner | Responsibility |
 | --- | --- |
 | `transfer` | Exchange types, empty/omitted area distinction, legacy encoding and exact comparison identities |
-| `application.DataTransferService` | File limits, preview workflow, user decisions and permitted import/export areas |
+| `transfer/policy` | Parsing, field preservation, preview/group decisions, allowed resolutions and export encoding |
+| `application.DataTransferService` | Remaining workflow/file orchestration, user decisions and permitted import/export areas |
 | `infrastructure.DataTransferRepository` | Actual SQLite reads, revision checks, import application, job transitions and audit |
 | Existing vehicle/accessory validators | The same aggregate rules used by regular inventory writes and transfer application |
 
@@ -21,6 +28,13 @@ Profile/job persistence and snapshot reads now use the independent contracts dir
 The legacy apply adapter still calls existing application aggregate validators; the entire
 infrastructure package is therefore not claimed to be independent of application yet. A future
 move of those validators must preserve their shared rules rather than duplicate them.
+
+The existing repository remains the only import transaction owner. Vehicle, accessory
+and exhibition writers now live in focused adapter files; set writers retain their
+shared caller transaction. The apply coordinator owns exactly one begin/commit, checked
+by architecture tests. Preview and apply share the same allowed-resolution policy.
+The writer split preserves every existing SQL literal (70 occurrences), while existing
+SQLite/API tests retain the actual behavior and rollback checks.
 
 The existing repository remains the only import transaction owner. Target comparisons,
 vehicle/set/accessory/exhibition mutations, job state and audit still commit together or roll

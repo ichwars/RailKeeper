@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"railkeeper/backend/internal/transfer"
+	transferpolicy "railkeeper/backend/internal/transfer/policy"
 )
 
 const DataTransferMaxUploadBytes int64 = 25 * 1024 * 1024
@@ -28,18 +29,7 @@ var (
 	ErrDataTransferUploadPath     = transfer.ErrDataTransferUploadPath
 )
 
-type DataTransferPreview struct {
-	Job            DataTransferJob                 `json:"job"`
-	Records        []DataTransferPreviewRecord     `json:"records"`
-	Issues         []DataTransferIssue             `json:"issues"`
-	TotalRecords   int                             `json:"totalRecords"`
-	ReadyRecords   int                             `json:"readyRecords"`
-	WarningRecords int                             `json:"warningRecords"`
-	ErrorRecords   int                             `json:"errorRecords"`
-	CSVMapping     []DataTransferCSVColumnMapping  `json:"csvMapping,omitempty"`
-	VehicleFields  []VehicleTransferField          `json:"vehicleFields,omitempty"`
-	VehicleSets    []DataTransferVehicleSetPreview `json:"vehicleSets,omitempty"`
-}
+type DataTransferPreview = transferpolicy.DataTransferPreview
 
 type DataTransferPreviewRecord = transfer.DataTransferPreviewRecord
 
@@ -78,12 +68,12 @@ func (s *DataTransferService) CreateImportJob(
 	if !profile.Enabled || profile.Direction != TransferImport {
 		return DataTransferJob{}, fmt.Errorf("%w: profile is not an enabled import profile", ErrDataTransferValidation)
 	}
-	if !dataTransferAreasAllowed(profile.Areas, allowedAreas) {
+	if !transferpolicy.DataTransferAreasAllowed(profile.Areas, allowedAreas) {
 		return DataTransferJob{}, ErrDataTransferForbidden
 	}
 	return s.repository.CreateJob(ctx, DataTransferJob{
 		ProfileID: profile.ID, ProfileName: profile.Name, Direction: TransferImport, Format: profile.Format,
-		Areas: slices.Clone(profile.Areas), Options: cloneTransferOptions(profile.Options), State: TransferJobDraft,
+		Areas: slices.Clone(profile.Areas), Options: transferpolicy.CloneTransferOptions(profile.Options), State: TransferJobDraft,
 		Stage: "created", PackageVersion: DataTransferPackageVersion, Preview: map[string]any{},
 		CreatedByUserID: actorUserID,
 	})
@@ -137,7 +127,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
-	if job.Direction != TransferImport || !validTransferFormat(job.Format) {
+	if job.Direction != TransferImport || !transferpolicy.ValidTransferFormat(job.Format) {
 		return DataTransferPreview{}, fmt.Errorf("%w: job is not an import", ErrDataTransferValidation)
 	}
 	if mapping != nil && (job.Format != TransferCSV || !slices.Contains(job.Areas, TransferVehicles)) {
@@ -147,7 +137,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	if job.State != TransferJobDraft && job.State != TransferJobReviewRequired && job.State != TransferJobReady {
 		return DataTransferPreview{}, fmt.Errorf("%w: import job is %s", ErrDataTransferConflict, job.State)
 	}
-	if !dataTransferAreasAllowed(job.Areas, allowedAreas) {
+	if !transferpolicy.DataTransferAreasAllowed(job.Areas, allowedAreas) {
 		return DataTransferPreview{}, ErrDataTransferForbidden
 	}
 	expectedState := job.State
@@ -171,7 +161,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 		return DataTransferPreview{}, fmt.Errorf("open transfer upload: %w", err)
 	}
 	defer func() { _ = file.Close() }()
-	incoming, packageVersion, rowNumbers, csvMapping, err := parseDataTransferUpload(job, file, mapping)
+	incoming, packageVersion, rowNumbers, csvMapping, err := transferpolicy.ParseDataTransferUpload(job, file, mapping)
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
@@ -184,14 +174,14 @@ func (s *DataTransferService) UploadAndPreviewReader(
 		return DataTransferPreview{}, fmt.Errorf("load current transfer rows: %w", err)
 	}
 	records, issues := classifyDataTransferImport(job.ID, incoming, current, rowNumbers)
-	vehicleSets, vehicleSetIssues := classifyDataTransferVehicleSets(job.ID, incoming, current, records)
+	vehicleSets, vehicleSetIssues := transferpolicy.ClassifyDataTransferVehicleSets(job.ID, incoming, current, records)
 	issues = append(issues, vehicleSetIssues...)
-	records, issues = suppressDataTransferVehicleSetMemberConflicts(records, issues, vehicleSets)
+	records, issues = transferpolicy.SuppressDataTransferVehicleSetMemberConflicts(records, issues, vehicleSets)
 	records, issues, err = validateTransferAccessoryPreviewReferences(ctx, repository, job.ID, records, issues)
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
-	ready, warnings, failures := countDataTransferPreviewRecords(records)
+	ready, warnings, failures := transferpolicy.CountDataTransferPreviewRecords(records)
 	job.SourceName = cleanName
 	job.SourceSHA256 = digest
 	job.PackageVersion = packageVersion
@@ -201,7 +191,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	job.ErrorRecords = failures
 	job.Stage = "preview"
 	if len(csvMapping) > 0 {
-		job.Options = dataTransferOptionsWithCSVMapping(job.Options, csvMapping)
+		job.Options = transferpolicy.DataTransferOptionsWithCSVMapping(job.Options, csvMapping)
 	}
 	if len(issues) == 0 {
 		job.State = TransferJobReady
@@ -212,7 +202,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	if job.Format == TransferCSV && slices.Contains(job.Areas, TransferVehicles) {
 		vehicleFields = VehicleCSVTransferFields()
 	}
-	job.Preview, err = dataTransferPreviewMap(digest, records, vehicleSets, csvMapping, vehicleFields)
+	job.Preview, err = transferpolicy.DataTransferPreviewMap(digest, records, vehicleSets, csvMapping, vehicleFields)
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
@@ -227,8 +217,8 @@ func (s *DataTransferService) UploadAndPreviewReader(
 		}
 		mutation.ProfileOptions = &DataTransferProfileOptionsMutation{
 			ProfileID: profile.ID, ExpectedUpdatedAt: profile.UpdatedAt,
-			ExpectedOptions: cloneTransferOptions(profile.Options),
-			Options:         dataTransferOptionsWithCSVMapping(profile.Options, csvMapping),
+			ExpectedOptions: transferpolicy.CloneTransferOptions(profile.Options),
+			Options:         transferpolicy.DataTransferOptionsWithCSVMapping(profile.Options, csvMapping),
 		}
 	}
 	job, err = compareAndUpdateDataTransferImport(ctx, repository, mutation)
@@ -239,7 +229,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
-	return newDataTransferPreview(job, records, issues, vehicleSets, csvMapping, vehicleFields), nil
+	return transferpolicy.NewDataTransferPreview(job, records, issues, vehicleSets, csvMapping, vehicleFields), nil
 }
 
 func validateTransferAccessoryPreviewReferences(
@@ -251,7 +241,7 @@ func validateTransferAccessoryPreviewReferences(
 ) ([]DataTransferPreviewRecord, []DataTransferIssue, error) {
 	for index := range records {
 		record := &records[index]
-		if record.Area != TransferAccessories || transferRecordHasIssue(issues, *record, "invalid_accessory") {
+		if record.Area != TransferAccessories || transferpolicy.TransferRecordHasIssue(issues, *record, "invalid_accessory") {
 			continue
 		}
 		accessory := TransferAccessory{}
@@ -262,48 +252,13 @@ func validateTransferAccessoryPreviewReferences(
 			if !errors.Is(err, ErrAccessoryValidation) {
 				return nil, nil, err
 			}
-			issues = append(issues, newTransferIssue(jobID, TransferAccessories, record.RecordKey, record.RowNumber,
+			issues = append(issues, transferpolicy.NewTransferIssue(jobID, TransferAccessories, record.RecordKey, record.RowNumber,
 				"record", TransferIssueError, "invalid_accessory",
 				"Accessory article type or subtype is not active.", "skip"))
-			finalizeDataTransferRecord(record, transferIssuesForPreviewRecord(issues, *record))
+			transferpolicy.FinalizeDataTransferRecord(record, transferpolicy.TransferIssuesForPreviewRecord(issues, *record))
 		}
 	}
 	return records, issues, nil
-}
-
-func transferRecordHasIssue(
-	issues []DataTransferIssue,
-	record DataTransferPreviewRecord,
-	code string,
-) bool {
-	for _, issue := range issues {
-		if issue.Area == record.Area && issue.RecordKey == record.RecordKey && issue.Code == code &&
-			transferPreviewRowsEqual(issue.RowNumber, record.RowNumber) {
-			return true
-		}
-	}
-	return false
-}
-
-func transferIssuesForPreviewRecord(
-	issues []DataTransferIssue,
-	record DataTransferPreviewRecord,
-) []DataTransferIssue {
-	matched := make([]DataTransferIssue, 0)
-	for _, issue := range issues {
-		if issue.Area == record.Area && issue.RecordKey == record.RecordKey &&
-			transferPreviewRowsEqual(issue.RowNumber, record.RowNumber) {
-			matched = append(matched, issue)
-		}
-	}
-	return matched
-}
-
-func transferPreviewRowsEqual(left, right *int) bool {
-	if left == nil || right == nil {
-		return left == nil && right == nil
-	}
-	return *left == *right
 }
 
 func (s *DataTransferService) ResolveIssue(
@@ -325,7 +280,7 @@ func (s *DataTransferService) ResolveIssue(
 	if err != nil {
 		return DataTransferJob{}, err
 	}
-	if !dataTransferAreasAllowed(job.Areas, allowedAreas) {
+	if !transferpolicy.DataTransferAreasAllowed(job.Areas, allowedAreas) {
 		return DataTransferJob{}, ErrDataTransferForbidden
 	}
 	if job.State != TransferJobReviewRequired && job.State != TransferJobReady {
@@ -341,7 +296,7 @@ func (s *DataTransferService) ResolveIssue(
 		if issues[index].ID != issueID {
 			continue
 		}
-		if !validDataTransferResolution(issues[index], resolution) {
+		if !transferpolicy.ValidDataTransferResolution(issues[index], resolution) {
 			return DataTransferJob{}, fmt.Errorf("%w: invalid issue resolution", ErrDataTransferValidation)
 		}
 		issues[index].SelectedResolution = resolution
@@ -385,7 +340,7 @@ func (s *DataTransferService) CancelJob(
 	if err != nil {
 		return DataTransferJob{}, err
 	}
-	if !dataTransferAreasAllowed(job.Areas, allowedAreas) {
+	if !transferpolicy.DataTransferAreasAllowed(job.Areas, allowedAreas) {
 		return DataTransferJob{}, ErrDataTransferForbidden
 	}
 	if job.State != TransferJobDraft && job.State != TransferJobReviewRequired && job.State != TransferJobReady {
@@ -437,7 +392,7 @@ func (s *DataTransferService) ConfirmImportWithPolicy(
 	if job.Direction != TransferImport {
 		return DataTransferJob{}, fmt.Errorf("%w: job is not an import", ErrDataTransferValidation)
 	}
-	if !dataTransferAreasAllowed(job.Areas, allowedAreas) {
+	if !transferpolicy.DataTransferAreasAllowed(job.Areas, allowedAreas) {
 		return DataTransferJob{}, ErrDataTransferForbidden
 	}
 	if job.Revision != expectedRevision {
@@ -603,189 +558,4 @@ func normalizeTransferMIME(value string) string {
 		value = strings.TrimSpace(value[:separator])
 	}
 	return value
-}
-
-func parseDataTransferUpload(
-	job DataTransferJob,
-	reader io.Reader,
-	mapping *DataTransferCSVMappingInput,
-) (DataTransferSnapshot, int, map[TransferArea][]int, []DataTransferCSVColumnMapping, error) {
-	switch job.Format {
-	case TransferJSON:
-		packageDocument, err := decodeDataTransferPackage(reader)
-		if err != nil {
-			return DataTransferSnapshot{}, 0, nil, nil, err
-		}
-		if err := validateDataTransferPackageSelection(packageDocument.Areas, job.Areas); err != nil {
-			return DataTransferSnapshot{}, 0, nil, nil, err
-		}
-		return DataTransferSnapshot{
-			Vehicles: packageDocument.Areas.Vehicles, VehicleSets: packageDocument.Areas.VehicleSets,
-			Accessories:     packageDocument.Areas.Accessories,
-			ExhibitionLists: packageDocument.Areas.ExhibitionLists,
-		}, packageDocument.Version, nil, nil, nil
-	case TransferCSV:
-		if len(job.Areas) != 1 {
-			return DataTransferSnapshot{}, 0, nil, nil, ErrDataTransferValidation
-		}
-		snapshot, rows, effectiveMapping, err := parseDataTransferCSVWithMapping(
-			job.Areas[0], reader, mapping, dataTransferCSVMappingDefaults(job.Options),
-		)
-		return snapshot, DataTransferPackageVersion, map[TransferArea][]int{job.Areas[0]: rows}, effectiveMapping, err
-	default:
-		return DataTransferSnapshot{}, 0, nil, nil, ErrDataTransferValidation
-	}
-}
-
-func decodeDataTransferPackage(reader io.Reader) (DataTransferPackage, error) {
-	envelope := struct {
-		Format    string          `json:"format"`
-		Version   int             `json:"version"`
-		CreatedAt string          `json:"createdAt"`
-		Areas     json.RawMessage `json:"areas"`
-	}{}
-	if err := decodeStrictTransferJSON(reader, &envelope); err != nil {
-		return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
-	}
-	if envelope.Format != DataTransferPackageFormat ||
-		(envelope.Version != DataTransferPackageLegacyVersion &&
-			envelope.Version != DataTransferPackagePreviousVersion &&
-			envelope.Version != DataTransferPackageVersion) {
-		return DataTransferPackage{}, fmt.Errorf("%w: unsupported transfer package format or version", ErrDataTransferValidation)
-	}
-	document := DataTransferPackage{
-		Format: envelope.Format, Version: envelope.Version, CreatedAt: envelope.CreatedAt,
-	}
-	if envelope.Version == DataTransferPackageVersion {
-		if err := decodeStrictTransferJSON(bytes.NewReader(envelope.Areas), &document.Areas); err != nil {
-			return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
-		}
-		return document, nil
-	}
-	if envelope.Version == DataTransferPackagePreviousVersion {
-		previousAreas := dataTransferPackageAreasV2{}
-		if err := decodeStrictTransferJSON(bytes.NewReader(envelope.Areas), &previousAreas); err != nil {
-			return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
-		}
-		document.Areas = DataTransferPackageAreas{
-			Vehicles: previousAreas.Vehicles, Accessories: previousAreas.Accessories,
-			ExhibitionLists: previousAreas.ExhibitionLists,
-		}
-		return document, nil
-	}
-	legacyAreas := dataTransferPackageAreasV1{}
-	if err := decodeStrictTransferJSON(bytes.NewReader(envelope.Areas), &legacyAreas); err != nil {
-		return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
-	}
-	document.Areas = DataTransferPackageAreas{
-		Accessories: legacyAreas.Accessories, ExhibitionLists: legacyAreas.ExhibitionLists,
-	}
-	if legacyAreas.Vehicles != nil {
-		document.Areas.Vehicles = make([]TransferVehicle, len(legacyAreas.Vehicles))
-		for index, vehicle := range legacyAreas.Vehicles {
-			document.Areas.Vehicles[index] = transferVehicleFromV1(vehicle)
-		}
-	}
-	return document, nil
-}
-
-func decodeStrictTransferJSON(reader io.Reader, target any) error {
-	decoder := json.NewDecoder(reader)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(target); err != nil {
-		return err
-	}
-	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return errors.New("trailing JSON data")
-	}
-	return nil
-}
-
-func validateDataTransferPackageSelection(areas DataTransferPackageAreas, selected []TransferArea) error {
-	if areas.VehicleSets != nil && (areas.Vehicles == nil || !slices.Contains(selected, TransferVehicles)) {
-		return fmt.Errorf("%w: vehicle sets require the vehicles area", ErrDataTransferValidation)
-	}
-	present := []TransferArea{}
-	if areas.Vehicles != nil {
-		present = append(present, TransferVehicles)
-	}
-	if areas.Accessories != nil {
-		present = append(present, TransferAccessories)
-	}
-	if areas.ExhibitionLists != nil {
-		present = append(present, TransferExhibitionLists)
-	}
-	if len(present) == 0 || len(present) != len(selected) {
-		return fmt.Errorf("%w: package areas do not match the import profile", ErrDataTransferValidation)
-	}
-	for _, area := range selected {
-		if !slices.Contains(present, area) {
-			return fmt.Errorf("%w: package areas do not match the import profile", ErrDataTransferValidation)
-		}
-	}
-	return nil
-}
-
-func dataTransferPreviewMap(
-	sourceSHA256 string,
-	records []DataTransferPreviewRecord,
-	vehicleSets []DataTransferVehicleSetPreview,
-	csvMapping []DataTransferCSVColumnMapping,
-	vehicleFields []VehicleTransferField,
-) (map[string]any, error) {
-	payload, err := json.Marshal(struct {
-		SourceSHA256       string                          `json:"sourceSha256"`
-		FingerprintVersion int                             `json:"fingerprintVersion"`
-		Records            []DataTransferPreviewRecord     `json:"records"`
-		VehicleSets        []DataTransferVehicleSetPreview `json:"vehicleSets,omitempty"`
-		CSVMapping         []DataTransferCSVColumnMapping  `json:"csvMapping,omitempty"`
-		VehicleFields      []VehicleTransferField          `json:"vehicleFields,omitempty"`
-	}{SourceSHA256: sourceSHA256, FingerprintVersion: DataTransferTargetFingerprintVersion,
-		Records: records, VehicleSets: vehicleSets, CSVMapping: csvMapping, VehicleFields: vehicleFields})
-	if err != nil {
-		return nil, fmt.Errorf("encode transfer preview: %w", err)
-	}
-	preview := map[string]any{}
-	if err := json.Unmarshal(payload, &preview); err != nil {
-		return nil, fmt.Errorf("persist transfer preview: %w", err)
-	}
-	return preview, nil
-}
-
-func newDataTransferPreview(
-	job DataTransferJob,
-	records []DataTransferPreviewRecord,
-	issues []DataTransferIssue,
-	vehicleSets []DataTransferVehicleSetPreview,
-	csvMapping []DataTransferCSVColumnMapping,
-	vehicleFields []VehicleTransferField,
-) DataTransferPreview {
-	return DataTransferPreview{
-		Job: job, Records: records, Issues: issues, TotalRecords: job.TotalRecords,
-		ReadyRecords: job.ReadyRecords, WarningRecords: job.WarningRecords, ErrorRecords: job.ErrorRecords,
-		CSVMapping: csvMapping, VehicleFields: vehicleFields, VehicleSets: vehicleSets,
-	}
-}
-
-func validDataTransferResolution(issue DataTransferIssue, resolution string) bool {
-	allowed := map[string]map[string]bool{
-		"missing_inventory_number":               {"skip": true},
-		"missing_manufacturer":                   {"skip": true},
-		"missing_name":                           {"skip": true},
-		"missing_gauge":                          {"skip": true},
-		"missing_category":                       {"skip": true},
-		"missing_gattung":                        {"skip": true},
-		"invalid_vehicle":                        {"skip": true},
-		"invalid_accessory":                      {"skip": true},
-		"duplicate_inventory_number":             {"replace": true, "copy": true, "skip": true},
-		"matching_manufacturer_article_number":   {"use_existing": true, "create": true, "skip": true},
-		"duplicate_exhibition_list":              {"replace": true, "merge": true, "copy": true, "skip": true},
-		"locked_exhibition_list":                 {"copy": true, "skip": true},
-		"exhibition_vehicle_reference":           {"link": true, "skip": true},
-		"missing_vehicle_reference":              {"skip": true},
-		"duplicate_input_inventory_number":       {"skip": true},
-		"duplicate_vehicle_set_inventory_number": {"replace": true, "copy": true, "skip": true},
-		"vehicle_set_member_external_conflict":   {"copy": true, "skip": true},
-	}
-	return resolution != "" && allowed[issue.Code][resolution]
 }

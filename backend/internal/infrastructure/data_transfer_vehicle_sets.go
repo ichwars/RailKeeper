@@ -5,19 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"slices"
 	"strings"
 
-	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/domain"
 	"railkeeper/backend/internal/infrastructure/vehicledata"
 	"railkeeper/backend/internal/transfer"
+	transferpolicy "railkeeper/backend/internal/transfer/policy"
 )
-
-type transferVehicleSetApplyPolicy struct {
-	Action           string
-	TargetSetID      string
-	MemberRecordKeys map[string]bool
-}
 
 func transferVehicleSetSnapshot(ctx context.Context, tx *sql.Tx) ([]transfer.TransferVehicleSet, error) {
 	rows, err := tx.QueryContext(ctx, `
@@ -95,7 +89,7 @@ func revalidateTransferVehicleSetPreview(
 	if len(previews) == 0 {
 		return nil
 	}
-	_, memberPolicies, err := transferVehicleSetApplyPolicies(previews, issues)
+	_, memberPolicies, err := transferpolicy.TransferVehicleSetApplyPolicies(previews, issues)
 	if err != nil {
 		return err
 	}
@@ -122,7 +116,7 @@ func revalidateTransferVehicleSetPreview(
 	seenMembers := map[string]bool{}
 	for _, preview := range previews {
 		if preview.Classification == "error" || len(preview.Diagnostics) != 0 ||
-			application.ValidateTransferVehicleSet(preview.Data) != nil {
+			transferpolicy.ValidateTransferVehicleSet(preview.Data) != nil {
 			return dataTransferApplyConflict("persisted vehicle set preview is invalid")
 		}
 		if len(preview.MemberRecordKeys) != len(preview.Data.Members) {
@@ -161,62 +155,8 @@ func revalidateTransferVehicleSetPreview(
 	return nil
 }
 
-func transferVehicleSetApplyPolicies(
-	previews []transfer.DataTransferVehicleSetPreview,
-	issues []transfer.DataTransferIssue,
-) (map[string]transferVehicleSetApplyPolicy, map[string]transferVehicleSetApplyPolicy, error) {
-	setPolicies := make(map[string]transferVehicleSetApplyPolicy, len(previews))
-	memberPolicies := map[string]transferVehicleSetApplyPolicy{}
-	for _, preview := range previews {
-		if preview.RecordKey == "" {
-			return nil, nil, dataTransferApplyConflict("vehicle set record key is missing")
-		}
-		if _, duplicate := setPolicies[preview.RecordKey]; duplicate {
-			return nil, nil, dataTransferApplyConflict("duplicate vehicle set record key")
-		}
-		action := preview.ProposedAction
-		resolved := false
-		for _, issue := range issues {
-			if issue.Area != transfer.TransferVehicles || issue.RecordKey != preview.RecordKey {
-				continue
-			}
-			switch issue.Code {
-			case "duplicate_vehicle_set_inventory_number", "vehicle_set_member_external_conflict":
-				action = issue.SelectedResolution
-				resolved = true
-			}
-		}
-		if preview.Classification == "warning" && !resolved {
-			return nil, nil, dataTransferApplyConflict("vehicle set conflict has no resolution")
-		}
-		if !slices.Contains([]string{"create", "replace", "copy", "skip"}, action) {
-			return nil, nil, dataTransferApplyConflict("unsupported vehicle set resolution")
-		}
-		if action == "replace" && preview.TargetID == "" {
-			return nil, nil, dataTransferApplyConflict("vehicle set replacement target is missing")
-		}
-		policy := transferVehicleSetApplyPolicy{
-			Action: action, TargetSetID: preview.TargetID, MemberRecordKeys: map[string]bool{},
-		}
-		for _, recordKey := range preview.MemberRecordKeys {
-			if recordKey == "" || memberPolicies[recordKey].Action != "" {
-				return nil, nil, dataTransferApplyConflict("vehicle belongs to more than one imported set")
-			}
-			policy.MemberRecordKeys[recordKey] = true
-		}
-		if len(policy.MemberRecordKeys) == 0 {
-			return nil, nil, dataTransferApplyConflict("vehicle set has no member records")
-		}
-		setPolicies[preview.RecordKey] = policy
-		for recordKey := range policy.MemberRecordKeys {
-			memberPolicies[recordKey] = policy
-		}
-	}
-	return setPolicies, memberPolicies, nil
-}
-
 func validateTransferVehicleSetTargetMembers(
-	policy transferVehicleSetApplyPolicy,
+	policy transferpolicy.TransferVehicleSetApplyPolicy,
 	preview transfer.DataTransferVehicleSetPreview,
 	records map[string]transfer.DataTransferPreviewRecord,
 	setsByID map[string]transfer.TransferVehicleSet,
@@ -258,7 +198,7 @@ func applyTransferVehicleSets(
 	vehicles map[string]transferVehicleApplyResult,
 	actor string,
 ) error {
-	policies, _, err := transferVehicleSetApplyPolicies(previews, issues)
+	policies, _, err := transferpolicy.TransferVehicleSetApplyPolicies(previews, issues)
 	if err != nil {
 		return err
 	}
@@ -277,7 +217,7 @@ func applyTransferVehicleSets(
 		if policy.Action == "skip" {
 			continue
 		}
-		if application.ValidateTransferVehicleSet(preview.Data) != nil ||
+		if transferpolicy.ValidateTransferVehicleSet(preview.Data) != nil ||
 			len(preview.MemberRecordKeys) != len(preview.Data.Members) {
 			return dataTransferApplyConflict("vehicle set preview changed before apply")
 		}
@@ -316,7 +256,7 @@ func applyTransferVehicleSets(
 				if !found {
 					return dataTransferApplyConflict("vehicle set replacement target is missing")
 				}
-				setData = application.PreserveUnmappedTransferVehicleSetFields(setData, existing, csvMapping)
+				setData = transferpolicy.PreserveUnmappedTransferVehicleSetFields(setData, existing, csvMapping)
 				if !transferCSVFieldMapped(csvMapping, "vehicleSetMemberLabel") {
 					existingLabels := make(map[string]string, len(existing.Members))
 					for _, member := range existing.Members {
@@ -375,7 +315,7 @@ func insertTransferVehicleSet(
 	tx *sql.Tx,
 	id string,
 	inventoryNumber string,
-	input application.VehicleSetInput,
+	input domain.VehicleSetInput,
 	now string,
 ) error {
 	arguments := transferVehicleSetArguments(inventoryNumber, input)
@@ -398,7 +338,7 @@ func updateTransferVehicleSet(
 	tx *sql.Tx,
 	id string,
 	inventoryNumber string,
-	input application.VehicleSetInput,
+	input domain.VehicleSetInput,
 	now string,
 ) error {
 	arguments := transferVehicleSetArguments(inventoryNumber, input)
@@ -415,7 +355,7 @@ WHERE id=?`, append(append(arguments, now), id)...)
 	return requireApplyUpdate(result, "replace vehicle set")
 }
 
-func transferVehicleSetArguments(inventoryNumber string, input application.VehicleSetInput) []any {
+func transferVehicleSetArguments(inventoryNumber string, input domain.VehicleSetInput) []any {
 	return []any{
 		inventoryNumber, input.Name, input.Manufacturer, input.ArticleNumber, input.ArticleSourceURL, input.Gauge,
 		input.Epoch, input.RailwayCompany, input.Category, input.Gattung, input.Description, input.EAN,

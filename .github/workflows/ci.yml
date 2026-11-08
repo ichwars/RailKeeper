@@ -96,13 +96,13 @@ jobs:
       matrix:
         include:
           - scope: rules-storage
-            packages: ./internal/authentication/... ./internal/credentials ./internal/decoder ./internal/ecosmodel ./internal/backup ./internal/valuation ./internal/infrastructure/authdata ./internal/infrastructure/backupdata ./internal/infrastructure/valuationdata
+            packages: ./internal/transfer/... ./internal/authentication/... ./internal/credentials ./internal/decoder ./internal/ecosmodel ./internal/backup ./internal/valuation ./internal/infrastructure/authdata ./internal/infrastructure/backupdata ./internal/infrastructure/valuationdata
             tests: .
           - scope: authentication
             packages: ./internal/application ./internal/api
             tests: ^Test.*(Auth|Login|TOTP|TwoFactor|RateLimit|Password|Setup)
           - scope: transfer-ecos
-            packages: ./internal/application
+            packages: ./internal/application ./internal/infrastructure
             tests: ^Test.*(DataTransfer|ECoS)
           - scope: backup
             packages: ./internal/application

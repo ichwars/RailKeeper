@@ -8,6 +8,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	transferpolicy "railkeeper/backend/internal/transfer/policy"
 )
 
 func TestPreviewImportPersistsValidationIssues(t *testing.T) {
@@ -115,11 +117,11 @@ func TestDataTransferVehicleCSVFullFieldRoundTrip(t *testing.T) {
 		SoundGeneratorEnabled: true, SoundGeneratorDescription: "Diesel", SmokeGeneratorEnabled: true,
 		SmokeGeneratorDescription: "Dynamisch", AdditionalInfo: "-Clubbestand", QRCodeEnabled: true,
 	}
-	payload, err := marshalDataTransferCSV(TransferVehicles, DataTransferSnapshot{Vehicles: []TransferVehicle{want}})
+	payload, err := transferpolicy.MarshalDataTransferCSV(TransferVehicles, DataTransferSnapshot{Vehicles: []TransferVehicle{want}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	gotSnapshot, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(string(payload)))
+	gotSnapshot, _, err := transferpolicy.ParseDataTransferCSV(TransferVehicles, strings.NewReader(string(payload)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +156,7 @@ func TestDataTransferVehicleSetCSVRoundTripIgnoresRowOrder(t *testing.T) {
 			},
 		}},
 	}
-	payload, err := marshalDataTransferCSV(TransferVehicles, snapshot)
+	payload, err := transferpolicy.MarshalDataTransferCSV(TransferVehicles, snapshot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +176,7 @@ func TestDataTransferVehicleSetCSVRoundTripIgnoresRowOrder(t *testing.T) {
 	if err := writer.WriteAll(rows); err != nil {
 		t.Fatal(err)
 	}
-	got, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(reordered.String()))
+	got, _, err := transferpolicy.ParseDataTransferCSV(TransferVehicles, strings.NewReader(reordered.String()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +197,7 @@ func TestDataTransferVehicleCSVWithoutSetColumnsCreatesNoSet(t *testing.T) {
 		"Inventarnummer;Hersteller;Bezeichnung;Spurweite;Kategorie;Gattung",
 		"RK-SOLO;Roco;BR 218;H0;Lokomotive;Diesellokomotive",
 	}, "\n")
-	snapshot, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(payload))
+	snapshot, _, err := transferpolicy.ParseDataTransferCSV(TransferVehicles, strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +213,7 @@ func TestDataTransferVehicleSetCSVPreservesInvalidIntegersForReview(t *testing.T
 			"Set-Position;Set-Mitgliederzahl",
 		"RK-A;Roco;Wagen A;H0;Wagen;Reisezugwagen;Set-001;Rheingold;Roco;H0;Set;Reisezug;x;zwei",
 	}, "\n")
-	snapshot, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(payload))
+	snapshot, _, err := transferpolicy.ParseDataTransferCSV(TransferVehicles, strings.NewReader(payload))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -227,8 +229,8 @@ func TestDataTransferVehicleSetCSVPreservesInvalidIntegersForReview(t *testing.T
 func TestDataTransferCSVProtectionRoundTrip(t *testing.T) {
 	for _, value := range []string{"=x", "  =x", "'=x", "''=x", "+x", "-x", "@x"} {
 		t.Run(value, func(t *testing.T) {
-			encoded := safeDataTransferCSVRow([]string{value})[0]
-			decoded := decodeSafeDataTransferCSVValue(strings.TrimSpace(encoded))
+			encoded := transferpolicy.SafeDataTransferCSVRow([]string{value})[0]
+			decoded := transferpolicy.DecodeSafeDataTransferCSVValue(strings.TrimSpace(encoded))
 			if decoded != value {
 				t.Fatalf("CSV protection round trip = %q, want %q (encoded %q)", decoded, value, encoded)
 			}
@@ -242,7 +244,7 @@ func TestDataTransferVehicleCSVRejectsUnknownBooleanValue(t *testing.T) {
 		"RK-BOOL;Roco;BR 218;H0;Lokomotive;Diesellokomotive;treu",
 	}, "\n")
 
-	_, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(payload))
+	_, _, err := transferpolicy.ParseDataTransferCSV(TransferVehicles, strings.NewReader(payload))
 	if !errors.Is(err, ErrDataTransferValidation) {
 		t.Fatalf("unknown boolean error = %v, want validation error", err)
 	}
@@ -303,7 +305,7 @@ func TestTransferImportRejectsUnknownMasterDataAndUnsupportedVersion(t *testing.
 }
 
 func TestTransferImportAcceptsLegacyPackageVersionOne(t *testing.T) {
-	document, err := decodeDataTransferPackage(strings.NewReader(
+	document, err := transferpolicy.DecodeDataTransferPackage(strings.NewReader(
 		`{"format":"railkeeper-transfer","version":1,"createdAt":"2026-01-01T00:00:00Z",` +
 			`"areas":{"vehicles":[]}}`,
 	))
@@ -316,7 +318,7 @@ func TestTransferImportAcceptsLegacyPackageVersionOne(t *testing.T) {
 }
 
 func TestTransferImportAcceptsPreviousPackageVersionTwo(t *testing.T) {
-	document, err := decodeDataTransferPackage(strings.NewReader(
+	document, err := transferpolicy.DecodeDataTransferPackage(strings.NewReader(
 		`{"format":"railkeeper-transfer","version":2,"createdAt":"2026-01-01T00:00:00Z",` +
 			`"areas":{"vehicles":[{"inventoryNumber":"RK-2","manufacturer":"Roco",` +
 			`"name":"BR 218","gauge":"H0","category":"Lokomotive","gattung":"Diesellokomotive",` +
@@ -335,7 +337,7 @@ func TestTransferImportAcceptsPreviousPackageVersionTwo(t *testing.T) {
 }
 
 func TestTransferImportRejectsVersionTwoVehicleFieldsInLegacyPackage(t *testing.T) {
-	_, err := decodeDataTransferPackage(strings.NewReader(
+	_, err := transferpolicy.DecodeDataTransferPackage(strings.NewReader(
 		`{"format":"railkeeper-transfer","version":1,"areas":{"vehicles":[{` +
 			`"inventoryNumber":"RK-LEGACY","manufacturer":"Roco","name":"BR 218","gauge":"H0",` +
 			`"lengthMm":"181"}]}}`,
@@ -684,7 +686,7 @@ func (repository *dataTransferImportRepositoryStub) CompareAndUpdateImportJob(
 		if !found || profile.UpdatedAt != mutation.ProfileOptions.ExpectedUpdatedAt {
 			return DataTransferJob{}, ErrDataTransferConflict
 		}
-		profile.Options = cloneTransferOptions(mutation.ProfileOptions.Options)
+		profile.Options = transferpolicy.CloneTransferOptions(mutation.ProfileOptions.Options)
 		repository.profiles[profile.ID] = profile
 	}
 	mutation.Job.Revision = current.Revision + 1

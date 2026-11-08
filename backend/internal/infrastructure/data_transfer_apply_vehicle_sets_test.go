@@ -7,7 +7,9 @@ import (
 	"testing"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/domain"
 	"railkeeper/backend/internal/infrastructure"
+	"railkeeper/backend/internal/transfer"
 )
 
 func TestDataTransferApplyCreatesVehicleSetAtomically(t *testing.T) {
@@ -45,7 +47,7 @@ func TestDataTransferApplyRollsBackIncompleteVehicleSet(t *testing.T) {
 	job := createApplyJobWithVehicleSets(t, repository, "sha-set-rollback", records, []application.DataTransferVehicleSetPreview{setPreview})
 
 	err := repository.ApplyImport(t.Context(), job, "editor-1")
-	if !errors.Is(err, application.ErrDataTransferConflict) {
+	if !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("ApplyImport() error = %v, want conflict", err)
 	}
 	for _, table := range []string{"vehicles", "vehicle_sets", "vehicle_set_members"} {
@@ -332,7 +334,7 @@ func TestDataTransferApplyRejectsUnsafeExternalVehicleSetConflict(t *testing.T) 
 	resolveApplyVehicleSetIssue(t, repository, job.ID, setPreview, "vehicle_set_member_external_conflict", "replace")
 
 	err := repository.ApplyImport(t.Context(), job, "editor-1")
-	if !errors.Is(err, application.ErrDataTransferConflict) {
+	if !errors.Is(err, transfer.ErrDataTransferConflict) {
 		t.Fatalf("ApplyImport() error = %v, want conflict", err)
 	}
 	var sets, vehicles int
@@ -361,7 +363,7 @@ func applyVehicleSetPreview(
 	}
 	set := application.TransferVehicleSet{
 		ID: "source-set", InventoryNumber: setInventoryNumber,
-		VehicleSetInput: application.VehicleSetInput{
+		VehicleSetInput: domain.VehicleSetInput{
 			Name: "Rheingold", Manufacturer: "Roco", Gauge: "H0", Category: "Set", Gattung: "Reisezug",
 		},
 		Members: []application.TransferVehicleSetMember{

@@ -156,3 +156,17 @@ expiry and one-use state after beginning the transaction. Password changes compa
 the originally verified hash before writing. Rejected missing-user/last-admin paths
 release their transaction. Fault injection and concurrent reset tests cover these
 additional atomicity guarantees separately from the structural move.
+
+## Transfer rules and import writers (R4, first part)
+
+`transfer/policy` owns concrete parsing, field mapping/preservation, preview classification,
+set grouping, conflict resolutions and output encoding. Ordinary writes and transfer reuse
+the same set normalization/required-field rules; vehicle/accessory aggregate validation
+remains an explicit port to the existing shared validators until R5a. Missing validators
+fail closed. Helpers remain private unless needed by another layer or contract test.
+
+Vehicle, accessory and exhibition import writers are separate adapters. Set membership,
+preview/fingerprint checks, job completion and audit retain the caller's single transaction.
+An architecture guard rejects nested transaction owners. Every original SQL literal remains
+unchanged. Workflow and file-port extraction follows as the second R4 part; this first part
+alone does not claim that application file/orchestration boundaries are complete.

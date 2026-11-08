@@ -16,7 +16,7 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 		"authentication":               {"credentials", "authentication"},
 		"credentials":                  {},
 		"valuation":                    {},
-		"transfer":                     {"domain"},
+		"transfer":                     {"domain", "transfer", "credentials"},
 		"decoder":                      {"revision"},
 		"revision":                     {},
 		"buildinfo":                    {},

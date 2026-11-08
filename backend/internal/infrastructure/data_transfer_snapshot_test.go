@@ -8,6 +8,7 @@ import (
 
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/infrastructure"
+	"railkeeper/backend/internal/transfer"
 )
 
 func TestDataTransferConcurrentExportClaimsJobOnce(t *testing.T) {
@@ -53,7 +54,7 @@ func TestDataTransferConcurrentExportClaimsJobOnce(t *testing.T) {
 		switch {
 		case execution.err == nil:
 			successes++
-		case errors.Is(execution.err, application.ErrDataTransferConflict):
+		case errors.Is(execution.err, transfer.ErrDataTransferConflict):
 			conflicts++
 		default:
 			t.Fatalf("concurrent export returned unexpected error: %v", execution.err)
