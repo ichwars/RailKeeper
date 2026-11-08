@@ -6,6 +6,11 @@ import (
 	"fmt"
 )
 
+type bundledMasterDataIdentity struct {
+	typeName string
+	key      string
+}
+
 type bundledFunctionSymbol struct {
 	id           string
 	typeName     string
@@ -47,16 +52,16 @@ func backupProfileRowForRestore(
 func readBundledMasterDataIdentities(
 	ctx context.Context,
 	tx *sql.Tx,
-) ([]masterDataIdentity, error) {
+) ([]bundledMasterDataIdentity, error) {
 	rows, err := tx.QueryContext(ctx, `
 SELECT type, key FROM master_data_entries WHERE origin='bundled' ORDER BY type, key`)
 	if err != nil {
 		return nil, fmt.Errorf("read bundled master data identities: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	identities := []masterDataIdentity{}
+	identities := []bundledMasterDataIdentity{}
 	for rows.Next() {
-		var identity masterDataIdentity
+		var identity bundledMasterDataIdentity
 		if err := rows.Scan(&identity.typeName, &identity.key); err != nil {
 			return nil, fmt.Errorf("scan bundled master data identity: %w", err)
 		}
@@ -151,7 +156,7 @@ ON CONFLICT(type, key) DO UPDATE SET
 func reconcileBundledMasterDataIdentities(
 	ctx context.Context,
 	tx *sql.Tx,
-	identities []masterDataIdentity,
+	identities []bundledMasterDataIdentity,
 ) error {
 	for _, identity := range identities {
 		if _, err := tx.ExecContext(ctx, `

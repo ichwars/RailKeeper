@@ -135,40 +135,6 @@
     "stage": "R5b"
   },
   {
-    "file": "master_data.go",
-    "calls": 2,
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
-    "file": "master_data_custom_fields.go",
-    "calls": 4,
-    "transactions": [
-      "updateAccessoryCustomField"
-    ],
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
-    "file": "master_data_import_reconcile.go",
-    "calls": 7,
-    "transactions": [
-      "importReconciledMasterData"
-    ],
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
-    "file": "master_data_lifecycle.go",
-    "calls": 8,
-    "transactions": [
-      "SetActiveMany",
-      "Delete"
-    ],
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
     "file": "settings.go",
     "calls": 6,
     "transactions": [

@@ -212,3 +212,19 @@ A deterministic ownership test exposed shared nested metadata in cached response
 Cache copies now own mutable maps/arrays independently, including both active and
 complete views. Recorded number types, profile strings and missing/empty values are
 preserved. Structural extraction and this behavior correction are separate commits.
+
+## Master-data use cases and transactions (R5a, write slice)
+
+The independent master-data core owns actual create/update/import, management,
+cache and lifecycle decisions through semantic mutation ports. Focused SQL adapters
+own custom-field, batch, deletion and reconciliation transactions, with usage/reference
+callbacks bound to the same reserved write transaction. Existing SQL literals remain
+identical. Cache invalidation precedes readback after a successful write; failed writes
+retain the previous cache.
+
+The four completed master-data files leave the shrinking SQL inventory: 48 files and
+217 concrete calls remain, including separately assigned legacy decoder/symbol seeds.
+Application composition retains a local service receiver for those existing methods.
+Architecture tests guard the four transaction owners. Additional SQL-trigger failures
+verify rollback of earlier batch rows, cleared/imported records and removed relations,
+including identities, raw metadata and timestamps.
