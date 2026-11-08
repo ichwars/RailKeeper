@@ -2,71 +2,13 @@ package application
 
 import (
 	"context"
-	"database/sql"
-	"errors"
-	"fmt"
-	"strings"
-	"time"
 
 	"railkeeper/backend/internal/infrastructure/vehicledata"
+	vehiclemodel "railkeeper/backend/internal/inventory/vehicle"
 )
 
-func (s *VehicleService) Delete(ctx context.Context, id, actorUserID string) error {
-	id = strings.TrimSpace(id)
-	if id == "" {
-		return ErrVehicleNotFound
-	}
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin delete vehicle: %w", err)
-	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
-	var vehicleSetID sql.NullString
-	if err = tx.QueryRowContext(ctx, `
-SELECT vehicle_set_id FROM vehicle_set_members WHERE vehicle_id=?
-`, id).Scan(&vehicleSetID); err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("read vehicle set membership: %w", err)
-	}
-
-	result, err := tx.ExecContext(ctx, `DELETE FROM vehicles WHERE id=?`, id)
-	if err != nil {
-		return fmt.Errorf("delete vehicle: %w", err)
-	}
-
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("read delete result: %w", err)
-	}
-	if affected == 0 {
-		_ = tx.Rollback()
-		return ErrVehicleNotFound
-	}
-	if vehicleSetID.Valid {
-		if _, err = tx.ExecContext(ctx, `
-DELETE FROM vehicle_sets
-WHERE id=? AND NOT EXISTS (SELECT 1 FROM vehicle_set_members WHERE vehicle_set_id=?)
-`, vehicleSetID.String, vehicleSetID.String); err != nil {
-			return fmt.Errorf("delete empty vehicle set: %w", err)
-		}
-	}
-
-	if _, err = tx.ExecContext(ctx, `
-INSERT INTO audit_logs(id, actor_user_id, action, target_type, target_id, created_at, details_json)
-VALUES(?, ?, 'VehicleDeleted', 'vehicle', ?, ?, '{}')
-`, randomID(), actorUserID, id, time.Now().UTC().Format(time.RFC3339)); err != nil {
-		return fmt.Errorf("write vehicle audit log: %w", err)
-	}
-
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("commit delete vehicle: %w", err)
-	}
-
-	return nil
+func (s *VehicleService) Delete(ctx context.Context, id, actor string) error {
+	return vehiclemodel.Delete(ctx, vehicledata.NewDeleteStore(s.db), id, actor)
 }
 
 func readVehicleCore(ctx context.Context, query queryRower, id string) (*Vehicle, error) {
