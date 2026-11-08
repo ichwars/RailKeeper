@@ -35,7 +35,7 @@ Already recorded CV states retain their historical description.
 
 Choose **Record removal** on the installation, supply a known removal date or
 leave it unknown, and confirm. An additional note is appended to the installation's
-existing notes. CV CV groups, sources and recorded states remain available.
+existing notes. CV groups, sources and recorded states remain available.
 
 **Correct dates** changes known dates, including explicitly clearing an incorrect
 date to unknown. It preserves the installed, removed or unresolved state. Invalid
