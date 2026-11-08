@@ -6,8 +6,8 @@ responsibility.
 ## Boundaries
 
 - `api`: HTTP transport, request validation, response mapping
-- `application`: use cases, transactions, authorization decisions
-- `authentication`: independent login decisions behind narrow persistence/password ports
+- `application`: compatibility composition and remaining legacy use cases/transactions
+- `authentication`: independent login and account/session/reset/2FA decisions behind typed ports
 - `valuation`: exact manual valuation rules behind a transactional storage port
 - `transfer`: shared exchange contracts, compatibility encoding and preview identities
 - `ecosmodel`: pure ECoS read projections, comparison plans and copied telemetry records

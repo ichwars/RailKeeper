@@ -67,7 +67,7 @@ func (s *Service) ResetPassword(ctx context.Context, input PasswordResetConfirmI
 	if err != nil {
 		return fmt.Errorf("hash password reset password: %w", err)
 	}
-	return s.store.CommitPasswordReset(ctx, ResetCommit{RequestID: proof.ID, UserID: proof.UserID, NextHash: hash})
+	return s.store.CommitPasswordReset(ctx, ResetCommit{RequestID: proof.ID, UserID: proof.UserID, TokenHash: credentials.HashToken(token), NextHash: hash})
 }
 func ValidResetProof(proof ResetProof, now time.Time) bool {
 	if proof.UserID == "" || proof.UsedAt != "" || proof.HandledAt != "" || proof.ExpiresAt == "" {

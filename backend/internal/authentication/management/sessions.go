@@ -3,6 +3,7 @@ package management
 import (
 	"context"
 	"crypto/subtle"
+	"errors"
 
 	"railkeeper/backend/internal/authentication"
 	"railkeeper/backend/internal/credentials"
@@ -31,7 +32,10 @@ func (s *Service) CurrentSession(ctx context.Context, token string) (*SessionVie
 func (s *Service) Logout(ctx context.Context, token string) error {
 	id, _, err := s.sessionUser(ctx, token)
 	if err != nil {
-		return nil //nolint:nilerr // Logout remains idempotent for invalid sessions.
+		if errors.Is(err, ErrUnauthorized) {
+			return nil
+		}
+		return err
 	}
 	return s.store.RevokeOwnSession(ctx, id, credentials.HashToken(token))
 }

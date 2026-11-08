@@ -18,11 +18,7 @@ func (s *Store) CreateUser(ctx context.Context, actorUserID string, input manage
 	if err != nil {
 		return nil, fmt.Errorf("begin user create: %w", err)
 	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
+	defer func() { _ = tx.Rollback() }()
 
 	if err = s.ensureRolesExist(ctx, tx, roleNames); err != nil {
 		return nil, err
@@ -65,11 +61,7 @@ func (s *Store) UpdateUser(ctx context.Context, actorUserID, userID string, inpu
 	if err != nil {
 		return nil, fmt.Errorf("begin user update: %w", err)
 	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
+	defer func() { _ = tx.Rollback() }()
 
 	var existingID string
 	if err = tx.QueryRowContext(ctx, `SELECT id FROM users WHERE id=?`, userID).Scan(&existingID); err != nil {
@@ -126,11 +118,7 @@ func (s *Store) DeleteUser(ctx context.Context, actorUserID, userID string) erro
 	if err != nil {
 		return fmt.Errorf("begin user delete: %w", err)
 	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
+	defer func() { _ = tx.Rollback() }()
 
 	var count int
 	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM users WHERE id=?`, userID).Scan(&count); err != nil {

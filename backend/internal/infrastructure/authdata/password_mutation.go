@@ -15,13 +15,9 @@ func (s *Store) ChangePassword(ctx context.Context, change management.PasswordCh
 	if err != nil {
 		return fmt.Errorf("begin password change: %w", err)
 	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
+	defer func() { _ = tx.Rollback() }()
 
-	if _, err = tx.ExecContext(ctx, `UPDATE users SET password_hash=? WHERE id=?`, nextHash, userID); err != nil {
+	if err = requireOne(tx.ExecContext(ctx, `UPDATE users SET password_hash=? WHERE id=? AND password_hash=?`, nextHash, userID, change.ExpectedHash)); err != nil {
 		return fmt.Errorf("update password: %w", err)
 	}
 	if _, err = tx.ExecContext(

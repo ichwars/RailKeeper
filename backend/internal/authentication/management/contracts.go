@@ -122,7 +122,7 @@ type UserMutation struct {
 type PasswordChange struct{ UserID, SessionTokenHash, ExpectedHash, NextHash string }
 type ResetRequest struct{ UserID, Email, TokenHash, ExpiresAt string }
 type ResetProof struct{ ID, UserID, ExpiresAt, UsedAt, HandledAt string }
-type ResetCommit struct{ RequestID, UserID, NextHash string }
+type ResetCommit struct{ RequestID, UserID, TokenHash, NextHash string }
 type TwoFactorState struct {
 	Username, Secret, EnabledAt string
 	Enabled                     bool

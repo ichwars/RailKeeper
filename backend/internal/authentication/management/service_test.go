@@ -242,6 +242,10 @@ func TestSessionPolicyKeepsAdminOverrideCSRFAndActualRoles(t *testing.T) {
 	if err != nil || session.Username != "operator" || session.CSRFToken != "secret" || session.Roles[0] != "Editor" {
 		t.Fatal("session projection changed", err)
 	}
+	p.err = errors.New("synthetic session storage failure")
+	if err := service.Logout(t.Context(), "session"); !errors.Is(err, p.err) {
+		t.Fatal("logout hid a storage failure", err)
+	}
 	p.err = ErrUnauthorized
 	if err := service.Logout(t.Context(), "missing"); err != nil {
 		t.Fatal("idempotent logout", err)

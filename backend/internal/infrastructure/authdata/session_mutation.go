@@ -16,7 +16,12 @@ func (s *Store) RevokeSession(ctx context.Context, actorUserID, sessionID string
 	if sessionID == "" {
 		return management.ErrSessionNotFound
 	}
-	result, err := s.db.ExecContext(
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin session revocation: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := tx.ExecContext(
 		ctx,
 		`UPDATE sessions SET revoked_at=? WHERE id=? AND revoked_at IS NULL`,
 		s.now().UTC().Format(time.RFC3339),
@@ -32,7 +37,13 @@ func (s *Store) RevokeSession(ctx context.Context, actorUserID, sessionID string
 	if affected == 0 {
 		return management.ErrSessionNotFound
 	}
-	return s.audit(ctx, actorUserID, "SessionRevoked", "session", sessionID, "{}")
+	if err := s.auditTx(ctx, tx, actorUserID, "SessionRevoked", "session", sessionID, "{}"); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit session revocation: %w", err)
+	}
+	return nil
 }
 
 func (s *Store) SessionUser(ctx context.Context, tokenHash string) (string, string, error) {
@@ -55,14 +66,33 @@ func (s *Store) SessionUser(ctx context.Context, tokenHash string) (string, stri
 }
 
 func (s *Store) RevokeOwnSession(ctx context.Context, userID, tokenHash string) error {
-	if _, err := s.db.ExecContext(
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin logout: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := tx.ExecContext(
 		ctx,
-		`UPDATE sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL`,
+		`UPDATE sessions SET revoked_at=? WHERE user_id=? AND token_hash=? AND revoked_at IS NULL`,
 		s.now().UTC().Format(time.RFC3339),
+		userID,
 		tokenHash,
-	); err != nil {
+	)
+	if err != nil {
 		return fmt.Errorf("revoke session: %w", err)
 	}
 
-	return s.audit(ctx, userID, "Logout", "user", userID, "{}")
+	count, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read logout count: %w", err)
+	}
+	if count > 0 {
+		if err := s.auditTx(ctx, tx, userID, "Logout", "user", userID, "{}"); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit logout: %w", err)
+	}
+	return nil
 }

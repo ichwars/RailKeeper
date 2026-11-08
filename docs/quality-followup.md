@@ -148,3 +148,11 @@ second-factor commits in focused adapters. Password derivation happens before
 account-update transactions. `application.AuthService` composes these modules and
 preserves existing transport types through aliases. The three completed SQL files
 leave the inventory: 54 files and 254 concrete database calls remain for R5.
+
+Account mutations retain one SQLite owner. Session revocation and logout now include
+successful audit in that transaction. Reset requests cannot invalidate an older
+link when replacement insertion/audit fails. Reset completion rechecks the token,
+expiry and one-use state after beginning the transaction. Password changes compare
+the originally verified hash before writing. Rejected missing-user/last-admin paths
+release their transaction. Fault injection and concurrent reset tests cover these
+additional atomicity guarantees separately from the structural move.
