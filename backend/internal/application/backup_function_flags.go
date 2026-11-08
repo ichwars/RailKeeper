@@ -5,20 +5,6 @@ import (
 	"fmt"
 )
 
-func legacyFunctionRowsForRestore(rows []map[string]any) []map[string]any {
-	out := make([]map[string]any, 0, len(rows))
-	for _, row := range rows {
-		copyRow := make(map[string]any, len(row)+2)
-		for key, value := range row {
-			copyRow[key] = value
-		}
-		copyRow["legacy_direction_dependent"] = row["direction_dependent"]
-		copyRow["direction_dependent"], copyRow["inverted"] = nil, nil
-		out = append(out, copyRow)
-	}
-	return out
-}
-
 func validateBackupFunctionFlags(version int, rows []map[string]any) []string {
 	var problems []string
 	for i, row := range rows {

@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"database/sql"
 
 	"railkeeper/backend/internal/infrastructure/catalogdata"
 	"railkeeper/backend/internal/inventory/catalog"
@@ -19,7 +18,3 @@ func (s *VehicleService) BackfillLegacyCatalog(ctx context.Context, actor string
 type VehicleCatalogAssignment = catalog.VehicleCatalogAssignment
 
 type VehicleCatalogBackfillReport = catalog.VehicleCatalogBackfillReport
-
-func backfillVehicleCatalogTx(ctx context.Context, tx *sql.Tx) error {
-	return catalogdata.Backfill(ctx, tx)
-}

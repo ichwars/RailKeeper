@@ -1,18 +1,11 @@
 package application
 
 import (
-	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"railkeeper/backend/internal/decoderlibrary"
 )
-
-func restoreMissingDecoderLibrary(ctx context.Context, tx *sql.Tx) error {
-	return SeedDecoderLibrary(ctx, tx, time.Now().UTC().Format(time.RFC3339))
-}
 
 func validateBackupDecoderLibrary(rows []map[string]any) []string {
 	for i, row := range rows {
