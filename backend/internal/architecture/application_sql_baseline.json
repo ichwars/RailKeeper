@@ -1,11 +1,5 @@
 [
   {
-    "file": "database_maintenance.go",
-    "calls": 4,
-    "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
-    "stage": "R5c"
-  },
-  {
     "file": "exhibition.go",
     "calls": 17,
     "transactions": [
@@ -26,16 +20,6 @@
     "stage": "R5c"
   },
   {
-    "file": "settings.go",
-    "calls": 6,
-    "transactions": [
-      "UpdateUserSettings",
-      "UpdateDigitalSettings"
-    ],
-    "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
-    "stage": "R5c"
-  },
-  {
     "file": "setup.go",
     "calls": 7,
     "transactions": [
@@ -49,15 +33,6 @@
     "calls": 4,
     "transactions": [
       "PrepareAuthorization"
-    ],
-    "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
-    "stage": "R5c"
-  },
-  {
-    "file": "smtp_settings.go",
-    "calls": 3,
-    "transactions": [
-      "Update"
     ],
     "owner": "settings/setup/exhibition persistence owner; maintenance retains exclusive access",
     "stage": "R5c"

@@ -15,6 +15,8 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 	modules := map[string][]string{
 		"authentication":                 {"credentials", "authentication"},
 		"credentials":                    {},
+		"configuration":                  {},
+		"infrastructure/settingsdata":    {"configuration"},
 		"media":                          {"credentials"},
 		"infrastructure/blobdata":        {"media", "backup"},
 		"valuation":                      {},
@@ -84,8 +86,11 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 						}
 					}
 					if !strings.HasPrefix(module, "infrastructure/") {
+						// URL and mailbox parsing are pure text utilities, not transport adapters.
+						pureTextUtility := name == "net/url" && (module == "authentication" || module == "inventory/vehicle") ||
+							name == "net/mail" && module == "configuration"
 						if strings.HasPrefix(name, "database/") || name == "os" || strings.HasPrefix(name, "os/") || name == "io/fs" || (name == "path/filepath" && module != "backup") ||
-							(strings.HasPrefix(name, "net/") && (name != "net/url" || (module != "authentication" && module != "inventory/vehicle"))) || strings.HasPrefix(name, "modernc.org/") {
+							(strings.HasPrefix(name, "net/") && !pureTextUtility) || strings.HasPrefix(name, "modernc.org/") {
 							t.Errorf("%s imports a transport or persistence dependency: %s", path, name)
 						}
 					}
