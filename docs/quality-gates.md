@@ -35,6 +35,16 @@ npm --prefix frontend run lint
 npm --prefix frontend run build
 ```
 
+Additional behavior tests cover spare-part lookup/import failures, local suggestion deduplication,
+retained manual edits, canvas resize/theme lifecycle, and exhibition revisions/exception/delete
+retries. Digital adapter ports remain editable when cleared; configuration success requires the
+actual save acknowledgement. Pending saves prevent conflicting edits, and failed saves retain
+inputs. Error messages remain inside the relevant exhibition dialog.
+
+The optional type-aware promise rules remain subject to the documented
+[compiler compatibility decision](typed-lint-compatibility.md). Existing syntax, React hook and
+strict build checks remain mandatory; unsupported TypeScript versions are not hidden.
+
 ## Backend
 
 The Linux backend profile instruments all `internal` packages together, including code
