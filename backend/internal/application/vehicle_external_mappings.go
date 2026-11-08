@@ -15,9 +15,6 @@ func (s *VehicleService) UpsertExternalMapping(ctx context.Context, id string, i
 func (s *VehicleService) RebindExternalMapping(ctx context.Context, id, previous string, input VehicleExternalMapInput, actor string) (*VehicleExternalMap, error) {
 	return s.externalMappingService().RebindExternalMapping(ctx, id, previous, input, actor)
 }
-func cleanVehicleExternalMapInput(input VehicleExternalMapInput) VehicleExternalMapInput {
-	return vehiclemodel.CleanExternalMappingInput(input)
-}
 func (s *VehicleService) attachExternalMappings(ctx context.Context, vehicles []Vehicle) error {
 	for index := range vehicles {
 		mappings, err := s.loadVehicleExternalMappings(ctx, vehicles[index].ID)

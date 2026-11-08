@@ -172,18 +172,6 @@
     "stage": "R5c"
   },
   {
-    "file": "vehicle_create_persistence.go",
-    "calls": 1,
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
-    "file": "vehicle_creation_identity.go",
-    "calls": 1,
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
     "file": "vehicle_cv_changes.go",
     "calls": 3,
     "transactions": [
@@ -227,16 +215,6 @@
     "calls": 1,
     "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
     "stage": "R5b"
-  },
-  {
-    "file": "vehicle_mutation.go",
-    "calls": 4,
-    "transactions": [
-      "CreateWithOptions",
-      "Update"
-    ],
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
   },
   {
     "file": "vehicle_repository.go",
