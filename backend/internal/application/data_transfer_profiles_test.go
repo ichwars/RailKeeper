@@ -2,7 +2,7 @@ package application
 
 import (
 	"context"
-	"database/sql"
+
 	"errors"
 	"reflect"
 	"testing"
@@ -292,7 +292,7 @@ func (s *dataTransferQueryRepositoryStub) GetJob(_ context.Context, id string) (
 			return job, nil
 		}
 	}
-	return DataTransferJob{}, sql.ErrNoRows
+	return DataTransferJob{}, ErrDataTransferNotFound
 }
 
 func (s *dataTransferQueryRepositoryStub) ListJobs(

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"testing"
 
+	"railkeeper/backend/internal/infrastructure/transferfiles"
 	transferpolicy "railkeeper/backend/internal/transfer/policy"
 )
 
@@ -302,10 +303,7 @@ func TestDataTransferExportWritesConfinedArtifactWithSHA256(t *testing.T) {
 	if result.Job.State != TransferJobCompleted || result.Artifact.SHA256 == "" {
 		t.Fatalf("unexpected export result: %#v", result)
 	}
-	path, err := resolveDataTransferArtifactPath(dataDir, result.Artifact.RelativePath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	path := filepath.Join(dataDir, filepath.FromSlash(result.Artifact.RelativePath))
 	payload, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -320,7 +318,7 @@ func TestDataTransferExportWritesConfinedArtifactWithSHA256(t *testing.T) {
 }
 
 func TestDataTransferArtifactPathRejectsParentSegments(t *testing.T) {
-	_, err := resolveDataTransferArtifactPath(t.TempDir(), "exports/one/../../outside.json")
+	_, err := transferfiles.New(t.TempDir()).OpenArtifact("exports/one/../../outside.json")
 	if !errors.Is(err, ErrDataTransferArtifactPath) {
 		t.Fatalf("expected confined path rejection, got %v", err)
 	}

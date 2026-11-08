@@ -192,7 +192,7 @@ func TestClassifyDataTransferVehicleSetConflicts(t *testing.T) {
 
 func TestPreviewImportPersistsVehicleSetGroupsWithoutChangingRecordCounts(t *testing.T) {
 	repository, service := newDataTransferImportFixture(t)
-	job := fixtureCreateImportJob(t, service, TransferVehicles, TransferJSON)
+	job := fixtureCreateImportJob(t, repository, service, TransferVehicles, TransferJSON)
 	incoming := validTransferVehicleSetSnapshot()
 	payload, err := json.Marshal(DataTransferPackage{
 		Format: DataTransferPackageFormat, Version: DataTransferPackageVersion,

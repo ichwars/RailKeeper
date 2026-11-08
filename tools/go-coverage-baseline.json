@@ -18,6 +18,7 @@
     "infrastructure/authdata": 76,
     "infrastructure/backupdata": 79,
     "infrastructure/ratelimit": 58,
+    "infrastructure/transferfiles": 78,
     "infrastructure/valuationdata": 80,
     "infrastructure/vehicledata": 81,
     "revision": 100,
@@ -25,6 +26,7 @@
     "startup": 76,
     "transfer": 91,
     "transfer/policy": 78,
+    "transfer/workflow": 78,
     "valuation": 94
   }
 }

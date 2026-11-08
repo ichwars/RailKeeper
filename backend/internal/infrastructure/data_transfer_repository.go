@@ -97,7 +97,7 @@ WHERE id=?`, profile.Name, nameKey, profile.Direction, profile.Format, areas, op
 			return transfer.DataTransferProfile{}, fmt.Errorf("check transfer profile: %w", err)
 		}
 		if exists == 0 {
-			return transfer.DataTransferProfile{}, fmt.Errorf("update transfer profile: %w", sql.ErrNoRows)
+			return transfer.DataTransferProfile{}, fmt.Errorf("update transfer profile: %w: %w", transfer.ErrDataTransferNotFound, sql.ErrNoRows)
 		}
 		return transfer.DataTransferProfile{}, transfer.ErrDataTransferConflict
 	}
@@ -138,7 +138,7 @@ func (repository *DataTransferRepository) GetProfile(
 ) (transfer.DataTransferProfile, error) {
 	profile, err := scanDataTransferProfile(repository.db.QueryRowContext(ctx, dataTransferProfileSelect+` WHERE id=?`, id))
 	if errors.Is(err, sql.ErrNoRows) {
-		return transfer.DataTransferProfile{}, fmt.Errorf("get transfer profile: %w", sql.ErrNoRows)
+		return transfer.DataTransferProfile{}, fmt.Errorf("get transfer profile: %w: %w", transfer.ErrDataTransferNotFound, sql.ErrNoRows)
 	}
 	if err != nil {
 		return transfer.DataTransferProfile{}, fmt.Errorf("get transfer profile: %w", err)
@@ -222,7 +222,7 @@ func (repository *DataTransferRepository) GetJob(
 ) (transfer.DataTransferJob, error) {
 	job, err := scanDataTransferJob(repository.db.QueryRowContext(ctx, dataTransferJobSelect+` WHERE id=?`, id))
 	if errors.Is(err, sql.ErrNoRows) {
-		return transfer.DataTransferJob{}, fmt.Errorf("get transfer job: %w", sql.ErrNoRows)
+		return transfer.DataTransferJob{}, fmt.Errorf("get transfer job: %w: %w", transfer.ErrDataTransferNotFound, sql.ErrNoRows)
 	}
 	if err != nil {
 		return transfer.DataTransferJob{}, fmt.Errorf("get transfer job: %w", err)
@@ -356,7 +356,7 @@ WHERE id=? AND direction=? AND state=? AND revision=?`, job.ProfileID, job.Profi
 				return fmt.Errorf("check transfer import job: %w", err)
 			}
 			if exists == 0 {
-				return fmt.Errorf("compare and update transfer import job: %w", sql.ErrNoRows)
+				return fmt.Errorf("compare and update transfer import job: %w: %w", transfer.ErrDataTransferNotFound, sql.ErrNoRows)
 			}
 			return transfer.ErrDataTransferConflict
 		}
@@ -534,7 +534,7 @@ WHERE id=? AND direction=? AND state=?`, transfer.TransferJobRunning, timestamp(
 			return transfer.DataTransferJob{}, fmt.Errorf("check transfer export job: %w", err)
 		}
 		if exists == 0 {
-			return transfer.DataTransferJob{}, fmt.Errorf("claim transfer export job: %w", sql.ErrNoRows)
+			return transfer.DataTransferJob{}, fmt.Errorf("claim transfer export job: %w: %w", transfer.ErrDataTransferNotFound, sql.ErrNoRows)
 		}
 		return transfer.DataTransferJob{}, transfer.ErrDataTransferConflict
 	}
@@ -693,7 +693,7 @@ func requireDataTransferUpdate(result sql.Result, operation string) error {
 		return fmt.Errorf("%s rows affected: %w", operation, err)
 	}
 	if updated == 0 {
-		return fmt.Errorf("%s: %w", operation, sql.ErrNoRows)
+		return fmt.Errorf("%s: %w: %w", operation, transfer.ErrDataTransferNotFound, sql.ErrNoRows)
 	}
 	return nil
 }
