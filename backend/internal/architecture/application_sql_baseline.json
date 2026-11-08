@@ -172,47 +172,6 @@
     "stage": "R5c"
   },
   {
-    "file": "vehicle_catalog_authority.go",
-    "calls": 3,
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
-    "file": "vehicle_catalog_backfill.go",
-    "calls": 6,
-    "transactions": [
-      "CatalogBackfillReport",
-      "BackfillLegacyCatalog"
-    ],
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
-    "file": "vehicle_catalog_changes.go",
-    "calls": 7,
-    "transactions": [
-      "CreateCatalogRevision",
-      "AdoptCatalogRevision"
-    ],
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
-    "file": "vehicle_catalog_context.go",
-    "calls": 3,
-    "transactions": [
-      "CatalogContext"
-    ],
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
-    "file": "vehicle_catalog_projection.go",
-    "calls": 2,
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
     "file": "vehicle_create_persistence.go",
     "calls": 1,
     "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",

@@ -22,6 +22,8 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 		"inventory/masterdata":           {"domain", "decoderlibrary", "credentials"},
 		"inventory/money":                {},
 		"inventory/overview":             {"inventory/money"},
+		"inventory/catalog":              {"revision", "credentials"},
+		"infrastructure/catalogdata":     {"inventory/catalog", "credentials", "revision"},
 		"inventory/workshop":             {"domain", "credentials"},
 		"infrastructure/numberingdata":   {"inventory/numbering", "credentials"},
 		"infrastructure/masterdatastore": {"inventory/masterdata", "domain"},
