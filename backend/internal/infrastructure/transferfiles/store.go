@@ -57,7 +57,7 @@ func (u *managedUpload) Metadata() workflow.UploadMetadata { return u.metadata }
 
 func (u *managedUpload) Close() error {
 	closeErr := u.File.Close()
-	removeErr := os.Remove(u.File.Name())
+	removeErr := os.Remove(u.Name())
 	if errors.Is(removeErr, os.ErrNotExist) {
 		removeErr = nil
 	}
@@ -89,7 +89,7 @@ func (s *Store) OpenArtifact(relativePath string) (workflow.ArtifactReader, erro
 type artifactReader struct{ *os.File }
 
 func (r *artifactReader) Metadata() (workflow.ArtifactMetadata, error) {
-	info, err := r.File.Stat()
+	info, err := r.Stat()
 	if err != nil {
 		return workflow.ArtifactMetadata{}, err
 	}

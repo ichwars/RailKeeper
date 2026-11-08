@@ -27,14 +27,6 @@ type DataTransferPreview = transferpolicy.DataTransferPreview
 
 type DataTransferPreviewRecord = transfer.DataTransferPreviewRecord
 
-func DataTransferTargetFingerprint(value any) string {
-	return transfer.DataTransferTargetFingerprint(value)
-}
-
-func DataTransferTargetFingerprintForVersion(value any, version int) string {
-	return transfer.DataTransferTargetFingerprintForVersion(value, version)
-}
-
 type dataTransferImportRepository interface {
 	DataTransferRepository
 	Snapshot(context.Context, []TransferArea) (DataTransferSnapshot, error)

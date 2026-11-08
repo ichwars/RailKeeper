@@ -305,8 +305,6 @@ func (s *Service) ensureUniqueActiveProfileName(
 	return nil
 }
 
-func DataTransferProfileNameKey(name string) string { return transfer.DataTransferProfileNameKey(name) }
-
 func (s *Service) DisableProfile(ctx context.Context, id string) (DataTransferProfile, error) {
 	profile, err := s.profile(ctx, strings.TrimSpace(id))
 	if err != nil {

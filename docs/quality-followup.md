@@ -168,5 +168,20 @@ fail closed. Helpers remain private unless needed by another layer or contract t
 Vehicle, accessory and exhibition import writers are separate adapters. Set membership,
 preview/fingerprint checks, job completion and audit retain the caller's single transaction.
 An architecture guard rejects nested transaction owners. Every original SQL literal remains
-unchanged. Workflow and file-port extraction follows as the second R4 part; this first part
-alone does not claim that application file/orchestration boundaries are complete.
+unchanged.
+
+## Transfer workflows and private files (R4, second part)
+
+`transfer/workflow` owns actual profile/job orchestration through typed repository
+and file ports. `infrastructure/transferfiles` owns upload staging and export effects;
+`application.DataTransferService` is compatible composition. Architecture tests reject
+concrete I/O imports in the completed facade and in the pure workflow. Optional
+repository capabilities remain explicit, and file metadata/seek preserve partial downloads.
+
+File failures retain compensation: an export without committed metadata is removed,
+and preview readers are closed on parsing/persistence failures. New injected read and
+oversize tests exposed a pre-existing scratch-file leak caused by overwritten named
+returns; cleanup now uses the immutable temporary pathname. Existing stored bytes,
+formats, confirmation rules and transaction ownership remain unchanged. The new workflow
+and file adapter inherit the previous application coverage floor of 78% with the same
+whole-backend measurement scope.

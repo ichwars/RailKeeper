@@ -5,6 +5,7 @@ import (
 	"go/parser"
 	"go/token"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -50,5 +51,31 @@ func TestTransferWritersKeepOneTransactionOwner(t *testing.T) {
 	}
 	if owners["BeginTx"] != 1 || owners["Commit"] != 1 {
 		t.Fatal("import completion no longer has exactly one transaction owner", owners)
+	}
+}
+
+func TestCompletedTransferFacadeHasNoConcreteIO(t *testing.T) {
+	files, err := filepath.Glob(filepath.Join("..", "application", "data_transfer*.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range files {
+		if strings.HasSuffix(path, "_test.go") {
+			continue
+		}
+		file, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.ImportsOnly)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, item := range file.Imports {
+			name, err := strconv.Unquote(item.Path.Value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.HasPrefix(name, "database/") || strings.HasPrefix(name, "net/") ||
+				name == "os" || strings.HasPrefix(name, "os/") || name == "io/fs" || name == "path/filepath" {
+				t.Errorf("completed transfer facade %s imports concrete I/O: %s", path, name)
+			}
+		}
 	}
 }

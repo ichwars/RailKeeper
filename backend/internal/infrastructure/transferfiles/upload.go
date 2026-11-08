@@ -27,14 +27,15 @@ func (s *Store) storeDataTransferUpload(
 	if err != nil {
 		return "", "", "", fmt.Errorf("create transfer upload temp file: %w", err)
 	}
-	path = file.Name()
+	temporaryPath := file.Name()
+	path = temporaryPath
 	remove := true
 	defer func() {
 		if closeErr := file.Close(); err == nil && closeErr != nil {
 			err = fmt.Errorf("close transfer upload: %w", closeErr)
 		}
 		if remove || err != nil {
-			_ = os.Remove(path)
+			_ = os.Remove(temporaryPath)
 		}
 	}()
 	hash := sha256.New()
