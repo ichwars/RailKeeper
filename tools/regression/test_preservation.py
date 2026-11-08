@@ -14,6 +14,22 @@ from preservation import (
 
 
 class PreservationTests(unittest.TestCase):
+    def test_app_backup_rejects_local_authentication_and_configuration_even_when_empty(self):
+        document = {"format": "railkeeper-backup", "version": 28,
+                    "tables": {"vehicle_cv_values": [{"decoder_profile": " Raw ", "index_cv31": 0}]}}
+        before = copy.deepcopy(document)
+        self.assertEqual(backup_manifest(document)["tables"].keys(), {"vehicle_cv_values"})
+        for table in ("users", "roles", "user_roles", "sessions", "password_reset_requests",
+                      "setup_authorizations", "login_origins", "user_settings", "app_settings",
+                      "rate_limit_attempts", "audit_logs"):
+            for rows in ([], [{"id": "private-fixture"}]):
+                with self.subTest(table=table, empty=not rows):
+                    changed = copy.deepcopy(document)
+                    changed["tables"][table] = rows
+                    with self.assertRaisesRegex(AssertionError, table):
+                        backup_manifest(changed)
+        self.assertEqual(document, before)
+
     def test_valuation_upgrade_only_adds_empty_history_and_preserves_old_cells(self):
         document = {"version": 27, "tables": {"vehicles": [{"id": "vehicle", "purchase_price": "001,23"}],
                     "vehicle_cv_values": [{"id": "cv", "decoder_profile": "  Profile  ", "index_cv31": 0}]}}

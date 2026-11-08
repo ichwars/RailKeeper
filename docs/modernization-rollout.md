@@ -1,6 +1,8 @@
 # Modernisierung erproben und ausliefern
 
-Dieser Ablauf gilt für den Entwicklungsstand mit Schema 80 und App-Backupformat 28.
+Dieser Ablauf gilt für den Entwicklungsstand mit Schema 81 und App-Backupformat 28.
+Schema 81 ergänzt ausschließlich lokale Browserbelege für den Anmeldezugang. Diese gehören
+zusammen mit Konten und Sitzungen in die geschützte Installationssicherung, nicht ins App-Backup.
 Er definiert die technische Qualifizierung und die verbleibende Anwendererprobung.
 Ein zusammengeführter PR ist noch kein veröffentlichter oder produktiv installierter Stand.
 Eine Veröffentlichung oder Produktivumstellung erfolgt mit einem eigenen Auftrag.
