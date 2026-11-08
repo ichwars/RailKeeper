@@ -78,7 +78,7 @@ func (s *Service) Login(ctx context.Context, input Input) (*Result, error) {
 		passwordHash = s.passwords.DummyHash()
 	}
 	validPassword := s.passwords.Verify(input.Password, passwordHash)
-	if !found || !validPassword {
+	if !found || !validPassword || (known && origin.UserID != account.ID) {
 		s.failure(ctx, "", "LoginFailed", username)
 		return nil, ErrInvalidLogin
 	}
@@ -109,6 +109,7 @@ func (s *Service) Login(ctx context.Context, input Input) (*Result, error) {
 		}
 		origin.StateHash = CredentialState(state)
 		proof.Origin = &origin
+		proof.OriginRecognized = known
 		result.OriginToken, result.OriginExpiresAt = input.OriginToken, origin.ExpiresAt
 	}
 	if err := s.store.CommitLogin(ctx, proof); err != nil {

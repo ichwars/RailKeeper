@@ -53,7 +53,7 @@ func TestRecognizedOriginHasSeparateBudgetAndRequiresFullAuthentication(t *testi
 			continue
 		}
 		if err != nil || result.OriginToken != input.OriginToken || store.lastCommit.AttemptScope != OriginBudgetScope || store.lastCommit.Origin == nil ||
-			store.lastCommit.Origin.StateHash == store.origin.StateHash {
+			store.lastCommit.Origin.StateHash == store.origin.StateHash || !store.lastCommit.OriginRecognized {
 			t.Fatal("recognized login lost its token or upgraded credential binding", err)
 		}
 	}
@@ -64,6 +64,14 @@ func TestRecognizedOriginHasSeparateBudgetAndRequiresFullAuthentication(t *testi
 	store.origin.StateHash = CredentialState(store.account)
 	if result, err := NewService(store, WithPasswords(passwords), WithClock(func() time.Time { return now })).Login(t.Context(), input); !errors.Is(err, ErrTwoFactorRequired) || result != nil || store.commits.Load() != 0 {
 		t.Fatal("recognized browser skipped second factor")
+	}
+}
+
+func TestOriginCannotFollowAReplacedAccountBetweenLookupAndVerification(t *testing.T) {
+	store, passwords, input, now := originFixture()
+	store.account.ID = "replacement-account"
+	if result, err := NewService(store, WithPasswords(passwords), WithClock(func() time.Time { return now })).Login(t.Context(), input); !errors.Is(err, ErrInvalidLogin) || result != nil || store.commits.Load() != 0 {
+		t.Fatal("old origin followed a replaced account", err)
 	}
 }
 

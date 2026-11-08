@@ -54,6 +54,7 @@ type Commit struct {
 	Now                      time.Time
 	AttemptScope             string
 	Origin                   *Origin
+	OriginRecognized         bool
 }
 
 type Audit struct {
