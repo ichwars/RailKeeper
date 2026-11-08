@@ -279,6 +279,9 @@ Node.js is only used to build the frontend.
   collapsed at the end. Source text remains byte-for-byte in existing notes unless notes are edited;
   presentation splits only explicit generated source lines into a read-only provenance fold. Own-note
   edits preserve those source lines, including historical references, within the existing UTF-8 limit.
+- External mapping normalization and ownership/rebind decisions live in `inventory/vehicle`.
+  `vehicledata` executes owner-conditional writes and the existing atomic consolidation. Vehicle
+  creation binds its source mapping using the same caller-owned vehicle transaction.
 - `inventory/vehicle` owns function CRUD rules, legacy flag decisions and revision-checked bulk
   changes. `vehicledata` owns their SQL. Bulk changes use the caller-owned vehicle transaction
   without beginning or committing another transaction. Existing function IDs and creation times
