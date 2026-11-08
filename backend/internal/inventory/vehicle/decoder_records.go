@@ -75,9 +75,4 @@ type VehicleCVFileInput = decoder.VehicleCVFileInput
 
 // Source context is derived from the saved comparison workspace. It never
 // replaces decoder_type or inserts a manufacturer/firmware CV reading.
-type ECoSDecoderProfileEvidence struct {
-	Name     string `json:"name"`
-	ObjectID string `json:"objectId"`
-	Host     string `json:"host"`
-	ReadAt   string `json:"readAt"`
-}
+type ECoSDecoderProfileEvidence = decoder.ECoSDecoderProfileEvidence

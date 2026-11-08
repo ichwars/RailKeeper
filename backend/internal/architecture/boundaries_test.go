@@ -36,7 +36,7 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 		"decoder/workflow":               {"decoder", "media", "credentials"},
 		"revision":                       {},
 		"buildinfo":                      {},
-		"infrastructure/vehicledata":     {"decoder", "revision", "inventory/vehicle", "inventory/numbering", "infrastructure/numberingdata", "decoder/workflow", "infrastructure/blobdata", "media"},
+		"infrastructure/vehicledata":     {"decoder", "revision", "inventory/vehicle", "inventory/numbering", "infrastructure/numberingdata", "decoder/workflow", "infrastructure/blobdata", "media", "ecosmodel"},
 		"ecosmodel":                      {"decoder"},
 		"backup":                         {},
 		"infrastructure/backupdata":      {"backup", "credentials"},

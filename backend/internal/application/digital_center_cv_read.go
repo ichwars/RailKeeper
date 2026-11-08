@@ -207,29 +207,11 @@ func storedECoSCVSnapshot(item DigitalCenterWorkItem) ([]ECoSCVValue, ECoSCVRead
 }
 
 func validateStoredECoSCVs(values []ECoSCVValue) ([]ECoSCVValue, error) {
-	if len(values) > ecospkg.CVDatabaseLimit {
+	result, err := ecosmodel.ValidateStoredCVs(values, ecospkg.CVDatabaseLimit)
+	if err != nil {
 		return nil, ErrDigitalCenterDeviceOutput
 	}
-	seen := map[string]bool{}
-	copyValues := make([]ECoSCVValue, 0, len(values))
-	for _, value := range values {
-		if !validCVNumber(value.Number) || !validCVValue(value.Value) ||
-			(value.IndexCV31 == nil) != (value.IndexCV32 == nil) {
-			return nil, ErrDigitalCenterDeviceOutput
-		}
-		if value.IndexCV31 != nil && (value.Number < 257 || value.Number > 512 || *value.IndexCV31 < 0 ||
-			*value.IndexCV31 > 255 || *value.IndexCV32 < 0 || *value.IndexCV32 > 255) {
-			return nil, ErrDigitalCenterDeviceOutput
-		}
-		key := fmt.Sprintf("%d:%d", eCoSCVPage(value), value.Number)
-		if seen[key] {
-			return nil, ErrDigitalCenterDeviceOutput
-		}
-		seen[key] = true
-		copyValues = append(copyValues, value)
-	}
-	sortECoSCVValues(copyValues)
-	return copyValues, nil
+	return result, nil
 }
 
 func eCoSCVPage(value ECoSCVValue) int { return ecosmodel.ECoSCVPage(value) }

@@ -11,6 +11,8 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"railkeeper/backend/internal/ecosmodel"
 )
 
 const (
@@ -612,38 +614,11 @@ func normalizeDigitalCenterName(value string) (string, error) {
 }
 
 func normalizeDigitalCenterProtocol(value string) (string, error) {
-	compact := strings.Map(func(character rune) rune {
-		if unicode.IsSpace(character) || strings.ContainsRune("-_/.+", character) {
-			return -1
-		}
-		if !unicode.IsLetter(character) && !unicode.IsDigit(character) {
-			return 0
-		}
-		return unicode.ToUpper(character)
-	}, strings.TrimSpace(value))
-	if compact == "" && strings.TrimSpace(value) != "" {
-		return "", fmt.Errorf("%w: invalid protocol", ErrDigitalCenterDeviceOutput)
+	normalized, err := ecosmodel.NormalizeProtocol(value, maxDigitalCenterProtocol)
+	if err != nil {
+		return "", fmt.Errorf("%w: %s", ErrDigitalCenterDeviceOutput, err)
 	}
-	if len(compact) > maxDigitalCenterProtocol {
-		return "", fmt.Errorf("%w: protocol is too long", ErrDigitalCenterDeviceOutput)
-	}
-	for _, character := range compact {
-		if !unicode.IsLetter(character) && !unicode.IsDigit(character) {
-			return "", fmt.Errorf("%w: invalid protocol", ErrDigitalCenterDeviceOutput)
-		}
-	}
-	switch {
-	case strings.HasPrefix(compact, "DCC"):
-		return "DCC", nil
-	case strings.HasPrefix(compact, "MOTOROLA"), strings.HasPrefix(compact, "MM"):
-		return "MOTOROLA", nil
-	case strings.HasPrefix(compact, "MFX"), strings.HasPrefix(compact, "M4"):
-		return "MFX", nil
-	case strings.HasPrefix(compact, "SELECTRIX"), strings.HasPrefix(compact, "SX"):
-		return "SELECTRIX", nil
-	default:
-		return compact, nil
-	}
+	return normalized, nil
 }
 
 func validDigitalCenterCompareStatus(status DigitalCenterCompareStatus) bool {
