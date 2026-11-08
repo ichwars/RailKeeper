@@ -711,6 +711,10 @@ func (stub *digitalCenterWriteRepositoryStub) GetSession(context.Context, string
 	return stub.session, nil
 }
 
+func (*digitalCenterWriteRepositoryStub) LatestReadySession(context.Context, string, string, int) (*DigitalCenterReadSession, error) {
+	return nil, nil
+}
+
 func (*digitalCenterWriteRepositoryStub) ReplaceWorkItems(context.Context, string, []DigitalCenterWorkItem) error {
 	return errors.New("not used")
 }

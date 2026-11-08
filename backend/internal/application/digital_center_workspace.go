@@ -35,14 +35,15 @@ type digitalCenterVehicleReader interface {
 }
 
 type DigitalCenterSummary struct {
-	Provider     string                    `json:"provider"`
-	Name         string                    `json:"name"`
-	Active       bool                      `json:"active"`
-	Selected     bool                      `json:"selected"`
-	Host         string                    `json:"host"`
-	Port         int                       `json:"port"`
-	Capabilities DigitalCenterCapabilities `json:"capabilities"`
-	Transports   []DigitalCenterTransport  `json:"transports"`
+	Provider        string                    `json:"provider"`
+	Name            string                    `json:"name"`
+	Active          bool                      `json:"active"`
+	Selected        bool                      `json:"selected"`
+	Host            string                    `json:"host"`
+	Port            int                       `json:"port"`
+	Capabilities    DigitalCenterCapabilities `json:"capabilities"`
+	Transports      []DigitalCenterTransport  `json:"transports"`
+	LastReadSession *DigitalCenterReadSession `json:"lastReadSession,omitempty"`
 }
 
 type DigitalCenterTransport struct {

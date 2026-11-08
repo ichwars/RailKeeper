@@ -34,6 +34,7 @@ import { translate, useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { InventoryTrendChart, ValueDistributionChart } from "./OverviewCharts";
 import { OverviewMetricDialog } from "./OverviewMetricDialog";
+import { OverviewQualityRow } from "./OverviewQualityRow";
 import { ManualValuationSummary } from "./ManualValuationSummary";
 import { valuationChangedEvent } from "../vehicles/valuationModel";
 import { formatOverviewMoney } from "./OverviewValuationCard";
@@ -559,7 +560,6 @@ export function OverviewView({ username = "local", roles = ["Editor"] }: Overvie
       </section>
 
       <section className="overview-analysis-secondary">
-        <ManualValuationSummary key={username} />
         <article className="overview-card overview-ranking-card">
           <header className="overview-analysis-head"><h2>{t("overview.structure.title")}</h2></header>
           {vehicleDependentState ? <p className={vehicleError ? "overview-module-state error" : "overview-module-state"}
@@ -588,12 +588,13 @@ export function OverviewView({ username = "local", roles = ["Editor"] }: Overvie
                 [t("overview.quality.articleNumbers"), articleShare],
                 [t("overview.quality.decoderAddresses"), decoderShare],
                 [t("overview.quality.documented"), documentedShare]
-              ].map(([label, value]) => <div key={String(label)}><b
-                style={{ "--quality-value": Number(value) } as React.CSSProperties}><span>{value}%</span></b><span>{label}</span>
-                <progress value={Number(value)} max={100} /></div>)}
+              ].map(([label, value]) => <OverviewQualityRow key={String(label)} label={String(label)}
+                value={Number(value)} />)}
             </div>}
         </article>
       </section>
+
+      <ManualValuationSummary key={username} />
 
       <OverviewMetricDialog
         open={metricDialogOpen}

@@ -63,6 +63,93 @@ describe("useDigitalCentersWorkspace", () => {
     vi.useRealTimers();
   });
 
+  it("restores a persisted read after remount without reading or writing the device", async () => {
+    vi.mocked(api.digitalCenterWorkspace).mockResolvedValue({
+      centers: [{ ...centers[0], lastReadSession: readySession }, centers[1]]
+    });
+    const first = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(first.result.current.workItems.items).toEqual([item]));
+    expect(first.result.current.readSession?.id).toBe(readySession.id);
+    first.unmount();
+    const second = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(second.result.current.workItems.items).toEqual([item]));
+    expect(second.result.current.readSession?.id).toBe(readySession.id);
+    expect(second.result.current.writePreview).toBeNull();
+    expect(second.result.current.writeConfirmation).toBeNull();
+    expect(api.startDigitalCenterReadSession).not.toHaveBeenCalled();
+    expect(api.startDigitalCenterLive).not.toHaveBeenCalled();
+    expect(api.previewDigitalCenterWrite).not.toHaveBeenCalled();
+    expect(api.confirmDigitalCenterWrite).not.toHaveBeenCalled();
+  });
+
+  it("keeps the previous result on a failed reread and restores each selected station", async () => {
+    const z21Session = { ...readySession, id: "z21-saved", provider: "z21" as const };
+    vi.mocked(api.digitalCenterWorkspace).mockResolvedValue({ centers: [
+      { ...centers[0], lastReadSession: readySession },
+      { ...centers[1], lastReadSession: z21Session }
+    ] });
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.workItems.items).toEqual([item]));
+    vi.mocked(api.startDigitalCenterReadSession).mockRejectedValueOnce(new Error("offline"));
+    await act(async () => { await expect(result.current.readData()).rejects.toThrow("offline"); });
+    expect(result.current.readSession?.id).toBe(readySession.id);
+    expect(result.current.workItems.items).toEqual([item]);
+    act(() => result.current.selectCenter("z21"));
+    await waitFor(() => expect(api.digitalCenterWorkItems).toHaveBeenLastCalledWith("z21-saved", expect.any(Object)));
+    expect(result.current.readSession?.id).toBe("z21-saved");
+    act(() => result.current.selectCenter("ecos"));
+    await waitFor(() => expect(api.digitalCenterWorkItems).toHaveBeenLastCalledWith(readySession.id, expect.any(Object)));
+    expect(result.current.readSession?.id).toBe(readySession.id);
+    expect(api.startDigitalCenterReadSession).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a new successful read when an older workspace response arrives late", async () => {
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    const pending = deferred<{ centers: DigitalCenterSummary[] }>();
+    vi.mocked(api.digitalCenterWorkspace).mockReturnValueOnce(pending.promise);
+    let refresh!: Promise<void>;
+    act(() => { refresh = result.current.refresh(); });
+    await act(async () => result.current.readData());
+    await act(async () => { pending.resolve({ centers }); await refresh; });
+    act(() => result.current.selectCenter("z21"));
+    act(() => result.current.selectCenter("ecos"));
+    await waitFor(() => expect(result.current.readSession?.id).toBe(readySession.id));
+    expect(api.startDigitalCenterReadSession).toHaveBeenCalledOnce();
+  });
+
+  it.each(["failed", "interrupted"] as const)("retains the successful cache when HTTP 201 creates a %s session", async state => {
+    vi.mocked(api.digitalCenterWorkspace).mockResolvedValue({
+      centers: [{ ...centers[0], lastReadSession: readySession }, centers[1]]
+    });
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.workItems.items).toEqual([item]));
+    vi.mocked(api.startDigitalCenterReadSession).mockResolvedValueOnce({ ...readySession, id: "failed-new", state });
+    await act(async () => result.current.readData());
+    expect(result.current.errors.read).toBe("Daten konnten nicht gelesen werden.");
+    expect(result.current.readSession?.id).toBe(readySession.id);
+    expect(result.current.workItems.items).toEqual([item]);
+    expect(api.digitalCenterSessionMessages).toHaveBeenLastCalledWith("failed-new");
+    act(() => result.current.selectCenter("z21"));
+    act(() => result.current.selectCenter("ecos"));
+    expect(result.current.readSession?.id).toBe(readySession.id);
+    expect(result.current.writePreview).toBeNull();
+  });
+
+  it("keeps cached data and the read error when failed-read messages are unavailable", async () => {
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    await waitFor(() => expect(result.current.workItems.items).toEqual([item]));
+    vi.mocked(api.startDigitalCenterReadSession).mockResolvedValueOnce({ ...readySession, id: "failed-new", state: "failed" });
+    vi.mocked(api.digitalCenterSessionMessages).mockRejectedValueOnce(new Error("messages offline"));
+    await act(async () => result.current.readData());
+    expect(result.current.errors.read).toBe("Daten konnten nicht gelesen werden.");
+    expect(result.current.errors.messages).toBe("messages offline");
+    expect(result.current.readSession?.id).toBe(readySession.id);
+    expect(result.current.workItems.items).toEqual([item]);
+  });
+
   it("loads a saved offline review through GETs and disables device actions", async () => {
     const offlineSession: DigitalCenterReadSession = { ...readySession, id: "backup-1",
       capabilities: capabilitiesFixture({ testConnection: false, readLocomotives: false,

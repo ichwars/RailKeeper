@@ -1167,6 +1167,9 @@ components:
           minItems: 1
           items:
             $ref: "#/components/schemas/DigitalCenterTransport"
+        lastReadSession:
+          description: Last successfully completed device read for this provider, host and port. Retained until another read succeeds; loading it does not contact the device.
+          $ref: "#/components/schemas/DigitalCenterReadSession"
     DigitalCenterWorkspaceSummary:
       type: object
       required: [centers]

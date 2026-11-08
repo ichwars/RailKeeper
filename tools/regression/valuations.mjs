@@ -177,14 +177,22 @@ export async function assertValuations(page, input, de, { actor, csrfToken }) {
     checks.push(`${language}:valuation-readonly-history`);
     await page.goto(input.base + "/overview", { waitUntil: "domcontentloaded" });
     const card = page.locator(".manual-valuation-summary");
+    await card.getByRole("button", { name: de ? "Manuell bewertete Sammlung" : "Manually valued collection", exact: true }).click();
     const cutoff = card.getByLabel(de ? "Stichtag" : "Valuation cutoff", { exact: true });
     const changed = date => page.waitForResponse(response => response.url() === input.base + "/api/v1/valuations/summary?asOf=" + date);
-    await Promise.all([changed("2025-12-31"), cutoff.fill("2025-12-31")]);
+    const setCutoff = async date => { await cutoff.fill(date); await cutoff.press("Tab"); };
+    await Promise.all([changed("2025-12-31"), setCutoff("2025-12-31")]);
     await card.getByText(de ? "Für diesen Stichtag liegen keine gültigen Bewertungen vor." : "There are no valid valuations at this date.", { exact: true }).waitFor();
-    await Promise.all([changed("2026-02-15"), cutoff.fill("2026-02-15")]);
+    await Promise.all([changed("2026-02-15"), setCutoff("2026-02-15")]);
     await card.getByText("125.00", { exact: true }).waitFor();
     assert.equal(await card.getByText("EUR", { exact: true }).count(), 1);
     assert.equal(await card.getByText("CHF", { exact: true }).count(), 0);
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.locator(".main").evaluate(main => { main.scrollTop = main.scrollHeight; });
+      const content = await card.boundingBox(), report = await page.locator(".feedback-button").boundingBox();
+      assert.ok(content.y + content.height <= report.y, "The fixed report action must not cover the valuation summary");
+    }
     checks.push(`${language}:valuation-dashboard-cutoff-shows-unknown-past-and-exact-currency`);
   } finally {
     const removed = await actor.delete(path, { headers });

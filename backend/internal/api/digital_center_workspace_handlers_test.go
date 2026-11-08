@@ -72,6 +72,18 @@ func TestDigitalCenterWorkspaceRoutesUseConfiguredTargetAndBoundPagination(t *te
 		t.Fatalf("started session = %#v", session)
 	}
 
+	// Reopening the workspace must recover the stored result, without another device read.
+	summaryResponse = authedJSONRequest(t, router, admin, http.MethodGet,
+		"/api/v1/digital-centers/workspace", nil, true)
+	assertStatus(t, summaryResponse, http.StatusOK)
+	decodeResponse(t, summaryResponse, &summary)
+	if saved := summary.Centers[0].LastReadSession; saved == nil || saved.ID != session.ID {
+		t.Fatalf("saved workspace read = %#v", saved)
+	}
+	if ecos.probeCalls != 1 {
+		t.Fatalf("workspace reload contacted device: %d reads", ecos.probeCalls)
+	}
+
 	sessionResponse := authedJSONRequest(t, router, admin, http.MethodGet,
 		"/api/v1/digital-centers/read-sessions/"+session.ID, nil, true)
 	assertStatus(t, sessionResponse, http.StatusOK)
@@ -192,8 +204,9 @@ func TestDigitalCenterWorkItemRouteRejectsUnknownFilter(t *testing.T) {
 }
 
 type apiWorkspaceECoSReader struct {
-	probe application.ECoSRawProbe
-	input application.ECoSConnectionInput
+	probe      application.ECoSRawProbe
+	input      application.ECoSConnectionInput
+	probeCalls int
 }
 
 func (reader *apiWorkspaceECoSReader) ProbeLocomotiveRaw(
@@ -201,6 +214,7 @@ func (reader *apiWorkspaceECoSReader) ProbeLocomotiveRaw(
 	input application.ECoSConnectionInput,
 ) (*application.ECoSRawProbe, error) {
 	reader.input = input
+	reader.probeCalls++
 	probe := reader.probe
 	return &probe, nil
 }

@@ -53,6 +53,7 @@ export type DigitalCenterSummary = {
   port: number;
   capabilities: DigitalCenterCapabilities;
   transports: DigitalCenterTransport[];
+  lastReadSession?: DigitalCenterReadSession;
 };
 
 export type DigitalCenterWorkspaceSummary = {

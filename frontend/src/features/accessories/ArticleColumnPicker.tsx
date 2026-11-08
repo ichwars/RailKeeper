@@ -58,7 +58,7 @@ export function ArticleColumnPicker({
       <button
         ref={triggerRef}
         type="button"
-        className={`icon-button${open ? " active" : ""}`}
+        className={`icon-button inventory-labeled-action${open ? " active" : ""}`}
         aria-label={t("accessories.view.columns")}
         title={t("accessories.view.columns")}
         aria-haspopup="dialog"
@@ -67,6 +67,7 @@ export function ArticleColumnPicker({
         onClick={() => setOpen((current) => !current)}
       >
         <Columns3 size={16} aria-hidden="true" />
+        <span>{t("accessories.view.columnsShort")}</span>
       </button>
       {open ? (
         <div

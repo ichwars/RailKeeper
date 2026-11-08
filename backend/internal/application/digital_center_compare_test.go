@@ -426,6 +426,10 @@ func (repository *workspaceRepositoryMemory) GetSession(context.Context, string)
 	return repository.session, nil
 }
 
+func (*workspaceRepositoryMemory) LatestReadySession(context.Context, string, string, int) (*DigitalCenterReadSession, error) {
+	return nil, nil
+}
+
 func (repository *workspaceRepositoryMemory) ReplaceWorkItems(
 	_ context.Context,
 	sessionID string,

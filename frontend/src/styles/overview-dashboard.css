@@ -1,6 +1,6 @@
 /* Reference-driven overview dashboard. */
 .main:has(.overview-page) {
-  padding: 32px 32px 104px;
+  padding: 32px 32px calc(104px + var(--space-2xl) + var(--space-2xl));
 }
 
 .layout:has(.overview-page) .feedback-button {
@@ -705,10 +705,28 @@ a.overview-metric-card:focus-visible {
   content: "";
 }
 
-.overview-quality-list b span {
-  position: relative;
-  z-index: 1;
+.overview-quality-row { position: relative; }
+.overview-quality-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.overview-quality-tooltip {
+  position: absolute;
+  bottom: calc(100% + var(--space-xs));
+  left: 0;
+  z-index: 2;
+  display: none;
+  width: max-content;
+  max-width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--text);
+  font-size: var(--font-size-xs);
+  pointer-events: none;
 }
+
+.overview-quality-row:hover .overview-quality-tooltip,
+.overview-quality-row:focus-visible .overview-quality-tooltip { display: block; }
 
 .overview-quality-list {
   gap: 3px;
@@ -926,7 +944,7 @@ a.overview-metric-card:focus-visible {
 
 @media (max-width: 900px) {
   .main:has(.overview-page) {
-    padding: 28px 18px 92px;
+    padding: 28px 18px calc(92px + var(--space-2xl) + var(--space-2xl));
   }
 
   .layout:has(.overview-page) .feedback-button {
