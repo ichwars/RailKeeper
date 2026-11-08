@@ -215,20 +215,5 @@
     "calls": 1,
     "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
     "stage": "R5b"
-  },
-  {
-    "file": "vehicle_repository.go",
-    "calls": 5,
-    "transactions": [
-      "Delete"
-    ],
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
-  },
-  {
-    "file": "vehicles.go",
-    "calls": 2,
-    "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
-    "stage": "R5a"
   }
 ]
