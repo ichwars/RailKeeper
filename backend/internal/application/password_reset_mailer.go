@@ -11,20 +11,15 @@ import (
 	"net/smtp"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/configuration"
 )
 
 type PasswordResetMailer interface {
 	SendPasswordReset(ctx context.Context, toEmail, resetURL, expiresAt string) error
 }
 
-type SMTPPasswordResetMailConfig struct {
-	Host     string
-	Port     string
-	Username string
-	Password string
-	From     string
-	TLSMode  string
-}
+type SMTPPasswordResetMailConfig = configuration.SMTPConfig
 
 type SMTPPasswordResetMailer struct {
 	config SMTPPasswordResetMailConfig
