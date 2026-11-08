@@ -14,6 +14,7 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 	const prefix = "railkeeper/backend/internal/"
 	modules := map[string][]string{
 		"authentication":                 {"credentials", "authentication"},
+		"authentication/bootstrap":       {"credentials", "authentication/management"},
 		"credentials":                    {},
 		"configuration":                  {},
 		"infrastructure/settingsdata":    {"configuration"},
@@ -43,7 +44,7 @@ func TestIndependentAuthenticationModuleBoundaries(t *testing.T) {
 		"backup":                         {"credentials", "inventory/numbering", "inventory/masterdata"},
 		"infrastructure/backupdata":      {"backup", "credentials", "inventory/numbering", "inventory/masterdata", "decoder/workflow", "infrastructure/catalogdata", "infrastructure/masterdatastore", "infrastructure/vehicledata"},
 		"infrastructure/valuationdata":   {"valuation", "credentials"},
-		"infrastructure/authdata":        {"authentication", "authentication/management", "credentials", "infrastructure/ratelimit"},
+		"infrastructure/authdata":        {"authentication", "authentication/management", "authentication/bootstrap", "credentials", "infrastructure/ratelimit"},
 		"infrastructure/ratelimit":       {"credentials"},
 	}
 	for module, allowed := range modules {
