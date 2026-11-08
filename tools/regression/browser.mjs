@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
+import { assertSaveErrorRecovery } from "./quality-save-errors.mjs";
 import { assertInventoryToolbar } from "./personal-entry.mjs";
 import { assertResponsiveWorkspaces } from "./responsive.mjs";
 
@@ -37,6 +38,7 @@ try {
     await page.getByRole("button", { name: de ? "Anmelden" : "Sign in", exact: true }).click();
     await page.waitForURL("**/overview");
     await assertInventoryToolbar(page, input, de, checks);
+    await assertSaveErrorRecovery(page, input, de, checks);
     const workspaces = [
       ["/overview", de ? "Übersicht" : "Overview"],
       ["/vehicles", de ? "Bestand" : "Inventory"],
