@@ -57,10 +57,14 @@ the invalidation even if readback fails. A rejected write retains the valid prev
 Management capability calculations remain conservative for unknown reference types.
 
 The application service is local composition embedding the real core, preserving its extra
-decoder/library methods. Its database field remains only for explicitly inventoried legacy
-decoder/symbol seeds, which belong to their separate migration. It executes no master-data
-read/write SQL. Backup compatibility owns its separate bundled-identity row type until that
-legacy restore adapter is migrated.
+decoder/library methods. Decoder-documentation and symbol-code seed policy also belongs to
+`inventory/masterdata`; narrow seed ports use `masterdatastore` on the caller's existing seed
+or restore transaction. The policy neither commits nor rolls back that transaction. Decoder
+metadata upgrades require a known, unedited bundled predecessor; symbol corrections require
+the exact canonical metadata digest. Local labels, activation, ordering, source URLs, artwork
+and vehicle assignments retain their rules. The original embedded manifest/generator path
+and public seed functions remain compatible. Application facades execute no master-data SQL.
+Backup compatibility retains its separate bundled-identity row type until that adapter migrates.
 
 Cached metadata owns nested maps and arrays. Both active and complete snapshots, and
 returned copies, retain their own mutable containers; changing one cannot alter another.
