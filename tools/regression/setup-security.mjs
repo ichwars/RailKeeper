@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
+import { assertFirstPersonalView } from "./personal-entry.mjs";
 
 let text = "";
 for await (const part of process.stdin) text += part;
@@ -103,6 +104,7 @@ try {
     await page.getByLabel("Passwort", { exact: true }).fill(input.credentials.password);
     await page.getByRole("button", { name: "Anmelden", exact: true }).click();
     await page.waitForURL("**/overview");
+    await assertFirstPersonalView(page, input, checks);
     const session = await (await page.request.get(input.base + "/api/v1/auth/session")).json();
     const headers = { "X-CSRF-Token": session.csrfToken };
     const preparation = await page.request.post(input.base + "/api/v1/auth/two-factor/setup", { headers });

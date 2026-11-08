@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { api, ApiError } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 
-export function SetupView({ onComplete }: { onComplete: () => void }) {
+export function SetupView({ onComplete }: { onComplete: (username: string) => void }) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,7 +34,7 @@ export function SetupView({ onComplete }: { onComplete: () => void }) {
 
     api
       .createAdmin({ username, email, password, setupCode: setupCode.trim() })
-      .then(onComplete)
+      .then(() => onComplete(username.trim()))
       .catch((error: Error) => {
         const key = error instanceof ApiError && error.code === "invalid_setup_code" ? "setup.invalidCode"
           : error instanceof ApiError && error.code === "already_setup" ? "setup.alreadyComplete" : null;

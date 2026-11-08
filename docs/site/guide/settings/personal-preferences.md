@@ -4,7 +4,7 @@ description: Configure language, start page, date and time choices, printing, an
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-08
 ---
 
 # Personal preferences
@@ -95,3 +95,11 @@ sidebar in the current browser; that collapsed state is not part of these profil
 | A hidden page can still be opened | Hiding changes navigation only, not authorization or routing. |
 | Named printers do not appear | System-printer discovery requires Admin and depends on the server operating system or printer configuration. |
 | The selected printer or date format has no effect | These preferences are stored but are not yet used globally by every the current version workflow. |
+
+## Personal view
+
+**Collection** places everyday inventory areas directly in navigation. Exhibition, Import/Export
+and Command stations remain under **More functions**. **All functions** shows every area your
+role allows. The choice preserves navigation order and data. You can still hide or move individual
+areas afterward. New first installations offer this choice after the first sign-in; existing
+accounts retain their settings.

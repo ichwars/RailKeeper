@@ -40,7 +40,7 @@ describe("first administrator authorization", () => {
     const { container } = render(<SetupView onComplete={complete} />);
     fillSetup();
     fireEvent.submit(container.querySelector("form")!);
-    await waitFor(() => expect(complete).toHaveBeenCalledOnce());
+    await waitFor(() => expect(complete).toHaveBeenCalledExactlyOnceWith("owner"));
   });
 
   it("explains a cookie setting that would prevent this HTTP session", async () => {

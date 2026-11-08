@@ -23,7 +23,7 @@ export async function assertDecoderManagement(page, input, de, { actor, csrfToke
     .getByRole("button", { name: de ? "CV bearbeiten" : "Edit CV", exact: true }).click();
   await editor.locator(".cv-manual-editor").getByRole("spinbutton", { name: de ? "Wert" : "Value", exact: true }).fill(String(base.value + 1));
   await editor.getByRole("button", { name: de ? "Im CV-Entwurf vormerken" : "Stage in CV draft", exact: true }).click();
-  await editor.locator(".cv-subtabs").getByRole("button", { name: de ? "Decoder und Arbeitsgruppen" : "Decoders and working groups", exact: true }).click();
+  await editor.locator(".cv-subtabs").getByRole("button", { name: de ? "Decoder und CV-Gruppen" : "Decoders and CV groups", exact: true }).click();
   const newUnit = () => panel.getByRole("button", { name: de ? "Decoderexemplar erfassen" : "Record decoder unit", exact: true });
   await newUnit().waitFor();
   await page.waitForFunction(() => !document.querySelector(".decoder-configurations-toolbar button:nth-child(2)")?.disabled);
@@ -60,7 +60,7 @@ export async function assertDecoderManagement(page, input, de, { actor, csrfToke
     initial.installations.filter(value => value.vehicleId === before.id && value.state === "installed").length + 2);
   const group = panel.locator(".decoder-working-group").filter({ has: page.getByText("Legacy-Profil", { exact: true }) });
   await group.getByRole("button", { name: de ? "Zuordnung prüfen" : "Review assignment", exact: true }).click();
-  await command.getByRole("button", { name: de ? "Einbau für diese Arbeitsgruppe" : "Installation for this working group", exact: true }).click();
+  await command.getByRole("button", { name: de ? "Einbau für diese CV-Gruppe" : "Installation for this CV group", exact: true }).click();
   await page.getByRole("option", { name: new RegExp(unitA) }).click();
   await commit(de ? "Teilstand erfassen und Zuordnung speichern" : "Record partial state and save assignment");
   await group.getByRole("button", { name: de ? "Teilstand erfassen" : "Record partial state", exact: true }).click();
@@ -113,18 +113,18 @@ export async function assertDecoderManagement(page, input, de, { actor, csrfToke
   assert.equal(reconciled.notes, "Remote note retained"); await page.setViewportSize({ width: 1440, height: 1000 });
   checks.push(`${language}:concurrent-field-choice-preserves-unmodified-serial-and-notes`);
 
-  await panel.getByRole("button", { name: de ? "Arbeitsgruppe anlegen" : "Create working group", exact: true }).click();
-  await field(de ? "Bezeichnung der Arbeitsgruppe" : "Working group designation").fill(`SYNTHETIC-GROUP-${language}`);
+  await panel.getByRole("button", { name: de ? "CV-Gruppe anlegen" : "Create CV group", exact: true }).click();
+  await field(de ? "Bezeichnung der CV-Gruppe" : "CV group designation").fill(`SYNTHETIC-GROUP-${language}`);
   let writes = 0;
   const workspaceEndpoint = input.base + endpoint + "/workspaces";
   await page.route(workspaceEndpoint, async route => {
     writes++; const response = await route.fetch(); assert.equal(response.status(), 201); await route.abort("failed");
   });
   try {
-    await command.getByRole("button", { name: de ? "Arbeitsgruppe jetzt anlegen" : "Create working group now", exact: true }).click();
+    await command.getByRole("button", { name: de ? "CV-Gruppe jetzt anlegen" : "Create CV group now", exact: true }).click();
     await panel.getByText(de ? "Es fehlt eine eindeutige Speicherbestätigung. Lade den aktuellen Stand, bevor du erneut bestätigst."
       : "There is no definite save acknowledgment. Load the current state before confirming again.", { exact: true }).waitFor();
-    assert.equal(await command.getByRole("button", { name: de ? "Arbeitsgruppe jetzt anlegen" : "Create working group now", exact: true }).isDisabled(), true);
+    assert.equal(await command.getByRole("button", { name: de ? "CV-Gruppe jetzt anlegen" : "Create CV group now", exact: true }).isDisabled(), true);
     await command.getByRole("button", { name: de ? "Aktuellen Stand laden und prüfen" : "Load and review current state", exact: true }).click();
     await command.waitFor({ state: "hidden" }); assert.equal(writes, 1);
   } finally { await page.unroute(workspaceEndpoint); }
@@ -171,7 +171,7 @@ export async function assertDecoderManagement(page, input, de, { actor, csrfToke
   await tab(de ? "Steuerung" : "Control");
   assert.equal(await editor.getByRole("textbox", { name: de ? "F0 Funktionsname" : "F0 Function name", exact: true }).inputValue(), "UNSAVED-DECODER-FUNCTION");
   await tab("CV");
-  await editor.locator(".cv-subtabs").getByRole("button", { name: de ? "Decoder und Arbeitsgruppen" : "Decoders and working groups", exact: true }).click();
+  await editor.locator(".cv-subtabs").getByRole("button", { name: de ? "Decoder und CV-Gruppen" : "Decoders and CV groups", exact: true }).click();
   await field(de ? "Notizen" : "Notes").waitFor();
   assert.equal(await field(de ? "Notizen" : "Notes").inputValue(), "Uncommitted unit input retained across tabs.");
   await command.getByRole("button", { name: de ? "Diese Aktion verwerfen" : "Discard this action", exact: true }).click();

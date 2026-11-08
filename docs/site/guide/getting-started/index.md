@@ -4,7 +4,7 @@ description: Create the first administrator, sign in securely, and recover acces
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-08
 ---
 
 # First setup and sign-in
@@ -34,6 +34,7 @@ No existing account or role is required for the one-time setup.
 
    | Field | Requirement | Purpose |
    | --- | --- | --- |
+   | Setup code | Required, local one-use code from `setup-code.txt` in the data directory | Confirms access to this installation |
    | Username | Required, at least 3 characters after surrounding spaces are removed | Identifies the account at sign-in |
    | Email address | Required, valid email address | Receives password-recovery links when email delivery is configured |
    | Password | Required, at least 12 characters | Protects the first account |
@@ -41,6 +42,13 @@ No existing account or role is required for the one-time setup.
 
 3. Select **Create admin**.
 4. After RailKeeper confirms the setup, use the normal sign-in form with the new credentials.
+
+Ask the person operating this installation for its setup code. After creating and signing
+in to the first administrator account, RailKeeper offers a **personal view** with **Collection**
+selected. Choose **Start with this view**, explicitly select **All functions**, or keep the
+current view for now. Specialist tools remain under **More functions**. Missing preferences
+alone never trigger this setup dialog for existing accounts. You can change the choice later
+in [personal preferences](../settings/personal-preferences).
 
 The first account receives the Admin, Editor, and Viewer roles. Setup cannot create a second first
 administrator. For protection against repeated attempts, RailKeeper accepts at most five setup
