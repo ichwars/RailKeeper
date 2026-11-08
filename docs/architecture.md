@@ -110,6 +110,12 @@ filesystem reads. Original files and stored path text remain intact; Windows sep
 applies only to reading. Immutable decoder sources can insert blobs into their caller-owned
 transaction. Background cleanup retains every existing media, article and decoder-snapshot reference.
 
+Historical snapshot reading/decoding lives in `decoder/workflow` behind a read-only transaction
+port; `vehicledata` owns its actual queries. These reads require no current vehicle/workspace.
+Recorded labels, missing versus zero index pages, source bytes and unknown hardware remain exact.
+Configured submodules receive their own dependency checks; every independent domain module also
+rejects concrete database, filesystem and network imports.
+
 CV writes similarly use caller-owned transactions through `vehicledata`. The additive
 [atomic CV changes API](architecture/cv-drafts.md) supports bounded manual batches, exact profile/index
 identity checks and computed row revisions. Existing single-value and import routes share the writer;

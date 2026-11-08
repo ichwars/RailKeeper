@@ -10,6 +10,7 @@
     "buildinfo": 100,
     "credentials": 91,
     "decoder": 89,
+    "decoder/workflow": 78,
     "decoderlibrary": 91,
     "domain": 88,
     "ecos": 86,
