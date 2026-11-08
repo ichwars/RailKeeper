@@ -28,5 +28,3 @@ func validBackupNumber(value any) bool                  { return backup.ValidBac
 func validBackupBoolean(value any) bool                 { return backup.ValidBackupBoolean(value) }
 
 func validateBackupFilePath(value string) error { return backup.ValidateBackupFilePath(value) }
-
-func quoteIdentifier(value string) string { return backupdata.QuoteIdentifier(value) }

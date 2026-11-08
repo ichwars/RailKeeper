@@ -107,11 +107,11 @@ jobs:
       matrix:
         include:
           - scope: rules-storage
-            packages: ./internal/inventory/... ./internal/transfer/... ./internal/authentication/... ./internal/credentials ./internal/decoder ./internal/ecosmodel ./internal/backup ./internal/valuation ./internal/infrastructure/vehicledata ./internal/infrastructure/catalogdata ./internal/infrastructure/workshopdata ./internal/infrastructure/masterdatastore ./internal/infrastructure/numberingdata ./internal/infrastructure/overviewdata ./internal/infrastructure/authdata ./internal/infrastructure/transferfiles ./internal/infrastructure/backupdata ./internal/infrastructure/valuationdata
+            packages: ./internal/media ./internal/infrastructure/blobdata ./internal/inventory/... ./internal/transfer/... ./internal/authentication/... ./internal/credentials ./internal/decoder ./internal/ecosmodel ./internal/backup ./internal/valuation ./internal/infrastructure/vehicledata ./internal/infrastructure/catalogdata ./internal/infrastructure/workshopdata ./internal/infrastructure/masterdatastore ./internal/infrastructure/numberingdata ./internal/infrastructure/overviewdata ./internal/infrastructure/authdata ./internal/infrastructure/transferfiles ./internal/infrastructure/backupdata ./internal/infrastructure/valuationdata
             tests: .
           - scope: inventory-media
             packages: ./internal/application ./internal/api
-            tests: ^Test(VehicleImages|VehiclePersistsImages|VehicleCreatesAndDeletesLocalImages|VehicleLinksMediaToMaintenance|ImageCreation|VehicleConflictRollsBackImages|AttachmentRevision|GuardedImageUpload|VehicleAndMediaRevision|MediaDeletion|VehicleSet|CreateVehicleSet)
+            tests: ^Test(VehicleImages|VehiclePersistsImages|VehicleCreatesAndDeletesLocalImages|VehicleLinksMediaToMaintenance|ImageCreation|VehicleConflictRollsBackImages|AttachmentRevision|GuardedImageUpload|VehicleAndMediaRevision|MediaDeletion|VehicleSet|CreateVehicleSet|BlobMigrationReferenceFailure|MigrateFilesystemBlobs|FileBlob|DecoderConfigurationMediaMigration)
           - scope: authentication
             packages: ./internal/application ./internal/api
             tests: ^Test.*(Auth|Login|TOTP|TwoFactor|RateLimit|Password|Setup)
