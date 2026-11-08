@@ -2,14 +2,15 @@ package vehicle
 
 import (
 	"context"
+	"strings"
+
 	"railkeeper/backend/internal/credentials"
 	"railkeeper/backend/internal/inventory/numbering"
-	"strings"
 )
 
 func InsertVehicle(
 	ctx context.Context,
-	tx VehicleMutation,
+	tx VehicleInsertionMutation,
 	vehicleID string,
 	input CreateVehicleInput,
 	actorUserID string,
@@ -42,10 +43,10 @@ func InsertVehicle(
 	return &vehicle, nil
 }
 
-func ReserveVehicleNumber(ctx context.Context, tx VehicleMutation, category string) (string, error) {
+func ReserveVehicleNumber(ctx context.Context, tx VehicleInsertionMutation, category string) (string, error) {
 	return numbering.Reserve(ctx, tx.Counter(), numbering.CleanCategory(category), numbering.CategoryForVehicle(category), func(candidate string) error { return EnsureInventoryNumberAvailable(ctx, tx, candidate, "") })
 }
-func EnsureInventoryNumberAvailable(ctx context.Context, tx VehicleMutation, number, excluded string) error {
+func EnsureInventoryNumberAvailable(ctx context.Context, tx VehicleInsertionMutation, number, excluded string) error {
 	number = strings.TrimSpace(number)
 	if number == "" {
 		return numbering.ErrValidation

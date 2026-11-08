@@ -88,8 +88,9 @@ for the individual write paths and cancellation semantics. These local actions a
 Vehicle create/update orchestration lives in `inventory/vehicle`, including validation, number
 reservation, optimistic revisions, image replacement, function conflicts and the single commit.
 `vehicledata` owns concrete SQL and creates that transaction; the core use case commits or rolls it
-back through a typed port. Existing set creation composes the same insertion rules in its own
-transaction. Number counters, core fields, images, functions, source mapping, history and audit stay
+back through a typed port. Set creation composes a narrower insertion port in its own transaction. Set validation, defaults,
+member order and post-commit response rules also live in `inventory/vehicle`; `vehicledata` owns
+set rows, membership and audit SQL. Canonical set edits retain individual member data. Number counters, core fields, images, functions, source mapping, history and audit stay
 atomic. File localization happens before the transaction; compensation runs after commit/rollback.
 Separate completion ports retain the existing response subsets and order after commit, including
 separately inventoried decoder/CV enrichment. No application models are imported by these adapters.

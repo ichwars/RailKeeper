@@ -17,8 +17,9 @@ type coreMutation struct {
 	tx *sql.Tx
 }
 
-func NewCoreStore(db *sql.DB) vehiclemodel.CoreRepository { return &coreStore{db: db} }
-func VehicleMutationFor(tx *sql.Tx) vehiclemodel.VehicleMutation {
+func NewCoreStore(db *sql.DB) vehiclemodel.CoreRepository        { return &coreStore{db: db} }
+func VehicleMutationFor(tx *sql.Tx) vehiclemodel.VehicleMutation { return newCoreMutation(tx) }
+func newCoreMutation(tx *sql.Tx) *coreMutation {
 	return &coreMutation{imageMutation: &imageMutation{imageReader: &imageReader{query: tx}, tx: tx}, functionMutation: &functionMutation{tx: tx}, tx: tx}
 }
 func (s *coreStore) BeginVehicle(ctx context.Context) (vehiclemodel.VehicleMutation, error) {

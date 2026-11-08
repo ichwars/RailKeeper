@@ -2,6 +2,7 @@ package vehicle
 
 import (
 	"context"
+
 	"railkeeper/backend/internal/inventory/numbering"
 )
 
@@ -9,18 +10,21 @@ type CoreRepository interface {
 	CheckCreationIdentity(context.Context, string) error
 	BeginVehicle(context.Context) (VehicleMutation, error)
 }
-type VehicleMutation interface {
+type VehicleInsertionMutation interface {
 	ImageReplacementMutation
 	FunctionMutation
-	CheckCreationIdentity(context.Context, string) error
 	Counter() numbering.Counter
 	InventoryNumberInUse(context.Context, string, string) (bool, error)
 	InsertVehicle(context.Context, Record) error
+	AuditCreated(context.Context, VehicleAudit) error
+}
+type VehicleMutation interface {
+	VehicleInsertionMutation
+	CheckCreationIdentity(context.Context, string) error
 	UpdateVehicle(context.Context, Record) (int64, error)
 	ReadCore(context.Context, string) (*Vehicle, error)
 	Images(context.Context, string) ([]VehicleImage, error)
 	WriteSourceMapping(context.Context, ExternalMappingWrite) (*VehicleExternalMap, error)
-	AuditCreated(context.Context, VehicleAudit) error
 	AuditUpdated(context.Context, VehicleAudit) error
 	RecordNumberChange(context.Context, VehicleNumberChange) error
 	Commit() error

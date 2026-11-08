@@ -3,9 +3,10 @@ package vehicle
 import (
 	"context"
 	"fmt"
-	"railkeeper/backend/internal/credentials"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/credentials"
 )
 
 func (s *CoreService) Create(ctx context.Context, input CreateVehicleInput, actorUserID string) (*Vehicle, error) {
