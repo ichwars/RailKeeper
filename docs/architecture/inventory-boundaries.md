@@ -66,3 +66,22 @@ Cached metadata owns nested maps and arrays. Both active and complete snapshots,
 returned copies, retain their own mutable containers; changing one cannot alter another.
 Scalar values, original profile strings and absent-versus-empty arrays retain their exact
 representation. The copy shares immutable string contents and uses no JSON roundtrip.
+
+## Maintenance and spare parts
+
+`inventory/workshop` owns maintenance defaults, date/cost validation, spare-part identity
+and duplicate merging, and the actual CRUD use cases. Typed parent lookup and storage
+ports keep those decisions independent of SQL. The application composes the parent lookup
+with its existing aggregate read, preserving the previous lookup and failure behavior.
+Aggregate assembly calls the row adapter directly to avoid recursive parent lookup.
+
+`infrastructure/workshopdata` owns the ten existing queries and mutations. Every record
+lookup, update and deletion retains its vehicle scope. Existing IDs, creation times,
+price strings, source URLs, row ordering and empty dates retain their original behavior.
+A duplicate spare part keeps its existing identity and recorded fields according to the
+original merge rules. A database failure cannot be acknowledged as an empty list or a
+successful mutation. Dedicated adapter tests verify cross-vehicle isolation and outages.
+
+Shared transport records and the original validation/not-found error identities live in
+`domain`; the application retains compatible aliases. This split changes neither schema
+nor JSON contracts and introduces no additional transaction or filesystem effect.

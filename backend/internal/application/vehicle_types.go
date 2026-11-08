@@ -7,12 +7,13 @@ import (
 
 	"railkeeper/backend/internal/decoder"
 	"railkeeper/backend/internal/domain"
+	"railkeeper/backend/internal/inventory/workshop"
 )
 
 var (
-	ErrVehicleValidation              = errors.New("vehicle validation failed")
+	ErrVehicleValidation              = domain.ErrVehicleValidation
 	ErrVehicleOperationalValidation   = errors.New("vehicle operational validation failed")
-	ErrVehicleNotFound                = errors.New("vehicle not found")
+	ErrVehicleNotFound                = domain.ErrVehicleNotFound
 	ErrVehicleExternalMappingConflict = errors.New("vehicle external mapping conflict")
 	ErrVehicleSetValidation           = errors.New("vehicle set validation failed")
 	ErrVehicleSetNotFound             = errors.New("vehicle set not found")
@@ -20,31 +21,6 @@ var (
 	ErrVehicleSetImageNotFound        = errors.New("vehicle set image not found")
 	ErrVehicleImageInUse              = errors.New("vehicle image in use")
 )
-
-var allowedMaintenanceKinds = map[string]struct{}{
-	"Decoder-Einbau":   {},
-	"Ersatzteiltausch": {},
-	"Reinigung":        {},
-	"Reparatur":        {},
-	"Schmierung":       {},
-	"Superung":         {},
-	"Umbau":            {},
-	"Wartung":          {},
-}
-
-var allowedMaintenanceStatuses = map[string]struct{}{
-	"erledigt": {},
-	"faellig":  {},
-	"geplant":  {},
-}
-
-var allowedConditionRatings = map[string]struct{}{
-	"gebraucht":          {},
-	"gut":                {},
-	"neuwertig":          {},
-	"reparaturbedürftig": {},
-	"sehr gut":           {},
-}
 
 var allowedFunctionTypes = map[string]struct{}{
 	"kupplung":       {},
@@ -63,6 +39,8 @@ var allowedFunctionModes = map[string]struct{}{
 type VehicleService struct {
 	db             *sql.DB
 	imageLocalizer VehicleImageLocalizer
+	workshop       *workshop.Service
+	workshopRows   workshop.Repository
 }
 
 type VehicleImageLocalizer func(ctx context.Context, vehicleID string, images []VehicleImageInput) ([]VehicleImageInput, error)
@@ -351,47 +329,13 @@ type VehicleAttachmentUpdateInput struct {
 	MaintenanceID    string  `json:"maintenanceId"`
 }
 
-type VehicleMaintenance struct {
-	ID              string `json:"id"`
-	VehicleID       string `json:"vehicleId"`
-	Kind            string `json:"kind"`
-	Status          string `json:"status"`
-	ConditionRating string `json:"conditionRating,omitempty"`
-	DueDate         string `json:"dueDate,omitempty"`
-	CompletedAt     string `json:"completedAt,omitempty"`
-	Cost            string `json:"cost,omitempty"`
-	Notes           string `json:"notes,omitempty"`
-	CreatedAt       string `json:"createdAt"`
-	UpdatedAt       string `json:"updatedAt"`
-}
+type VehicleMaintenance = domain.VehicleMaintenance
 
-type VehicleMaintenanceInput struct {
-	Kind            string `json:"kind"`
-	Status          string `json:"status"`
-	ConditionRating string `json:"conditionRating"`
-	DueDate         string `json:"dueDate"`
-	CompletedAt     string `json:"completedAt"`
-	Cost            string `json:"cost"`
-	Notes           string `json:"notes"`
-}
+type VehicleMaintenanceInput = domain.VehicleMaintenanceInput
 
-type VehicleSparePart struct {
-	ID            string `json:"id"`
-	VehicleID     string `json:"vehicleId"`
-	ArticleNumber string `json:"articleNumber"`
-	Description   string `json:"description"`
-	Price         string `json:"price,omitempty"`
-	URL           string `json:"url,omitempty"`
-	CreatedAt     string `json:"createdAt"`
-	UpdatedAt     string `json:"updatedAt"`
-}
+type VehicleSparePart = domain.VehicleSparePart
 
-type VehicleSparePartInput struct {
-	ArticleNumber string `json:"articleNumber"`
-	Description   string `json:"description"`
-	Price         string `json:"price"`
-	URL           string `json:"url"`
-}
+type VehicleSparePartInput = domain.VehicleSparePartInput
 
 type VehicleFunction struct {
 	ID                       string `json:"id"`

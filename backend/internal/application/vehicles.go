@@ -6,10 +6,16 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/infrastructure/workshopdata"
+	"railkeeper/backend/internal/inventory/workshop"
 )
 
 func NewVehicleService(db *sql.DB) *VehicleService {
-	return &VehicleService{db: db}
+	rows := workshopdata.New(db)
+	service := &VehicleService{db: db, workshopRows: rows}
+	service.workshop = workshop.New(rows, func(ctx context.Context, id string) error { _, err := service.Get(ctx, id); return err })
+	return service
 }
 
 func (s *VehicleService) SetImageLocalizer(localizer VehicleImageLocalizer) {
