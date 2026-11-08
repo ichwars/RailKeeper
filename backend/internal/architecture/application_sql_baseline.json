@@ -279,7 +279,7 @@
   },
   {
     "file": "vehicle_repository.go",
-    "calls": 6,
+    "calls": 5,
     "transactions": [
       "Delete"
     ],
@@ -309,7 +309,7 @@
   },
   {
     "file": "vehicles.go",
-    "calls": 3,
+    "calls": 2,
     "owner": "inventory/catalog persistence owner; one vehicle/catalog mutation with audit and revision",
     "stage": "R5a"
   }

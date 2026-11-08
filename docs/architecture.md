@@ -14,6 +14,7 @@ responsibility.
 - `inventory/masterdata`: master-data use cases, reconciliation and cache ownership behind semantic storage ports
 - `inventory/workshop`: maintenance and spare-part rules behind vehicle lookup and storage ports
 - `inventory/catalog`: immutable article revisions, selected-field adoption and legacy comparison rules behind typed transactions
+- `inventory/vehicle`: shared vehicle/set/media records, input rules and compatible draft revision encodings
 - `ecosmodel`: pure ECoS read projections, comparison plans and copied telemetry records
 - `backup`: backup format, compatibility checks and restore orchestration behind storage/rule ports
 - `decoder`: physical decoder/installation and CV identity, scope, conflict and partial-state rules

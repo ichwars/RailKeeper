@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"railkeeper/backend/internal/infrastructure/vehicledata"
+	vehiclemodel "railkeeper/backend/internal/inventory/vehicle"
 )
 
 func saveVehicleImages(ctx context.Context, tx *sql.Tx, vehicleID string, images []VehicleImageInput, now string) error {
@@ -121,40 +122,7 @@ func (s *VehicleService) ensureInventoryNumberAvailable(ctx context.Context, tx 
 }
 
 func vehicleImagesFromInput(vehicleID string, images []VehicleImageInput, now string) []VehicleImage {
-	cleaned := cleanVehicleImageInputs(images)
-	out := make([]VehicleImage, 0, len(cleaned))
-	for index, image := range cleaned {
-		sortOrder := image.SortOrder
-		if sortOrder == 0 {
-			sortOrder = index
-		}
-		out = append(out, VehicleImage{
-			ID:              image.ID,
-			VehicleID:       vehicleID,
-			URL:             image.URL,
-			Title:           image.Title,
-			SourceURL:       image.SourceURL,
-			FileName:        image.FileName,
-			MimeType:        image.MimeType,
-			StoragePath:     image.StoragePath,
-			ThumbnailPath:   image.ThumbnailPath,
-			BlobID:          image.BlobID,
-			ThumbnailBlobID: image.ThumbnailBlobID,
-			MaintenanceID:   image.MaintenanceID,
-			IsPrimary:       image.IsPrimary,
-			SortOrder:       sortOrder,
-			CreatedAt:       now,
-		})
-	}
-	return out
+	return vehiclemodel.ImagesFromInput(vehicleID, images, now)
 }
 
-func withVehicleImageURLs(image VehicleImage) VehicleImage {
-	if image.StoragePath != "" || image.BlobID != "" {
-		image.URL = "/api/v1/vehicles/" + image.VehicleID + "/images/" + image.ID + "/file"
-	}
-	if image.ThumbnailPath != "" || image.ThumbnailBlobID != "" {
-		image.ThumbnailURL = "/api/v1/vehicles/" + image.VehicleID + "/images/" + image.ID + "/thumbnail"
-	}
-	return image
-}
+func withVehicleImageURLs(image VehicleImage) VehicleImage { return vehiclemodel.WithImageURLs(image) }

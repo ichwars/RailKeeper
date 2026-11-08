@@ -2,82 +2,32 @@ package application
 
 import (
 	"context"
-	"errors"
-	"sort"
 	"time"
 
-	"railkeeper/backend/internal/infrastructure/vehicledata"
-	"railkeeper/backend/internal/revision"
+	vehiclemodel "railkeeper/backend/internal/inventory/vehicle"
 )
 
 var (
-	ErrVehicleCVFileConflict     = errors.New("vehicle CV file or its source references changed")
-	ErrVehicleConflict           = errors.New("vehicle changed since the draft was opened")
-	ErrVehicleImageConflict      = errors.New("vehicle images changed since the draft was opened")
-	ErrVehicleAttachmentConflict = errors.New("vehicle attachment changed since the draft was opened")
+	ErrVehicleCVFileConflict     = vehiclemodel.ErrVehicleCVFileConflict
+	ErrVehicleConflict           = vehiclemodel.ErrVehicleConflict
+	ErrVehicleImageConflict      = vehiclemodel.ErrVehicleImageConflict
+	ErrVehicleAttachmentConflict = vehiclemodel.ErrVehicleAttachmentConflict
 )
 
-func recordRevision(value any) string { return revision.Hash(value) }
+func vehicleImageRevision(image VehicleImage) string { return vehiclemodel.ImageRevision(image) }
 
-func vehicleCoreRevision(vehicle Vehicle) string {
-	var set *VehicleSetSummary
-	if vehicle.VehicleSet != nil {
-		copy := *vehicle.VehicleSet
-		copy.MainImage = nil // Independent media is guarded separately.
-		set = &copy
-	}
-	return recordRevision(struct {
-		Core vehicledata.Record
-		Set  *VehicleSetSummary
-	}{vehicleWriteRecord(vehicle), set})
-}
-
-func vehicleImageRevision(image VehicleImage) string {
-	return recordRevision(vehicledata.ImageRecord{
-		ID: image.ID, VehicleID: image.VehicleID, URL: image.URL, Title: image.Title,
-		SourceURL: image.SourceURL, FileName: image.FileName, MimeType: image.MimeType,
-		StoragePath: image.StoragePath, ThumbnailPath: image.ThumbnailPath,
-		BlobID: image.BlobID, ThumbnailBlobID: image.ThumbnailBlobID,
-		MaintenanceID: image.MaintenanceID, IsPrimary: image.IsPrimary, SortOrder: image.SortOrder,
-		CreatedAt: image.CreatedAt, UpdatedAt: image.UpdatedAt,
-	})
-}
-
-func vehicleImagesRevision(images []VehicleImage) string {
-	items := make([]struct{ ID, Revision string }, len(images))
-	for index, image := range images {
-		items[index].ID, items[index].Revision = image.ID, image.Revision
-	}
-	sort.Slice(items, func(i, j int) bool { return items[i].ID < items[j].ID })
-	return recordRevision(items)
-}
+func vehicleImagesRevision(images []VehicleImage) string { return vehiclemodel.ImagesRevision(images) }
 
 func vehicleAttachmentRevision(attachment VehicleAttachment) string {
-	attachment.Revision = ""
-	return recordRevision(struct {
-		Attachment          VehicleAttachment
-		StoragePath, BlobID string
-	}{attachment, attachment.StoragePath, attachment.BlobID})
+	return vehiclemodel.AttachmentRevision(attachment)
 }
 
 func checkVehicleRevision(actual string, expected *string, conflict error) error {
-	if expected == nil {
-		return nil // Legacy clients keep their existing request contract.
-	}
-	if !validCVRevision(*expected) {
-		return ErrVehicleValidation
-	}
-	if actual != *expected {
-		return conflict
-	}
-	return nil
+	return vehiclemodel.CheckRevision(actual, expected, conflict)
 }
 
 func optionalVehicleRevision(expected []string) *string {
-	if len(expected) == 0 {
-		return nil
-	}
-	return &expected[0]
+	return vehiclemodel.OptionalRevision(expected)
 }
 
 func (s *VehicleService) cleanupLocalizedVehicleImages(ctx context.Context, images []VehicleImageInput) {

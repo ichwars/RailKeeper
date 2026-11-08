@@ -2,51 +2,22 @@ package application
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
+
+	vehiclemodel "railkeeper/backend/internal/inventory/vehicle"
 )
 
 var (
-	ErrVehicleFunctionValidation = errors.New("invalid vehicle function changes")
-	ErrVehicleFunctionConflict   = errors.New("vehicle function changed concurrently")
+	ErrVehicleFunctionValidation = vehiclemodel.ErrVehicleFunctionValidation
+	ErrVehicleFunctionConflict   = vehiclemodel.ErrVehicleFunctionConflict
 )
 
-func vehicleFunctionRevision(item VehicleFunction) string {
-	item.Revision = ""
-	data, _ := json.Marshal(item)
-	return fmt.Sprintf("%x", sha256.Sum256(data))
-}
+func vehicleFunctionRevision(item VehicleFunction) string { return vehiclemodel.FunctionRevision(item) }
 
 func validateVehicleFunctionChanges(changes []VehicleFunctionChange) error {
-	if len(changes) > 32 {
-		return ErrVehicleFunctionValidation
-	}
-	seen := map[string]bool{}
-	for _, change := range changes {
-		key := normalizeFunctionKey(change.FunctionKey)
-		if !validFunctionKey(key) || seen[key] || change.Delete == (change.Value != nil) {
-			return ErrVehicleFunctionValidation
-		}
-		seen[key] = true
-		if change.ExpectedRevision != "" {
-			data, err := hex.DecodeString(change.ExpectedRevision)
-			if err != nil || len(data) != sha256.Size {
-				return ErrVehicleFunctionValidation
-			}
-		}
-		if change.Delete && change.ExpectedRevision == "" {
-			return ErrVehicleFunctionValidation
-		}
-		if change.Value != nil && (change.Value.FlagsVersion != 2 ||
-			!isValidVehicleFunctionInput(cleanVehicleFunctionInput(*change.Value))) {
-			return ErrVehicleFunctionValidation
-		}
-	}
-	return nil
+	return vehiclemodel.ValidateFunctionChanges(changes)
 }
 
 func applyVehicleFunctionChanges(ctx context.Context, tx *sql.Tx, vehicleID string,

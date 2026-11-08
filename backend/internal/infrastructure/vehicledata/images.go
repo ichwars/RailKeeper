@@ -4,41 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	vehiclemodel "railkeeper/backend/internal/inventory/vehicle"
 )
 
-type ImageRecord struct {
-	ID              string
-	VehicleID       string
-	URL             string
-	Title           string
-	SourceURL       string
-	FileName        string
-	MimeType        string
-	StoragePath     string
-	ThumbnailPath   string
-	BlobID          string
-	ThumbnailBlobID string
-	MaintenanceID   string
-	IsPrimary       bool
-	SortOrder       int
-	CreatedAt       string
-	UpdatedAt       string
-}
+type ImageRecord = vehiclemodel.ImageRecord
 
-type ImageMetadata struct {
-	ID              string
-	URL             string
-	FileName        string
-	MimeType        string
-	StoragePath     string
-	ThumbnailPath   string
-	BlobID          string
-	ThumbnailBlobID string
-	MaintenanceID   string
-	CreatedAt       string
-	SortOrder       int
-	Position        int
-}
+type ImageMetadata = vehiclemodel.ImageMetadata
 
 func ExistingImages(ctx context.Context, tx *sql.Tx, vehicleID string) (map[string]ImageMetadata, error) {
 	rows, err := tx.QueryContext(ctx, `
