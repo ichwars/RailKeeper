@@ -36,32 +36,8 @@
     "stage": "R5c"
   },
   {
-    "file": "decoder_configuration_changes.go",
-    "calls": 2,
-    "transactions": [
-      "changeDecoderConfiguration"
-    ],
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
-    "file": "decoder_configuration_context.go",
-    "calls": 1,
-    "transactions": [
-      "DecoderConfigurationContext"
-    ],
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
     "file": "decoder_library_seed.go",
     "calls": 3,
-    "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
-    "stage": "R5b"
-  },
-  {
-    "file": "decoder_workspace_writes.go",
-    "calls": 1,
     "owner": "vehicledata: vehicle mutation/checkpoint owner; original source-freezing atomicity preserved",
     "stage": "R5b"
   },

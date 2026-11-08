@@ -2,10 +2,9 @@ package application
 
 import (
 	"context"
-	"database/sql"
-	"strings"
 
 	"railkeeper/backend/internal/decoder"
+	"railkeeper/backend/internal/decoder/workflow"
 	"railkeeper/backend/internal/infrastructure/vehicledata"
 )
 
@@ -15,16 +14,10 @@ var (
 	ErrDecoderConflict   = decoder.ErrConflict
 )
 
-func (s *VehicleService) DecoderConfigurationContext(ctx context.Context, vehicleID string) (*DecoderConfigurationContext, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = tx.Rollback() }()
-	return readDecoderConfigurationContextTx(ctx, tx, strings.TrimSpace(vehicleID))
+func (s *VehicleService) configurationService(sourceRoot string) *workflow.ConfigurationService {
+	return workflow.NewConfigurationService(vehicledata.NewConfigurationStore(s.db, sourceRoot))
 }
-
-func readDecoderConfigurationContextTx(ctx context.Context, tx *sql.Tx, vehicleID string) (*DecoderConfigurationContext, error) {
-	result, err := vehicledata.ReadDecoderConfigurationContext(ctx, tx, vehicleID)
-	return result, cvRuleError(err)
+func (s *VehicleService) DecoderConfigurationContext(ctx context.Context, id string) (*DecoderConfigurationContext, error) {
+	value, err := s.configurationService("").Context(ctx, id)
+	return value, cvRuleError(err)
 }
