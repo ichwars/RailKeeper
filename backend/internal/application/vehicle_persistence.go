@@ -17,10 +17,6 @@ type queryRower interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
-func ensureVehicleMaintenanceID(ctx context.Context, query queryRower, vehicleID, maintenanceID string) error {
-	return vehiclemodel.EnsureMaintenanceReference(ctx, vehicledata.MaintenanceReader(query), vehicleID, maintenanceID)
-}
-
 func (s *VehicleService) nextInventoryNumber(ctx context.Context, tx *sql.Tx, vehicleCategory string) (string, error) {
 	requestedCategory := cleanInventoryCategory(vehicleCategory)
 	fallbackCategory := inventoryCategoryForVehicle(vehicleCategory)

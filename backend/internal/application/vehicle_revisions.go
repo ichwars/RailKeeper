@@ -16,16 +16,8 @@ var (
 
 func vehicleImagesRevision(images []VehicleImage) string { return vehiclemodel.ImagesRevision(images) }
 
-func vehicleAttachmentRevision(attachment VehicleAttachment) string {
-	return vehiclemodel.AttachmentRevision(attachment)
-}
-
 func checkVehicleRevision(actual string, expected *string, conflict error) error {
 	return vehiclemodel.CheckRevision(actual, expected, conflict)
-}
-
-func optionalVehicleRevision(expected []string) *string {
-	return vehiclemodel.OptionalRevision(expected)
 }
 
 func (s *VehicleService) cleanupLocalizedVehicleImages(ctx context.Context, images []VehicleImageInput) {
