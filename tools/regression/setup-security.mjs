@@ -1,3 +1,4 @@
+import { blockExternalRequests, closeBrowser, closeContext } from "./browser-network.mjs";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { mkdir } from "node:fs/promises";
@@ -51,11 +52,7 @@ let finalState;
 try {
   async function context(language, storageState) {
     const actor = await browser.newContext({ storageState });
-    await actor.route("**/*", (route) => {
-      const target = new URL(route.request().url());
-      return target.origin === origin.origin || ["data:", "blob:"].includes(target.protocol)
-        ? route.continue() : route.abort();
-    });
+    await blockExternalRequests(actor, origin);
     await actor.addInitScript((language) => {
       localStorage.setItem("railkeeper.settings.language", language);
       localStorage.setItem("railkeeper.theme", "light");
@@ -74,7 +71,7 @@ try {
     assert.equal(response.status(), 200);
     assert.equal((await response.json()).username, input.credentials.username);
     checks.push("existing-session-and-enabled-two-factor-survive-process-restart");
-    await actor.close();
+    await closeContext(actor);
   } else {
     for (const language of ["de", "en"]) {
       const { actor, page } = await context(language);
@@ -82,7 +79,7 @@ try {
       await page.getByRole("heading", { name: language === "de" ? "Ersteinrichtung" : "First Setup" }).waitFor();
       await capture(page, `setup-${language}`, language === "de" ? "Einrichtungscode" : "Setup code");
       checks.push(`${language}-setup-label-focus-themes-and-responsive-widths`);
-      await actor.close();
+      await closeContext(actor);
     }
     const { actor, page } = await context("de");
     await page.goto(input.base);
@@ -116,7 +113,7 @@ try {
       headers, data: { code: activationCode }
     });
     assert.equal(enabled.status(), 200);
-    await actor.close();
+    await closeContext(actor);
 
     for (const language of ["de", "en"]) {
       const de = language === "de";
@@ -144,12 +141,12 @@ try {
         checks.push("fresh-totp-sign-in-succeeds-with-existing-password");
       }
       checks.push(`${language}-two-factor-label-hint-focus-themes-and-responsive-widths`);
-      await actor.close();
+      await closeContext(actor);
     }
   }
   assert.deepEqual(errors, []);
   // The restart orchestrator keeps this synthetic session in memory, never in reports.
   process.stdout.write(JSON.stringify({ checks, sessionState: finalState }));
 } finally {
-  await browser.close();
+  await closeBrowser(browser);
 }

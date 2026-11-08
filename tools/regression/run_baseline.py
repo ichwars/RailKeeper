@@ -192,6 +192,9 @@ def run(args):
                             "Catalog command backup round trip")
 
             if args.browser:
+                subprocess.run(["node", "--test", str(Path(__file__).with_name("browser-network.test.mjs"))],
+                               check=True, timeout=75)
+                passed("browser-network-boundary-and-inflight-route-teardown")
                 before_browser = target.client.request("GET", "/api/v1/backup/export")
                 result = subprocess.run(["node", str(Path(__file__).with_name("browser.mjs"))],
                                         input=json.dumps({"base": target.client.base, "credentials": recovery,

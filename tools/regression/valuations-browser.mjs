@@ -1,3 +1,4 @@
+import { blockExternalRequests, closeBrowser, closeContext } from "./browser-network.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
@@ -14,10 +15,7 @@ const browser = await chromium.launch({ headless: true }), reference = await ref
 try {
   for (const language of ["de", "en"]) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-    await context.route("**/*", route => {
-      const url = new URL(route.request().url());
-      return url.origin === origin.origin || ["data:", "blob:"].includes(url.protocol) ? route.continue() : route.abort();
-    });
+    await blockExternalRequests(context, origin);
     await context.addInitScript(language => localStorage.setItem("railkeeper.settings.language", language), language);
     const page = await context.newPage(), errors = [], de = language === "de";
     page.setDefaultTimeout(10000);
@@ -29,7 +27,7 @@ try {
     await page.waitForURL("**/overview");
     checks.push(...await assertValuations(page, input, de, reference));
     assert.deepEqual(errors, []);
-    await context.close();
+    await closeContext(context);
   }
   await writeFile(input.output + "/report.json", JSON.stringify({ passed: true, checks }, null, 2) + "\n");
   process.stdout.write(JSON.stringify({ checks }) + "\n");
@@ -50,5 +48,5 @@ try {
   process.exitCode = 1;
 } finally {
   await reference.actor.dispose();
-  await browser.close();
+  await closeBrowser(browser);
 }

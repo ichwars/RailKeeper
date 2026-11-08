@@ -1,3 +1,4 @@
+import { blockExternalRequests, closeBrowser, closeContext } from "./browser-network.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
@@ -18,11 +19,7 @@ try {
   for (const language of ["de", "en"]) {
     const de = language === "de";
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-    await context.route("**/*", (route) => {
-      const url = new URL(route.request().url());
-      return url.origin === origin.origin || ["data:", "blob:"].includes(url.protocol)
-        ? route.continue() : route.abort();
-    });
+    await blockExternalRequests(context, origin);
     await context.addInitScript(({ language, origin }) => {
       if (window.location.origin !== origin) return;
       localStorage.setItem("railkeeper.settings.language", language);
@@ -118,9 +115,9 @@ try {
       }
     }
     assert.deepEqual(errors, []);
-    await context.close();
+    await closeContext(context);
   }
   await writeFile(input.output + "/report.json", JSON.stringify({ passed: true, checks }, null, 2) + "\n");
 } finally {
-  await browser.close();
+  await closeBrowser(browser);
 }
