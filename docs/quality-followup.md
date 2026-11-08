@@ -134,3 +134,17 @@ its own protected budget but cannot authenticate; distributed sustained overload
 can still exhaust global capacity. Recovery requires an existing admin session,
 another permitted origin, or expiry of the five-minute window. Independent human
 security review remains part of R10, alongside the documented automated checks.
+
+## Account and session boundaries (R3)
+
+`authentication/management` owns account validation, role inheritance, session/CSRF
+policy, password/reset decisions and second-factor orchestration. It uses typed
+persistence ports and has no SQL, HTTP or filesystem dependencies. Its own coverage
+floor preserves the former application floor of 78%; the critical login module
+retains its independent 98% floor and the total measurement scope is unchanged.
+
+`authdata` owns account/role mutations, session persistence, reset requests and
+second-factor commits in focused adapters. Password derivation happens before
+account-update transactions. `application.AuthService` composes these modules and
+preserves existing transport types through aliases. The three completed SQL files
+leave the inventory: 54 files and 254 concrete database calls remain for R5.
