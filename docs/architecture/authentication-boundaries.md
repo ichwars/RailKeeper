@@ -33,7 +33,7 @@ Diese Übergangskonstruktion ist auf die Fassade begrenzt.
 | Sitzung widerrufen/Logout | `authdata.Store`: Widerruf und Audit atomar; ungültige Sitzungen bleiben beim Logout idempotent, technische Fehler werden gemeldet. |
 | Zwei-Faktor-Verwaltung | `authdata.Store`: Vorbereitung oder atomarer Aktivierungs-/Deaktivierungsnachweis mit TOTP-Verbrauch, Audit und gegebenenfalls Sitzungswiderruf. |
 | Anmeldebudget freigeben | `authdata.Store.ResetLoginBudget`: Administratorrolle im Commit prüfen, Budgets/Browserbelege ändern und Audit gemeinsam. |
-| Ersteinrichtung | Setup besitzt vorerst seine bestehende Einmalcode-Transaktion; separater Rest in R5c. |
+| Ersteinrichtung | `authentication/bootstrap` besitzt Einmalcode-/Administratorregeln und die Transaktionsfolge; `authdata` führt dieselben atomaren SQL-Änderungen aus. |
 
 Eine zwischen Prüfung und Abschluss geänderte Anmeldung wird zurückgewiesen. Das gilt für
 Passwort, 2FA-Secret und Aktivierung. Der Adapter überschreibt eine parallele Änderung
@@ -42,6 +42,17 @@ einen zweiten Anmeldeschreibpfad noch eine automatische Wiederholung einer Speic
 
 Die bisherige `RateLimitService`-Fassade delegiert ihre SQLite-Operationen an denselben
 fokussierten Adapter wie das Kontobudget. Die IP-Begrenzung bleibt bestehen.
+
+## Ersteinrichtung
+
+`authentication/bootstrap` prüft den lokalen Einmalcode vor der Passwortableitung.
+Innerhalb einer einzigen Transaktion werden bestehende Konten erneut geprüft, der Code
+atomar verbraucht und genau das erste Konto samt Admin-/Editor-/Viewer-Rollen und Audit
+angelegt. Fehlgeschlagene Rollen-, Audit- oder Commit-Schritte erhalten den ursprünglichen
+Code für einen erneuten Versuch. Der vertrauenswürdige lokale Bootstrap bleibt ein eigener
+Aufruf; die öffentliche HTTP-Einrichtung verlangt weiterhin den lokalen Code und ihr
+bestehendes IP-Limit. Bestehende Konten lassen ihre Einrichtungserlaubnis unverändert.
+Anwendungsbackups enthalten weiterhin keine lokalen Authentifizierungsdaten.
 
 ## Verbleibender Bestand und Nachweise
 
@@ -63,7 +74,7 @@ Logins, verbrauchte TOTP-Schritte und vollständigen Rollback. Die synthetischen
 ## English summary
 
 The independent authentication modules own login, account, session, password/reset and
-second-factor decisions behind consumer-defined ports.
+second-factor and one-use first-run setup decisions behind consumer-defined ports.
 SQLite adapters own the explicitly named atomic commits. The existing application facade
 preserves callers and transport contracts; startup wires the production store. Credential
 formats, existing accounts/sessions and public response fields remain compatible. Migration 81
