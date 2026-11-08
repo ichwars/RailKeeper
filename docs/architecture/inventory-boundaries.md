@@ -85,3 +85,27 @@ successful mutation. Dedicated adapter tests verify cross-vehicle isolation and 
 Shared transport records and the original validation/not-found error identities live in
 `domain`; the application retains compatible aliases. This split changes neither schema
 nor JSON contracts and introduces no additional transaction or filesystem effect.
+
+## Vehicle and set catalog revisions
+
+`inventory/catalog` owns field decoding and validation, revision creation/adoption,
+preservation of unresolved proposals, selected-field projection and comparison reports.
+Its repository and mutation ports contain no SQL types. Repeated adoption of an already
+selected revision returns the existing context without writes, audit or commit.
+
+`infrastructure/catalogdata` owns catalog reads and mutations, revision numbering,
+audit records and projection-trigger maintenance. One transaction covers the current
+comparison, any retained proposal, article/revision creation, selected-field projection,
+audit and final context read. The use case requests commit only after all succeed.
+Failure rolls back the same transaction. Read snapshots retain their previous transaction
+boundaries and comparison-token encoding.
+
+Projection updates only changed selected fields in their original order. Unselected raw
+NULLs, acquisition/ownership fields, other vehicles and set members retain their values.
+Individual overrides, original authority markers and unknown source times are preserved.
+The existing immutable revisions and all JSON shapes remain compatible aliases.
+
+Legacy backfill and trigger suspension/restoration also execute in this adapter. Restore
+passes its existing transaction to those helpers; they never begin or commit a separate
+one. Backfill reports cross the port as typed raw rows before pure comparison/aggregation;
+malformed stored fields fail the report instead of acknowledging a partial result.
