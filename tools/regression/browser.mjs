@@ -5,6 +5,7 @@ import { chromium } from "playwright";
 import { assertSaveErrorRecovery } from "./quality-save-errors.mjs";
 import { assertInventoryToolbar } from "./personal-entry.mjs";
 import { assertResponsiveWorkspaces } from "./responsive.mjs";
+import { assertLogoutRecovery } from "./logout-recovery.mjs";
 
 let inputText = "";
 for await (const part of process.stdin) inputText += part;
@@ -114,6 +115,7 @@ try {
         checks.push(`${language}:${theme}:${width}:filters-settings-and-uploads`);
       }
     }
+    checks.push(...await assertLogoutRecovery(page, input, de));
     assert.deepEqual(errors, []);
     await closeContext(context);
   }

@@ -4,7 +4,7 @@ import type {
   TwoFactorEnableInput, TwoFactorStatus, UserAccount, UserAccountInput
 } from "./apiAuthModels";
 import type { APIRequest } from "./apiTransport";
-import { readCookie, setCSRFToken } from "./apiTransport";
+import { ApiError, readCookie, setCSRFToken } from "./apiTransport";
 
 export function createAuthenticationAPI(request: APIRequest) {
   return {
@@ -33,9 +33,14 @@ export function createAuthenticationAPI(request: APIRequest) {
         body: JSON.stringify(input)
       }),
     session: async () => {
-      const session = await request<Session>("/auth/session");
-      setCSRFToken(session.csrfToken || readCookie("rk_csrf"));
-      return session;
+      try {
+        const session = await request<Session>("/auth/session");
+        setCSRFToken(session.csrfToken || readCookie("rk_csrf"));
+        return session;
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) setCSRFToken("");
+        throw error;
+      }
     },
     profileSettings: () => request<SettingsPayload>("/profile/settings"),
     updateProfileSettings: (settings: Record<string, string>) =>

@@ -1,9 +1,10 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { LoginView } from "../features/auth/LoginView";
 import { PersonalViewWelcome } from "../features/setup/PersonalViewWelcome";
 import { SetupView } from "../features/setup/SetupView";
 import { DecoderLibraryProvider } from "../shared/DecoderLibraryProvider";
-import { Session, api } from "../shared/api";
+import { ApiError, Session, api } from "../shared/api";
+import { observeAction } from "../shared/asyncAction";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference } from "../shared/theme";
 import { Shell } from "./Shell";
@@ -92,6 +93,7 @@ export function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [loadError, setLoadError] = useState("");
   const [logoutError, setLogoutError] = useState("");
+  const logoutInFlight = useRef(false);
   const [view, setView] = useState<AppView>(currentView);
   const [navigationRevision, setNavigationRevision] = useState(0);
   const { t } = useI18n();
@@ -129,6 +131,35 @@ export function App() {
     window.history.replaceState(null, "", pathForView(nextView));
     setView(nextView);
     setSession(nextSession);
+  }
+
+  async function handleLogout() {
+    if (logoutInFlight.current) return;
+    logoutInFlight.current = true;
+    setLogoutError("");
+    try {
+      await api.logout();
+      setSession(null);
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        try {
+          const current = await api.session();
+          if (current.username !== session?.username) {
+            setSession(null);
+            return;
+          }
+          setSession(current);
+        } catch (sessionError) {
+          if (sessionError instanceof ApiError && sessionError.status === 401) {
+            setSession(null);
+            return;
+          }
+        }
+      }
+      setLogoutError(error instanceof Error ? error.message : String(error));
+    } finally {
+      logoutInFlight.current = false;
+    }
   }
 
   if (loadError) {
@@ -203,10 +234,7 @@ export function App() {
         setView(nextView);
         setNavigationRevision(previous => previous + 1);
       }}
-      onLogout={() => {
-        setLogoutError("");
-        api.logout().then(() => setSession(null)).catch((error: Error) => setLogoutError(error.message));
-      }}
+      onLogout={() => observeAction(handleLogout())}
     >
       {logoutError && <p className="form-message error" role="alert">{logoutError}</p>}
       <Suspense key={navigationRevision} fallback={<ViewLoading />}>
