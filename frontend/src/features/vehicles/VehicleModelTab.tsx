@@ -282,6 +282,7 @@ export function VehicleModelTab({
                 {t("vehicle.field.maximumSpeedKmh")}
                 <span className="input-with-unit">
                   <AppNumberControl
+                    aria-label={t("vehicle.field.maximumSpeedKmh")}
                     min={1}
                     max={1000}
                     step={1}

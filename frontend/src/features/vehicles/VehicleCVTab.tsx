@@ -260,7 +260,7 @@ export function VehicleCVTab({
                         <div className="cv-form">
                           <label>
                             CV-Nr.
-                            <AppNumberControl min={1} max={1024} value={cvForm.cvNumber} onChange={(event) => updateCVForm({ cvNumber: Number(event.target.value) })} disabled={readonly || saving} />
+                            <AppNumberControl aria-label="CV-Nr." min={1} max={1024} value={cvForm.cvNumber} onChange={(event) => updateCVForm({ cvNumber: Number(event.target.value) })} disabled={readonly || saving} />
                           </label>
                           <label>CV31
                             <AppNumberControl aria-label="CV31" min={0} max={255} value={cvForm.indexCV31 ?? ""}
@@ -272,7 +272,7 @@ export function VehicleCVTab({
                           </label>
                           <label>
                             {t("vehicle.field.value")}
-                            <AppNumberControl min={0} max={255} value={cvForm.value} onChange={(event) => updateCVForm({ value: Number(event.target.value) })} disabled={readonly || saving} />
+                            <AppNumberControl aria-label={t("vehicle.field.value")} min={0} max={255} value={cvForm.value} onChange={(event) => updateCVForm({ value: Number(event.target.value) })} disabled={readonly || saving} />
                           </label>
                           <label>
                             {t("vehicle.field.category")}
