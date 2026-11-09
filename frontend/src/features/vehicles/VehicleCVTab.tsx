@@ -169,9 +169,9 @@ export function VehicleCVTab({
   return <ManufacturerCVProvider values={values} profile={detailValue?.decoderProfile ?? decoder.profile}
     manualType={manualType} ecosProfile={ecosProfile}><section className="cv-tab" ref={sectionRef}>
     <div className="cv-entry-actions"><h3>{t(archiveActive ? "decoderConfig.archive" : configurationActive ? "decoderManage.title" : "vehicles.decoder.dataTitle")}</h3>{workingView && <div className="cv-toolbar">
-      <input ref={cvImportInputRef} type="file" accept=".json,.csv,.txt" className="visually-hidden"
+      <input ref={cvImportInputRef} type="file" accept=".json,.csv,.txt" className="visually-hidden" tabIndex={-1} aria-hidden="true"
         onChange={(event) => importCVValues(event.target.files)} disabled={readonly || !selected || saving} />
-      <input ref={cvFileInputRef} type="file" multiple accept={cvFileAccept} className="visually-hidden"
+      <input ref={cvFileInputRef} type="file" multiple accept={cvFileAccept} className="visually-hidden" tabIndex={-1} aria-hidden="true"
         onChange={(event) => uploadCVFiles(event.target.files)} disabled={readonly || !selected || saving} />
       <button type="button" className="primary-button" onClick={() => cvImportInputRef.current?.click()} disabled={readonly || !selected || saving}>
         <Upload size={15} />{t("vehicles.decoder.importList")}</button>

@@ -207,7 +207,7 @@ export function VehicleUploadsTab({
             type="file"
             multiple
             accept={imageAccept}
-            className="visually-hidden"
+            className="visually-hidden" tabIndex={-1} aria-hidden="true"
             onChange={(event) => onUploadImages(event.target.files)}
             disabled={readonly || !selected}
           />
@@ -315,7 +315,7 @@ export function VehicleUploadsTab({
             type="file"
             multiple
             accept={attachmentAccept}
-            className="visually-hidden"
+            className="visually-hidden" tabIndex={-1} aria-hidden="true"
             onChange={(event) => onUploadAttachment(event.target.files)}
             disabled={readonly || !selected}
           />
