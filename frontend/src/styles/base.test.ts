@@ -26,6 +26,7 @@ describe("base design system", () => {
     expect(css).toMatch(/\.auth-settings-grid,\s*\.digital-settings-grid\s*\{[^}]*min-width:\s*0/s);
     expect(css).toMatch(/\.settings-card-title > div\s*\{[^}]*min-width:\s*0[^}]*overflow-wrap:\s*anywhere/s);
     expect(css).toMatch(/\.smtp-settings-card \.settings-form\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+    expect(css).toMatch(/\.smtp-settings-card \.settings-action-row\s*\{[^}]*flex-wrap:\s*wrap/s);
   });
 
   it("keeps article image selection above its thumbnail without taking image space", () => {

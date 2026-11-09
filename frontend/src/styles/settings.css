@@ -412,6 +412,7 @@
 
 .smtp-settings-card .settings-action-row {
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .settings-pill {
