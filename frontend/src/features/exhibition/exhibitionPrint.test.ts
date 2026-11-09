@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ExhibitionList, ExhibitionWorkspaceEntry } from "../../shared/api";
 import { buildExhibitionPrintHTML, printFunctionChips, printList } from "./exhibitionPrint";
@@ -22,9 +22,25 @@ const entry: ExhibitionWorkspaceEntry = {
 const t = (key: string, values?: Record<string, string | number>) => `${key}${values ? ` ${values.count}` : ""}`;
 
 describe("exhibition print report", () => {
+  beforeEach(() => {
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tagName, options) => {
+      const element = createElement(tagName, options);
+      if (tagName === "iframe") {
+        // jsdom does not load srcdoc; control success and timeout explicitly instead
+        // of treating its automatic about:blank load as the print document's load.
+        element.addEventListener("load", (event) => {
+          if (event.isTrusted) event.stopImmediatePropagation();
+        }, true);
+      }
+      return element;
+    });
+  });
+
   afterEach(() => {
     document.querySelectorAll("iframe").forEach((frame) => frame.remove());
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it("includes all operational fields, event metadata and saved functions", () => {
