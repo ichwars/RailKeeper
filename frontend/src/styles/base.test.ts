@@ -25,6 +25,7 @@ describe("base design system", () => {
     const css = readFileSync(join(stylesDirectory, "settings.css"), "utf8");
     expect(css).toMatch(/\.auth-settings-grid,\s*\.digital-settings-grid\s*\{[^}]*min-width:\s*0/s);
     expect(css).toMatch(/\.settings-card-title > div\s*\{[^}]*min-width:\s*0[^}]*overflow-wrap:\s*anywhere/s);
+    expect(css).toMatch(/\.smtp-settings-card \.settings-form\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
   });
 
   it("confines hidden exhibition row actions to the scrollable table", () => {

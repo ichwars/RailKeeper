@@ -400,6 +400,11 @@
   gap: 12px;
 }
 
+.smtp-settings-card,
+.smtp-settings-card .settings-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .smtp-settings-card .smtp-toggle-row .switch-field {
   flex: 0 0 auto;
   margin-left: auto;

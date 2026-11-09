@@ -384,7 +384,15 @@
   color: var(--muted);
 }
 
-.app-file-button { display: inline-flex; min-width: 0; }
+.app-file-button { position: relative; display: inline-flex; min-width: 0; }
+.app-file-button > input.visually-hidden {
+  inset: 0;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+}
 .app-file-button > button:focus-visible {
   outline: 2px solid var(--accent-strong);
   outline-offset: 2px;
