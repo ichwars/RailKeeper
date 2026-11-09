@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { MasterDataEntry } from "../../shared/api";
@@ -102,7 +103,7 @@ export function MasterDataBulkSelectAllCheckbox({
   }, [selection.someVisibleSelected]);
 
   return <label className="master-data-bulk-checkbox-target">
-    <input
+    <AppChoiceInput
       ref={inputRef}
       className="master-data-bulk-checkbox"
       type="checkbox"
@@ -128,7 +129,7 @@ export function MasterDataBulkEntryCheckbox({
   const { t } = useI18n();
   if (!canSelect(entry)) return null;
   return <label className="master-data-bulk-checkbox-target">
-    <input
+    <AppChoiceInput
       className="master-data-bulk-checkbox"
       type="checkbox"
       aria-label={t("settings.master.selectEntry", { label })}

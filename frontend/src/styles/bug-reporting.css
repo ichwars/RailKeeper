@@ -273,6 +273,6 @@
   margin: 0;
   color: var(--muted);
   font-size: var(--font-size-md);
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-regular);
   line-height: var(--line-height-normal);
 }

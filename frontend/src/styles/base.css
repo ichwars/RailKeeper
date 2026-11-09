@@ -337,6 +337,17 @@ body {
   color: var(--text);
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+small {
+  font-size: var(--font-size-xs);
+}
+
 a {
   color: inherit;
   text-decoration: none;

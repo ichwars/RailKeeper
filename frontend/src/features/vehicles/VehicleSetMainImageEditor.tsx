@@ -3,6 +3,7 @@ import { useState, type ChangeEvent } from "react";
 
 import { api, type VehicleImage, type VehicleSet } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import { AppFileButton } from "../../shared/ui/AppFileButton";
 
 type VehicleSetMainImageEditorProps = {
 	vehicleSet: VehicleSet;
@@ -83,10 +84,11 @@ export function VehicleSetMainImageEditor({ vehicleSet, onChange, onError }: Veh
 					<span>{t(`vehicles.set.mainImage.source.${sourceKey}`)}</span>
 				</div>
 				<div className="vehicle-set-main-image-actions">
-					<label className="primary-button vehicle-set-image-upload-button">
+					<AppFileButton buttonClassName="primary-button vehicle-set-image-upload-button"
+						aria-label={t("vehicles.set.mainImage.upload")}
+						accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={busy}>
 						<Upload size={16} />{t("vehicles.set.mainImage.upload")}
-						<input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={busy} />
-					</label>
+					</AppFileButton>
 					<button type="button" className="secondary-button" disabled={busy}
 						onClick={() => void run(() => api.setVehicleSetMainImage(vehicleSet.id, { mode: "automatic" }))}>
 						{t("vehicles.set.mainImage.automatic")}

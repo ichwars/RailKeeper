@@ -130,6 +130,7 @@
 .digital-settings-grid {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .auth-settings-grid .auth-status-card,
@@ -171,6 +172,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  min-width: 0;
 }
 
 .settings-card-title > svg,
@@ -183,6 +185,8 @@
 .settings-card-title > div {
   display: grid;
   gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .settings-field-grid {
@@ -396,6 +400,11 @@
   gap: 12px;
 }
 
+.smtp-settings-card,
+.smtp-settings-card .settings-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .smtp-settings-card .smtp-toggle-row .switch-field {
   flex: 0 0 auto;
   margin-left: auto;
@@ -403,6 +412,7 @@
 
 .smtp-settings-card .settings-action-row {
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .settings-pill {
@@ -1695,6 +1705,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  flex: 1 1 auto;
 }
 
 .settings-section-head > .settings-card-actions {

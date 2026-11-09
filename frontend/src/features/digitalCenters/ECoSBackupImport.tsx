@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { api, ApiError } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppCheckbox } from "../../shared/ui/AppCheckbox";
+import { AppFilePicker } from "../../shared/ui/AppFilePicker";
 import type { ECoSBackupImportResult } from "./digitalCenterModel";
 
 const maximumBackupBytes = 8 * 1024 * 1024;
@@ -50,11 +51,11 @@ export function ECoSBackupImport({ stationHost, disabled = false, onImported }: 
     <h2 id={headingId}>{t("digitalCenters.backup.importTitle")}</h2>
     <p>{t("digitalCenters.backup.importExplanation")}</p>
     <div className="ecos-backup-import-controls">
-      <label className="ecos-backup-import-file">
-        <span>{t("digitalCenters.backup.file")}</span>
-        <input type="file" accept=".eco" disabled={busy || disabled} aria-describedby={hintId}
-          onChange={(event) => {
-            const selected = event.target.files?.[0] ?? null;
+      <AppFilePicker className="ecos-backup-import-file" label={t("digitalCenters.backup.file")}
+        triggerLabel={t("settings.file.pick")} emptyLabel={t("settings.file.none")}
+        clearLabel={t("accessories.editor.documents.clear")} file={file}
+        accept=".eco" disabled={busy || disabled} aria-describedby={hintId}
+          onFileChange={(selected) => {
             setSummary(null);
             setConfirmStation(false);
             setError("");
@@ -68,7 +69,6 @@ export function ECoSBackupImport({ stationHost, disabled = false, onImported }: 
               setFile(selected);
             }
           }} />
-      </label>
       <button type="button" className="digital-center-button" disabled={!file || busy || disabled}
         onClick={() => void inspect()}>
         {t(busy ? "digitalCenters.backup.inspecting" : "digitalCenters.backup.inspect")}

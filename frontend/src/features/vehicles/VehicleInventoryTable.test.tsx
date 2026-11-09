@@ -227,6 +227,8 @@ describe("VehicleInventoryTable", () => {
     const exhibitionControl = screen.getByRole("checkbox", { name: "Ausstellungsstatus ändern" });
     expect(exhibitionControl).toBeEnabled();
     expect(exhibitionControl).toBeChecked();
+    expect(exhibitionControl.parentElement).toHaveClass("inventory-inline-switch");
+    expect(exhibitionControl.nextElementSibling).toHaveAttribute("aria-hidden", "true");
 
     await user.click(exhibitionControl);
     expect(onToggleExhibition).toHaveBeenCalledWith(vehicle, false);

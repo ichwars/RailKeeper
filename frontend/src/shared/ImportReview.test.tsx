@@ -8,6 +8,20 @@ import type { ArticleSearchResult } from "./api";
 
 describe("shared import review", () => {
   beforeEach(() => localStorage.clear());
+  it("labels image choices and retains image-selection events", () => {
+    const image = { url: "https://example.test/image.png", title: "Seitenansicht", source: "manufacturer" };
+    const result: ArticleSearchResult = { source: "manufacturer", title: "Reference", score: 100,
+      url: "https://example.test/model", snippet: "", fields: {}, images: [image] };
+    const toggle = vi.fn();
+    render(<ArticleSearchDialog loading={false} response={{ query: "Reference", results: [result] }} error=""
+      fieldGroups={[]} currentValue={() => ""} selectedFields={{}} selectedImages={{}}
+      onApply={vi.fn()} onClose={vi.fn()} onToggleField={vi.fn()} onToggleImage={toggle} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Bild 1 auswählen: Seitenansicht" }));
+    expect(toggle).toHaveBeenCalledExactlyOnceWith(result, 0, image, true);
+    expect(document.querySelector(".article-image-option > .app-choice-control + img"))
+      .toHaveAttribute("src", image.url);
+  });
+
   it("honors an explicit view language independently of the global preference", () => {
     render(<ImportReviewStatus state="changed" language="en" />);
     expect(screen.getByText("Different")).toBeInTheDocument();

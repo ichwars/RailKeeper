@@ -1,5 +1,6 @@
 import { ExternalLink, RefreshCw, Trash2, Upload, X } from "lucide-react";
 import { useI18n } from "../../shared/i18n";
+import { AppFileButton } from "../../shared/ui/AppFileButton";
 import { MasterDataBulkToolbar } from "./MasterDataBulkSelection";
 import { normalizeCV8Binary, normalizeCV8Decimal, normalizeCV8Hex } from "./settingsModel";
 import { SettingsMasterDataTable } from "./SettingsMasterDataTable";
@@ -114,18 +115,15 @@ export function SettingsMasterDataPanel({ controller }: { controller: SettingsMa
                   placeholder={t("settings.data.descriptionPlaceholder")}
                   rows={2}
                 />
-                <label className="symbol-upload-field">
-                  <Upload size={15} aria-hidden="true" />
-                  <span>{t("settings.data.uploadImage")}</span>
-                  <input
-                    type="file"
+                <AppFileButton buttonClassName="symbol-upload-field" aria-label={t("settings.data.uploadImage")}
                     accept="image/svg+xml,image/png,image/jpeg,image/webp,.svg"
                     onChange={(event) => {
                       selectSymbolImage(event.target.files?.[0] || null);
                       event.currentTarget.value = "";
-                    }}
-                  />
-                </label>
+                    }}>
+                  <Upload size={15} aria-hidden="true" />
+                  <span>{t("settings.data.uploadImage")}</span>
+                </AppFileButton>
               </>
             ) : isManufacturerData ? null : (
               <input value={form.sourceUrl} onChange={(event) => update({ sourceUrl: event.target.value })} placeholder={t("settings.data.sourceUrlPlaceholder")} />

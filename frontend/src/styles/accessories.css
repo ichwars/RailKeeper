@@ -281,7 +281,7 @@
   place-items: center;
   border: 1px solid currentColor;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   line-height: 1;
 }
 

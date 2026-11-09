@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Columns3, RotateCcw } from "lucide-react";
 
@@ -106,7 +107,7 @@ export function ArticleColumnPicker({
           </div>
           {articleTableColumns.map((column) => (
             <label key={column}>
-              <input
+              <AppChoiceInput
                 type="checkbox"
                 checked={visibleColumns.has(column)}
                 disabled={identityLocked(column)}

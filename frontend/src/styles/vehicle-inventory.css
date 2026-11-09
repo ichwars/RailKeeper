@@ -263,6 +263,11 @@
   background: #07110a;
 }
 
+.inventory-inline-switch input:focus-visible + span {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
 .inventory-inline-switch input:disabled + span {
   opacity: 0.42;
   cursor: not-allowed;

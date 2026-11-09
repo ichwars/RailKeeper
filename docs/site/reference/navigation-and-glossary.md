@@ -4,7 +4,7 @@ description: Navigation and glossary.
 audience: reference
 status: development
 reviewedVersion: main
-lastReviewed: 2026-11-07
+lastReviewed: 2026-11-09
 ---
 
 # Navigation and glossary
@@ -21,6 +21,14 @@ lastReviewed: 2026-11-07
 | compare data with a command station | Command stations | [Connect a station](../administration/digital-centers) |
 | exchange inventory files | Import/Export | [Data transfer](../guide/import-export/) |
 | prevent data loss | Settings > Backup | [Backups](../administration/backup-restore) |
+
+## Shared controls
+
+Enter numbers directly. For fields with a fixed step, the keyboard arrow keys and the
+**Increase value** and **Decrease value** buttons change the value within its bounds.
+Fields accepting arbitrary decimal values use direct entry. An empty field remains distinct
+from an entered zero. Choose files with the labelled button, which also supports Tab and Enter.
+Table checkboxes can display a partially selected group.
 
 ## Important terms
 

@@ -230,7 +230,7 @@ describe("data transfer operational dialogs", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
     const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
     await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), importProfile.name);
-    await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv", {
+    await user.upload(within(dialog).getByLabelText("Importdatei", { selector: "input" }), new File(["a;b"], "fahrzeuge.csv", {
       type: "text/csv"
     }));
 
@@ -264,7 +264,7 @@ describe("data transfer operational dialogs", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
     const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
     await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), jsonImportProfile.name);
-    await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["{}"], "backup.json"));
+    await user.upload(within(dialog).getByLabelText("Importdatei", { selector: "input" }), new File(["{}"], "backup.json"));
     expect(await within(dialog).findByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
     expect(within(dialog).queryByRole("heading", { name: /Zuordnung/ })).not.toBeInTheDocument();
   });
@@ -304,7 +304,7 @@ describe("data transfer operational dialogs", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
     const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
     await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), importProfile.name);
-    await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv", {
+    await user.upload(within(dialog).getByLabelText("Importdatei", { selector: "input" }), new File(["a;b"], "fahrzeuge.csv", {
       type: "text/csv"
     }));
     await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
@@ -653,7 +653,7 @@ describe("data transfer operational dialogs", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
     const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
     await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), importProfile.name);
-    await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv"));
+    await user.upload(within(dialog).getByLabelText("Importdatei", { selector: "input" }), new File(["a;b"], "fahrzeuge.csv"));
     await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
     await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
       "Bestehenden Datensatz überschreiben");
@@ -785,7 +785,7 @@ describe("data transfer operational dialogs", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("bereits abgeschlossen");
     expect(screen.queryByRole("button", { name: "1 Datensatz importieren" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Auftrag abbrechen" })).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Importdatei")).toBeDisabled();
+    expect(screen.getByLabelText("Importdatei", { selector: "input" })).toBeDisabled();
     expect(confirm).toHaveBeenCalledExactlyOnceWith(ready.id, 3);
     expect(refresh).toHaveBeenCalledExactlyOnceWith(ready.id);
     expect(cancel).not.toHaveBeenCalled();
@@ -803,7 +803,7 @@ describe("data transfer operational dialogs", () => {
       onClose={vi.fn()} onCancelJob={vi.fn()} onCreateJob={vi.fn()} onResolve={vi.fn()} onUpload={vi.fn()} />);
     await user.click(screen.getByRole("button", { name: "Import 1 record" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("outcome is still uncertain");
-    expect(screen.getByLabelText("Import file")).toBeDisabled();
+    expect(screen.getByLabelText("Import file", { selector: "input" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Cancel job" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Check job status" }));
     expect(await screen.findByRole("status")).toHaveTextContent("already completed");
@@ -821,7 +821,7 @@ describe("data transfer operational dialogs", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
     const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
     await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), importProfile.name);
-    await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv"));
+    await user.upload(within(dialog).getByLabelText("Importdatei", { selector: "input" }), new File(["a;b"], "fahrzeuge.csv"));
     await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
     await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
       "Bestehenden Datensatz überschreiben");
@@ -833,7 +833,7 @@ describe("data transfer operational dialogs", () => {
     const reopened = screen.getByRole("dialog", { name: "Import prüfen" });
     expect(await within(reopened).findByRole("alert")).toHaveTextContent("erneut hochladen");
     expect(within(reopened).getByRole("button", { name: "Weiter zur Prüfung" })).toBeDisabled();
-    await user.upload(within(reopened).getByLabelText("Importdatei"), new File(["a;b;c"], "fahrzeuge-neu.csv"));
+    await user.upload(within(reopened).getByLabelText("Importdatei", { selector: "input" }), new File(["a;b;c"], "fahrzeuge-neu.csv"));
     await user.click(screen.getByRole("button", { name: "Änderung übernehmen" }));
     expect(within(reopened).getByRole("button", { name: "Weiter zur Prüfung" })).toBeEnabled();
   });
@@ -856,7 +856,7 @@ describe("data transfer operational dialogs", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
     const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
     await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), jsonImportProfile.name);
-    await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["{}"], "backup.json"));
+    await user.upload(within(dialog).getByLabelText("Importdatei", { selector: "input" }), new File(["{}"], "backup.json"));
     await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
       "Bestehenden Datensatz überschreiben");
     await user.click(await within(dialog).findByRole("button", { name: "1 Datensatz importieren" }));
@@ -869,7 +869,7 @@ describe("data transfer operational dialogs", () => {
     const reopened = screen.getByRole("dialog", { name: "Import prüfen" });
     expect(await within(reopened).findByRole("alert")).toHaveTextContent("erneut hochladen");
     expect(within(reopened).queryByRole("heading", { name: "Vorschau" })).not.toBeInTheDocument();
-    await user.upload(within(reopened).getByLabelText("Importdatei"),
+    await user.upload(within(reopened).getByLabelText("Importdatei", { selector: "input" }),
       new File(["{\"fresh\":true}"], "backup-neu.json"));
     await user.click(screen.getByRole("button", { name: "Änderung übernehmen" }));
     expect(await within(reopened).findByRole("heading", { name: "Vorschau" })).toBeInTheDocument();

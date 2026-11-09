@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { BookOpen } from "lucide-react";
 import { formatDateTime, useI18n } from "../../shared/i18n";
 import { ImportReviewContext, ImportReviewStatus } from "../../shared/ImportReview";
@@ -74,7 +75,7 @@ export function VehicleCatalogPanel({ targetName, ...options }: VehicleCatalogOp
               const individual = Object.hasOwn(context.overrides, field);
               return <tr key={field}>
                 {!options.readonly && <td className="catalog-selection"><label className="checkbox-field">
-                  <input type="checkbox" aria-label={`${t("catalog.select")}: ${t(`vehicle.field.${field}`)}`}
+                  <AppChoiceInput type="checkbox" aria-label={`${t("catalog.select")}: ${t(`vehicle.field.${field}`)}`}
                     checked={draft.selected.includes(field)} disabled={disabled || !different}
                     onChange={() => model.toggleField(field)} />
                 </label></td>}
@@ -100,7 +101,7 @@ export function VehicleCatalogPanel({ targetName, ...options }: VehicleCatalogOp
         </div>
         {draft.creating && <p>{t("catalog.requiredHint")}</p>}
         {draft.creating && <div className="catalog-new-options">
-          <label className="checkbox-field catalog-checkbox"><input type="checkbox" checked={draft.independent} disabled={disabled}
+          <label className="checkbox-field catalog-checkbox"><AppChoiceInput type="checkbox" checked={draft.independent} disabled={disabled}
             onChange={event => model.updateDraft({ independent: event.target.checked })} />{t("catalog.independent")}</label>
           <label>{t("catalog.note")}<textarea rows={2} value={draft.note} maxLength={2000} disabled={disabled}
             onChange={event => model.updateDraft({ note: event.target.value })} /></label>

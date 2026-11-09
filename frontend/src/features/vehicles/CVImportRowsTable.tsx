@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { RailComPlusPreview } from "./RailComPlusPreview";
 import { useState } from "react";
 import { useI18n } from "../../shared/i18n";
@@ -43,7 +44,7 @@ export function CVImportRowsTable({ preview, saving, readonly, toggle }: {
           <th>{t("vehicles.cv.profiles")}</th><th>{t("vehicles.articleSearch.status")}</th>
         </tr></thead>
         <tbody>{pageRows.map((row) => <tr key={row.id} className={`cv-import-${row.status}`}>
-          <td><input type="checkbox" checked={row.selected}
+          <td><AppChoiceInput type="checkbox" checked={row.selected}
             onChange={(event) => toggle(row.id, event.target.checked)} disabled={row.status === "invalid" || saving || readonly}
             aria-label={t("vehicles.cv.applyCv", { cv: `${row.input.cvNumber}${row.input.indexCV31 == null ? "" : ` (${cvIndexLabel(row.input, "")})`}` })} /></td>
           <td>{row.input.cvNumber || "-"}<small>{meaning(row.input)}</small></td><td>{cvIndexLabel(row.input, t("vehicles.cv.base"))}</td>

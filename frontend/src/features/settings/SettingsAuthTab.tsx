@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { useI18n } from "../../shared/i18n";
 import { auditActor, auditTarget, formatDateTime } from "./settingsModel";
 import type { SettingsAuthController } from "./useSettingsAuth";
@@ -603,7 +604,7 @@ export function SettingsAuthTab({ controller }: { controller: SettingsAuthContro
                   <div className="role-select-grid" aria-label={t("settings.users.roles")}>
                     {availableRoles.map((role) => (
                       <label className="checkbox-field" key={role.id}>
-                        <input
+                        <AppChoiceInput
                           type="checkbox"
                           checked={userForm.roles.includes(role.name)}
                           onChange={(event) => toggleUserRole(role.name, event.target.checked)}

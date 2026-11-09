@@ -371,3 +371,18 @@ trennt einheitliche Ausgangsmasken, Analogfreigabe und Bremsbedingungen von der
 Funktionstasten-Schaltart und Invertierung.
 Abgeleitete Anzeigen ersetzen keine Live-Abfrage und überschreiben keine Fahrzeug- oder
 Funktionsangaben ohne ausdrückliche Übernahme im Formular.
+
+Formularelemente erben dieselbe Schrift wie der umgebende Text. Tabellen und bestehende
+Beschriftungen verwenden `AppChoiceInput` für Kontrollkästchen und Optionsfelder sowie
+`AppNumberControl` für Zahlen, ohne Ereignisse, Formularwerte oder Eingabereferenzen umzuwandeln.
+`AppCheckbox` und `AppNumberInput` ergänzen diese Bausteine um ihre eigenen Beschriftungen.
+Dateiauswahlen verwenden `AppFilePicker` oder bei unmittelbaren Uploads `AppFileButton`;
+versteckte native Eingaben bleiben für die Dateiübergabe erhalten. Schalter und Themenkarten
+behalten ihre vorhandene Darstellung mit sichtbarem Tastaturfokus.
+
+Form controls inherit the surrounding typography. `AppChoiceInput` and `AppNumberControl`
+preserve native events, form values and input refs inside existing labels and tables;
+`AppCheckbox` and `AppNumberInput` add field labels. `AppFilePicker` handles selected files,
+while `AppFileButton` retains complete native file-change events for immediate uploads.
+Hidden native inputs remain transport elements. Existing switches and theme cards keep their
+visual treatment and expose keyboard focus. Typography tests check token definitions and usage.

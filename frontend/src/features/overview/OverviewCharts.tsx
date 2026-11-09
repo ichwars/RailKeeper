@@ -25,6 +25,8 @@ function useOverviewCanvas(draw: CanvasDraw) {
       if (!context) return;
       context.setTransform(scale, 0, 0, scale, 0, 0);
       context.clearRect(0, 0, bounds.width, bounds.height);
+      const font = getComputedStyle(canvas);
+      context.font = `${font.fontSize} ${font.fontFamily}`;
       draw(context, bounds.width, bounds.height);
     };
 
@@ -33,11 +35,13 @@ function useOverviewCanvas(draw: CanvasDraw) {
     resizeObserver?.observe(canvas);
     if (!resizeObserver) window.addEventListener("resize", render);
     themeObserver.observe(document.documentElement, { attributes: true });
+    document.fonts?.addEventListener("loadingdone", render);
     render();
     return () => {
       resizeObserver?.disconnect();
       if (!resizeObserver) window.removeEventListener("resize", render);
       themeObserver.disconnect();
+      document.fonts?.removeEventListener("loadingdone", render);
     };
   }, [draw]);
 
@@ -63,7 +67,6 @@ export function InventoryTrendChart({ points }: { points: OverviewTrendPoint[] }
     const maximum = Math.max(1, ...points.flatMap((point) => [point.vehicles, point.accessories]));
     const roundedMaximum = Math.max(10, Math.ceil(maximum / 10) * 10);
 
-    context.font = '10px "Segoe UI", sans-serif';
     context.lineWidth = 1;
     context.textBaseline = "middle";
     context.fillStyle = muted;

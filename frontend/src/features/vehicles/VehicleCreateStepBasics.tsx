@@ -1,3 +1,4 @@
+import { AppNumberControl } from "../../shared/ui/AppNumberControl";
 import { Layers3, TrainFront } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -110,7 +111,7 @@ export function VehicleCreateStepBasics({
           </label>
           {kind === "set" && (
             <label>{t("vehicles.wizard.memberCount")}
-              <input type="number" min={2} max={maximumVehicleSetMembers} value={state.members.length}
+              <AppNumberControl min={2} max={maximumVehicleSetMembers} value={state.members.length}
                 onChange={(event) => dispatch({ type: "set-member-count", count: Number(event.target.value) })} />
             </label>
           )}

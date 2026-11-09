@@ -52,7 +52,7 @@ export function VehicleFunctionsTab({ selected, draftMode = false, draftCVValues
     <div className="upload-head"><div><h3>{t("vehicles.functions.editorTitle")}</h3>
       <p>{t("vehicles.functions.editorHelp")}</p></div>
       <div className="cv-toolbar">
-        <input ref={functionImportInputRef} type="file" accept="application/json,.json" className="visually-hidden"
+        <input ref={functionImportInputRef} type="file" accept="application/json,.json" className="visually-hidden" tabIndex={-1} aria-hidden="true"
           onChange={async event => { setMessage(""); const result = await onImportFunctions(event.target.files);
             if (result) setMessage(result); }} disabled={locked || !canEdit} />
         <button type="button" className="secondary-button" disabled={locked || !canEdit}

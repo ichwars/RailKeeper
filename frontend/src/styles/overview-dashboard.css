@@ -541,6 +541,7 @@ a.overview-metric-card:focus-visible {
 }
 
 .overview-trend-canvas {
+  font: var(--font-size-caption) var(--font-sans);
   display: block;
   width: calc(100% - 20px);
   height: 116px;

@@ -1,6 +1,7 @@
 import { Database, Download, HardDrive, RefreshCw, ShieldAlert, Upload } from "lucide-react";
 import { api } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import { AppFilePicker } from "../../shared/ui/AppFilePicker";
 import { formatBytes } from "./settingsModel";
 import type { SettingsStorageController } from "./useSettingsStorage";
 import type { SettingsTransferController } from "./useSettingsTransfer";
@@ -32,22 +33,16 @@ export function SettingsTransferTab({ transfer, storage }: SettingsTransferTabPr
           </div>
         </div>
         <div className="backup-lane-content">
-          <label className="file-picker-field">
-            <span>{t("settings.masterTransfer.file")}</span>
-            <span className="file-picker-shell">
-              <span className="file-picker-button">{t("settings.file.pick")}</span>
-              <span className="file-picker-name">{masterDataFile?.name || t("settings.file.none")}</span>
-            </span>
-            <input
+            <AppFilePicker label={t("settings.masterTransfer.file")}
+              triggerLabel={t("settings.file.pick")} emptyLabel={t("settings.file.none")}
+              clearLabel={t("accessories.editor.documents.clear")} file={masterDataFile}
               key={masterDataFileInputKey}
-              type="file"
               accept="application/json,.json"
-              onChange={(event) => {
-                setMasterDataFile(event.target.files?.[0] || null);
+              onFileChange={(selected) => {
+                setMasterDataFile(selected);
                 setMasterDataMessage("");
               }}
             />
-          </label>
           {masterDataSaving && <span className="inline-status">{t("settings.masterTransfer.saving")}</span>}
         </div>
         <div className="backup-lane-actions">
@@ -104,19 +99,13 @@ export function SettingsTransferTab({ transfer, storage }: SettingsTransferTabPr
         </div>
         <div className="backup-lane-workspace">
           <div className="backup-restore-controls">
-            <label className="file-picker-field">
-              <span>{t("settings.backup.file")}</span>
-              <span className="file-picker-shell">
-                <span className="file-picker-button">{t("settings.file.pick")}</span>
-                <span className="file-picker-name">{backupFile?.name || t("settings.file.none")}</span>
-              </span>
-              <input
+              <AppFilePicker label={t("settings.backup.file")}
+                triggerLabel={t("settings.file.pick")} emptyLabel={t("settings.file.none")}
+                clearLabel={t("accessories.editor.documents.clear")} file={backupFile}
                 key={backupFileInputKey}
-                type="file"
                 accept="application/json,.json"
-                onChange={(event) => selectBackupFile(event.target.files?.[0] || null)}
+                onFileChange={selectBackupFile}
               />
-            </label>
             {backupValidating && <p className="backup-validation-status">{t("settings.backup.validating")}</p>}
             <button type="button" className="secondary-button danger" onClick={restoreBackup} disabled={backupSaving || backupValidating || !backupValidation?.compatible || !backupRestoreConfirmed}>
               {backupSaving ? (

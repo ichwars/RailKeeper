@@ -538,11 +538,16 @@
   background: #fff;
 }
 
-.article-image-option input {
+.article-image-option > .app-choice-control {
   position: absolute;
   z-index: 1;
-  top: 5px;
-  left: 5px;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 44px;
+  padding: var(--space-xs);
+  align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .article-image-option img {

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { createPortal } from "react-dom";
 
 import { ApiError } from "../../shared/api";
+import { AppFileButton } from "../../shared/ui/AppFileButton";
 import type { Language } from "../../shared/i18n";
 import { translate } from "../../shared/i18n";
 import { ImportReviewContext } from "../../shared/ImportReview";
@@ -378,14 +379,13 @@ export function TransferImportDialog({
           ) : null}
 
           {(profileId || initialJob) ? (
-            <label className={`data-transfer-file-drop${busy ? " busy" : ""}`}>
+            <div className={`data-transfer-file-drop${busy ? " busy" : ""}`}>
               <FileUp size={28} aria-hidden="true" />
               <span><strong>{file?.name || job?.sourceName || copy.chooseFile}</strong><small>{copy.fileHelp}</small></span>
-              <input ref={fileRef} type="file" aria-label={copy.fileLabel} disabled={busy || confirmation.blocked}
+              <AppFileButton ref={fileRef} aria-label={copy.fileLabel} disabled={busy || confirmation.blocked}
                 accept={snapshot?.format === "csv" ? ".csv,text/csv" : ".json,application/json"}
-                onChange={chooseFile} />
-              <span className="secondary-button"><Upload size={15} aria-hidden="true" />{copy.browse}</span>
-            </label>
+                onChange={chooseFile}><Upload size={15} aria-hidden="true" />{copy.browse}</AppFileButton>
+            </div>
           ) : null}
 
           {preview && !confirmation.blocked && preview.job.format === "csv" && !mappingAccepted ? (

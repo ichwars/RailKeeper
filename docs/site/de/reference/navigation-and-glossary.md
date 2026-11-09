@@ -4,7 +4,7 @@ description: Wegweiser und Begriffe.
 audience: reference
 status: development
 reviewedVersion: main
-lastReviewed: 2026-11-07
+lastReviewed: 2026-11-09
 ---
 
 # Wegweiser und Begriffe
@@ -21,6 +21,15 @@ lastReviewed: 2026-11-07
 | Daten mit einer Zentrale vergleichen | Digitalzentralen | [Zentrale einrichten](../administration/digital-centers) |
 | eine Bestandsdatei austauschen | Import/Export | [Datentransfer](../guide/import-export/) |
 | Datenverlust vorbeugen | Einstellungen > Backup | [Sicherung](../administration/backup-restore) |
+
+## Gemeinsame Steuerelemente
+
+Zahlen kannst du direkt eingeben. Bei Feldern mit fester Schrittweite erhöhen oder verringern
+die Pfeiltasten der Tastatur sowie die Schaltflächen **Wert erhöhen** und **Wert verringern**
+den Wert innerhalb der angegebenen Grenzen. Felder für frei wählbare Dezimalwerte verwenden
+die direkte Eingabe. Ein leeres Feld bleibt von einer eingegebenen Null unterscheidbar.
+Dateien wählst du über die beschriftete Schaltfläche aus; sie lässt sich auch mit Tab und Enter
+bedienen. Kontrollkästchen in Tabellen können eine teilweise Auswahl anzeigen.
 
 ## Die wichtigsten Begriffe
 

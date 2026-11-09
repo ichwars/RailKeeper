@@ -1,0 +1,66 @@
+.app-choice-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+
+.app-choice-control > input.app-choice-input {
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.app-choice-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--input-bg);
+  color: var(--accent-contrast);
+  pointer-events: none;
+}
+
+.app-choice-mark svg { grid-area: 1 / 1; opacity: 0; }
+.app-choice-input[type="radio"] + .app-choice-mark { border-radius: var(--radius-pill); }
+.app-choice-input:checked + .app-choice-mark,
+.app-choice-input:indeterminate + .app-choice-mark {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.app-choice-input:checked + .app-choice-mark svg { opacity: 1; }
+.app-choice-input + .app-choice-mark .app-choice-mixed,
+.app-choice-input:indeterminate + .app-choice-mark .app-choice-check { opacity: 0; }
+.app-choice-input:indeterminate + .app-choice-mark .app-choice-mixed { opacity: 1; }
+.app-choice-control > .app-choice-input:focus-visible { outline: none; }
+.app-choice-input:focus-visible + .app-choice-mark {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+.app-choice-input:disabled { cursor: not-allowed; }
+.app-choice-input:disabled + .app-choice-mark { opacity: 0.62; }
+
+.appearance-option:has(input:focus-visible),
+.personal-view-choice:has(input:focus-visible) {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+@media (max-width: 680px) {
+  .app-choice-control { width: 44px; height: 44px; }
+}

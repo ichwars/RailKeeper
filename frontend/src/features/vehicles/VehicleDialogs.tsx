@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { Check, Download, ExternalLink, Printer, X } from "lucide-react";
 import { CreateVehicleRequest, ExhibitionEntry, ExhibitionList, Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -160,11 +161,11 @@ export function ReportDialog({
           <fieldset className="report-choice-group">
             <legend>{t("vehicles.report.scope")}</legend>
             <label>
-              <input type="radio" checked={reportSelection === "all"} onChange={() => onReportSelectionChange("all")} />
+              <AppChoiceInput type="radio" name="vehicle-report-selection" checked={reportSelection === "all"} onChange={() => onReportSelectionChange("all")} />
               {t("vehicles.report.all")}
             </label>
             <label>
-              <input type="radio" checked={reportSelection === "selected"} onChange={() => onReportSelectionChange("selected")} disabled={!canUseSelected} />
+              <AppChoiceInput type="radio" name="vehicle-report-selection" checked={reportSelection === "selected"} onChange={() => onReportSelectionChange("selected")} disabled={!canUseSelected} />
               {t("vehicles.report.selected", { count: selectedCount })}
             </label>
           </fieldset>
@@ -172,11 +173,11 @@ export function ReportDialog({
           <fieldset className="report-choice-group">
             <legend>{t("vehicles.report.options")}</legend>
             <label>
-              <input type="checkbox" checked={reportIncludeQRCode} onChange={(event) => onReportIncludeQRCodeChange(event.target.checked)} />
+              <AppChoiceInput type="checkbox" checked={reportIncludeQRCode} onChange={(event) => onReportIncludeQRCodeChange(event.target.checked)} />
               {t("vehicles.report.qrCode")}
             </label>
             <label>
-              <input type="checkbox" checked={reportIncludeImages} onChange={(event) => onReportIncludeImagesChange(event.target.checked)} />
+              <AppChoiceInput type="checkbox" checked={reportIncludeImages} onChange={(event) => onReportIncludeImagesChange(event.target.checked)} />
               {t("vehicles.report.image")}
             </label>
           </fieldset>

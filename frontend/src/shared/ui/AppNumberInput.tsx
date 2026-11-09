@@ -1,4 +1,5 @@
 import { forwardRef, InputHTMLAttributes, ReactNode, useId } from "react";
+import { AppNumberControl } from "./AppNumberControl";
 
 export type AppNumberInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "type" | "value"> & {
   label: ReactNode;
@@ -23,11 +24,10 @@ export const AppNumberInput = forwardRef<HTMLInputElement, AppNumberInputProps>(
       <label className="app-field-label" htmlFor={inputId}>
         {label}{required ? <span aria-hidden="true"> *</span> : null}
       </label>
-      <input
+      <AppNumberControl
         {...inputProps}
         ref={ref}
         id={inputId}
-        type="number"
         inputMode={inputProps.inputMode || "decimal"}
         required={required}
         value={value}

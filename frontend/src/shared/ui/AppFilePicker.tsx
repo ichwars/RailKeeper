@@ -85,6 +85,7 @@ export const AppFilePicker = forwardRef<HTMLInputElement, AppFilePickerProps>(fu
         className="visually-hidden"
         type="file"
         tabIndex={-1}
+        aria-hidden="true"
         required={required && !file && !unavailable}
         disabled={disabled}
         onChange={handleChange}

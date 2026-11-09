@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { useState, type DragEvent, type RefObject } from "react";
 import { ChevronDown, ChevronUp, Download, ExternalLink, Eye, FileText, Image, PackageSearch, Save, Search, Star, Trash2, Upload, X } from "lucide-react";
 import { api, ArticleSearchDocument, Vehicle, VehicleAttachment, VehicleMaintenance } from "../../shared/api";
@@ -206,7 +207,7 @@ export function VehicleUploadsTab({
             type="file"
             multiple
             accept={imageAccept}
-            className="visually-hidden"
+            className="visually-hidden" tabIndex={-1} aria-hidden="true"
             onChange={(event) => onUploadImages(event.target.files)}
             disabled={readonly || !selected}
           />
@@ -314,7 +315,7 @@ export function VehicleUploadsTab({
             type="file"
             multiple
             accept={attachmentAccept}
-            className="visually-hidden"
+            className="visually-hidden" tabIndex={-1} aria-hidden="true"
             onChange={(event) => onUploadAttachment(event.target.files)}
             disabled={readonly || !selected}
           />
@@ -376,7 +377,7 @@ export function VehicleUploadsTab({
                 <thead>
                   <tr>
                     <th className="select-column">
-                      <input
+                      <AppChoiceInput
                         type="checkbox"
                         checked={allDocumentsSelected}
                         onChange={(event) => onToggleAllDocuments(event.target.checked)}
@@ -399,7 +400,7 @@ export function VehicleUploadsTab({
                     return (
                       <tr key={`${document.url}-${index}`}>
                         <td className="select-column">
-                          <input
+                          <AppChoiceInput
                             type="checkbox"
                             checked={Boolean(selectedDocuments[documentKey]) && canSelectDocument}
                             onChange={(event) => onToggleDocument(document, index, event.target.checked)}

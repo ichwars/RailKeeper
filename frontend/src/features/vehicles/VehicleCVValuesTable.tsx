@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { Fragment, useState } from "react";
 import { CircleHelp, Pencil, Trash2 } from "lucide-react";
 import type { VehicleCVValue } from "../../shared/api";
@@ -64,7 +65,7 @@ export function VehicleCVValuesTable({ values, analysisValues = values, pendingI
       </AppSelect></label>
       <label>{t("common.search")}<input type="search" placeholder="CV29 / Text" value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} /></label>
     </div>
-    <label className="cv-zero-filter"><input type="checkbox" checked={hideZero} onChange={(event) => { setHideZero(event.target.checked); setPage(0); }} />{t("vehicles.decoder.hideZero")}</label>
+    <label className="cv-zero-filter"><AppChoiceInput type="checkbox" checked={hideZero} onChange={(event) => { setHideZero(event.target.checked); setPage(0); }} />{t("vehicles.decoder.hideZero")}</label>
     <CVPageControls page={page} total={filtered.length} onChange={setPage} />
     <div className="table-wrap compact-table cv-values-table">
       <table><thead><tr>

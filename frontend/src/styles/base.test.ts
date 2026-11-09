@@ -16,6 +16,24 @@ function cssFiles(directory: string): string[] {
 }
 
 describe("base design system", () => {
+  it("inherits approved typography for every native form control", () => {
+    expect(baseCss).toMatch(/button,\s*input,\s*select,\s*textarea\s*\{[^}]*font:\s*inherit/s);
+    expect(baseCss).toMatch(/small\s*\{[^}]*font-size:\s*var\(--font-size-xs\)/s);
+  });
+
+  it("allows authentication headings and columns to shrink on narrow screens", () => {
+    const css = readFileSync(join(stylesDirectory, "settings.css"), "utf8");
+    expect(css).toMatch(/\.auth-settings-grid,\s*\.digital-settings-grid\s*\{[^}]*min-width:\s*0/s);
+    expect(css).toMatch(/\.settings-card-title > div\s*\{[^}]*min-width:\s*0[^}]*overflow-wrap:\s*anywhere/s);
+    expect(css).toMatch(/\.smtp-settings-card \.settings-form\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+    expect(css).toMatch(/\.smtp-settings-card \.settings-action-row\s*\{[^}]*flex-wrap:\s*wrap/s);
+  });
+
+  it("keeps article image selection above its thumbnail without taking image space", () => {
+    const css = readFileSync(join(stylesDirectory, "vehicle-dialogs.css"), "utf8");
+    expect(css).toMatch(/\.article-image-option > \.app-choice-control\s*\{[^}]*position:\s*absolute/s);
+  });
+
   it("confines hidden exhibition row actions to the scrollable table", () => {
     const exhibitionCss = readFileSync(join(stylesDirectory, "exhibition.css"), "utf8");
     expect(exhibitionCss).toMatch(/\.exhibition-row-menu\s*\{[^}]*position:\s*relative/s);

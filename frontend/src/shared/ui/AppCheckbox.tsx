@@ -1,5 +1,5 @@
-import { Check } from "lucide-react";
 import { forwardRef, InputHTMLAttributes, ReactNode, useId } from "react";
+import { AppChoiceInput } from "./AppChoiceInput";
 
 export type AppCheckboxProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
   label: ReactNode;
@@ -14,10 +14,7 @@ export const AppCheckbox = forwardRef<HTMLInputElement, AppCheckboxProps>(functi
 
   return (
     <label className={`app-checkbox ${className}`.trim()} htmlFor={inputId}>
-      <span className="app-checkbox-control">
-        <input {...inputProps} ref={ref} id={inputId} type="checkbox" />
-        <span className="app-checkbox-mark" aria-hidden="true"><Check size={13} /></span>
-      </span>
+      <AppChoiceInput {...inputProps} ref={ref} id={inputId} type="checkbox" />
       <span>{label}</span>
     </label>
   );
