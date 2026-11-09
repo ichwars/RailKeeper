@@ -1017,10 +1017,9 @@ a.overview-metric-card:focus-visible {
 
 @media (max-width: 520px) {
   .main:has(.overview-page) {
-    padding-bottom: calc(120px + var(--space-2xl) + var(--space-2xl));
+    padding-bottom: calc(104px + var(--space-2xl));
   }
 
-  .layout:has(.overview-page) .feedback-button { bottom: 120px; }
   .overview-action-footer { min-height: 104px; }
   .overview-action-footer > a,
   .overview-footer-action {
