@@ -41,6 +41,13 @@ try {
     await page.getByLabel(de ? "Passwort" : "Password", { exact: true }).fill(input.credentials.password);
     await page.getByRole("button", { name: de ? "Anmelden" : "Sign in", exact: true }).click();
     await page.waitForURL("**/overview");
+    await page.setViewportSize({ width: 320, height: 1000 });
+    await page.goto(input.base + "/settings", { waitUntil: "networkidle" });
+    await page.evaluate(() => document.fonts.ready);
+    await assertMobileActionTargets(page);
+    const settingsFits = await page.locator(".main").evaluate(node => node.scrollWidth <= node.clientWidth + 1);
+    assert.equal(settingsFits, true, "Mobile settings must wrap their title and action groups at 320 pixels");
+    checks.push(`${language}:mobile-settings-action-layout`);
     checks.push(...await assertValuations(page, input, de, reference));
     assert.deepEqual(errors, []);
     await closeContext(context);

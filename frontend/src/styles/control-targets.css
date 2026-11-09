@@ -70,6 +70,8 @@
 }
 
 @media (max-width: 375px) {
+  .settings-card { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+  .settings-section-head { min-width: 0; flex-wrap: wrap; }
   .app-date-weekdays,
   .app-date-days { gap: 0; padding-inline: 1px; }
 }
