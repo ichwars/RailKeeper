@@ -4,6 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import { referenceActor } from "./browser-actor.mjs";
 import { assertValuations } from "./valuations.mjs";
+import { assertMobileActionTargets } from "./touch-targets.mjs";
 
 let raw = "";
 for await (const part of process.stdin) raw += part;
@@ -21,10 +22,32 @@ try {
     page.setDefaultTimeout(10000);
     page.on("pageerror", error => errors.push(error.message));
     await page.goto(input.base + "/vehicles");
+    const forgot = page.getByRole("button", { name: de ? "Passwort vergessen?" : "Forgot password?", exact: true });
+    await forgot.waitFor();
+    for (const width of [320, 390, 820]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await assertMobileActionTargets(page);
+      const geometry = await page.evaluate(() => ({ content: document.documentElement.scrollWidth, viewport: innerWidth }));
+      assert.ok(geometry.content <= geometry.viewport + 1, `Login content exceeds viewport: ${JSON.stringify(geometry)}`);
+    }
+    for (let tab = 0; tab < 12 && !await forgot.evaluate(node => node === document.activeElement); tab++) {
+      await page.keyboard.press("Tab");
+    }
+    assert.equal(await forgot.evaluate(node => node === document.activeElement), true);
+    assert.equal(await forgot.evaluate(node => getComputedStyle(node).outlineStyle), "solid");
+    checks.push(`${language}:mobile-login-actions-and-keyboard-focus`);
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.getByLabel(de ? "Benutzername" : "Username", { exact: true }).fill(input.credentials.username);
     await page.getByLabel(de ? "Passwort" : "Password", { exact: true }).fill(input.credentials.password);
     await page.getByRole("button", { name: de ? "Anmelden" : "Sign in", exact: true }).click();
     await page.waitForURL("**/overview");
+    await page.setViewportSize({ width: 320, height: 1000 });
+    await page.goto(input.base + "/settings", { waitUntil: "networkidle" });
+    await page.evaluate(() => document.fonts.ready);
+    await assertMobileActionTargets(page);
+    const settingsFits = await page.locator(".main").evaluate(node => node.scrollWidth <= node.clientWidth + 1);
+    assert.equal(settingsFits, true, "Mobile settings must wrap their title and action groups at 320 pixels");
+    checks.push(`${language}:mobile-settings-action-layout`);
     checks.push(...await assertValuations(page, input, de, reference));
     assert.deepEqual(errors, []);
     await closeContext(context);

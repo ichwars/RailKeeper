@@ -1312,6 +1312,7 @@ td {
 
 .auth-page {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100vh;
   place-items: center;
   padding: 24px;
@@ -1319,6 +1320,8 @@ td {
 
 .auth-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   width: min(430px, 100%);
   padding: 30px;
   border: 1px solid var(--line);
@@ -1329,7 +1332,9 @@ td {
 
 .auth-logo {
   width: 250px;
-  height: 188px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 250 / 188;
   justify-self: center;
   margin-bottom: 18px;
   object-fit: contain;
@@ -1359,6 +1364,7 @@ td {
   margin-bottom: 10px;
   font-size: var(--font-size-title-xl);
   text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .auth-card p {
@@ -1370,6 +1376,8 @@ td {
 
 .auth-form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 14px;
   text-align: left;
 }
@@ -1390,6 +1398,7 @@ td {
 
 .auth-form input {
   min-height: 42px;
+  min-width: 0;
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;

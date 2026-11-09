@@ -5,7 +5,26 @@
   outline-offset: -2px;
 }
 
+.forgot-password-button:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
 @media (max-width: 900px) {
+  /* The mobile target floor also applies to legacy actions with compact local rules. */
+  button:not(.visually-hidden-action):not(.visually-hidden):not(.sr-only),
+  a:is(.primary-button, .secondary-button, .icon-button, .table-icon-link, .auth-reset-link, .overview-open-action),
+  .overview-priority-list a,
+  .overview-vehicle-list a,
+  .overview-maintenance-list a,
+  .transfer-artifact-links a,
+  .sidebar-nav a,
+  .sidebar-footer-actions a {
+    min-width: var(--control-target-touch) !important;
+    min-height: var(--control-target-touch) !important;
+  }
+
   .settings-action-row { flex-wrap: wrap; }
   .settings-action-row > p { min-width: 0; overflow-wrap: anywhere; }
   .manual-valuation-body .app-date { width: 220px; }
@@ -51,6 +70,8 @@
 }
 
 @media (max-width: 375px) {
+  .settings-card { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+  .settings-section-head { min-width: 0; flex-wrap: wrap; }
   .app-date-weekdays,
   .app-date-days { gap: 0; padding-inline: 1px; }
 }
