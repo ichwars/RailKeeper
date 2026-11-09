@@ -203,7 +203,9 @@ def run(args):
                 before_browser = target.client.request("GET", "/api/v1/backup/export")
                 result = subprocess.run(["node", str(Path(__file__).with_name("browser.mjs"))],
                                         input=json.dumps({"base": target.client.base, "credentials": recovery,
-                                                          "fixture": fixture, "output": str(root / "browser")}),
+                                                          "fixture": fixture, "output": str(root / "browser"),
+                                                          "existingSessionIds": [session["id"] for session in
+                                                              target.client.request("GET", "/api/v1/sessions?limit=200")]}),
                                         text=True, capture_output=True, timeout=300)
                 if result.returncode:
                     raise AssertionError("Target browser baseline failed: " + result.stderr[-2500:])
