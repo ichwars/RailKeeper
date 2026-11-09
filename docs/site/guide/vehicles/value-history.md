@@ -2,9 +2,9 @@
 title: Manual value history
 description: Record, correct and summarize dated vehicle valuations by currency.
 audience: user
-status: development
-reviewedVersion: main
-lastReviewed: 2026-11-07
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Manual value history
@@ -12,7 +12,7 @@ lastReviewed: 2026-11-07
 Valuations record your own estimate for a particular date. List and purchase prices remain
 unchanged. RailKeeper does not contact price portals or fill in missing past market values.
 
-<GuideFigure name="valuations" alt="Dated manual vehicle valuation with provenance and retained history." caption="Manual valuation and correction in the development build. Synthetic demo data only. Click for full size." />
+<GuideFigure name="valuations" alt="Dated manual vehicle valuation with provenance and retained history." caption="Manual valuation and correction in v0.2.0. Synthetic demo data only. Click for full size." />
 
 ## Record a valuation
 

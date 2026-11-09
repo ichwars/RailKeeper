@@ -2,9 +2,9 @@
 title: Practice accessory usage and maintenance
 description: Practice accessory usage and maintenance.
 audience: user
-status: development
-reviewedVersion: main
-lastReviewed: 2026-10-23
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Practice accessory usage and maintenance
@@ -24,7 +24,7 @@ application APIs and checked in the actual UI. No command-station operation is i
 
 ## 2. Reserve one piece
 
-Edit the article and open **Usage & history**. Choose vehicle, location and quantity **1**.
+Edit the article and open **Stock**. In the reservation form, choose vehicle, location and quantity **1**.
 Optionally describe placement and connection. Select **Create reservation** and confirm.
 
 <GuideFigure name="stock-reserved" alt="Active reservation of one piece for the demo vehicle." caption="Four pieces remain in storage, one is reserved and three are available." />
@@ -35,6 +35,9 @@ A reservation holds material for a vehicle. It does not establish a physical ins
 
 Select the active reservation in the installation form. Review inherited target and source.
 Choose condition, then **Record installation**, and confirm.
+
+These booking forms also belong to **Stock**. **Usage & history** shows saved reservations,
+active installations and the event history. The picture sequence shows this read-only view.
 
 <GuideFigure name="stock-installed" alt="Active installation of the previously reserved accessory." caption="The reservation is fulfilled. Three pieces remain in storage and one is installed." />
 

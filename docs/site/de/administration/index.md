@@ -2,9 +2,9 @@
 title: Installation und Administration
 description: RailKeeper installieren, konfigurieren, absichern und betreiben.
 audience: admin
-status: development
-reviewedVersion: main
-lastReviewed: 2026-10-25
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Installation und Administration
@@ -13,7 +13,7 @@ Dieser Bereich behandelt Windows Standalone, Docker, Laufzeitkonfiguration, Benu
 SMTP, Sicherung und Wiederherstellung, Updates, TLS, Uploads, OCR, Drucker,
 Betriebsprüfungen und konservative Fehlerbehebung.
 
-Die Administrationsanleitungen beschreiben den aktuellen `main`-Stand und erhalten das lokale,
+Die Administrationsanleitungen beschreiben **v0.2.0** und erhalten das lokale,
 selbst gehostete Sicherheitsmodell von RailKeeper.
 
 ## Administrative Abläufe

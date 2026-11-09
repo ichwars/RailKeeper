@@ -2,14 +2,17 @@
 title: Reservierungen, Einbauten und Verwendung
 description: Zubehör reservieren, Einbauten erfassen und die Verwendungshistorie verstehen.
 audience: user
-status: development
-reviewedVersion: main
-lastReviewed: 2026-10-23
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Reservierungen, Einbauten und Verwendung
 
-Öffne den Artikel und wähle für geplante Verwendung eine Reservierung, für tatsächliche Verwendung einen Einbau. Prüfe Ziel-Fahrzeug und Menge. Kontrolliere anschließend verfügbare Menge und Verlauf, bevor du einen weiteren Vorgang buchst.
+Öffne den Artikel zum Bearbeiten und wähle **Bestand**. Erfasse für geplante Verwendung eine
+Reservierung, für tatsächliche Verwendung einen Einbau. Prüfe Zielfahrzeug und Menge.
+**Verwendung & Historie** zeigt die gespeicherten Vorgänge. Kontrolliere verfügbare Menge und
+Verlauf, bevor du einen weiteren Vorgang buchst.
 
 <GuideFigure name="accessories" alt="Die Zubehörliste ist der Einstieg in Reservierungen, Einbauten und Verlauf." caption="Die Zubehörliste ist der Einstieg in Reservierungen, Einbauten und Verlauf. Künstliche Demodaten, keine Werkseinstellungen. Anklicken für die volle Größe." />
 

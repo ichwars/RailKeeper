@@ -2,9 +2,9 @@
 title: Backup and restore
 description: Backup and restore.
 audience: admin
-status: development
-reviewedVersion: main
-lastReviewed: 2026-11-07
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Backup and restore
@@ -22,6 +22,10 @@ lastReviewed: 2026-11-07
 4. Before updating, check that a current backup exists.
 
 Application backups include inventory, accessories, maintenance, CVs and provenance, master data, exhibition data, and saved media. They exclude user accounts, passwords, sessions, and local system settings. They are not full server backups.
+
+Original files can be stored as SQLite blobs in the backed-up records. Preflight counts only
+separate upload files under **Files**. **0 files** therefore does not mean that images, attachments
+or decoder sources are missing. Open the originals on their vehicle after restoring.
 
 Format 28 adds dated manual vehicle valuations, retaining original entries, corrections,
 withdrawals, provenance and actual recording times. Preflight also checks relationships and

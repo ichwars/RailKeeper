@@ -2,9 +2,9 @@
 title: Ein Wagenset anlegen und ändern
 description: Ein Wagenset anlegen und ändern.
 audience: user
-status: development
-reviewedVersion: main
-lastReviewed: 2026-11-07
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Ein Wagenset anlegen und ändern
@@ -16,11 +16,13 @@ Verwende für die Übung Admin oder Editor und künstliche Daten.
 
 1. Öffne **Fahrzeugbestand > Neues Fahrzeug** und wähle die Erfassung als **Set**.
 2. Nenne das Set **Demo-Wagenset**, Hersteller **Roco**, Artikelnummer **DEMO-SET**, Spurweite **H0**.
-3. Wähle eine passende Kategorie und Gattung, beispielsweise Personenwagen und Schnellzugwagen.
-4. Lege zwei Mitglieder an: **Demo-Wagen A** und **Demo-Wagen B**, mit unterschiedlichen Fahrzeugnummern.
-5. Prüfe die gemeinsamen Angaben und speichere.
+3. Wähle eine passende Kategorie, beispielsweise **Personenwagen**, und die Anzahl **2**.
+4. Wähle **Weiter zu Artikeldaten**. Prüfe einen Artikelvorschlag oder gehe ohne Übernahme weiter.
+5. Ergänze unter **Fahrzeugdaten** die gemeinsamen Setangaben und die Reiter **Fahrzeug 1** und
+   **Fahrzeug 2**. Erfasse passende Gattungen und unterschiedliche Namen beziehungsweise Fahrzeugnummern.
+6. Prüfe die Angaben und speichere das Set.
 
-<GuideFigure name="vehicle-set" alt="Seterfassung mit gemeinsamen Angaben und einzelnen Mitgliedern." caption="Der Setentwurf bündelt Produktdaten; die Mitglieder behalten eigene Fahrzeugangaben. Künstliche Demo." />
+<GuideFigure name="vehicle-set" alt="Erster Schritt der Seterfassung mit gemeinsamen Grunddaten und zwei vorgesehenen Fahrzeugen." caption="Die geführte Erfassung beginnt mit Typ und Grunddaten. Artikeldaten und individuelle Fahrzeuge folgen in eigenen Schritten. Künstliche Demo in v0.2.0." />
 
 **Erwartung:** Eine eigene Set-Inventarnummer und zwei getrennte Fahrzeug-Inventarnummern.
 Die Setnummer kommt aus dem aktiven Set-Schema; die Mitglieder verwenden das passende Fahrzeugschema.

@@ -2,9 +2,9 @@
 title: Sicherung und Wiederherstellung
 description: Sicherung und Wiederherstellung.
 audience: admin
-status: development
-reviewedVersion: main
-lastReviewed: 2026-11-07
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Sicherung und Wiederherstellung
@@ -22,6 +22,10 @@ lastReviewed: 2026-11-07
 4. Prüfe vor einem Update, dass eine aktuelle Sicherung vorhanden ist.
 
 Die Anwendungssicherung enthält Bestand, Zubehör, Wartungen, CVs mit Herkunft, Stammdaten, Ausstellungsdaten und gespeicherte Medien. Benutzerkonten, Passwörter, Sitzungen und lokale Systemeinstellungen sind nicht enthalten. Sie ist deshalb keine vollständige Serversicherung.
+
+Originaldateien können als SQLite-Blobs in den gesicherten Datensätzen liegen. Die Vorprüfung zählt
+unter **Dateien** nur separate Upload-Dateien. **0 Dateien** bedeutet deshalb nicht, dass Bilder,
+Beilagen oder Decoderquellen fehlen. Prüfe die Originale nach der Wiederherstellung am Fahrzeug.
 
 Format 28 ergänzt datierte manuelle Fahrzeugbewertungen einschließlich unveränderter
 Originaleinträge, Berichtigungen, Rücknahmen, Herkunft und tatsächlicher Erfassungszeit.

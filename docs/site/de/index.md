@@ -3,9 +3,9 @@ layout: home
 title: Modellbahnsammlung lokal verwalten
 description: Fahrzeuge, Bilder, Unterlagen, Wartung und Decoderdaten an einem Ort. RailKeeper für Windows und Docker, mit deutschem und englischem Handbuch.
 audience: reference
-status: development
-reviewedVersion: main
-lastReviewed: 2026-11-04
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 hero:
   name: RailKeeper
   text: Deine Modellbahnsammlung an einem Ort
@@ -70,8 +70,9 @@ auf derselben Seite.
 Windows startet aus einem ZIP. Für den Heimserver gibt es Docker-Images für AMD64 und ARM64.
 Das [Handbuch](guide/) hilft bei den nächsten Schritten, die
 [Installationsanleitung](administration/deployment-configuration) beim dauerhaften Betrieb.
-Die Abbildungen zeigen den dokumentierten Entwicklungsstand; den Umfang der veröffentlichten
-Version findest du in den [Release-Notizen](https://github.com/ichwars/RailKeeper/releases/latest).
+Die Abbildungen zeigen **v0.2.0** mit künstlichen Demodaten. Den Versionsumfang findest du in den
+[Release-Notizen](https://github.com/ichwars/RailKeeper/releases/tag/v0.2.0) und im
+[Änderungsprotokoll](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.de.md#020---2026-11-09).
 
 ## Deine Erfahrung hilft weiter
 

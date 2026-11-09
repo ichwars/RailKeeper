@@ -2,14 +2,16 @@
 title: Reservations, installations, and usage
 description: Reserve accessory stock, record installations, and understand usage history.
 audience: user
-status: development
-reviewedVersion: main
-lastReviewed: 2026-10-23
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Reservations, installations, and usage
 
-Open the product and choose a reservation for planned use or an installation for actual use. Check the target vehicle and quantity. Review availability and history before recording another transaction.
+Edit the article and open **Stock**. Create a reservation for planned use or an installation for
+actual use. Check the target vehicle and quantity. **Usage & history** shows the saved transactions.
+Review availability and history before recording another transaction.
 
 <GuideFigure name="accessories" alt="The accessory list is the entry point for reservations, installations and history." caption="The accessory list is the entry point for reservations, installations and history. Synthetic demo data, not factory settings. Click for full size." />
 

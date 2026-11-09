@@ -10,7 +10,7 @@
       "labelDE": "Einrichtung und Anmeldung",
       "labelEN": "Setup and sign-in",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "login"
     },
     {
@@ -22,7 +22,7 @@
       "labelDE": "Übersicht und Datenqualität",
       "labelEN": "Dashboard and data quality",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "overview"
     },
     {
@@ -34,7 +34,7 @@
       "labelDE": "Fahrzeuge und Sets",
       "labelEN": "Vehicles and sets",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "vehicle-editor"
     },
     {
@@ -46,7 +46,7 @@
       "labelDE": "Bilder und Dokumente",
       "labelEN": "Pictures and documents",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "media"
     },
     {
@@ -58,7 +58,7 @@
       "labelDE": "Wartung und Zustand",
       "labelEN": "Maintenance and condition",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "maintenance"
     },
     {
@@ -70,7 +70,7 @@
       "labelDE": "Decoder, Funktionen und CVs",
       "labelEN": "Decoders, functions and CVs",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "cv-analysis"
     },
     {
@@ -82,7 +82,7 @@
       "labelDE": "Gespeicherte CV-Stände",
       "labelEN": "Recorded CV states",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-11-07",
+      "reviewedAt": "2026-11-09",
       "screenshot": "cv-archive"
     },
     {
@@ -94,7 +94,7 @@
       "labelDE": "Decoderexemplare und Einbauten",
       "labelEN": "Decoder units and installations",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-11-07",
+      "reviewedAt": "2026-11-09",
       "screenshot": "decoder-installations"
     },
     {
@@ -106,7 +106,7 @@
       "labelDE": "Artikelsuche und Ersatzteile",
       "labelEN": "Article search and spare parts",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "vehicle-editor"
     },
     {
@@ -118,7 +118,7 @@
       "labelDE": "Zubehör und Verwendung",
       "labelEN": "Accessories and usage",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "accessories"
     },
     {
@@ -130,7 +130,7 @@
       "labelDE": "Ausstellung und Listen",
       "labelEN": "Exhibition and lists",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "exhibition-open"
     },
     {
@@ -142,7 +142,7 @@
       "labelDE": "Dateiimport und Export",
       "labelEN": "File import and export",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "import-export"
     },
     {
@@ -154,7 +154,7 @@
       "labelDE": "Persönliche Einstellungen",
       "labelEN": "Personal preferences",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "preferences"
     },
     {
@@ -166,7 +166,7 @@
       "labelDE": "Stammdaten und Nummernschemata",
       "labelEN": "Master data and numbering",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "decoder-library"
     },
     {
@@ -178,7 +178,7 @@
       "labelDE": "Benutzer und Sicherheit",
       "labelEN": "Users and security",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "users"
     },
     {
@@ -190,7 +190,7 @@
       "labelDE": "Sicherung und Wiederherstellung",
       "labelEN": "Backup and restore",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "backup"
     },
     {
@@ -213,7 +213,7 @@
       "labelDE": "Digitalzentralen",
       "labelEN": "Command stations",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-10-23",
+      "reviewedAt": "2026-11-09",
       "screenshot": "digital-settings"
     },
     {
@@ -258,7 +258,7 @@
       "labelDE": "Versionen und Hilfe",
       "labelEN": "Versions and help",
       "reviewEvidence": "source",
-      "reviewedAt": "2026-10-23"
+      "reviewedAt": "2026-11-09"
     },
     {
       "id": "shared-navigation",
@@ -291,7 +291,7 @@
       "labelDE": "Manuelle Wertentwicklung",
       "labelEN": "Manual value history",
       "reviewEvidence": "demo-ui",
-      "reviewedAt": "2026-11-07",
+      "reviewedAt": "2026-11-09",
       "screenshot": "valuations"
     }
   ],

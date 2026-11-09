@@ -2,9 +2,9 @@
 title: Practice a safe restore
 description: Practice a safe restore.
 audience: admin
-status: development
-reviewedVersion: main
-lastReviewed: 2026-10-25
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Practice a safe restore
@@ -53,7 +53,12 @@ Select the downloaded JSON under **Restore backup**.
 <GuideFigure name="restore-preflight" alt="Compatible exercise backup with version, tables, rows and files before restoration." caption="Actual validation of an exported demo backup. Selecting a file does not change inventory; confirmation is still missing." />
 
 Review compatibility, file count, errors and warnings. The reviewed backup format is version
-**24**. File selection alone does not restore data.
+**28**. File selection alone does not restore data.
+
+The file count covers separate files in the uploads directory. Originals stored as SQLite blobs
+belong to the backed-up records. A complete backup containing images and attachments can therefore
+show **0 files** here. Also open the original media on the vehicle after restoring. The current
+picture sequence includes additional synthetic vehicles beside the exercise locomotive and set.
 
 ## 4. Deliberately confirm restoration
 
