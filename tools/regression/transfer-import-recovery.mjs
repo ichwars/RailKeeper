@@ -12,13 +12,17 @@ export async function assertTransferImportRecovery(page, input, de, reference) {
   const dialog = page.getByRole("dialog", { name: de ? "Import prüfen" : "Review import", exact: true });
   await dialog.getByRole("button", { name: de ? "Importprofil" : "Import profile", exact: true }).click();
   await page.getByRole("option", { name, exact: true }).click();
-  const uploaded = page.waitForResponse(response => response.request().method() === "POST" && response.url().endsWith("/upload"));
-  await dialog.getByLabel(de ? "Importdatei" : "Import file", { exact: true }).setInputFiles({
+  const fileButton = dialog.getByRole("button", { name: de ? "Importdatei" : "Import file", exact: true });
+  const [chooser] = await Promise.all([page.waitForEvent("filechooser"), fileButton.click()]);
+  const [uploaded] = await Promise.all([
+    page.waitForResponse(response => response.request().method() === "POST" && response.url().endsWith("/upload")),
+    chooser.setFiles({
     name: `reply-recovery-${language}.csv`, mimeType: "text/csv", buffer: Buffer.from(
       "Inventarnummer;Hersteller;Bezeichnung;Spurweite;Kategorie;Gattung\n" +
       `${inventory};Roco;Reply recovery ${language};H0;Lokomotive;Diesellokomotive\n`)
-  });
-  const preview = await (await uploaded).json(); assert.equal(preview.job.state, "ready");
+    })
+  ]);
+  const preview = await uploaded.json(); assert.equal(preview.job.state, "ready");
   await dialog.getByRole("button", { name: de ? "Weiter zur Prüfung" : "Continue to review", exact: true }).click();
   const jobURL = origin.origin + "/api/v1/data-transfer/jobs/" + preview.job.id;
   let confirms = 0, failedRead = false;
@@ -33,7 +37,7 @@ export async function assertTransferImportRecovery(page, input, de, reference) {
   });
   await dialog.getByRole("button", { name: de ? "1 Datensatz importieren" : "Import 1 record", exact: true }).click();
   await dialog.getByRole("alert").filter({ hasText: de ? "noch unklar" : "still uncertain" }).waitFor();
-  assert.equal(await dialog.getByLabel(de ? "Importdatei" : "Import file", { exact: true }).isDisabled(), true);
+  assert.equal(await fileButton.isDisabled(), true);
   assert.equal(await dialog.getByRole("button", { name: de ? "Auftrag abbrechen" : "Cancel job", exact: true }).count(), 0);
   const check = dialog.getByRole("button", { name: de ? "Auftragsstatus prüfen" : "Check job status", exact: true });
   for (const width of [2580, 1440, 820, 390]) for (const theme of ["light", "dark"]) {
