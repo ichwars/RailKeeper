@@ -112,7 +112,7 @@ export const AppFilePicker = forwardRef<HTMLInputElement, AppFilePickerProps>(fu
           <FileUp size={15} aria-hidden="true" />
           <span id={triggerTextId}>{triggerLabel}</span>
         </button>
-        <span id={fileNameId} className={`app-file-picker-name ${file ? "" : "empty"}`.trim()}>
+        <span id={fileNameId} title={file?.name} className={`app-file-picker-name ${file ? "" : "empty"}`.trim()}>
           {file?.name || emptyLabel}
         </span>
         {file ? (

@@ -5,7 +5,7 @@
   width: 100%;
 }
 
-.app-number-control > input {
+.app-number-control > input[type="number"] {
   appearance: textfield;
   min-width: 0;
   width: 100%;
@@ -13,7 +13,12 @@
 }
 .app-number-control > input::-webkit-inner-spin-button,
 .app-number-control > input::-webkit-outer-spin-button { appearance: none; margin: 0; }
-.app-number-control > input[step="any"] { padding-right: var(--space-md); }
+.app-number-control > input[type="number"][step="any"] { padding-right: var(--space-md); }
+.app-number-control > input[type="number"]:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 1px;
+}
+.app-number-control > input[aria-invalid="true"]:focus-visible { outline-color: var(--danger); }
 .app-number-steps {
   display: grid;
   position: absolute;
@@ -35,8 +40,11 @@
 .app-number-steps > button:hover { color: var(--accent-strong); }
 .app-number-steps > button:disabled { opacity: 0.62; cursor: not-allowed; }
 
-@media (max-width: 680px) {
-  .app-number-control > input { min-height: 44px; padding-right: 90px; }
-  .app-number-steps { display: flex; width: 88px; }
-  .app-number-steps > button { flex: 1 0 44px; min-height: 44px; }
+@media (max-width: 900px) {
+  .app-number-control > input[type="number"] {
+    min-height: var(--control-target-touch);
+    padding-right: calc(2 * var(--control-target-touch) + 2px);
+  }
+  .app-number-steps { display: flex; top: 0; bottom: 0; width: calc(2 * var(--control-target-touch)); }
+  .app-number-steps > button { flex: 1 0 var(--control-target-touch); min-height: var(--control-target-touch); }
 }

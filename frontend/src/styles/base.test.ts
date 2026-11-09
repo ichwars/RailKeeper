@@ -34,6 +34,13 @@ describe("base design system", () => {
     expect(css).toMatch(/\.article-image-option > \.app-choice-control\s*\{[^}]*position:\s*absolute/s);
   });
 
+  it("reserves separate chrome space for the global report action", () => {
+    const css = readFileSync(join(stylesDirectory, "report-action-placement.css"), "utf8");
+    expect(css).toMatch(/\.sidebar\s*\{[^}]*height:\s*calc\(100vh - 64px\)/s);
+    expect(css).toMatch(/\.layout\.sidebar-collapsed \.feedback-button\s*\{[^}]*left:\s*19px/s);
+    expect(css).toMatch(/@media \(max-width: 900px\)[\s\S]*bottom:\s*auto/s);
+  });
+
   it("confines hidden exhibition row actions to the scrollable table", () => {
     const exhibitionCss = readFileSync(join(stylesDirectory, "exhibition.css"), "utf8");
     expect(exhibitionCss).toMatch(/\.exhibition-row-menu\s*\{[^}]*position:\s*relative/s);
@@ -44,6 +51,7 @@ describe("base design system", () => {
       "--space-xs: 4px",
       "--space-sm: 8px",
       "--space-md: 12px",
+      "--control-target-touch: 44px",
       "--space-lg: 16px",
       "--space-xl: 24px",
       "--space-2xl: 32px",

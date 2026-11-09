@@ -1,0 +1,24 @@
+/* Reserve chrome space for reporting instead of covering collection data. */
+@media (min-width: 901px) {
+  .sidebar { height: calc(100vh - 64px); }
+  .sidebar::after {
+    content: "";
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    bottom: 0;
+    width: 216px;
+    height: 64px;
+    border-right: 1px solid var(--line-strong);
+    background: var(--solid-bg);
+  }
+  .sidebar.collapsed::after { width: 86px; }
+  .layout .feedback-button,
+  .layout:has(.overview-page) .feedback-button { left: 84px; right: auto; top: auto; bottom: 8px; }
+  .layout.sidebar-collapsed .feedback-button { left: 19px; }
+}
+
+@media (max-width: 900px) {
+  .layout .feedback-button,
+  .layout:has(.overview-page) .feedback-button { top: var(--space-md); bottom: auto; left: auto; right: var(--space-lg); }
+}

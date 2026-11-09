@@ -103,12 +103,16 @@ export function AppSelect({ value, children, onChange, className = "", disabled,
       const spaceAbove = rect.top - viewportGap - optionGap;
       const opensAbove = spaceBelow < 180 && spaceAbove > spaceBelow;
       const availableHeight = opensAbove ? spaceAbove : spaceBelow;
-      const maxHeight = Math.max(140, Math.min(260, availableHeight));
+      const maxHeight = Math.max(1, Math.min(260, availableHeight, window.innerHeight - 2 * viewportGap));
+      const popupWidth = Math.min(Math.max(rect.width, minWidth), window.innerWidth - 2 * viewportGap);
       setFloatingStyle({
         position: "fixed",
-        top: opensAbove ? Math.max(viewportGap, rect.top - maxHeight - optionGap) : rect.bottom + optionGap,
-        left: Math.max(viewportGap, Math.min(rect.left, window.innerWidth - Math.max(rect.width, minWidth) - viewportGap)),
-        width: Math.max(rect.width, minWidth),
+        top: Math.max(viewportGap, Math.min(
+          opensAbove ? rect.top - maxHeight - optionGap : rect.bottom + optionGap,
+          window.innerHeight - maxHeight - viewportGap
+        )),
+        left: Math.max(viewportGap, Math.min(rect.left, window.innerWidth - popupWidth - viewportGap)),
+        width: popupWidth,
         maxHeight,
         zIndex: 130
       });
