@@ -392,12 +392,14 @@ Mobile Eingaben, Auswahloptionen und Aktionsschaltflächen verwenden das gemeins
 Bildschirms; Kalender können vertikal scrollen. Die kompakte Desktop-Geometrie bleibt erhalten.
 Die mobile Mindestgröße gilt auch für ältere Symbol-, Tabellen- und Anmeldeaktionen;
 absichtlich versteckte Tastaturhilfen behalten ihre bestehende Funktionsweise.
+Anmelde- und Einrichtungskarten können bis 320 Pixel schrumpfen, einschließlich ihres Logos.
 
 Mobile inputs, select options and action buttons share a 44-pixel touch target. Calendars and
 selection menus remain within the viewport, including short screens; calendars can scroll
 vertically. Desktop controls retain their compact geometry.
 The mobile target floor includes legacy icon, table and login actions; intentionally hidden
 keyboard helpers retain their existing behavior.
+Login and setup cards, including their logo, can shrink to fit 320-pixel screens.
 
 Die globale Meldeaktion liegt außerhalb der Sammlungsfläche: auf dem Desktop in einem
 reservierten Bereich der Seitenleiste, mobil im Kopfbereich. Eingeklappte Navigation und

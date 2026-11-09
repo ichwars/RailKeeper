@@ -27,7 +27,8 @@ try {
     for (const width of [320, 390, 820]) {
       await page.setViewportSize({ width, height: 1000 });
       await assertMobileActionTargets(page);
-      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+      const geometry = await page.evaluate(() => ({ content: document.documentElement.scrollWidth, viewport: innerWidth }));
+      assert.ok(geometry.content <= geometry.viewport + 1, `Login content exceeds viewport: ${JSON.stringify(geometry)}`);
     }
     for (let tab = 0; tab < 12 && !await forgot.evaluate(node => node === document.activeElement); tab++) {
       await page.keyboard.press("Tab");
