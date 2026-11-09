@@ -1,0 +1,56 @@
+.app-date .app-date-toggle:focus-visible,
+.app-date .app-date-clear:focus-visible,
+.app-date-calendar button:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: -2px;
+}
+
+@media (max-width: 900px) {
+  .settings-action-row { flex-wrap: wrap; }
+  .settings-action-row > p { min-width: 0; overflow-wrap: anywhere; }
+  .manual-valuation-body .app-date { width: 220px; }
+  .app-number-control:has(.app-number-steps) { min-width: 144px; }
+  .cv-tab .cv-form { grid-template-columns: repeat(auto-fit, minmax(144px, 1fr)); }
+  :is(.app-field, .vehicle-form, .settings-form, .settings-field-grid,
+    .master-data-create, .auth-form, .search-field, .settings-search)
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+  .app-date .app-date-field,
+  .app-date .app-date-field input,
+  .app-select .app-select-trigger,
+  .app-select-options .app-select-option,
+  .app-multi-select-trigger,
+  .app-multi-select-option,
+  .app-file-picker .app-file-picker-trigger,
+  .app-file-button > button {
+    min-height: var(--control-target-touch);
+  }
+
+  .app-date .app-date-toggle,
+  .app-date .app-date-clear,
+  .app-file-picker .app-file-picker-clear,
+  .app-date-calendar-head button {
+    width: var(--control-target-touch);
+    height: var(--control-target-touch);
+  }
+
+  .app-file-picker .app-file-picker-clear { flex-basis: var(--control-target-touch); }
+  .app-file-picker .app-file-picker-control { padding: 0; flex-wrap: wrap; }
+  .app-file-picker-control:has(.app-file-picker-clear) .app-file-picker-name {
+    order: 1;
+    flex-basis: 100%;
+    padding: 0 var(--space-sm) var(--space-xs);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .app-date-calendar { scrollbar-width: none; }
+  .app-date-calendar::-webkit-scrollbar { width: 0; height: 0; }
+  .app-date-calendar-head {
+    grid-template-columns: var(--control-target-touch) minmax(0, 1fr) var(--control-target-touch);
+  }
+  .app-date-calendar-actions button { min-height: var(--control-target-touch); }
+}
+
+@media (max-width: 375px) {
+  .app-date-weekdays,
+  .app-date-days { gap: 0; padding-inline: 1px; }
+}

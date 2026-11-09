@@ -44,6 +44,7 @@ describe("base design system", () => {
       "--space-xs: 4px",
       "--space-sm: 8px",
       "--space-md: 12px",
+      "--control-target-touch: 44px",
       "--space-lg: 16px",
       "--space-xl: 24px",
       "--space-2xl: 32px",

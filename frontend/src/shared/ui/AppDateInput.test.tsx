@@ -12,7 +12,7 @@ function DateField({ initial = "2026-11-07", onCommit = vi.fn() }: { initial?: s
 }
 
 describe("Date input preserves known and unknown event dates", () => {
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
   it.each(["2028-02-29", "29.2.2028"])("commits the valid input %s as the same ISO date", async input => {
     const onCommit = vi.fn();
     render(<DateField onCommit={onCommit} />);
@@ -86,6 +86,36 @@ describe("Date input preserves known and unknown event dates", () => {
     fireEvent.scroll(window);
     fireEvent.resize(window);
     expect(dialog).toHaveStyle({ position: "fixed" });
+  });
+
+  it.each([[320, 240, 312], [390, 360, 360], [820, 768, 360]])(
+    "bounds the calendar at %i by %i without changing a stored date",
+    async (width, height, expectedWidth) => {
+      vi.stubGlobal("innerWidth", width);
+      vi.stubGlobal("innerHeight", height);
+      const onCommit = vi.fn();
+      render(<DateField onCommit={onCommit} />);
+      await userEvent.click(screen.getByRole("button", { name: "Kalender öffnen" }));
+      const popup = screen.getByRole("dialog");
+      const gap = width < 360 ? 4 : 8;
+      expect(Number.parseFloat(popup.style.width)).toBe(expectedWidth);
+      expect(Number.parseFloat(popup.style.left) + expectedWidth).toBeLessThanOrEqual(width - gap);
+      expect(Number.parseFloat(popup.style.maxHeight)).toBe(height - 2 * gap);
+      expect(popup).toHaveStyle({ overflowY: "auto" });
+      expect(onCommit).not.toHaveBeenCalled();
+      expect(screen.getByLabelText("Ereignisdatum")).toHaveValue("07.11.2026");
+    }
+  );
+
+  it("closes the calendar with Escape and returns focus without submitting a date", async () => {
+    const onCommit = vi.fn();
+    render(<DateField onCommit={onCommit} />);
+    await userEvent.click(screen.getByRole("button", { name: "Kalender öffnen" }));
+    screen.getByRole("button", { name: "Nächster Monat" }).focus();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Ereignisdatum")).toHaveFocus();
+    expect(onCommit).not.toHaveBeenCalled();
   });
 
   it("offers English labels and an explicit clear without changing the date grammar", async () => {

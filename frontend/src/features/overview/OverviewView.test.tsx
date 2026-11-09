@@ -259,6 +259,8 @@ describe("OverviewView", () => {
     expect(css).toContain("@container overview (max-width: 1120px)");
     expect(css).toContain("@container overview (max-width: 860px)");
     expect(css).toContain("@media (max-width: 760px)");
+    expect(css).toMatch(/\.overview-footer-action > span\s*\{[^}]*min-width:\s*0/s);
+    expect(css).toMatch(/\.overview-action-footer strong\s*\{[^}]*white-space:\s*normal/s);
   });
 
   it("defines readable hierarchy and separate semantic status colors", () => {

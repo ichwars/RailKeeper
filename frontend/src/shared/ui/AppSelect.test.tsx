@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AppSelect } from "./AppSelect";
+
+afterEach(() => vi.unstubAllGlobals());
 
 function VehicleSelection({ onEscape, containMenu = false }: { onEscape: () => void; containMenu?: boolean }) {
   const [value, setValue] = useState("one");
@@ -20,6 +22,25 @@ function VehicleSelection({ onEscape, containMenu = false }: { onEscape: () => v
 }
 
 describe("AppSelect in a dialog", () => {
+  it("keeps a wide selector and its menu inside a short mobile viewport", async () => {
+    vi.stubGlobal("innerWidth", 320);
+    vi.stubGlobal("innerHeight", 240);
+    render(<VehicleSelection onEscape={vi.fn()} />);
+    const trigger = screen.getByRole("button", { name: "Fahrzeug" });
+    vi.spyOn(trigger.closest(".app-select")!, "getBoundingClientRect")
+      .mockReturnValue(new DOMRect(24, 80, 500, 44));
+    await userEvent.click(trigger);
+    const menu = screen.getByRole("listbox");
+    const left = Number.parseFloat(menu.style.left);
+    const top = Number.parseFloat(menu.style.top);
+    expect(left).toBeGreaterThanOrEqual(8);
+    expect(left + Number.parseFloat(menu.style.width)).toBeLessThanOrEqual(312);
+    expect(top + Number.parseFloat(menu.style.maxHeight)).toBeLessThanOrEqual(232);
+    await userEvent.click(screen.getByRole("option", { name: "RK-2 · Wagen" }));
+    expect(trigger).toHaveTextContent("RK-2 · Wagen");
+    expect(trigger).toHaveFocus();
+  });
+
   it("renders the menu in its supplied dialog layer", async () => {
     const user = userEvent.setup();
     render(<VehicleSelection containMenu onEscape={vi.fn()} />);

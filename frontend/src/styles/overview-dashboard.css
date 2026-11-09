@@ -882,6 +882,11 @@ a.overview-metric-card:focus-visible {
   outline: none;
 }
 
+.overview-action-footer > a:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: -2px;
+}
+
 .overview-action-footer strong,
 .overview-action-footer small {
   display: block;
@@ -1011,6 +1016,22 @@ a.overview-metric-card:focus-visible {
 }
 
 @media (max-width: 520px) {
+  .main:has(.overview-page) {
+    padding-bottom: calc(120px + var(--space-2xl) + var(--space-2xl));
+  }
+
+  .layout:has(.overview-page) .feedback-button { bottom: 120px; }
+  .overview-action-footer { min-height: 104px; }
+  .overview-action-footer > a,
+  .overview-footer-action {
+    flex-direction: column;
+    gap: var(--space-xs);
+    text-align: center;
+  }
+  .overview-action-footer > a > span,
+  .overview-footer-action > span { min-width: 0; max-width: 100%; }
+  .overview-action-footer strong { white-space: normal; overflow-wrap: anywhere; }
+
   .overview-metrics {
     grid-template-columns: minmax(0, 1fr);
   }

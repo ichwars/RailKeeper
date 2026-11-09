@@ -386,3 +386,11 @@ preserve native events, form values and input refs inside existing labels and ta
 while `AppFileButton` retains complete native file-change events for immediate uploads.
 Hidden native inputs remain transport elements. Existing switches and theme cards keep their
 visual treatment and expose keyboard focus. Typography tests check token definitions and usage.
+
+Mobile Eingaben, Auswahloptionen und Dateischaltflächen verwenden das gemeinsame
+44-Pixel-Bedienziel. Kalender und Auswahlmenüs bleiben auch bei wenig Platz innerhalb des
+Bildschirms; Kalender können vertikal scrollen. Die kompakte Desktop-Geometrie bleibt erhalten.
+
+Mobile inputs, select options and file buttons share a 44-pixel touch target. Calendars and
+selection menus remain within the viewport, including short screens; calendars can scroll
+vertically. Desktop controls retain their compact geometry.

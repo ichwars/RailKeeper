@@ -93,16 +93,28 @@ export function AppDateInput({ value = "", onChange, className = "", disabled, r
       const root = rootRef.current;
       if (!root) return;
       const rect = root.getBoundingClientRect();
-      const viewportGap = 8;
-      const popupWidth = 284;
-      const popupHeight = 330;
+      const viewportGap = window.innerWidth < 360 ? 4 : 8;
+      const availableHeight = Math.max(1, window.innerHeight - 2 * viewportGap);
+      const popupWidth = Math.min(window.innerWidth <= 900 ? 360 : 284, window.innerWidth - 2 * viewportGap);
+      const popup = popupRef.current;
+      if (popup) {
+        // Measure at its final width before choosing which side of the field has room.
+        popup.style.width = `${popupWidth}px`;
+        popup.style.maxHeight = `${availableHeight}px`;
+      }
+      const popupHeight = Math.min(popup?.getBoundingClientRect().height || 330, availableHeight);
       const spaceBelow = window.innerHeight - rect.bottom - viewportGap;
       const opensAbove = spaceBelow < popupHeight && rect.top > spaceBelow;
       setFloatingStyle({
         position: "fixed",
-        top: opensAbove ? Math.max(viewportGap, rect.top - popupHeight - 4) : rect.bottom + 4,
+        top: Math.max(viewportGap, Math.min(
+          opensAbove ? rect.top - popupHeight - 4 : rect.bottom + 4,
+          window.innerHeight - popupHeight - viewportGap
+        )),
         left: Math.max(viewportGap, Math.min(rect.left, window.innerWidth - popupWidth - viewportGap)),
         width: popupWidth,
+        maxHeight: availableHeight,
+        overflowY: "auto",
         zIndex: 140
       });
     };
@@ -135,6 +147,7 @@ export function AppDateInput({ value = "", onChange, className = "", disabled, r
     commit(toISODate(date));
     setVisibleMonth(date);
     setOpen(false);
+    rootRef.current?.querySelector("input")?.focus();
   };
 
   const changeMonth = (offset: number) => {
@@ -185,7 +198,14 @@ export function AppDateInput({ value = "", onChange, className = "", disabled, r
         </button>
       </span>
       {open && typeof document !== "undefined" && createPortal(
-        <div ref={popupRef} id={calendarID} className="app-date-calendar" style={floatingStyle} role="dialog" aria-label={t("dateInput.choose")}>
+        <div ref={popupRef} id={calendarID} className="app-date-calendar" style={floatingStyle}
+          role="dialog" aria-label={t("dateInput.choose")} onKeyDown={event => {
+            if (event.key !== "Escape") return;
+            event.preventDefault();
+            event.stopPropagation();
+            setOpen(false);
+            rootRef.current?.querySelector("input")?.focus();
+          }}>
           <div className="app-date-calendar-head">
             <button type="button" onClick={() => changeMonth(-1)} aria-label={t("dateInput.previousMonth")} title={t("dateInput.previousMonth")}>
               <ChevronLeft size={16} aria-hidden="true" />
@@ -217,7 +237,9 @@ export function AppDateInput({ value = "", onChange, className = "", disabled, r
             })}
           </div>
           <footer className="app-date-calendar-actions">
-            <button type="button" onClick={() => { commit(""); setOpen(false); }}>{t("dateInput.clear")}</button>
+            <button type="button" onClick={() => {
+              commit(""); setOpen(false); rootRef.current?.querySelector("input")?.focus();
+            }}>{t("dateInput.clear")}</button>
             <button type="button" onClick={() => chooseDay(new Date())}>{t("dateInput.today")}</button>
           </footer>
         </div>,

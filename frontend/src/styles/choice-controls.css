@@ -61,6 +61,6 @@
   outline-offset: 2px;
 }
 
-@media (max-width: 680px) {
-  .app-choice-control { width: 44px; height: 44px; }
+@media (max-width: 900px) {
+  .app-choice-control { width: var(--control-target-touch); height: var(--control-target-touch); }
 }
