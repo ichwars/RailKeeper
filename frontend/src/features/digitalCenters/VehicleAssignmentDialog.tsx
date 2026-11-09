@@ -1,6 +1,7 @@
-import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
-import { useMemo, useRef, useState } from "react";
 import { TriangleAlert, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { observeAction } from "../../shared/asyncAction";
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 
 import type { Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -104,7 +105,7 @@ export function VehicleAssignmentDialog({
         <footer>
           <button type="button" className="digital-center-button"
             disabled={!selectedVehicleId || loading || saving}
-            onClick={() => void onAssign(selectedVehicleId)}>
+            onClick={() => observeAction(onAssign(selectedVehicleId))}>
             {saving ? t("digitalCenters.assignment.saving") : t("digitalCenters.assignment.confirm")}
           </button>
           <button type="button" className="digital-center-button" onClick={onClose}>

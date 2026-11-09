@@ -1,4 +1,5 @@
 import { api } from "../../shared/api";
+import { observeAction } from "../../shared/asyncAction";
 import { useI18n } from "../../shared/i18n";
 import { VehicleValuationForm } from "./VehicleValuationForm";
 import { useVehicleValuations } from "./useVehicleValuations";
@@ -18,11 +19,11 @@ export function VehicleValuations({ vehicleID, canEdit = false, active = true, j
     {model.status && <p role="status">{t(model.status)}</p>}
     {model.error && <p role="alert" className="form-message">{t(model.error)}</p>}
     {model.uncertain && canEdit && <button type="button" className="secondary-button"
-      disabled={model.saving} onClick={() => void model.review()}>{t("valuation.review")}</button>}
+      disabled={model.saving} onClick={() => observeAction(model.review())}>{t("valuation.review")}</button>}
     {canEdit && <VehicleValuationForm controller={model} />}
     <div className="valuation-heading"><h4>{t("valuation.history")}</h4>
       <button type="button" className="secondary-button" disabled={model.loading || model.saving}
-        onClick={() => void model.load()}>{t("valuation.reload")}</button>
+        onClick={() => observeAction(model.load())}>{t("valuation.reload")}</button>
     </div>
     {model.loading && <p role="status">{t("valuation.loading")}</p>}
     {model.loadFailed && <p role="alert" className="form-message">{t("valuation.loadFailed")}</p>}
@@ -50,6 +51,6 @@ export function VehicleValuations({ vehicleID, canEdit = false, active = true, j
       </li>)}
     </ol>
     {model.history.entries.length < model.history.total && <button type="button" className="secondary-button"
-      disabled={model.loading} onClick={() => void model.load(model.history.entries.length)}>{t("valuation.more")}</button>}
+      disabled={model.loading} onClick={() => observeAction(model.load(model.history.entries.length))}>{t("valuation.more")}</button>}
   </section>;
 }

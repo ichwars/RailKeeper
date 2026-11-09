@@ -111,7 +111,7 @@ export function VehicleCreateStepBasics({
           </label>
           {kind === "set" && (
             <label>{t("vehicles.wizard.memberCount")}
-              <AppNumberControl min={2} max={maximumVehicleSetMembers} value={state.members.length}
+              <AppNumberControl aria-label={t("vehicles.wizard.memberCount")} min={2} max={maximumVehicleSetMembers} value={state.members.length}
                 onChange={(event) => dispatch({ type: "set-member-count", count: Number(event.target.value) })} />
             </label>
           )}

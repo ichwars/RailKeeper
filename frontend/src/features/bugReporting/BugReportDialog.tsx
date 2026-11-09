@@ -1,28 +1,27 @@
 import { Bug, ExternalLink, RotateCw, Send, X } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
+import { observeAction } from "../../shared/asyncAction";
 
-import type { BugReportClientDiagnostics } from "../../shared/apiBugReports";
-import { readDiagnosticPreference, saveDiagnosticPreference, observeDiagnosticPreference } from "./bugReportPreferences";
-import { useI18n } from "../../shared/i18n";
 import type {
   BugReportArea,
-  BugReportCapability,
-  BugReportSubmissionInput,
+  BugReportCapability, BugReportClientDiagnostics, BugReportSubmissionInput,
   BugReportSubmissionResult
 } from "../../shared/apiBugReports";
-import { AppSelect } from "../../shared/ui/AppSelect";
+import { useI18n } from "../../shared/i18n";
 import { AppCheckbox } from "../../shared/ui/AppCheckbox";
+import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextArea } from "../../shared/ui/AppTextArea";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
-import { areaForPathname, createBugReportID, validateBugReportForm, type BugReportFormErrors } from "./bugReportModel";
-import { clientErrorBuffer } from "./clientErrorBuffer";
+import { BugReportScreenshotField } from "./BugReportScreenshotField";
 import {
   collectBugReportDiagnostics,
   collectBugReportDiagnosticsWithClientHints
 } from "./bugReportDiagnostics";
-import { BugReportScreenshotField } from "./BugReportScreenshotField";
+import { areaForPathname, createBugReportID, validateBugReportForm, type BugReportFormErrors } from "./bugReportModel";
+import { observeDiagnosticPreference, readDiagnosticPreference, saveDiagnosticPreference } from "./bugReportPreferences";
+import { clientErrorBuffer } from "./clientErrorBuffer";
 
 const areas: BugReportArea[] = [
   "overview", "vehicles", "accessories", "exhibition",
@@ -79,9 +78,9 @@ export function BugReportDialog({
     setDiagnosticError(false);
     const input = { area, roles, language, buffer: clientErrorBuffer };
     setClientDiagnostics(collectBugReportDiagnostics(input));
-    void collectBugReportDiagnosticsWithClientHints(input).then((diagnostics) => {
+    observeAction(collectBugReportDiagnosticsWithClientHints(input).then((diagnostics) => {
       if (!cancelled) setClientDiagnostics(diagnostics);
-    });
+    }));
     if (onLoadDiagnostics) {
       void onLoadDiagnostics().then((loaded) => {
         if (!cancelled) setServerDiagnostics(loaded.serverDiagnostics);
@@ -278,7 +277,7 @@ export function BugReportDialog({
               {t("bugReport.cancel")}
             </button>
             {result?.status === "partial" ? (
-              <button type="button" className="primary-button" disabled={busy} onClick={() => void submit()}>
+              <button type="button" className="primary-button" disabled={busy} onClick={() => observeAction(submit())}>
                 <RotateCw size={16} aria-hidden="true" />{t("bugReport.retry")}
               </button>
             ) : result?.status !== "complete" ? (

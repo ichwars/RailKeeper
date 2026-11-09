@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { observeAction } from "../../shared/asyncAction";
 
+import { useDecoderLibrary } from "../../shared/DecoderLibraryProvider";
 import { api } from "../../shared/api";
+import { resolveDecoderLibrary } from "../../shared/decoderLibrary";
+import { hasECoSDecoderIdentityConflict } from "../../shared/ecosSourceConflicts";
 import { useI18n } from "../../shared/i18n";
+import { DecoderLibraryNotice } from "../vehicles/DecoderLibraryNotice";
 import type { DigitalCenterWorkItem } from "./digitalCenterModel";
 import { hasCompleteECoSCVSnapshot, readECoSStoredCVs } from "./readECoSStoredCVs";
-import { useDecoderLibrary } from "../../shared/DecoderLibraryProvider";
-import { resolveDecoderLibrary } from "../../shared/decoderLibrary";
-import { DecoderLibraryNotice } from "../vehicles/DecoderLibraryNotice";
-import { hasECoSDecoderIdentityConflict } from "../../shared/ecosSourceConflicts";
 
 export function ECoSStoredCVPanel({ item, onChange, onBusy, externalReading = false,
   externalError = "", onCancelRead }: {
@@ -106,14 +107,14 @@ export function ECoSStoredCVPanel({ item, onChange, onBusy, externalReading = fa
     <p>{t("digitalCenters.cvs.indexHint")}</p>
     <div className="ecos-stored-cvs-actions">
       {!backup && !hasCompleteECoSCVSnapshot(item) && !comparedIncomplete && <button type="button" className="digital-center-button" disabled={reading || saving || externalReading}
-        onClick={() => void readAll()}>
+        onClick={() => observeAction(readAll())}>
         {reading || externalReading ? t("digitalCenters.cvs.reading") : (checked > 0 && !complete) || readFailed
           ? t("digitalCenters.cvs.resume") : t("digitalCenters.cvs.readAll")}
       </button>}
       {(reading || externalReading) && <button type="button" className="digital-center-button"
         onClick={() => { cancelled.current = true; onCancelRead?.(); }}>{t("digitalCenters.cvs.stop")}</button>}
       {item.vehicleId && values.length > 0 && <button type="button" className="digital-center-button"
-        disabled={reading || saving || externalReading || comparedIncomplete || (backup && !complete)} onClick={() => void importValues()}>
+        disabled={reading || saving || externalReading || comparedIncomplete || (backup && !complete)} onClick={() => observeAction(importValues())}>
         {saving ? t("digitalCenters.cvs.saving") : t("digitalCenters.cvs.import")}
       </button>}
     </div>

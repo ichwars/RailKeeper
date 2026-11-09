@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
 import { BookOpen, ChevronRight, FileCheck2, RefreshCw, Search } from "lucide-react";
-import { api } from "../../shared/api";
-import type { DecoderLibrary, DecoderLibraryProfile } from "../../shared/decoderLibraryModel";
+import { useEffect, useState } from "react";
 import { decoderLibraryChanged } from "../../shared/DecoderLibraryProvider";
+import { api } from "../../shared/api";
+import { observeAction } from "../../shared/asyncAction";
+import type { DecoderLibrary, DecoderLibraryProfile } from "../../shared/decoderLibraryModel";
 import { formatDate, translate, useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
-import { directoryModels, modelContext } from "./decoderLibraryDirectory";
 import { DecoderLibraryModelDetail } from "./DecoderLibraryModelDetail";
+import { directoryModels, modelContext } from "./decoderLibraryDirectory";
 
 export function DecoderLibrarySettings({ roles }: { roles: string[] }) {
   const { t, language } = useI18n();
@@ -101,7 +102,7 @@ export function DecoderLibrarySettings({ roles }: { roles: string[] }) {
         </nav>
         <div className="decoder-directory-content">
           {selected || standard ? <DecoderLibraryModelDetail key={selected?.id || "standard"} model={selected} inventory={inventory}
-            profiles={profiles} roles={roles} saving={saving} onToggle={profile => void toggle(profile)}
+            profiles={profiles} roles={roles} saving={saving} onToggle={profile => observeAction(toggle(profile))}
             onBack={() => { setModelId(""); setStandard(false); }} /> : <>
             <div className="decoder-directory-title"><h4>{family ? inventory?.families.find(group => group.id === family)?.name
               : manufacturer ? inventory?.manufacturers.find(maker => maker.id === manufacturer)?.name : t("decoderLibrary.allModels")}</h4>

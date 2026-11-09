@@ -229,6 +229,8 @@ describe("CV form identity and provenance contracts", () => {
     await user.click(screen.getByRole("button", { name: t("vehicles.decoder.view.raw") }));
     const form = document.querySelector(".cv-manual-editor")!;
     const controls = within(form as HTMLElement);
+    expect(controls.getByRole("spinbutton", { name: "CV-Nr." })).toBeEnabled();
+    expect(controls.getByRole("spinbutton", { name: t("vehicle.field.value") })).toBeEnabled();
     fireEvent.change(controls.getByLabelText("CV31"), { target: { value: "0" } });
     fireEvent.change(controls.getByLabelText("CV32"), { target: { value: "" } });
     fireEvent.change(controls.getByLabelText("CV-Nr."), { target: { value: "257" } });

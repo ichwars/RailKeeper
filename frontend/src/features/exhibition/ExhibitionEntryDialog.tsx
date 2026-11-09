@@ -1,5 +1,6 @@
-import { FormEvent, RefObject, useMemo, useState } from "react";
 import { FileText, Image as ImageIcon, ImageOff, Keyboard, Plus, Trash2, X } from "lucide-react";
+import { FormEvent, RefObject, useMemo, useState } from "react";
+import { observeAction } from "../../shared/asyncAction";
 
 import {
   ExhibitionEntryInput,
@@ -306,7 +307,7 @@ export function ExhibitionEntryDialog({
                 label={de ? "Bilddatei" : "Image file"}
                 accept="image/png,image/jpeg,image/webp"
                 file={selectedFile}
-                onFileChange={(file) => void chooseImage(file)}
+                onFileChange={(file) => observeAction(chooseImage(file))}
                 triggerLabel={de ? "Bild auswählen" : "Choose image"}
                 clearLabel={de ? "Auswahl entfernen" : "Clear selection"}
                 emptyLabel={form.imageUrl ? (de ? "Gespeichertes Bild" : "Saved image") : (de ? "Kein Bild ausgewählt" : "No image selected")}

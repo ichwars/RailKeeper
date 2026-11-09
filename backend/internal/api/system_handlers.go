@@ -203,6 +203,10 @@ func printersFromPowerShell() systemPrintersResponse {
 			Printers: []systemPrinter{},
 		}
 	}
+	return parseWindowsPrinters(output)
+}
+
+func parseWindowsPrinters(output []byte) systemPrintersResponse {
 	type windowsPrinter struct {
 		Name    string `json:"Name"`
 		Default bool   `json:"Default"`

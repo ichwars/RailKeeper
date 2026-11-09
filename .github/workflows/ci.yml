@@ -18,6 +18,12 @@ jobs:
         run: python3 .github/scripts/test_release_workflow.py
       - name: Check release compiler alignment
         run: python3 .github/scripts/check_go_toolchain.py
+      - name: Test compiler drift rejection
+        run: python3 .github/scripts/test_go_toolchain.py
+      - name: Enforce executable source file budgets
+        run: |
+          python3 tools/check_source_size.py
+          python3 -m unittest discover -s tools -p test_source_size.py
       - name: Test Compose security configuration
         run: python3 .github/scripts/test_compose_security.py
       - name: Test cross-package coverage guard
@@ -212,7 +218,7 @@ jobs:
       - name: Lint backend
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
         with:
-          version: v2.11.4
+          version: v2.14.0
           working-directory: backend
           args: --config=../.golangci.yml
 

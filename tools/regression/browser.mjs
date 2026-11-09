@@ -5,6 +5,7 @@ import { chromium } from "playwright";
 import { assertSaveErrorRecovery } from "./quality-save-errors.mjs";
 import { assertInventoryToolbar } from "./personal-entry.mjs";
 import { assertResponsiveWorkspaces } from "./responsive.mjs";
+import { assertLogoutRecovery } from "./logout-recovery.mjs";
 
 let inputText = "";
 for await (const part of process.stdin) inputText += part;
@@ -15,6 +16,7 @@ assert.equal(origin.protocol, "http:");
 await mkdir(input.output, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const checks = [];
+let knownSessionIds = new Set(input.existingSessionIds);
 try {
   for (const language of ["de", "en"]) {
     const de = language === "de";
@@ -34,6 +36,13 @@ try {
     await page.getByLabel(de ? "Passwort" : "Password", { exact: true }).fill(input.credentials.password);
     await page.getByRole("button", { name: de ? "Anmelden" : "Sign in", exact: true }).click();
     await page.waitForURL("**/overview");
+    const sessions = await context.request.get(input.base + "/api/v1/sessions?limit=200");
+    assert.equal(sessions.status(), 200);
+    const records = await sessions.json();
+    const currentSession = records.filter(session => !knownSessionIds.has(session.id)
+      && session.username === input.credentials.username && session.active);
+    assert.equal(currentSession.length, 1);
+    knownSessionIds = new Set(records.map(session => session.id));
     await assertInventoryToolbar(page, input, de, checks);
     await assertSaveErrorRecovery(page, input, de, checks);
     const workspaces = [
@@ -114,6 +123,7 @@ try {
         checks.push(`${language}:${theme}:${width}:filters-settings-and-uploads`);
       }
     }
+    checks.push(...await assertLogoutRecovery(page, input, de, currentSession[0].id));
     assert.deepEqual(errors, []);
     await closeContext(context);
   }

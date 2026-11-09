@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type ECoSFunctionSnapshot, type MasterDataEntry, type VehicleFunctionInput } from "../../shared/api";
+import { observeAction } from "../../shared/asyncAction";
+import { functionSymbolIcon } from "../../shared/functionSymbols";
 import { useI18n } from "../../shared/i18n";
 import { AppCheckbox } from "../../shared/ui/AppCheckbox";
-import { functionSymbolIcon } from "../../shared/functionSymbols";
 import { DecoderLibraryNotice } from "./DecoderLibraryNotice";
 import type { DecoderAnalysis, MappingSuggestion } from "./decoderAnalysis";
-import type { FunctionEdit } from "./vehicleTransforms";
 import { ecosFunctionSuggestion } from "./ecosFunctionSuggestions";
+import type { FunctionEdit } from "./vehicleTransforms";
 
 export function ECoSFunctionImport({ vehicleID, objectID, analysis, mappings, symbols, locked, libraryUnavailable,
   functionEdit, updateFunctionEdit, onKeysRead }: {
@@ -57,7 +58,7 @@ export function ECoSFunctionImport({ vehicleID, objectID, analysis, mappings, sy
     <summary>{t("ecosFunctions.title")}</summary>
     <p>{t("ecosFunctions.help")}</p>
     <button type="button" className="secondary-button" disabled={blocked || !vehicleID || !objectID}
-      onClick={() => void read()}>{t(busy ? "ecosFunctions.reading" : "ecosFunctions.read")}</button>
+      onClick={() => observeAction(read())}>{t(busy ? "ecosFunctions.reading" : "ecosFunctions.read")}</button>
     {(!vehicleID || !objectID) && <p className="decoder-hint">{t("ecosFunctions.mappingRequired")}</p>}
     {error && <p role="alert">{t("ecosFunctions.error")}</p>}
     {snapshot && <>

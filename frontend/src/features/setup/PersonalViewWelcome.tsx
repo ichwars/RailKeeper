@@ -1,4 +1,3 @@
-import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   applySidebarProfile, defaultSidebarOrder, normalizeSidebarPrefs, readSidebarPrefs,
@@ -6,7 +5,9 @@ import {
 } from "../../app/sidebarPreferences";
 import { saveSidebarPreference, sidebarSaveState } from "../../app/sidebarSaving";
 import { api, captureSessionGuard } from "../../shared/api";
+import { observeAction } from "../../shared/asyncAction";
 import { useI18n } from "../../shared/i18n";
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 
 function serverPreferences(value: string, fallback: SidebarPrefs): SidebarPrefs {
   try {
@@ -67,7 +68,7 @@ export function PersonalViewWelcome({ username, onComplete }: { username: string
   return <main className="auth-page"><section className="auth-card personal-view-welcome" aria-labelledby="personal-view-title">
     <h1 id="personal-view-title">{t("setup.personalView.title")}</h1>
     <p>{t("setup.personalView.intro")}</p>
-    <form onSubmit={event => { void save(event); }}>
+    <form onSubmit={event => { observeAction(save(event)); }}>
       <fieldset disabled={saving || loading}>
         <legend>{t("settings.sidebarProfile.title")}</legend>
         {(["collection", "all"] as const).map(value => <label className="personal-view-choice" key={value}>

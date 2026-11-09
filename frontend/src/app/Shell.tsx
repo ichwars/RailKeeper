@@ -1,21 +1,22 @@
-import type { ReactNode } from "react";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Bug, ChevronLeft, ChevronRight, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
-import type { AppView } from "./App";
-import { api } from "../shared/api";
+import type { ReactNode } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { installClientErrorCapture } from "../features/bugReporting/clientErrorBuffer";
+import { api } from "../shared/api";
 import type { BugReportCapability } from "../shared/apiBugReports";
+import { observeAction } from "../shared/asyncAction";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference, themePreferenceKey, type ThemePreference } from "../shared/theme";
-import { sidebarNavigation } from "./sidebarNavigation";
+import type { AppView } from "./App";
 import { SidebarAdditionalNavigation } from "./SidebarAdditionalNavigation";
 import { followAppLink } from "./appNavigation";
-import { captureSidebarRead } from "./sidebarSaving";
+import { sidebarNavigation } from "./sidebarNavigation";
 import {
   readSidebarPrefs,
   sidebarOrderChangedEvent,
   sidebarPrefsKey
 } from "./sidebarPreferences";
+import { captureSidebarRead } from "./sidebarSaving";
 
 const LazyBugReportDialog = lazy(() => import("../features/bugReporting/BugReportDialog").then((module) => ({
   default: module.BugReportDialog
@@ -192,12 +193,12 @@ export function Shell({
   }, [appVersion]);
 
   useEffect(() => {
-    void refreshBugReportCapability();
+    observeAction(refreshBugReportCapability());
   }, [refreshBugReportCapability]);
 
   useEffect(() => {
     if (bugReportCapability?.enabled) return;
-    const refresh = () => void refreshBugReportCapability();
+    const refresh = () => observeAction(refreshBugReportCapability());
     const interval = window.setInterval(refresh, 30_000);
     window.addEventListener("focus", refresh);
     return () => {
@@ -225,11 +226,11 @@ export function Shell({
     try {
       const result = await api.submitBugReport(input);
       if (result.status === "partial") {
-        void refreshBugReportCapability();
+        observeAction(refreshBugReportCapability());
       }
       return result;
     } catch (error) {
-      void refreshBugReportCapability();
+      observeAction(refreshBugReportCapability());
       throw error;
     }
   }
@@ -294,16 +295,16 @@ export function Shell({
                   setMobileMenuOpen(false);
                   followAppLink(event, navigate ? () => navigate("settings") : undefined);
                 }}>
-                <Settings size={17} aria-hidden="true" />
+                <Settings size={17} aria-hidden="true" /><span>{t("nav.system")}</span>
               </a>
               <a href="https://github.com/ichwars/RailKeeper" target="_blank" rel="noreferrer" title={t("nav.repository")} aria-label={t("nav.repository")}>
-                <GitHubMark size={17} />
+                <GitHubMark size={17} /><span>GitHub</span>
               </a>
-              <button type="button" onClick={toggleTheme} title={t("nav.theme")} aria-label={t("nav.theme")}>
-                <ThemeIcon size={17} aria-hidden="true" />
+              <button type="button" onClick={toggleTheme} title={t("nav.theme")} aria-label={t("nav.themeLabel")}>
+                <ThemeIcon size={17} aria-hidden="true" /><span>{t("nav.themeLabel")}</span>
               </button>
               <button type="button" onClick={onLogout} title={t("nav.logout", { username })} aria-label={t("nav.logout", { username })}>
-                <LogOut size={17} aria-hidden="true" />
+                <LogOut size={17} aria-hidden="true" /><span>{t("nav.logoutLabel")}</span>
               </button>
             </div>
             {appVersion && (

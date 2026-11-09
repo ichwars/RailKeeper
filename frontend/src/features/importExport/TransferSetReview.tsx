@@ -1,4 +1,5 @@
 import { AlertTriangle, CheckCircle2, CircleAlert, Layers3 } from "lucide-react";
+import { observeAction } from "../../shared/asyncAction";
 
 import type { Language } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
@@ -61,7 +62,7 @@ export function TransferSetReview({ busy, issues, language, onResolve, sets }: T
                     value={issue.selectedResolution}
                     onChange={(event) => {
                       const resolution = event.target.value as DataTransferIssueResolution;
-                      if (resolution) void onResolve(issue, resolution);
+                      if (resolution) observeAction(onResolve(issue, resolution));
                     }}
                   >
                     <option value="">{copy.choose}</option>

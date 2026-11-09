@@ -1,11 +1,12 @@
 import { Archive, ArchiveRestore, MapPin, Pencil, X } from "lucide-react";
 import { FormEvent, useState } from "react";
+import { observeAction } from "../../shared/asyncAction";
 
 import { api, type StorageLocation, type StorageLocationInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import { availableStorageLocationParents, storageLocationPath } from "../../shared/storageLocations";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
-import { availableStorageLocationParents, storageLocationPath } from "../../shared/storageLocations";
 
 function locationInput(location: StorageLocation, archived = location.archived): StorageLocationInput {
   return {
@@ -104,7 +105,7 @@ export function StorageLocationsSettings({ locations, canEdit, onChanged }: {
               <Pencil size={15} aria-hidden="true" />
             </button>
             <button type="button" className="icon-button" disabled={busy}
-              onClick={() => void setArchived(location, !location.archived)}
+              onClick={() => observeAction(setArchived(location, !location.archived))}
               aria-label={t(location.archived ? "settings.articleManagement.reactivate" :
                 "settings.articleManagement.archive", { label: location.name })}
               title={t(location.archived ? "settings.articleManagement.reactivateShort" :

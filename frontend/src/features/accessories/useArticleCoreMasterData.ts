@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { observeAction } from "../../shared/asyncAction";
 
 import { api, type MasterDataEntry } from "../../shared/api";
 
@@ -45,7 +46,7 @@ export function useArticleCoreMasterData(enabled: boolean): ArticleCoreMasterDat
       requestRef.current += 1;
       return;
     }
-    void load();
+    observeAction(load());
     return () => { requestRef.current += 1; };
   }, [enabled, load]);
 

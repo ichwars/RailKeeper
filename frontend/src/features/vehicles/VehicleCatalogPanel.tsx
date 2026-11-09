@@ -1,10 +1,11 @@
-import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { BookOpen } from "lucide-react";
-import { formatDateTime, useI18n } from "../../shared/i18n";
 import { ImportReviewContext, ImportReviewStatus } from "../../shared/ImportReview";
+import { observeAction } from "../../shared/asyncAction";
+import { formatDateTime, useI18n } from "../../shared/i18n";
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { AppSelect } from "../../shared/ui/AppSelect";
-import { catalogFieldNames, catalogRequiredFields, missingCatalogFields } from "./vehicleCatalogModel";
 import { useVehicleCatalogController, type VehicleCatalogOptions } from "./useVehicleCatalogController";
+import { catalogFieldNames, catalogRequiredFields, missingCatalogFields } from "./vehicleCatalogModel";
 
 export function VehicleCatalogPanel({ targetName, ...options }: VehicleCatalogOptions & { targetName: string }) {
   const { t, language } = useI18n();
@@ -21,7 +22,7 @@ export function VehicleCatalogPanel({ targetName, ...options }: VehicleCatalogOp
         event.preventDefault(); event.stopPropagation();
       }
     }}
-    onToggle={event => { if (event.currentTarget.open && !context && !loading) void model.load(false); }}>
+    onToggle={event => { if (event.currentTarget.open && !context && !loading) observeAction(model.load(false)); }}>
     <summary><BookOpen size={16} aria-hidden="true" />{t("catalog.title")}</summary>
     <div className="catalog-panel-content vehicle-form">
       <p className="catalog-explanation">{t("catalog.scope")}</p>
@@ -108,13 +109,13 @@ export function VehicleCatalogPanel({ targetName, ...options }: VehicleCatalogOp
         </div>}
         <div className="catalog-actions">
           {model.refreshPending && <button type="button" className="secondary-button" disabled={disabled}
-            onClick={() => void model.refreshView()}>{t("catalog.refreshView")}</button>}
-          <button type="button" className="secondary-button" disabled={disabled} onClick={() => void model.load()}>
+            onClick={() => observeAction(model.refreshView())}>{t("catalog.refreshView")}</button>}
+          <button type="button" className="secondary-button" disabled={disabled} onClick={() => observeAction(model.load())}>
             {t("catalog.reload")}
           </button>
           {!options.readonly && <button type="button" className="primary-button"
             disabled={disabled || stale || alreadyStored || unchanged || (!draft.creating && !available)}
-            onClick={() => void model.confirm()}>
+            onClick={() => observeAction(model.confirm())}>
             {saving ? t("catalog.saving") : t(draft.creating ? "catalog.createConfirm" : "catalog.adoptConfirm")}
           </button>}
           {alreadyStored && <button type="button" className="secondary-button" disabled={disabled} onClick={model.newConfirmation}>
@@ -122,7 +123,7 @@ export function VehicleCatalogPanel({ targetName, ...options }: VehicleCatalogOp
           </button>}
         </div>
       </>}
-      {!context && !loading && <button type="button" className="secondary-button" disabled={Boolean(options.busy)} onClick={() => void model.load(false)}>
+      {!context && !loading && <button type="button" className="secondary-button" disabled={Boolean(options.busy)} onClick={() => observeAction(model.load(false))}>
         {t("catalog.reload")}
       </button>}
     </div>

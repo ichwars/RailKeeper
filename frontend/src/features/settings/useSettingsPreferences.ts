@@ -4,6 +4,7 @@ import { availableStartView } from "../../app/navigationAvailability";
 import { applySidebarProfile, type SidebarProfile } from "../../app/sidebarPreferences";
 import { captureSidebarRead, saveSidebarPreference, sidebarSaveChangedEvent, sidebarSaveState } from "../../app/sidebarSaving";
 import { api, captureSessionGuard, type SystemPrinters } from "../../shared/api";
+import { observeAction } from "../../shared/asyncAction";
 import {
   applyStoredThemeOptions, applyThemePreference, readThemePreference, themePreferenceKey,
   type ThemePreference
@@ -153,8 +154,8 @@ export function useSettingsPreferences(username: string) {
     const key = sidebarPrefsKey(username);
     const owner = sidebarOwner.current;
     const isCurrentSession = captureSessionGuard();
-    void saveSidebarPreference(username, () => sidebarOwner.current === owner && isCurrentSession(),
-      () => api.updateProfileSettings({ [key]: value }));
+    observeAction(saveSidebarPreference(username, () => sidebarOwner.current === owner && isCurrentSession(),
+      () => api.updateProfileSettings({ [key]: value })));
     window.dispatchEvent(new Event(sidebarOrderChangedEvent));
   };
 

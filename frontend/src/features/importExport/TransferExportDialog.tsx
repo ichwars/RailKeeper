@@ -1,6 +1,7 @@
 import { CheckCircle2, Download, FileJson, FileSpreadsheet, Play, RotateCcw, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { observeAction } from "../../shared/asyncAction";
 
 import { ApiError } from "../../shared/api";
 import type { Language } from "../../shared/i18n";
@@ -196,13 +197,13 @@ export function TransferExportDialog({
           <span>
             <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>{copy.close}</button>
             {terminalWithoutArtifact && canRetry ? (
-              <button type="button" className="primary-button" disabled={busy} onClick={() => void retry()}>
+              <button type="button" className="primary-button" disabled={busy} onClick={() => observeAction(retry())}>
                 <RotateCcw size={16} aria-hidden="true" />{copy.retry}
               </button>
             ) : null}
             {canExecute ? (
               <button type="button" className="primary-button" disabled={busy || (!job && !profileId)}
-                onClick={() => void execute()}>
+                onClick={() => observeAction(execute())}>
                 <Play size={16} fill="currentColor" aria-hidden="true" />{copy.execute}
               </button>
             ) : null}

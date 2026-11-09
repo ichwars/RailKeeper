@@ -1,6 +1,7 @@
 import { type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { observeAction } from "../../shared/asyncAction";
 
-import { api, ApiError } from "../../shared/api";
+import { ApiError, api } from "../../shared/api";
 import {
   type DataTransferArea,
   type DataTransferCSVMappingInput,
@@ -145,7 +146,7 @@ export function useDataTransferWorkspace(roles: string[] = []) {
   }, [filters, visibleJob, visibleProfile]);
 
   useEffect(() => {
-    void loadWorkspace();
+    observeAction(loadWorkspace());
   }, [loadWorkspace]);
 
   useEffect(() => {

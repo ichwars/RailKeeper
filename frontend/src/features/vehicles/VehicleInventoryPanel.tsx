@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import {
   AlertTriangle,
   Archive,
@@ -10,33 +9,34 @@ import {
   Layers3,
   PackageSearch,
   Pencil,
+  Plus,
   Printer,
   RefreshCw,
   Search,
   Table2,
-  Plus,
   Trash2,
   Wrench
 } from "lucide-react";
+import { useId, type ReactNode } from "react";
 import { Vehicle, VehicleMaintenance } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import type { TableColumnWidths } from "../../shared/tableColumnLayout";
-import { formatDate } from "./vehicleFormat";
-import { maintenanceReminderText } from "./vehicleMaintenance";
-import { previewImageUrl, primaryImage } from "./vehicleTransforms";
-import { VehicleInventoryFilters, type VehicleInventoryFilterProps } from "./VehicleInventoryFilters";
 import { VehicleColumnPicker } from "./VehicleColumnPicker";
+import { VehicleInventoryFilters, type VehicleInventoryFilterProps } from "./VehicleInventoryFilters";
 import { VehicleInventoryMobileList } from "./VehicleInventoryMobileList";
 import { VehicleInventoryTable } from "./VehicleInventoryTable";
+import { formatDate } from "./vehicleFormat";
+import { maintenanceReminderText } from "./vehicleMaintenance";
 import { groupVehicleInventory } from "./vehicleSetGroups";
-import type {
-  SortDirection,
-  SortKey
-} from "./vehicleViewModel";
 import type {
   VehicleColumnMove,
   VehicleTableColumn
 } from "./vehicleTableColumns";
+import { previewImageUrl, primaryImage } from "./vehicleTransforms";
+import type {
+  SortDirection,
+  SortKey
+} from "./vehicleViewModel";
 
 type InventoryViewMode = "table" | "cards";
 type InventoryPanelProps = Omit<VehicleInventoryFilterProps, "resultCount"> & {
@@ -162,6 +162,7 @@ export function VehicleInventoryPanel({
   renderQuickMenu
 }: InventoryPanelProps) {
   const { t } = useI18n();
+  const searchHelpId = useId();
   const gaugeCount = new Set(vehicles.map((vehicle) => vehicle.gauge).filter(Boolean)).size;
 
 
@@ -255,8 +256,11 @@ export function VehicleInventoryPanel({
                   onChange={(event) => onQueryChange(event.target.value)}
                   placeholder={t("vehicles.search.placeholder")}
                   aria-label={t("vehicles.search.aria")}
+                  aria-describedby={searchHelpId}
+                  title={t("vehicles.search.help")}
                 />
               </span>
+              <span className="visually-hidden" id={searchHelpId}>{t("vehicles.search.help")}</span>
             </label>
             <div className="table-actions inventory-toolbar-actions">
               <span className="inventory-view-tools" aria-label={t("vehicles.inventoryView.switch")}>

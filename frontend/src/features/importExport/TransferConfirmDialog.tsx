@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
+import { observeAction } from "../../shared/asyncAction";
 
 export type TransferPendingAction = {
   body: string;
@@ -92,7 +93,7 @@ export function TransferConfirmDialog({ action, cancelLabel, onClose }: {
               {cancelLabel}
             </button>
             <button type="button" className={action.dangerous ? "danger-button" : "primary-button"}
-              disabled={busy} onClick={() => void confirm()}>
+              disabled={busy} onClick={() => observeAction(confirm())}>
               {action.confirmLabel}
             </button>
           </div>

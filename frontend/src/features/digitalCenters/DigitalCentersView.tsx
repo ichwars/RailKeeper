@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from "react";
+import { observeAction } from "../../shared/asyncAction";
 
-import { DigitalCenterList } from "./DigitalCenterList";
 import { useI18n } from "../../shared/i18n";
-import {
-  isDigitalCenterVehicleAdoptionProvider,
-  openDigitalCenterVehicleDraft
-} from "./digitalCenterVehicleAdoption";
+import { DigitalCenterList } from "./DigitalCenterList";
 import { DigitalCenterToolbar } from "./DigitalCenterToolbar";
 import { DigitalStatusPanel } from "./DigitalStatusPanel";
 import { LocomotiveComparisonDialog } from "./LocomotiveComparisonDialog";
 import { LocomotiveWorklist } from "./LocomotiveWorklist";
+import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
+import type { DigitalCenterWorkItem } from "./digitalCenterModel";
+import {
+  isDigitalCenterVehicleAdoptionProvider,
+  openDigitalCenterVehicleDraft
+} from "./digitalCenterVehicleAdoption";
+import { readECoSStoredCVs } from "./readECoSStoredCVs";
 import { useDigitalCenterVehicleAdoption } from "./useDigitalCenterVehicleAdoption";
 import { useDigitalCentersWorkspace } from "./useDigitalCentersWorkspace";
-import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
-import { readECoSStoredCVs } from "./readECoSStoredCVs";
-import type { DigitalCenterWorkItem } from "./digitalCenterModel";
 
 function openDigitalSettings() {
   window.history.pushState(null, "", "/settings?tab=digital");
@@ -177,7 +178,7 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
             const ready = await prepareAdoption(workspace.selectedItem!);
             if (!ready) return;
             workspace.openDialog("assignment", ready.id);
-            void adoption.commands.load(ready);
+            observeAction(adoption.commands.load(ready));
           }}
           onClose={() => {
             cvCancelled.current = true;

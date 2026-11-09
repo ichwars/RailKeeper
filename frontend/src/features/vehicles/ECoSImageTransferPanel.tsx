@@ -1,12 +1,13 @@
-import { invalidatePendingRequests } from "../../shared/requestGeneration";
-import { useEffect, useRef, useState } from "react";
 import { CircleCheck, Send, TriangleAlert } from "lucide-react";
-import { api, ApiError } from "../../shared/api";
+import { useEffect, useRef, useState } from "react";
+import { ApiError, api } from "../../shared/api";
+import { observeAction } from "../../shared/asyncAction";
 import type { ECoSImageOptions, ECoSImagePreview, ECoSImageResult } from "../../shared/ecosImageModel";
 import { useI18n } from "../../shared/i18n";
+import { invalidatePendingRequests } from "../../shared/requestGeneration";
+import { AppCheckbox } from "../../shared/ui/AppCheckbox";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
-import { AppCheckbox } from "../../shared/ui/AppCheckbox";
 import { ECoSImagePauseDialog } from "./ECoSImagePauseDialog";
 import { sameECoSImageReview } from "./ecosImageReview";
 
@@ -143,7 +144,7 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
   }
 
   if (!open) return <div className="ecos-image-start">
-    <button type="button" className="secondary-button" disabled={!blob} onClick={() => void loadOptions()}>
+    <button type="button" className="secondary-button" disabled={!blob} onClick={() => observeAction(loadOptions())}>
       <Send size={16} aria-hidden="true" />{t("ecosImage.open")}</button>
   </div>;
   return <><section className="ecos-image-transfer" aria-labelledby="ecos-image-heading" aria-busy={phase !== "idle"}
@@ -153,7 +154,7 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
     {phase === "loading" && <p role="status">{t("ecosImage.loading")}</p>}
     {error && <p className="locomotive-image-error" role="alert"><TriangleAlert size={18} aria-hidden="true" />
       {t(`ecosImage.error.${error}`)}</p>}
-    {!options && phase === "idle" && <button type="button" className="secondary-button" onClick={() => void loadOptions()}>{t("ecosImage.reload")}</button>}
+    {!options && phase === "idle" && <button type="button" className="secondary-button" onClick={() => observeAction(loadOptions())}>{t("ecosImage.reload")}</button>}
     {options && <>
       <p className="ecos-image-host">ECoS · {options.host}</p>
       {options.locomotives.length === 0 ? <p>{t("ecosImage.empty")}</p> : <div className="ecos-image-fields">
@@ -167,7 +168,7 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
           onChange={event => { invalidate(); setDescription(event.target.value); }} />
       </div>}
       {!result && !uncertain && !preview && <button type="button" className="secondary-button" ref={prepareRef}
-        disabled={phase !== "idle" || !objectId || !description.trim() || !blob} onClick={() => void prepare()}>
+        disabled={phase !== "idle" || !objectId || !description.trim() || !blob} onClick={() => observeAction(prepare())}>
         {t(phase === "previewing" ? "ecosImage.previewing" : storedSlot !== undefined ? "ecosImage.retryAssignment" : "ecosImage.prepare")}</button>}
     </>}
     {preview && <div className="ecos-image-confirm" ref={confirmationRef} tabIndex={-1} role="region"
@@ -188,7 +189,7 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
       {expired && <p role="status">{t("ecosImage.expired")}</p>}
       <div className="ecos-image-actions">
         <button type="button" className="secondary-button" onClick={invalidate}>{t("ecosImage.back")}</button>
-        <button type="button" className="primary-button" disabled={!checked || expired} onClick={() => void confirm()}>
+        <button type="button" className="primary-button" disabled={!checked || expired} onClick={() => observeAction(confirm())}>
           <Send size={16} aria-hidden="true" />{t(preview.existingImage ? "ecosImage.assign" : "ecosImage.confirm")}</button>
       </div>
     </div>}
@@ -200,14 +201,14 @@ export function ECoSImageTransferPanel({ vehicleId, mappedObjectId, title, blob,
       {result.status !== "verified" && <p>{t(result.status === "upload_blocked" ? "ecosImage.blockedHelp"
         : result.status === "image_not_stored" ? "ecosImage.notStoredHelp" : "ecosImage.partialHelp")}</p>}
       {result.imageVerified && !result.assignmentVerified && <button type="button" className="secondary-button"
-        disabled={phase !== "idle" || !blob} onClick={() => void prepare(result.slot)}>{t("ecosImage.retryAssignment")}</button>}
+        disabled={phase !== "idle" || !blob} onClick={() => observeAction(prepare(result.slot))}>{t("ecosImage.retryAssignment")}</button>}
       {!result.imageVerified && result.status === "upload_blocked" &&
         <button type="button" className="secondary-button" disabled={phase !== "idle" || !blob}
-          onClick={() => void prepare()}>{t("ecosImage.prepare")}</button>}
+          onClick={() => observeAction(prepare())}>{t("ecosImage.prepare")}</button>}
       {!result.auditRecorded && <p>{t("ecosImage.auditMissing")}</p>}
       {result.liveMonitor.wasRunning && !result.liveMonitor.restarted && <p>{t("ecosImage.liveStopped")}</p>}
     </div>}
   </section>{paused && <ECoSImagePauseDialog preview={paused.preview} result={paused.result}
     checking={phase !== "idle"} error={error} returnFocusRef={prepareRef}
-    onCancel={cancelPause} onResume={() => void resume()} />}</>;
+    onCancel={cancelPause} onResume={() => observeAction(resume())} />}</>;
 }

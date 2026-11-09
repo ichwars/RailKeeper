@@ -1,12 +1,12 @@
 {
   "name": "railkeeper-frontend-lint",
   "private": true,
-  "description": "Isolated syntax and React hook linting; TypeScript checking remains in the frontend",
+  "description": "Isolated supported typed promise and React hook analysis alongside the native TypeScript frontend compiler",
   "dependencies": {
-    "@babel/core": "8.1.0",
-    "@babel/eslint-parser": "8.0.7",
     "eslint": "10.14.0",
-    "eslint-plugin-react-hooks": "7.1.1"
+    "eslint-plugin-react-hooks": "7.1.1",
+    "typescript-eslint": "8.72.1",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "overrides": {
     "minimatch": "11.0.5"

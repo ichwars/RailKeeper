@@ -1,20 +1,19 @@
 import { useEffect, useEffectEvent, useState } from "react";
-import { Database, RefreshCw, Save, Server, X } from "lucide-react";
-import { api, DigitalCenterConnectionResult, DigitalCenterProbeResult, DigitalCenterSettings, ECoSConnectionResult, ECoSLiveStatus, ECoSLocomotiveSummary } from "../../shared/api";
+import { DigitalCenterConnectionResult, DigitalCenterProbeResult, DigitalCenterSettings, ECoSConnectionResult, ECoSLiveStatus, ECoSLocomotiveSummary, api } from "../../shared/api";
+import { observeAction } from "../../shared/asyncAction";
 import { useI18n } from "../../shared/i18n";
+import { DigitalAdapterDialog } from "./DigitalAdapterDialog";
 import { DigitalCenterWorkflowView, type DigitalDiagnosticsTab, type DigitalProvider } from "./DigitalCenterWorkflowView";
-import { localSettingKeys, readLocalBool, readLocalSetting } from "./settingsModel";
+import { digitalProviders, useDigitalProviderSettings } from "./useDigitalProviderSettings";
 
-type BusyState = "idle" | "saving" | "testing" | "diagnosing" | "probing" | "starting" | "stopping" | "refreshing" | "activating" | "deactivating" | "removing";
-type ConfigurationMeta = Partial<Record<DigitalProvider, { configuredAt: string; configuredBy: string }>>;
+export type BusyState = "idle" | "saving" | "testing" | "diagnosing" | "probing" | "starting" | "stopping" | "refreshing" | "activating" | "deactivating" | "removing";
+export type ConfigurationMeta = Partial<Record<DigitalProvider, { configuredAt: string; configuredBy: string }>>;
 
-type SettingsDigitalTabProps = {
+export type SettingsDigitalTabProps = {
   canManageUsers: boolean;
   formatDateTime: (value: string) => string;
   username: string;
 };
-
-const digitalProviders: DigitalProvider[] = ["ecos", "z21", "intellibox3", "cs3"];
 const configurationMetaKey = "railkeeper.digital.configurationMeta";
 
 function readConfigurationMeta(): ConfigurationMeta {
@@ -27,27 +26,17 @@ function readConfigurationMeta(): ConfigurationMeta {
 
 export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }: SettingsDigitalTabProps) {
   const { t } = useI18n();
-  const [provider, setProvider] = useState<DigitalProvider>(() => {
-    const stored = readLocalSetting(localSettingKeys.digitalProvider, "ecos");
-    return digitalProviders.includes(stored as DigitalProvider) ? stored as DigitalProvider : "ecos";
-  });
-  const [activeDialogProvider, setActiveDialogProvider] = useState<DigitalProvider | null>(null);
-  const [ecosEnabled, setEcosEnabled] = useState(() => {
-    const stored = window.localStorage.getItem(localSettingKeys.digitalEcosEnabled);
-    if (stored !== null) return readLocalBool(localSettingKeys.digitalEcosEnabled, false);
-    return Boolean(readLocalSetting(localSettingKeys.digitalEcosHost, "").trim());
-  });
-  const [ecosHost, setEcosHost] = useState(() => readLocalSetting(localSettingKeys.digitalEcosHost, ""));
-  const [ecosPort, setEcosPort] = useState(() => readLocalSetting(localSettingKeys.digitalEcosPort, "15471"));
-  const [z21Enabled, setZ21Enabled] = useState(() => readLocalBool(localSettingKeys.digitalZ21Enabled, false));
-  const [z21Host, setZ21Host] = useState(() => readLocalSetting(localSettingKeys.digitalZ21Host, ""));
-  const [z21Port, setZ21Port] = useState(() => readLocalSetting(localSettingKeys.digitalZ21Port, "21105"));
-  const [intellibox3Enabled, setIntellibox3Enabled] = useState(() => readLocalBool(localSettingKeys.digitalIntellibox3Enabled, false));
-  const [intellibox3Host, setIntellibox3Host] = useState(() => readLocalSetting(localSettingKeys.digitalIntellibox3Host, ""));
-  const [intellibox3Port, setIntellibox3Port] = useState(() => readLocalSetting(localSettingKeys.digitalIntellibox3Port, "21105"));
-  const [cs3Enabled, setCS3Enabled] = useState(() => readLocalBool(localSettingKeys.digitalCS3Enabled, false));
-  const [cs3Host, setCS3Host] = useState(() => readLocalSetting(localSettingKeys.digitalCS3Host, ""));
-  const [cs3Port, setCS3Port] = useState(() => readLocalSetting(localSettingKeys.digitalCS3Port, "80"));
+  const {
+    provider, setProvider, activeDialogProvider, setActiveDialogProvider, ecosEnabled,
+    setEcosEnabled, ecosHost, setEcosHost, ecosPort, setEcosPort, z21Enabled, setZ21Enabled,
+    z21Host, setZ21Host, z21Port, setZ21Port, intellibox3Enabled, setIntellibox3Enabled,
+    intellibox3Host, setIntellibox3Host, intellibox3Port, setIntellibox3Port, cs3Enabled,
+    setCS3Enabled, cs3Host, setCS3Host, cs3Port, setCS3Port, ecosInput, providerEnabled,
+    providerHost, providerPort, providerPortDraft, providerInput, providerConfigured,
+    providerActive, currentDigitalSettings, applyDigitalSettings, hasDigitalConfig,
+    setActiveProviderHost, setActiveProviderPort, storeSettingsLocally,
+  } = useDigitalProviderSettings();
+
   const [busy, setBusy] = useState<BusyState>("idle");
   const [connectionResult, setConnectionResult] = useState<ECoSConnectionResult | DigitalCenterConnectionResult | null>(null);
   const [probeResult, setProbeResult] = useState<DigitalCenterProbeResult | null>(null);
@@ -60,113 +49,6 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
   const [lastTestedAt, setLastTestedAt] = useState("");
   const [testError, setTestError] = useState("");
   const [configurationMeta, setConfigurationMeta] = useState<ConfigurationMeta>(() => readConfigurationMeta());
-
-  const ecosInput = () => ({
-    host: ecosHost.trim(),
-    port: Number(ecosPort) || 15471
-  });
-
-  const providerEnabled = (providerId: DigitalProvider) => {
-    if (providerId === "ecos") return ecosEnabled;
-    if (providerId === "z21") return z21Enabled;
-    if (providerId === "intellibox3") return intellibox3Enabled;
-    return cs3Enabled;
-  };
-
-  const providerHost = (providerId: DigitalProvider) => {
-    if (providerId === "ecos") return ecosHost.trim();
-    if (providerId === "z21") return z21Host.trim();
-    if (providerId === "intellibox3") return intellibox3Host.trim();
-    return cs3Host.trim();
-  };
-
-  const providerPort = (providerId: DigitalProvider) => {
-    if (providerId === "ecos") return ecosPort.trim() || "15471";
-    if (providerId === "z21") return z21Port.trim() || "21105";
-    if (providerId === "intellibox3") return intellibox3Port.trim() || "21105";
-    return cs3Port.trim() || "80";
-  };
-
-  const providerPortDraft = (providerId: DigitalProvider) => ({
-    ecos: ecosPort, z21: z21Port, intellibox3: intellibox3Port, cs3: cs3Port
-  })[providerId];
-
-  const providerInput = (providerId: DigitalProvider) => ({
-    host: providerHost(providerId),
-    port: Number(providerPort(providerId))
-  });
-
-  const providerConfigured = (providerId: DigitalProvider) => Boolean(providerHost(providerId));
-  const providerActive = (providerId: DigitalProvider) => providerEnabled(providerId) && providerConfigured(providerId);
-
-  const currentDigitalSettings = (nextProvider: DigitalProvider = provider): DigitalCenterSettings => ({
-    provider: nextProvider,
-    ecos: { enabled: ecosEnabled, host: ecosHost.trim(), port: ecosPort.trim() || "15471" },
-    z21: { enabled: z21Enabled, host: z21Host.trim(), port: z21Port.trim() || "21105" },
-    intellibox3: { enabled: intellibox3Enabled, host: intellibox3Host.trim(), port: intellibox3Port.trim() || "21105" },
-    cs3: { enabled: cs3Enabled, host: cs3Host.trim(), port: cs3Port.trim() || "80" }
-  });
-
-  const applyDigitalSettings = (settings: DigitalCenterSettings) => {
-    const nextProvider = digitalProviders.includes(settings.provider) ? settings.provider : "ecos";
-    setProvider(nextProvider);
-    setEcosEnabled(Boolean(settings.ecos?.enabled));
-    setEcosHost(settings.ecos?.host || "");
-    setEcosPort(settings.ecos?.port || "15471");
-    setZ21Enabled(Boolean(settings.z21?.enabled));
-    setZ21Host(settings.z21?.host || "");
-    setZ21Port(settings.z21?.port || "21105");
-    setIntellibox3Enabled(Boolean(settings.intellibox3?.enabled));
-    setIntellibox3Host(settings.intellibox3?.host || "");
-    setIntellibox3Port(settings.intellibox3?.port || "21105");
-    setCS3Enabled(Boolean(settings.cs3?.enabled));
-    setCS3Host(settings.cs3?.host || "");
-    setCS3Port(settings.cs3?.port || "80");
-  };
-
-  const hasDigitalConfig = (settings: DigitalCenterSettings) =>
-    Boolean(
-      settings.ecos?.host ||
-      settings.z21?.host ||
-      settings.intellibox3?.host ||
-      settings.cs3?.host ||
-      settings.ecos?.enabled ||
-      settings.z21?.enabled ||
-      settings.intellibox3?.enabled ||
-      settings.cs3?.enabled
-    );
-
-  const setActiveProviderHost = (host: string) => {
-    if (activeDialogProvider === "ecos") setEcosHost(host);
-    if (activeDialogProvider === "z21") setZ21Host(host);
-    if (activeDialogProvider === "intellibox3") setIntellibox3Host(host);
-    if (activeDialogProvider === "cs3") setCS3Host(host);
-  };
-
-  const setActiveProviderPort = (port: string) => {
-    if (activeDialogProvider === "ecos") setEcosPort(port);
-    if (activeDialogProvider === "z21") setZ21Port(port);
-    if (activeDialogProvider === "intellibox3") setIntellibox3Port(port);
-    if (activeDialogProvider === "cs3") setCS3Port(port);
-  };
-
-  const storeSettingsLocally = (settings: DigitalCenterSettings) => {
-    const nextProvider = settings.provider;
-    window.localStorage.setItem(localSettingKeys.digitalProvider, nextProvider);
-    window.localStorage.setItem(localSettingKeys.digitalEcosEnabled, String(settings.ecos.enabled));
-    window.localStorage.setItem(localSettingKeys.digitalEcosHost, settings.ecos.host);
-    window.localStorage.setItem(localSettingKeys.digitalEcosPort, settings.ecos.port);
-    window.localStorage.setItem(localSettingKeys.digitalZ21Enabled, String(settings.z21.enabled));
-    window.localStorage.setItem(localSettingKeys.digitalZ21Host, settings.z21.host);
-    window.localStorage.setItem(localSettingKeys.digitalZ21Port, settings.z21.port);
-    window.localStorage.setItem(localSettingKeys.digitalIntellibox3Enabled, String(settings.intellibox3.enabled));
-    window.localStorage.setItem(localSettingKeys.digitalIntellibox3Host, settings.intellibox3.host);
-    window.localStorage.setItem(localSettingKeys.digitalIntellibox3Port, settings.intellibox3.port);
-    window.localStorage.setItem(localSettingKeys.digitalCS3Enabled, String(settings.cs3.enabled));
-    window.localStorage.setItem(localSettingKeys.digitalCS3Host, settings.cs3.host);
-    window.localStorage.setItem(localSettingKeys.digitalCS3Port, settings.cs3.port);
-    window.dispatchEvent(new Event("railkeeper-digital-settings-changed"));
-  };
 
   const persistSettings = async (settings: DigitalCenterSettings) => {
     storeSettingsLocally(settings);
@@ -235,7 +117,7 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
           }
         })
         .catch(() => undefined);
-      void refreshLiveStatus("idle", false);
+      observeAction(refreshLiveStatus("idle", false));
     }
   });
   useEffect(() => { loadDigitalOnEntry(); }, [canManageUsers]);
@@ -454,7 +336,7 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
       setLiveStatus(status);
       setMessage(status.message);
       if (status.connected) {
-        void countLocomotives(true);
+        observeAction(countLocomotives(true));
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : t("settings.digital.error"));
@@ -503,7 +385,7 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
     cs3: "4 s"
   };
 
-  const countConnectedLocomotives = useEffectEvent(() => { void countLocomotives(true); });
+  const countConnectedLocomotives = useEffectEvent(() => { observeAction(countLocomotives(true)); });
   useEffect(() => {
     if (!liveStatus?.connected || !ecosReady || locomotiveSummary || busy !== "idle") return;
     countConnectedLocomotives();
@@ -548,151 +430,27 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
       />
 
       {activeDialogProvider && (
-        <div className="modal-layer digital-adapter-layer" role="dialog" aria-modal="true" aria-label={t("settings.digital.dialogTitle", { provider: providerLabel(activeDialogProvider) })}>
-          <section className="vehicle-modal digital-adapter-dialog">
-            <header className="modal-head">
-              <div>
-                <h2>{t("settings.digital.dialogTitle", { provider: providerLabel(activeDialogProvider) })}</h2>
-                <p>{t("settings.digital.dialogSubtitle")}</p>
-              </div>
-              <button type="button" className="icon-button" disabled={busy !== "idle"} onClick={closeAdapter} aria-label={t("vehicles.close")} title={t("vehicles.close")}>
-                <X size={18} />
-              </button>
-            </header>
-
-            <div className="digital-adapter-form">
-              {!canManageUsers && (
-                <div className="current-user-card">
-                  <strong>{t("settings.users.adminRequired")}</strong>
-                  <span>{t("settings.digital.adminHelp")}</span>
-                </div>
-              )}
-              <div className="settings-field-grid">
-                <label>
-                  {activeDialogProvider ? t(`settings.digital.${activeDialogProvider}.host`) : t("settings.digital.ecos.host")}
-                  <input
-                    value={activeDialogProvider ? providerHost(activeDialogProvider) : ""}
-                    disabled={busy !== "idle"}
-                    onChange={(event) => setActiveProviderHost(event.target.value)}
-                    placeholder={activeDialogProvider ? t(`settings.digital.${activeDialogProvider}.hostPlaceholder`) : ""}
-                  />
-                </label>
-                <label>
-                  {activeDialogProvider ? t(`settings.digital.${activeDialogProvider}.port`) : t("settings.digital.ecos.port")}
-                  <input
-                    value={activeDialogProvider ? providerPortDraft(activeDialogProvider) : ""}
-                    disabled={busy !== "idle"}
-                    onChange={(event) => setActiveProviderPort(event.target.value)}
-                    inputMode="numeric"
-                    placeholder={activeDialogProvider === "z21" || activeDialogProvider === "intellibox3" ? "21105" : activeDialogProvider === "cs3" ? "80" : "15471"}
-                  />
-                </label>
-              </div>
-
-              {dialogMessage && <p className="form-message" role="alert">{dialogMessage}</p>}
-
-              {probeResult && (
-                <section className="digital-probe-panel">
-                  <div className="digital-probe-head">
-                    <div>
-                      <strong>{t("settings.digital.probeTitle")}</strong>
-                      <span>{t("settings.digital.probeEndpoint", { host: probeResult.host, port: String(probeResult.port) })}</span>
-                    </div>
-                    <span className={probeResult.connected ? "digital-probe-state active" : "digital-probe-state inactive"}>
-                      {probeResult.connected ? t("settings.digital.connected") : t("settings.digital.notConnected")}
-                    </span>
-                  </div>
-
-                  {probeFieldEntries.length > 0 && (
-                    <dl className="digital-probe-fields">
-                      {probeFieldEntries.map(([key, value]) => (
-                        <div key={key}>
-                          <dt>{key}</dt>
-                          <dd>{value}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
-
-                  <div className="digital-probe-command-list">
-                    {probeResult.commands.map((command) => {
-                      const commandFields = Object.entries(command.fields || {});
-                      return (
-                        <details className="digital-probe-command" key={command.name} open={command.ok}>
-                          <summary>
-                            <span>
-                              <strong>{command.name}</strong>
-                              <small>{command.description}</small>
-                            </span>
-                            <em>{command.ok ? t("settings.digital.probeOk") : t("settings.digital.probeFailed")}</em>
-                          </summary>
-                          <div className="digital-probe-command-body">
-                            <dl>
-                              {command.request && (
-                                <div>
-                                  <dt>{t("settings.digital.probeRequest")}</dt>
-                                  <dd><code>{command.request}</code></dd>
-                                </div>
-                              )}
-                              {command.commandHex && (
-                                <div>
-                                <dt>{t("settings.digital.probeCommand")}</dt>
-                                <dd><code>{command.commandHex}</code></dd>
-                                </div>
-                              )}
-                              {command.header && (
-                                <div>
-                                  <dt>{t("settings.digital.probeHeader")}</dt>
-                                  <dd><code>{command.header}</code></dd>
-                                </div>
-                              )}
-                              {command.payloadHex && (
-                                <div>
-                                  <dt>{t("settings.digital.probePayload")}</dt>
-                                  <dd><code>{command.payloadHex}</code></dd>
-                                </div>
-                              )}
-                              {command.responseHex && (
-                                <div>
-                                  <dt>{t("settings.digital.probeResponse")}</dt>
-                                  <dd><code>{command.responseHex}</code></dd>
-                                </div>
-                              )}
-                              {commandFields.map(([key, value]) => (
-                                <div key={key}>
-                                  <dt>{key}</dt>
-                                  <dd>{value}</dd>
-                                </div>
-                              ))}
-                            </dl>
-                            {command.error && <p className="digital-probe-error">{command.error}</p>}
-                          </div>
-                        </details>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-            </div>
-
-            <footer className="modal-actions">
-              {canProbeProvider(activeDialogProvider) && (
-                <button type="button" className="secondary-button" onClick={probeConnection} disabled={!dialogCanTest || busy !== "idle" || !activeDialogProvider || !providerHost(activeDialogProvider)}>
-                  <Database size={16} />
-                  {busy === "diagnosing" ? t("settings.digital.probing") : t("settings.digital.probe")}
-                </button>
-              )}
-              <button type="button" className="secondary-button" onClick={testConnection} disabled={!dialogCanTest || busy !== "idle" || !activeDialogProvider || !providerHost(activeDialogProvider)}>
-                <RefreshCw size={16} />
-                {busy === "testing" ? t("settings.digital.testing") : t("settings.digital.test")}
-              </button>
-              <button type="button" className="primary-button" onClick={() => void saveAdapter()} disabled={busy !== "idle" || !dialogCanSave || !activeDialogProvider || !providerHost(activeDialogProvider)}>
-                <Save size={16} />
-                {t(busy === "saving" ? "common.saving" : "settings.digital.save")}
-              </button>
-            </footer>
-          </section>
-        </div>
+        <DigitalAdapterDialog
+              canManageUsers={canManageUsers}
+              t={t}
+              providerLabel={providerLabel}
+              activeDialogProvider={activeDialogProvider}
+              busy={busy}
+              closeAdapter={closeAdapter}
+              providerHost={providerHost}
+              setActiveProviderHost={setActiveProviderHost}
+              providerPortDraft={providerPortDraft}
+              setActiveProviderPort={setActiveProviderPort}
+              dialogMessage={dialogMessage}
+              probeResult={probeResult}
+              probeFieldEntries={probeFieldEntries}
+              canProbeProvider={canProbeProvider}
+              probeConnection={probeConnection}
+              dialogCanTest={dialogCanTest}
+              testConnection={testConnection}
+              saveAdapter={saveAdapter}
+              dialogCanSave={dialogCanSave}
+            />
       )}
     </>
   );

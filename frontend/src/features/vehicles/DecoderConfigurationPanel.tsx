@@ -1,5 +1,6 @@
-import { useState } from "react";
 import { Cpu, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { observeAction } from "../../shared/asyncAction";
 import { useI18n } from "../../shared/i18n";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
 import { DecoderConfigurationForm } from "./DecoderConfigurationForm";
@@ -19,7 +20,7 @@ export function DecoderConfigurationPanel({ controller: model }: { controller: D
   }}>
     <p className="decoder-configurations-intro">{t("decoderManage.intro")}</p>
     <div className="decoder-configurations-toolbar">
-      <button type="button" className="secondary-button" disabled={disabled} onClick={() => void model.load()}>
+      <button type="button" className="secondary-button" disabled={disabled} onClick={() => observeAction(model.load())}>
         <RefreshCw size={16} aria-hidden="true" />{t("decoderConfig.reload")}</button>
       {!model.readonly && <>
         <button type="button" className="secondary-button" disabled={locked || !context} onClick={() => model.start("createInstance")}>{t("decoderManage.newInstance")}</button>

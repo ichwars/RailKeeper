@@ -1,21 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { observeAction } from "../../shared/asyncAction";
+import type { ArticleEditorPermissions, ArticleEditorResources } from "./articleEditorState";
+import { emptyResources, errorMessage } from "./articleEditorState";
+import { useArticleEditorMasterData } from "./useArticleEditorMasterData";
+export type { ArticleEditorPermissions, ArticleEditorResources } from "./articleEditorState";
 
 import {
   api,
   type AccessoryArticle,
-  type AccessoryArticleType,
-  type AccessoryAsset,
   type AccessoryDocument,
   type AccessoryDuplicateCandidate,
-  type AccessoryInstallation,
-  type AccessoryPurchase,
-  type AccessoryReservation,
-  type AccessoryStockMovement,
-  type AccessoryStockSummary,
-  type AccessoryUsageHistory,
-  type MasterDataEntry,
-  type StorageLocation,
-  type Vehicle
+  type MasterDataEntry
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import {
@@ -32,50 +27,9 @@ import {
 } from "./articleEditorModel";
 import { fetchArticleEditorResourcePatch } from "./articleEditorResources";
 import {
-  customFieldDefinitions,
   type CustomArticleSubjectFieldDefinition
 } from "./articleTypeFields";
-import { articleTypeOrder } from "./articleTypes";
 import type { PendingAccessoryArticleImage } from "./useAccessoryArticleSearchController";
-
-export type ArticleEditorPermissions = {
-  canEdit: boolean;
-  canManageStock: boolean;
-  canReserve: boolean;
-  canInstall: boolean;
-};
-
-export type ArticleEditorResources = {
-  locations: StorageLocation[];
-  stock: AccessoryStockSummary | null;
-  movements: AccessoryStockMovement[];
-  assets: AccessoryAsset[];
-  purchases: AccessoryPurchase[];
-  documents: AccessoryDocument[];
-  documentsLoaded?: boolean;
-  reservations: AccessoryReservation[];
-  installations: AccessoryInstallation[];
-  usageHistory: AccessoryUsageHistory | null;
-  vehicles: Vehicle[];
-};
-
-const emptyResources = (): ArticleEditorResources => ({
-  locations: [],
-  stock: null,
-  movements: [],
-  assets: [],
-  purchases: [],
-  documents: [],
-  documentsLoaded: false,
-  reservations: [],
-  installations: [],
-  usageHistory: null,
-  vehicles: [],
-});
-
-function errorMessage(reason: unknown): string {
-  return reason instanceof Error ? reason.message : "Die Artikelaktion konnte nicht abgeschlossen werden.";
-}
 
 export function useArticleEditorController({
   roles,
@@ -158,57 +112,26 @@ export function useArticleEditorController({
 
   const isCurrent = useCallback((generation: number) =>
     mountedRef.current && generationRef.current === generation, []);
-
-  const loadCustomFields = useCallback(async (generation: number) => {
-    setCustomFieldsLoading(true);
-    setCustomFieldsError("");
-    try {
-      const entries = await api.masterData("accessory_custom_field", true);
-      if (isCurrent(generation)) setCustomFields(customFieldDefinitions(entries));
-    } catch {
-      if (isCurrent(generation)) setCustomFieldsError(t("accessories.subject.customLoadError"));
-    } finally {
-      if (isCurrent(generation)) setCustomFieldsLoading(false);
-    }
-  }, [isCurrent, t]);
-
-  const loadSubtypeEntries = useCallback(async (generation: number) => {
-    setSubtypeEntriesLoading(true);
-    setSubtypeEntriesError("");
-    try {
-      const entries = await api.masterData("accessory_subtype");
-      if (isCurrent(generation)) setSubtypeEntries(entries);
-    } catch {
-      if (isCurrent(generation)) setSubtypeEntriesError(t("accessories.editor.subtypes.loadError"));
-    } finally {
-      if (isCurrent(generation)) setSubtypeEntriesLoading(false);
-    }
-  }, [isCurrent, t]);
-
-  const loadArticleTypeEntries = useCallback(async (generation: number) => {
-    setArticleTypeEntriesLoading(true);
-    setArticleTypeEntriesError("");
-    try {
-      const entries = await api.masterData("article_type");
-      if (!isCurrent(generation)) return;
-      setArticleTypeEntries(entries);
-      if (createGenerationRef.current === generation) {
-        const activeEntry = entries.find((entry) => entry.type === "article_type" && entry.active &&
-          articleTypeOrder.some((articleType) => articleType === entry.key));
-        if (!activeEntry) {
-          setArticleTypeEntriesError(t("accessories.editor.articleTypes.noneActive"));
-          return;
-        }
-        const articleType = activeEntry.key as AccessoryArticleType;
-        setForm((current) => ({ ...current, articleType }));
-        setInitialForm((current) => ({ ...current, articleType }));
-      }
-    } catch {
-      if (isCurrent(generation)) setArticleTypeEntriesError(t("accessories.editor.articleTypes.loadError"));
-    } finally {
-      if (isCurrent(generation)) setArticleTypeEntriesLoading(false);
-    }
-  }, [isCurrent, t]);
+  const {
+    loadCustomFields,
+    loadArticleTypeEntries,
+    loadSubtypeEntries,
+  } = useArticleEditorMasterData({
+    setCustomFieldsLoading,
+    setCustomFieldsError,
+    isCurrent,
+    setCustomFields,
+    t,
+    setSubtypeEntriesLoading,
+    setSubtypeEntriesError,
+    setSubtypeEntries,
+    setArticleTypeEntriesLoading,
+    setArticleTypeEntriesError,
+    setArticleTypeEntries,
+    createGenerationRef,
+    setForm,
+    setInitialForm,
+  });
 
   const loadResources = useCallback(async (
     loadedArticle: AccessoryArticle,
@@ -250,9 +173,9 @@ export function useArticleEditorController({
     setReturnFocusTo(document.activeElement instanceof HTMLElement ? document.activeElement : null);
     resetTransientState();
     setIsOpen(true);
-    void loadCustomFields(generation);
-    void loadArticleTypeEntries(generation);
-    void loadSubtypeEntries(generation);
+    observeAction(loadCustomFields(generation));
+    observeAction(loadArticleTypeEntries(generation));
+    observeAction(loadSubtypeEntries(generation));
     void api.storageLocations().then((locations) => {
       if (isCurrent(generation)) setResources((current) => ({ ...current, locations }));
     }).catch((reason) => {
@@ -278,9 +201,9 @@ export function useArticleEditorController({
     setResourcesStale(false);
     setIsOpen(true);
     setLoading(true);
-    void loadCustomFields(generation);
-    void loadArticleTypeEntries(generation);
-    void loadSubtypeEntries(generation);
+    observeAction(loadCustomFields(generation));
+    observeAction(loadArticleTypeEntries(generation));
+    observeAction(loadSubtypeEntries(generation));
     void api.accessoryArticle(id).then((loaded) => {
       if (!isCurrent(generation)) return;
       const next = articleToEditorForm(loaded);
@@ -288,7 +211,7 @@ export function useArticleEditorController({
       setForm(next);
       setInitialForm(next);
       setDetailReady(true);
-      void loadResources({ ...loaded, id }, generation, false);
+      observeAction(loadResources({ ...loaded, id }, generation, false));
     }).catch((reason) => {
       if (isCurrent(generation)) setError(errorMessage(reason));
     }).finally(() => {

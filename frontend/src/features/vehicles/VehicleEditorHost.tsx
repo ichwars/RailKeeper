@@ -1,3 +1,4 @@
+import { observeAction } from "../../shared/asyncAction";
 import { VehicleCatalogPanel } from "./VehicleCatalogPanel";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
 import { catalogFieldsFrom } from "./vehicleCatalogModel";
@@ -57,11 +58,11 @@ export function VehicleEditorHost({ workspace }: { workspace: VehicleWorkspace }
         onSaved={confirmed => editor.commands.refreshSelectedVehicle(selected.id, confirmed ? "catalog" : undefined, true)} /> : undefined}
       mediaDialogs={<>
         {mediaUploads.batch && <VehicleMediaUploadDialog batch={mediaUploads.batch}
-          onClose={mediaUploads.commands.close} onConfirm={() => void mediaUploads.commands.confirm()}
-          onReview={() => void mediaUploads.commands.reviewWorkingGroup()}
+          onClose={mediaUploads.commands.close} onConfirm={() => observeAction(mediaUploads.commands.confirm())}
+          onReview={() => observeAction(mediaUploads.commands.reviewWorkingGroup())}
           onSkip={mediaUploads.commands.skip} />}
         {mediaDeletion.candidate && <VehicleMediaDeleteDialog candidate={mediaDeletion.candidate}
-          onClose={mediaDeletion.commands.close} onConfirm={() => void mediaDeletion.commands.confirm()} />}
+          onClose={mediaDeletion.commands.close} onConfirm={() => observeAction(mediaDeletion.commands.confirm())} />}
       </>}
       refreshConflicts={editor.state.refreshConflicts}
       mediaConflicts={media.state.mediaConflicts}
@@ -76,7 +77,7 @@ export function VehicleEditorHost({ workspace }: { workspace: VehicleWorkspace }
         if (selected) editor.commands.openEdit(selected);
       }}
       onPrint={() => {
-        if (selected) output.report.commands.printVehicle(selected);
+        if (selected) observeAction(output.report.commands.printVehicle(selected));
       }}
       onQr={output.qr.commands.generate}
       onPreviewImage={media.setters.setPreviewImage}
