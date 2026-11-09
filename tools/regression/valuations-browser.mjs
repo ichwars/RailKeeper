@@ -4,6 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import { referenceActor } from "./browser-actor.mjs";
 import { assertValuations } from "./valuations.mjs";
+import { assertMobileActionTargets } from "./touch-targets.mjs";
 
 let raw = "";
 for await (const part of process.stdin) raw += part;
@@ -21,6 +22,20 @@ try {
     page.setDefaultTimeout(10000);
     page.on("pageerror", error => errors.push(error.message));
     await page.goto(input.base + "/vehicles");
+    const forgot = page.getByRole("button", { name: de ? "Passwort vergessen?" : "Forgot password?", exact: true });
+    await forgot.waitFor();
+    for (const width of [320, 390, 820]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await assertMobileActionTargets(page);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+    }
+    for (let tab = 0; tab < 12 && !await forgot.evaluate(node => node === document.activeElement); tab++) {
+      await page.keyboard.press("Tab");
+    }
+    assert.equal(await forgot.evaluate(node => node === document.activeElement), true);
+    assert.equal(await forgot.evaluate(node => getComputedStyle(node).outlineStyle), "solid");
+    checks.push(`${language}:mobile-login-actions-and-keyboard-focus`);
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.getByLabel(de ? "Benutzername" : "Username", { exact: true }).fill(input.credentials.username);
     await page.getByLabel(de ? "Passwort" : "Password", { exact: true }).fill(input.credentials.password);
     await page.getByRole("button", { name: de ? "Anmelden" : "Sign in", exact: true }).click();

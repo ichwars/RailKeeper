@@ -387,13 +387,17 @@ while `AppFileButton` retains complete native file-change events for immediate u
 Hidden native inputs remain transport elements. Existing switches and theme cards keep their
 visual treatment and expose keyboard focus. Typography tests check token definitions and usage.
 
-Mobile Eingaben, Auswahloptionen und Dateischaltflächen verwenden das gemeinsame
+Mobile Eingaben, Auswahloptionen und Aktionsschaltflächen verwenden das gemeinsame
 44-Pixel-Bedienziel. Kalender und Auswahlmenüs bleiben auch bei wenig Platz innerhalb des
 Bildschirms; Kalender können vertikal scrollen. Die kompakte Desktop-Geometrie bleibt erhalten.
+Die mobile Mindestgröße gilt auch für ältere Symbol-, Tabellen- und Anmeldeaktionen;
+absichtlich versteckte Tastaturhilfen behalten ihre bestehende Funktionsweise.
 
-Mobile inputs, select options and file buttons share a 44-pixel touch target. Calendars and
+Mobile inputs, select options and action buttons share a 44-pixel touch target. Calendars and
 selection menus remain within the viewport, including short screens; calendars can scroll
 vertically. Desktop controls retain their compact geometry.
+The mobile target floor includes legacy icon, table and login actions; intentionally hidden
+keyboard helpers retain their existing behavior.
 
 Die globale Meldeaktion liegt außerhalb der Sammlungsfläche: auf dem Desktop in einem
 reservierten Bereich der Seitenleiste, mobil im Kopfbereich. Eingeklappte Navigation und

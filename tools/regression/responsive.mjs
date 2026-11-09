@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { assertPersonalViews } from "./personal-views.mjs";
 import { assertLoginRecoveryLayout } from "./authentication.mjs";
+import { assertMobileActionTargets } from "./touch-targets.mjs";
 
 // Exercise real controls: invisible native switch inputs must stay inside the scrollable table,
 // and the visible maintenance selector must never cover the image-upload action.
 export async function assertResponsiveWorkspaces(page, { base, username, width, de, screenshotPrefix }) {
   await assertInventoryFilters(page, { width, de, screenshotPrefix });
+  await assertMobileActionTargets(page);
   await page.goto(base + "/settings", { waitUntil: "domcontentloaded" });
   await page.locator(".settings-dashboard-grid").waitFor();
   await assertPersonalViews(page, { base, username, width, de, screenshotPrefix });
@@ -20,6 +22,7 @@ export async function assertResponsiveWorkspaces(page, { base, username, width, 
   assert.equal(await commit.locator("..").getAttribute("title"), version.build.commit);
   await updates.screenshot({ path: screenshotPrefix + "-update-version.png" });
   await assertViewportFits(page, "general settings");
+  await assertMobileActionTargets(page);
   // Wait for stored rows. While they load, the next focus target after the create
   // row changes, so a Tab/Shift+Tab round-trip would not describe a stable table.
   const toggle = page.locator('.settings-inline-table tbody tr:not(.inventory-scheme-create-row) input[type="checkbox"]').first();
@@ -63,6 +66,7 @@ export async function assertResponsiveWorkspaces(page, { base, username, width, 
     assert.ok(controls.uploadHeight >= 44, "mobile image-upload button is too small");
   }
   await assertViewportFits(page, "vehicle uploads");
+  await assertMobileActionTargets(page);
   await page.screenshot({ path: screenshotPrefix + "-uploads.png", fullPage: true });
   await dialog.getByRole("button", { name: de ? "Abbrechen" : "Cancel", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
