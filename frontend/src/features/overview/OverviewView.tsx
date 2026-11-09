@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MetricCard, OverviewViewProps } from "./overviewPresentation";
+import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -20,23 +21,21 @@ import {
   Upload,
   Wrench
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { observeAction } from "../../shared/asyncAction";
+import { formatRecentTime, maintenanceDistanceText, moveMetric, providerEnabled, providerImages, providerLabels } from "./overviewPresentation";
+import { useOverviewData } from "./useOverviewData";
 
 import {
-  api,
-  type AccessoryArticleListResult,
-  type DigitalCenterSettings,
-  type ECoSLiveStatus,
-  type OverviewValuation,
-  type Vehicle
+  api
 } from "../../shared/api";
-import { translate, useI18n } from "../../shared/i18n";
+import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { valuationChangedEvent } from "../vehicles/valuationModel";
+import { ManualValuationSummary } from "./ManualValuationSummary";
 import { InventoryTrendChart, ValueDistributionChart } from "./OverviewCharts";
 import { OverviewMetricDialog } from "./OverviewMetricDialog";
 import { OverviewQualityRow } from "./OverviewQualityRow";
-import { ManualValuationSummary } from "./ManualValuationSummary";
-import { valuationChangedEvent } from "../vehicles/valuationModel";
 import { formatOverviewMoney } from "./OverviewValuationCard";
 import {
   accessoryCount,
@@ -56,98 +55,18 @@ import {
   type OverviewMetricPreference
 } from "./overviewModel";
 
-type OverviewViewProps = {
-  username?: string;
-  roles?: string[];
-};
-
-type MetricCard = {
-  icon: LucideIcon;
-  value: string;
-  detail: React.ReactNode;
-  attention?: boolean;
-  href?: string;
-};
-
-const providerLabels: Record<string, string> = {
-  ecos: "ESU ECoS",
-  z21: "Roco Z21",
-  intellibox3: "Uhlenbrock Intellibox 3",
-  cs3: "Märklin CS3"
-};
-
-const providerImages: Record<DigitalCenterSettings["provider"], string> = {
-  ecos: "/assets/overview-ecos-50220.png",
-  z21: "/assets/overview-z21-10820.png",
-  intellibox3: "/assets/overview-intellibox-3-65300.jpg",
-  cs3: "/assets/overview-cs3-60226.jpg"
-};
-
-function sameDay(left: Date, right: Date) {
-  return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() &&
-    left.getDate() === right.getDate();
-}
-
-function formatRecentTime(value: string, language: string) {
-  const date = new Date(value);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const time = new Intl.DateTimeFormat(language === "en" ? "en-GB" : "de-DE", {
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(date);
-  if (sameDay(date, today)) return `${language === "en" ? "Today" : "Heute"}, ${time}`;
-  if (sameDay(date, yesterday)) return `${language === "en" ? "Yesterday" : "Gestern"}, ${time}`;
-  return new Intl.DateTimeFormat(language === "en" ? "en-GB" : "de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit"
-  }).format(date);
-}
-
-function maintenanceDistanceText(
-  days: number,
-  t: (key: string, values?: Record<string, string | number>) => string
-) {
-  if (days < 0) return t("overview.daysOverdue", { days: Math.abs(days) });
-  if (days === 0) return t("overview.dueToday");
-  if (days === 1) return t("overview.dueTomorrow");
-  return t("overview.dueInDays", { days });
-}
-
-function moveMetric(order: OverviewMetricID[], metric: OverviewMetricID, target: OverviewMetricID) {
-  const sourceIndex = order.indexOf(metric);
-  const targetIndex = order.indexOf(target);
-  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return order;
-  const next = [...order];
-  next.splice(sourceIndex, 1);
-  next.splice(targetIndex, 0, metric);
-  return next;
-}
-
-function providerEnabled(settings: DigitalCenterSettings | null) {
-  if (!settings) return false;
-  return Boolean(settings[settings.provider]?.enabled && settings[settings.provider]?.host.trim());
-}
-
 export function OverviewView({ username = "local", roles = ["Editor"] }: OverviewViewProps) {
   const { language, t } = useI18n();
   const canEdit = roles.includes("Admin") || roles.includes("Editor");
   const canManageDigital = roles.includes("Admin");
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [accessories, setAccessories] = useState<AccessoryArticleListResult | null>(null);
-  const [valuation, setValuation] = useState<OverviewValuation | null>(null);
-  const [digitalSettings, setDigitalSettings] = useState<DigitalCenterSettings | null>(null);
-  const [liveStatus, setLiveStatus] = useState<ECoSLiveStatus | null>(null);
-  const [vehicleLoading, setVehicleLoading] = useState(true);
-  const [accessoryLoading, setAccessoryLoading] = useState(true);
-  const [valuationLoading, setValuationLoading] = useState(true);
-  const [digitalLoading, setDigitalLoading] = useState(canManageDigital);
-  const [vehicleError, setVehicleError] = useState("");
-  const [accessoryError, setAccessoryError] = useState("");
-  const [valuationError, setValuationError] = useState("");
-  const [digitalError, setDigitalError] = useState("");
+  const {
+  vehicles, accessories, valuation, digitalSettings, liveStatus, vehicleLoading, accessoryLoading,
+  valuationLoading, digitalLoading, vehicleError, accessoryError, valuationError, digitalError,
+  loadVehicles, loadAccessories, loadValuation, loadDigital,
+  } = useOverviewData({
+  canManageDigital, language,
+  });
+
   const [period, setPeriod] = useState(12);
   const [valueMode, setValueMode] = useState<"list" | "purchase">("list");
   const [metricDialogOpen, setMetricDialogOpen] = useState(false);
@@ -156,71 +75,7 @@ export function OverviewView({ username = "local", roles = ["Editor"] }: Overvie
   const [draftMetrics, setDraftMetrics] = useState<OverviewMetricPreference>(metricPreference);
   const [metricLimit, setMetricLimit] = useState(4);
   const [preferenceError, setPreferenceError] = useState("");
-  const valuationRequestID = useRef(0);
   const metricsRef = useRef<HTMLElement>(null);
-
-  const loadVehicles = useCallback(() => {
-    setVehicleLoading(true);
-    setVehicleError("");
-    return api.vehicles().then(setVehicles).catch((error: Error) => setVehicleError(error.message))
-      .finally(() => setVehicleLoading(false));
-  }, []);
-
-  const loadAccessories = useCallback(() => {
-    setAccessoryLoading(true);
-    setAccessoryError("");
-    return api.accessoryArticles().then(setAccessories)
-      .catch((error: Error) => setAccessoryError(error.message))
-      .finally(() => setAccessoryLoading(false));
-  }, []);
-
-  const loadValuation = useCallback(() => {
-    setValuationLoading(true);
-    setValuationError("");
-    const requestID = valuationRequestID.current + 1;
-    valuationRequestID.current = requestID;
-    return api.overviewValuation().then((nextValuation) => {
-      if (requestID === valuationRequestID.current) setValuation(nextValuation);
-    }).catch(() => {
-      if (requestID === valuationRequestID.current) {
-        setValuationError(translate(language, "overview.valuation.error"));
-      }
-    }).finally(() => {
-      if (requestID === valuationRequestID.current) setValuationLoading(false);
-    });
-  }, [language]);
-
-  const loadDigital = useCallback(() => {
-    if (!canManageDigital) return Promise.resolve();
-    setDigitalLoading(true);
-    setDigitalError("");
-    return api.digitalSettings().then(async (settings) => {
-      setDigitalSettings(settings);
-      if (settings.provider === "ecos" && settings.ecos.enabled && settings.ecos.host.trim()) {
-        try {
-          setLiveStatus(await api.getECoSLiveStatus());
-        } catch {
-          setLiveStatus(null);
-        }
-      } else {
-        setLiveStatus(null);
-      }
-    }).catch((error: Error) => setDigitalError(error.message))
-      .finally(() => setDigitalLoading(false));
-  }, [canManageDigital]);
-
-  useEffect(() => {
-    void loadVehicles();
-    void loadAccessories();
-  }, [loadAccessories, loadVehicles]);
-
-  useEffect(() => {
-    void loadValuation();
-  }, [loadValuation]);
-
-  useEffect(() => {
-    void loadDigital();
-  }, [loadDigital]);
 
   useEffect(() => {
     let active = true;
@@ -333,10 +188,10 @@ export function OverviewView({ username = "local", roles = ["Editor"] }: Overvie
     displayedMetricPreference.active.includes(metric));
   const refreshOverview = () => {
     window.dispatchEvent(new Event(valuationChangedEvent));
-    void loadVehicles();
-    void loadAccessories();
-    void loadValuation();
-    void loadDigital();
+    observeAction(loadVehicles());
+    observeAction(loadAccessories());
+    observeAction(loadValuation());
+    observeAction(loadDigital());
   };
   const openMetricDialog = () => {
     setDraftMetrics(metricPreference);

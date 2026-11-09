@@ -1,8 +1,9 @@
 import { Check } from "lucide-react";
-import { AppSelect } from "../../shared/ui/AppSelect";
+import { observeAction } from "../../shared/asyncAction";
 import { useI18n } from "../../shared/i18n";
-import { decoderProfileLabel } from "./decoderProfileLabel";
+import { AppSelect } from "../../shared/ui/AppSelect";
 import { cvWorkingGroupLabel } from "./cvWorkingGroup";
+import { decoderProfileLabel } from "./decoderProfileLabel";
 import type { DecoderConfigurationController } from "./useDecoderConfigurationController";
 
 export function CVWorkingGroupPicker({ controller: model }: { controller: DecoderConfigurationController }) {
@@ -33,6 +34,6 @@ export function CVWorkingGroupPicker({ controller: model }: { controller: Decode
       <p className="cv-working-group-help">{t("cvScope.effect")}</p>
       {!model.targetCurrent && <p role="alert">{t("cvScope.bindingChanged")}</p>}
     </>}
-    <button type="button" className="secondary-button" disabled={disabled} onClick={() => void model.load()}>{t("cvScope.reload")}</button>
+    <button type="button" className="secondary-button" disabled={disabled} onClick={() => observeAction(model.load())}>{t("cvScope.reload")}</button>
   </section>;
 }

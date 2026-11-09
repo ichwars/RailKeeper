@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { observeAction } from "../../shared/asyncAction";
 
-import { api, ApiError } from "../../shared/api";
+import { ApiError, api } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppCheckbox } from "../../shared/ui/AppCheckbox";
 import { AppFilePicker } from "../../shared/ui/AppFilePicker";
@@ -70,7 +71,7 @@ export function ECoSBackupImport({ stationHost, disabled = false, onImported }: 
             }
           }} />
       <button type="button" className="digital-center-button" disabled={!file || busy || disabled}
-        onClick={() => void inspect()}>
+        onClick={() => observeAction(inspect())}>
         {t(busy ? "digitalCenters.backup.inspecting" : "digitalCenters.backup.inspect")}
       </button>
     </div>

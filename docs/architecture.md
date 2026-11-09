@@ -47,7 +47,10 @@ SMTP credential/fallback rules and native SQLite maintenance through typed stora
 ## API Contract
 
 `openapi/railkeeper.yaml` is the public contract. The existing request adapter in
-`frontend/src/shared/api.ts` retains authentication, CSRF, errors, timeouts and runtime validation.
+`frontend/src/shared/api.ts` is the compatible public facade over domain-specific API factories
+and OpenAPI-derived model modules. `apiTransport.ts` owns session-token guards, CSRF, request
+errors, cancellation and timeouts; the facade preserves existing method names and asynchronous
+return contracts. Feature-specific response validation remains at its owning boundary.
 Transport types are derived from the contract without replacing that adapter; editable UI drafts
 remain separate from transport records.
 

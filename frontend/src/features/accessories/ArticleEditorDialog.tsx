@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { observeAction } from "../../shared/asyncAction";
 
 import type {
   AccessoryArticle,
@@ -11,12 +12,13 @@ import { api } from "../../shared/api";
 import { ArticleSearchDialog } from "../../shared/articleSearch/ArticleSearchDialog";
 import { BarcodeSearchDialog } from "../../shared/articleSearch/BarcodeSearchDialog";
 import { useI18n } from "../../shared/i18n";
-import { accessorySearchFieldGroups, currentAccessorySearchValue } from "./accessoryArticleSearch";
+import { AccessoryConfirmDialog } from "./AccessoryConfirmDialog";
 import { ArticleCoreTab } from "./ArticleCoreTab";
 import { ArticlePurchaseDocumentsTab } from "./ArticlePurchaseDocumentsTab";
 import { ArticleStockTab } from "./ArticleStockTab";
 import { ArticleSubjectTab } from "./ArticleSubjectTab";
 import { ArticleUsageHistoryTab } from "./ArticleUsageHistoryTab";
+import { accessorySearchFieldGroups, currentAccessorySearchValue } from "./accessoryArticleSearch";
 import { scaleForGauges, suggestedArticleKeywords } from "./articleEditorAutomation";
 import type {
   ArticleEditorFieldErrors,
@@ -25,16 +27,15 @@ import type {
   ArticleEditorTab,
   ArticleEditorTabErrors
 } from "./articleEditorModel";
-import type { ArticleEditorPermissions, ArticleEditorResources } from "./useArticleEditorController";
-import type { AccessoryArticleSearchController } from "./useAccessoryArticleSearchController";
-import { AccessoryConfirmDialog } from "./AccessoryConfirmDialog";
+import { articleSubtypeLabel } from "./articleSubtypes";
 import {
   compatibleAttributesForType,
   compatibleNumberDraftsForType,
   type CustomArticleSubjectFieldDefinition
 } from "./articleTypeFields";
-import { articleSubtypeLabel } from "./articleSubtypes";
 import { articleTypeLabel } from "./articleTypes";
+import type { AccessoryArticleSearchController } from "./useAccessoryArticleSearchController";
+import type { ArticleEditorPermissions, ArticleEditorResources } from "./useArticleEditorController";
 
 export type ArticleEditorDialogProps = {
   mode: ArticleEditorMode;
@@ -377,7 +378,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         {props.coreMasterDataError ? <div className="article-editor-resource-error">
           <p className="form-message" role="alert">{t("accessories.editor.coreMasterData.loadError")}</p>
           <button type="button" className="secondary-button" disabled={props.coreMasterDataLoading}
-            onClick={() => void props.onRetryCoreMasterData?.().catch(() => undefined)}>
+            onClick={() => observeAction(props.onRetryCoreMasterData?.().catch(() => undefined))}>
             {t("accessories.editor.coreMasterData.retry")}</button>
         </div> : null}
         {props.error && props.error !== props.resourceError
@@ -391,7 +392,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
             props.coreMasterDataLoading || props.coreMasterDataError ||
             ((props.mode === "create" || props.article?.articleType !== form.articleType) &&
               (props.articleTypeEntriesLoading || Boolean(props.articleTypeEntriesError)))}
-          onClick={() => void props.onSubmit()}>
+          onClick={() => observeAction(props.onSubmit())}>
           {props.saving ? t("common.saving") : props.mode === "create"
             ? t("accessories.editor.createAction") : t("accessories.editor.saveAction")}
         </button> : null}

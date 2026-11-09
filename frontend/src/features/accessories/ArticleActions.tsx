@@ -1,4 +1,5 @@
 import { Archive, ArchiveRestore, Eye, Pencil, Trash2 } from "lucide-react";
+import { observeAction } from "../../shared/asyncAction";
 
 import type { AccessoryArticleListItem } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -60,7 +61,7 @@ export function ArticleActions({
         <button
           type="button"
           className="icon-button article-action-button"
-          onClick={() => void (article.archived ? onRestore(article) : onArchive(article))}
+          onClick={() => observeAction((article.archived ? onRestore(article) : onArchive(article)))}
           aria-label={t(archiveNamedLabel, { name: article.name })}
           title={t(archiveLabel)}
         >

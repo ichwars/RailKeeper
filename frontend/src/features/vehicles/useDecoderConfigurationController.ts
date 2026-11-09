@@ -1,11 +1,14 @@
-import { invalidatePendingRequests } from "../../shared/requestGeneration";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, ApiError, type DecoderConfigurationContext, type Vehicle } from "../../shared/api";
+import { ApiError, api, type DecoderConfigurationContext, type Vehicle } from "../../shared/api";
+import { observeAction } from "../../shared/asyncAction";
 import { useI18n } from "../../shared/i18n";
-import { decoderConfigurationDraft, decoderDraftFromCurrent, decoderDraftStored, decoderDraftValid, saveDecoderConfigurationDraft,
-  type DecoderCommand, type DecoderConfigurationDraft } from "./decoderConfigurationDraft";
-import { reconcileDraft, retainRefreshConflicts, type DraftRefreshConflict } from "./vehicleDraftRefresh";
+import { invalidatePendingRequests } from "../../shared/requestGeneration";
 import { cvTargetCurrent, cvWorkingTarget, type CVWorkingTarget } from "./cvWorkingGroup";
+import {
+  decoderConfigurationDraft, decoderDraftFromCurrent, decoderDraftStored, decoderDraftValid, saveDecoderConfigurationDraft,
+  type DecoderCommand, type DecoderConfigurationDraft
+} from "./decoderConfigurationDraft";
+import { reconcileDraft, retainRefreshConflicts, type DraftRefreshConflict } from "./vehicleDraftRefresh";
 
 type Options = {
   ownerKey: string;
@@ -76,7 +79,7 @@ export function useDecoderConfigurationController(options: Options) {
     const previous = comparedCVs.current;
     if (!stateRef.current.context || previous?.key !== key || previous.values !== options.selected?.cvValues || previous.files !== options.selected?.cvFiles) {
       comparedCVs.current = { key, values: options.selected?.cvValues, files: options.selected?.cvFiles };
-      void load();
+      observeAction(load());
     }
   }, [options.active, options.busy, options.selected?.cvValues, options.selected?.cvFiles, key, vehicleId, load]);
 

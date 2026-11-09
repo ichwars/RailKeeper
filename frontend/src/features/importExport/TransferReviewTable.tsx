@@ -1,14 +1,15 @@
 import { AlertTriangle, CheckCircle2, CircleAlert } from "lucide-react";
+import { observeAction } from "../../shared/asyncAction";
 
-import { translate, type Language } from "../../shared/i18n";
 import { ImportReviewStatus } from "../../shared/ImportReview";
-import { transferReviewState } from "./transferReviewState";
+import { translate, type Language } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import type {
   DataTransferIssue,
   DataTransferIssueResolution,
   DataTransferPreviewRecord
 } from "./dataTransferModel";
+import { transferReviewState } from "./transferReviewState";
 
 type TransferReviewTableProps = {
   busy: boolean;
@@ -94,7 +95,7 @@ export function TransferReviewTable({ busy, issues, language, onResolve, records
                         value={issue.selectedResolution}
                         onChange={(event) => {
                           const resolution = event.target.value as DataTransferIssueResolution;
-                          if (resolution) void onResolve(issue, resolution);
+                          if (resolution) observeAction(onResolve(issue, resolution));
                         }}
                       >
                         <option value="">{copy.choose}</option>

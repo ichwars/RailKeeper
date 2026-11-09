@@ -1,12 +1,15 @@
-import { invalidatePendingRequests } from "../../shared/requestGeneration";
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
-import { api, ApiError, type Vehicle, type VehicleImage } from "../../shared/api";
+import { ApiError, api, type Vehicle, type VehicleImage } from "../../shared/api";
+import { observeAction } from "../../shared/asyncAction";
 import { useI18n } from "../../shared/i18n";
-import { attachmentCategoryForFile, isAllowedImageFile, isBlockedAttachmentFile, isBlockedCVFile } from "./vehicleFiles";
-import { createVehicleUploadBatch, maxVehicleUploadFiles, retryableUploadItem, validImagesRevision,
-  vehicleUploadCounts, vehicleUploadFailure, type VehicleUploadBatch, type VehicleUploadItem,
-  type VehicleUploadKind, type VehicleUploadMetadata } from "./vehicleUploadBatch";
+import { invalidatePendingRequests } from "../../shared/requestGeneration";
 import { CVWorkingGroupUnavailable, cvWorkingGroupLabel, refreshCVInputScope, type CVWorkingGroupOptions } from "./cvWorkingGroup";
+import { attachmentCategoryForFile, isAllowedImageFile, isBlockedAttachmentFile, isBlockedCVFile } from "./vehicleFiles";
+import {
+  createVehicleUploadBatch, maxVehicleUploadFiles, retryableUploadItem, validImagesRevision,
+  vehicleUploadCounts, vehicleUploadFailure, type VehicleUploadBatch, type VehicleUploadItem,
+  type VehicleUploadKind, type VehicleUploadMetadata
+} from "./vehicleUploadBatch";
 
 type Options = {
   selected: Vehicle | null;
@@ -141,7 +144,7 @@ export function useVehicleUploads(options: Options) {
       ...metadata, ...(kind === "image" ? { imagesRevision: opts.selected.imagesRevision } : {})
     });
     setBatch({ ...next, ...(opts.workingGroup ? { ownerKey: opts.workingGroup.ownerKey } : {}) });
-    if (confirmed) void run();
+    if (confirmed) observeAction(run());
     return true;
   };
 

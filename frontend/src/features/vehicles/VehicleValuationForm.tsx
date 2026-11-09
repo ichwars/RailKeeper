@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { observeAction } from "../../shared/asyncAction";
 import { useI18n } from "../../shared/i18n";
 import { AppDateInput } from "../../shared/ui/AppDateInput";
 import type { VehicleValuationController } from "./useVehicleValuations";
@@ -35,7 +36,7 @@ export function VehicleValuationForm({ controller: model }: { controller: Vehicl
       </label>
     </div>
     <div className="valuation-actions">
-      <button type="button" className="primary-button" onClick={() => void model.save()}>
+      <button type="button" className="primary-button" onClick={() => observeAction(model.save())}>
         {t(model.saving ? "valuation.saving" : draft.withdrawn ? "valuation.confirmWithdrawal" : "valuation.save")}
       </button>
       <button type="button" className="secondary-button" onClick={model.reset}>{t("valuation.discard")}</button>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, api } from "../../shared/api";
 import type { VehicleValuation, VehicleValuationHistory } from "../../shared/apiValuations";
+import { observeAction } from "../../shared/asyncAction";
 import { clearPendingValuation, pendingValuation, rememberPendingValuation } from "./pendingValuation";
 import { newValuationDraft, sameValuationRequest, valuationChangedEvent, valuationHistoryPageSize, type ValuationDraft } from "./valuationModel";
 
@@ -34,7 +35,7 @@ export function useVehicleValuations(vehicleID: string, active: boolean, journal
   }, [vehicleID]);
 
   useEffect(() => {
-    if (active) void load();
+    if (active) observeAction(load());
     return () => { readGeneration.current += 1; };
   }, [active, load]);
   useEffect(() => () => { lifetime.current += 1; }, []);

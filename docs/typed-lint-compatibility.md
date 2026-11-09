@@ -1,27 +1,33 @@
 # Typed promise analysis compatibility
 
-Checked on 2026-11-08. RailKeeper's frontend uses TypeScript 7.0.2 and React 19.3.1.
-The isolated syntax/React-hook toolchain uses ESLint 10.14.0, Babel ESLint parser 8.0.7
-and eslint-plugin-react-hooks 7.1.1. Type checking remains the actual strict project build;
-syntax and hook checks remain mandatory for every production frontend source file.
+The production build remains on TypeScript 7.0.2 with strict checking. The isolated
+`tools/frontend-lint` installation uses ESLint 10.14.0, typescript-eslint 8.72.1,
+eslint-plugin-react-hooks 7.1.1 and the supported TypeScript 6 compiler API (resolved
+version 6.0.3 in the lockfile).
+Its `typescript` package is pinned to `npm:@typescript/typescript6@6.0.2`.
+`frontend/package.json` installs both toolchains reproducibly with `npm ci`.
 
-The official [typescript-eslint support matrix](https://typescript-eslint.io/users/dependency-versions/)
-currently supports TypeScript `>=4.8.4 <6.1.0`. ESLint 10 itself is supported, but the installed
-TypeScript 7 compiler is outside the documented range. Open peer dependency ranges do not
-establish support. Consequently `no-floating-promises` and `no-misused-promises` are not yet
-introduced. No compiler downgrade, `--force`, unsupported-version warning suppression,
-measurement exclusion or blanket `void` replacement is used to obtain a passing result.
+Microsoft explicitly recommends a side-by-side TypeScript 6 API for tools using the
+compiler API in the [TypeScript 7 announcement](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/).
+This API version is within the official
+[typescript-eslint support matrix](https://typescript-eslint.io/users/dependency-versions/).
+The application compiler is neither downgraded nor passed to an unsupported parser.
+No `--force`, warning suppression or narrowed production scope is used.
 
-Revisit this conditional item on the next TypeScript/typescript-eslint tool update, or by
-2026-12-08. Before adoption, require all of the following:
+`@typescript-eslint/no-floating-promises` is mandatory for every production TypeScript
+and TSX file alongside the existing syntax and React hook rules. `ignoreVoid: false`
+and `ignoreIIFE: false` mean that explicitly discarding a promise cannot hide a rejection.
+The parser's project service uses the actual frontend `tsconfig.json` and its React types.
 
-1. Official support for the installed compiler and React/ESLint toolchain.
-2. A separate pinned installation and reproducible clean `npm ci`.
-3. The actual project type check, build and complete behavior/coverage suite.
-4. Real error handling for findings, including rejected saves, cancellation and lost acknowledgements.
-5. A fixture proving that each new rule rejects an unhandled promise and accepts the handled form.
+Actions retain their existing asynchronous return contracts and local error/draft handling.
+The shared `observeAction` boundary observes explicitly backgrounded work and reports an
+unexpected rejection through the browser's existing error channel. It does not convert
+asynchronous callbacks into synchronous callbacks or duplicate handled errors. A failed
+logout leaves the authenticated workspace available for an explicit retry. Sidebar save
+queue cleanup handles both outcomes without creating an unobserved rejected promise.
 
-This is the explicit compatibility deferral permitted by technical plan R7. It is not a claim
-that type-aware promise rules ran successfully. Existing rules, strict compilation and complete
-coverage remain active. Targeted behavior tests additionally verify configuration-save
-acknowledgements and visible retryable exhibition failures without contacting physical devices.
+The lint fixtures prove that conditional hooks, stale dependencies, a bare promise and
+`void promise` are rejected. Correctly handled promises and valid Effect Event usage pass.
+Behavior tests additionally cover rejected saves, cancellation, retained drafts, logout
+retry and session ownership. Strict compilation and the complete coverage suite remain
+required. These automated checks do not establish physical command-station compatibility.

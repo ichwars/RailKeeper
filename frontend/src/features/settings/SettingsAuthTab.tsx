@@ -1,12 +1,15 @@
-import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
-import { useI18n } from "../../shared/i18n";
-import { auditActor, auditTarget, formatDateTime } from "./settingsModel";
-import type { SettingsAuthController } from "./useSettingsAuth";
+import { userAccountValidation } from "./userAccountValidation";
 import { useEffect, useState } from "react";
+import { useI18n } from "../../shared/i18n";
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
+import { SettingsAuditCard } from "./SettingsAuditCard";
+import { SettingsSMTPCard } from "./SettingsSMTPCard";
+import { SettingsSessionsCard } from "./SettingsSessionsCard";
+import { SettingsUsersCard } from "./SettingsUsersCard";
+import type { SettingsAuthController } from "./useSettingsAuth";
 
-import { History, KeyRound, Mail, Pencil, RefreshCw, Save, Send, Shield, Trash2, UserCog, Users, X } from "lucide-react";
+import { KeyRound, RefreshCw, Save, Shield, UserCog, Users, X } from "lucide-react";
 import type { UserAccount } from "../../shared/api";
-import { AppSelect } from "../../shared/ui/AppSelect";
 
 export function SettingsAuthTab({ controller }: { controller: SettingsAuthController }) {
   const { t } = useI18n();
@@ -80,21 +83,8 @@ export function SettingsAuthTab({ controller }: { controller: SettingsAuthContro
   const currentRoles = currentSession?.roles || [];
   const userCountLabel = t("settings.users.count", { count: users.length });
   const twoFactorEnabled = Boolean(twoFactorStatus?.enabled || currentSession?.twoFactorEnabled);
-  const passwordTouched = userForm.password.length > 0 || userForm.confirmPassword.length > 0;
-  const passwordRequired = !editingUser;
-  const userPasswordTooShort = (passwordRequired || passwordTouched) && userForm.password.length < 12;
-  const userPasswordMismatch = passwordTouched && userForm.password !== userForm.confirmPassword;
-  const userPasswordMessage = passwordTouched && userPasswordTooShort
-    ? t("settings.users.passwordTooShort")
-    : userPasswordMismatch
-      ? t("setup.passwordMismatch")
-      : "";
-  const canSaveUser =
-    !userSaving &&
-    userForm.username.trim().length > 0 &&
-    userForm.roles.length > 0 &&
-    !userPasswordTooShort &&
-    !userPasswordMismatch;
+  const { canSaveUser, userPasswordMessage, passwordRequired, passwordTouched } =
+    userAccountValidation(userForm, editingUser, userSaving, t);
 
   const openUserCreateDialog = () => {
     startUserCreate();
@@ -284,101 +274,20 @@ export function SettingsAuthTab({ controller }: { controller: SettingsAuthContro
           )}
 
           <div className="auth-side-stack">
-            <section className="panel settings-card settings-tool-card smtp-settings-card">
-              <div className="settings-section-head">
-                <div className="settings-card-title">
-                  <Mail size={18} />
-                  <div>
-                    <h2>{t("settings.smtp.title")}</h2>
-                    <p>{t("settings.smtp.subtitle")}</p>
-                  </div>
-                </div>
-                <button type="button" className="icon-button" onClick={loadSMTPSettings} disabled={!canManageUsers || smtpLoading} aria-label={t("settings.smtp.refresh")} title={t("settings.smtp.refresh")}>
-                  <RefreshCw size={16} />
-                </button>
-              </div>
-              {!canManageUsers ? (
-                <div className="current-user-card">
-                  <strong>{t("settings.users.adminRequired")}</strong>
-                  <span>{t("settings.smtp.adminHelp")}</span>
-                </div>
-              ) : (
-                <form className="settings-form" onSubmit={saveSMTPSettings}>
-                  <label className="settings-toggle-row smtp-toggle-row">
-                    <span>
-                      <strong>{t("settings.smtp.enabled")}</strong>
-                      <small>{t("settings.smtp.enabledHelp")}</small>
-                    </span>
-                    <span className="switch-field">
-                      <input type="checkbox" checked={smtpForm.enabled} onChange={(event) => setSmtpForm((current) => ({ ...current, enabled: event.target.checked }))} />
-                      <span />
-                    </span>
-                  </label>
-                  <div className="settings-field-grid">
-                    <label>
-                      {t("settings.smtp.publicUrl")}
-                      <input value={smtpForm.publicUrl} onChange={(event) => setSmtpForm((current) => ({ ...current, publicUrl: event.target.value }))} placeholder="http://localhost:8080" />
-                    </label>
-                    <label>
-                      {t("settings.smtp.host")}
-                      <input value={smtpForm.host} onChange={(event) => setSmtpForm((current) => ({ ...current, host: event.target.value }))} placeholder="smtp.example.com" />
-                    </label>
-                    <label>
-                      {t("settings.smtp.port")}
-                      <input inputMode="numeric" value={smtpForm.port} onChange={(event) => setSmtpForm((current) => ({ ...current, port: event.target.value }))} placeholder="587" />
-                    </label>
-                    <label>
-                      {t("settings.smtp.tlsMode")}
-                      <AppSelect value={smtpForm.tlsMode} onChange={(event) => setSmtpForm((current) => ({ ...current, tlsMode: event.target.value }))}>
-                        <option value="starttls">STARTTLS</option>
-                        <option value="implicit">{t("settings.smtp.tlsImplicit")}</option>
-                        <option value="none">{t("settings.smtp.tlsNone")}</option>
-                      </AppSelect>
-                    </label>
-                    <label>
-                      {t("settings.smtp.from")}
-                      <input type="email" value={smtpForm.from} onChange={(event) => setSmtpForm((current) => ({ ...current, from: event.target.value }))} placeholder="railkeeper@example.com" />
-                    </label>
-                    <label>
-                      {t("settings.smtp.username")}
-                      <input value={smtpForm.username} onChange={(event) => setSmtpForm((current) => ({ ...current, username: event.target.value }))} autoComplete="username" />
-                    </label>
-                    <label>
-                      {t("settings.smtp.password")}
-                      <input type="password" value={smtpForm.password} onChange={(event) => setSmtpForm((current) => ({ ...current, password: event.target.value, clearPassword: false }))} placeholder={smtpSettings?.passwordConfigured ? t("settings.smtp.passwordKeep") : ""} autoComplete="new-password" />
-                    </label>
-                    <label>
-                      {t("settings.smtp.testRecipient")}
-                      <input type="email" value={smtpForm.testRecipient} onChange={(event) => setSmtpForm((current) => ({ ...current, testRecipient: event.target.value }))} placeholder="admin@example.com" />
-                    </label>
-                  </div>
-                  <label className="settings-toggle-row smtp-toggle-row smtp-clear-password-row">
-                    <span>
-                      <strong>{t("settings.smtp.clearPassword")}</strong>
-                      <small>{smtpSettings?.passwordConfigured ? t("settings.smtp.passwordConfigured") : t("settings.smtp.passwordMissing")}</small>
-                    </span>
-                    <span className="switch-field">
-                      <input type="checkbox" checked={Boolean(smtpForm.clearPassword)} onChange={(event) => setSmtpForm((current) => ({ ...current, clearPassword: event.target.checked, password: event.target.checked ? "" : current.password }))} disabled={!smtpSettings?.passwordConfigured} />
-                      <span />
-                    </span>
-                  </label>
-                  <div className="settings-action-row">
-                    <span className={smtpForm.enabled ? "settings-pill active" : "settings-pill muted"}>
-                      {smtpForm.enabled ? t("common.active") : t("settings.smtp.disabled")}
-                    </span>
-                    <button type="submit" className="primary-button" disabled={smtpSaving || smtpLoading}>
-                      <Save size={16} />
-                      {smtpSaving ? t("vehicles.saving") : t("vehicles.save")}
-                    </button>
-                    <button type="button" className="secondary-button" onClick={testSMTPSettings} disabled={smtpTesting || smtpLoading || !smtpForm.testRecipient.trim()}>
-                      <Send size={16} />
-                      {smtpTesting ? t("settings.smtp.testing") : t("settings.smtp.test")}
-                    </button>
-                  </div>
-                  {smtpMessage && <p className="form-message">{smtpMessage}</p>}
-                </form>
-              )}
-            </section>
+            <SettingsSMTPCard
+            t={t}
+            loadSMTPSettings={loadSMTPSettings}
+            canManageUsers={canManageUsers}
+            smtpLoading={smtpLoading}
+            saveSMTPSettings={saveSMTPSettings}
+            smtpForm={smtpForm}
+            setSmtpForm={setSmtpForm}
+            smtpSettings={smtpSettings}
+            smtpSaving={smtpSaving}
+            testSMTPSettings={testSMTPSettings}
+            smtpTesting={smtpTesting}
+            smtpMessage={smtpMessage}
+          />
 
             <section className="panel settings-card settings-tool-card role-settings-card">
               <div className="settings-section-head">
@@ -465,89 +374,19 @@ export function SettingsAuthTab({ controller }: { controller: SettingsAuthContro
             </div>
           </section>}
 
-          <section className="panel settings-card settings-tool-card user-management-card">
-            <div className="settings-section-head">
-              <div className="settings-card-title">
-                <Users size={18} />
-                <div>
-                  <h2 className="settings-title-with-pill">
-                    {t("settings.users.title")}
-                    <span className="settings-pill">{userCountLabel}</span>
-                  </h2>
-                  <p>{t("settings.users.subtitle")}</p>
-                </div>
-              </div>
-              <div className="user-management-toolbar">
-                {canManageUsers && (
-                  <button type="button" className="secondary-button" onClick={openUserCreateDialog}>
-                    <UserCog size={16} />
-                    {t("settings.users.new")}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {!canManageUsers ? (
-              <div className="current-user-card">
-                <strong>{t("settings.users.adminRequired")}</strong>
-                <span>{t("settings.users.adminHelp")}</span>
-              </div>
-            ) : (
-              <div className="user-management-grid">
-                <div className="table-wrap settings-inline-table user-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{t("settings.users.username")}</th>
-                        <th>{t("auth.email")}</th>
-                        <th>{t("settings.users.roles")}</th>
-                        <th>{t("settings.users.created")}</th>
-                        <th>{t("settings.sessions.actions")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usersLoading ? (
-                        <tr><td colSpan={5} className="loading-cell">{t("settings.users.loading")}</td></tr>
-                      ) : users.length === 0 ? (
-                        <tr><td colSpan={5} className="loading-cell">{t("settings.users.empty")}</td></tr>
-                      ) : (
-                        users.map((user) => (
-                          <tr key={user.id} className={editingUser?.id === user.id ? "selected-row" : ""}>
-                            <td>
-                              <div className="user-cell">
-                                <strong>{user.username}</strong>
-                                {currentSession?.username === user.username && <span className="settings-pill active">{t("settings.users.current")}</span>}
-                              </div>
-                            </td>
-                            <td>{user.email || "-"}</td>
-                            <td>
-                              <div className="role-chip-row">
-                                {user.roles.map((role) => <span className="settings-pill" key={role}>{role}</span>)}
-                              </div>
-                            </td>
-                            <td>{formatDateTime(user.createdAt)}</td>
-                            <td>
-                              <div className="table-actions">
-                                <button type="button" className="secondary-button" onClick={() => resetLoginBudget(user)}>
-                                  {t("settings.users.unlockLogin")}
-                                </button>
-                                <button type="button" className="icon-button" onClick={() => openUserEditDialog(user)} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
-                                  <Pencil size={16} />
-                                </button>
-                                <button type="button" className="icon-button danger" onClick={() => deleteUser(user)} aria-label={t("vehicles.delete")} title={t("vehicles.delete")}>
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </section>
+          <SettingsUsersCard
+            t={t}
+            userCountLabel={userCountLabel}
+            canManageUsers={canManageUsers}
+            openUserCreateDialog={openUserCreateDialog}
+            usersLoading={usersLoading}
+            users={users}
+            editingUser={editingUser}
+            currentSession={currentSession}
+            resetLoginBudget={resetLoginBudget}
+            openUserEditDialog={openUserEditDialog}
+            deleteUser={deleteUser}
+          />
 
           {canManageUsers && userDialogOpen && (
             <div className="modal-layer user-dialog-layer" role="dialog" aria-modal="true" aria-label={editingUser ? t("settings.users.edit") : t("settings.users.create")}>
@@ -629,125 +468,25 @@ export function SettingsAuthTab({ controller }: { controller: SettingsAuthContro
             </div>
           )}
 
-          <section className="panel settings-card settings-tool-card session-management-card">
-            <div className="settings-section-head">
-              <div className="settings-card-title">
-                <KeyRound size={18} />
-                <div>
-                  <h2>{t("settings.sessions.title")}</h2>
-                  <p>{t("settings.sessions.subtitle")}</p>
-                </div>
-              </div>
-              {canManageUsers && (
-                <button type="button" className="icon-button" onClick={loadSessions} disabled={sessionsLoading} aria-label={t("settings.sessions.refresh")} title={t("settings.sessions.refresh")}>
-                  <RefreshCw size={16} />
-                </button>
-              )}
-            </div>
+          <SettingsSessionsCard
+            t={t}
+            canManageUsers={canManageUsers}
+            loadSessions={loadSessions}
+            sessionsLoading={sessionsLoading}
+            sessions={sessions}
+            revokeSession={revokeSession}
+            sessionsMessage={sessionsMessage}
+          />
 
-            {!canManageUsers ? (
-              <div className="current-user-card">
-                <strong>{t("settings.users.adminRequired")}</strong>
-                <span>{t("settings.sessions.adminHelp")}</span>
-              </div>
-            ) : (
-              <>
-                <div className="table-wrap settings-inline-table session-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{t("settings.sessions.user")}</th>
-                        <th>{t("settings.sessions.status")}</th>
-                        <th>{t("settings.sessions.created")}</th>
-                        <th>{t("settings.sessions.expires")}</th>
-                        <th>{t("settings.sessions.actions")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sessionsLoading ? (
-                        <tr><td colSpan={5} className="loading-cell">{t("settings.sessions.loading")}</td></tr>
-                      ) : sessions.length === 0 ? (
-                        <tr><td colSpan={5} className="loading-cell">{t("settings.sessions.empty")}</td></tr>
-                      ) : (
-                        sessions.map((session) => (
-                          <tr key={session.id} className={session.active ? "" : "muted-row"}>
-                            <td><strong>{session.username}</strong></td>
-                            <td><span className={session.active ? "settings-pill active" : "settings-pill muted"}>{session.active ? t("common.active") : t("settings.sessions.ended")}</span></td>
-                            <td>{formatDateTime(session.createdAt)}</td>
-                            <td>{session.revokedAt ? t("settings.sessions.revoked", { date: formatDateTime(session.revokedAt) }) : formatDateTime(session.expiresAt)}</td>
-                            <td>
-                              <button type="button" className="icon-button danger" onClick={() => revokeSession(session)} disabled={!session.active || sessionsLoading} aria-label={t("settings.sessions.revoke")} title={t("settings.sessions.revoke")}>
-                                <X size={16} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                {sessionsMessage && <p className="form-message">{sessionsMessage}</p>}
-              </>
-            )}
-          </section>
-
-          <section className="panel settings-card settings-tool-card audit-log-card">
-            <div className="settings-section-head">
-              <div className="settings-card-title">
-                <History size={18} />
-                <div>
-                  <h2>{t("settings.audit.title")}</h2>
-                  <p>{t("settings.audit.subtitle")}</p>
-                </div>
-              </div>
-              {canManageUsers && (
-                <button type="button" className="icon-button" onClick={loadAuditLog} disabled={auditLogLoading} aria-label={t("settings.audit.refresh")} title={t("settings.audit.refresh")}>
-                  <RefreshCw size={16} />
-                </button>
-              )}
-            </div>
-
-            {!canManageUsers ? (
-              <div className="current-user-card">
-                <strong>{t("settings.users.adminRequired")}</strong>
-                <span>{t("settings.audit.adminHelp")}</span>
-              </div>
-            ) : (
-              <>
-                <div className="table-wrap settings-inline-table audit-log-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{t("settings.audit.time")}</th>
-                        <th>{t("settings.audit.event")}</th>
-                        <th>{t("settings.sessions.user")}</th>
-                        <th>{t("settings.audit.target")}</th>
-                        <th>{t("settings.audit.details")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {auditLogLoading ? (
-                        <tr><td colSpan={5} className="loading-cell">{t("settings.audit.loading")}</td></tr>
-                      ) : auditLog.length === 0 ? (
-                        <tr><td colSpan={5} className="loading-cell">{t("settings.audit.empty")}</td></tr>
-                      ) : (
-                        auditLog.slice(0, 10).map((entry) => (
-                          <tr key={entry.id}>
-                            <td>{formatDateTime(entry.createdAt)}</td>
-                            <td><span className="settings-pill">{auditLabel(entry.action)}</span></td>
-                            <td>{auditActor(entry)}</td>
-                            <td>{auditTarget(entry)}</td>
-                            <td><code>{entry.detailsJson && entry.detailsJson !== "{}" ? entry.detailsJson : "-"}</code></td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                {auditLogMessage && <p className="form-message">{auditLogMessage}</p>}
-              </>
-            )}
-          </section>
+          <SettingsAuditCard
+            t={t}
+            canManageUsers={canManageUsers}
+            loadAuditLog={loadAuditLog}
+            auditLogLoading={auditLogLoading}
+            auditLog={auditLog}
+            auditLabel={auditLabel}
+            auditLogMessage={auditLogMessage}
+          />
 
         </section>
   );

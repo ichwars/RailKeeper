@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../shared/api";
@@ -9,7 +9,8 @@ vi.mock("../features/importExport/ImportExportView", () => ({
 }));
 
 vi.mock("./Shell", () => ({
-  Shell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
+  Shell: ({ children, onLogout }: { children: React.ReactNode; onLogout: () => void }) =>
+    <div><button onClick={onLogout}>Logout</button>{children}</div>
 }));
 
 describe("App navigation availability", () => {
@@ -63,6 +64,29 @@ describe("App navigation availability", () => {
 
     expect(await screen.findByText("transfer roles: Messe")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/import-export");
+  });
+
+  it("retains the current workspace after a failed logout and allows a successful retry", async () => {
+    window.history.replaceState(null, "", "/import-export");
+    vi.spyOn(api, "setupStatus").mockResolvedValue({ setupRequired: false, cookieSecure: false });
+    vi.spyOn(api, "session").mockResolvedValue({
+      username: "operator", roles: ["Viewer"], csrfToken: "csrf", twoFactorEnabled: false
+    });
+    const logout = vi.spyOn(api, "logout")
+      .mockRejectedValueOnce(new Error("Connection lost. Please retry."))
+      .mockResolvedValueOnce(undefined);
+
+    render(<App />);
+    expect(await screen.findByText("transfer roles: Viewer")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Logout" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Connection lost. Please retry.");
+    expect(screen.getByText("transfer roles: Viewer")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/import-export");
+
+    fireEvent.click(screen.getByRole("button", { name: "Logout" }));
+    expect(await screen.findByLabelText("Benutzername")).toBeInTheDocument();
+    expect(screen.queryByText("transfer roles: Viewer")).not.toBeInTheDocument();
+    expect(logout).toHaveBeenCalledTimes(2);
   });
 
   it("renders the dedicated Digital Centers workspace for its direct route", async () => {

@@ -1,11 +1,12 @@
-import { AppTextInput } from "../../shared/ui/AppTextInput";
-import { AppTextArea } from "../../shared/ui/AppTextArea";
-import { AppSelect } from "../../shared/ui/AppSelect";
+import { useEffect, useRef } from "react";
+import { observeAction } from "../../shared/asyncAction";
 import { useI18n } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
+import { AppTextArea } from "../../shared/ui/AppTextArea";
+import { AppTextInput } from "../../shared/ui/AppTextInput";
 import { decoderDraftValid } from "./decoderConfigurationDraft";
 import { decoderProfileLabel } from "./decoderProfileLabel";
 import type { DecoderConfigurationController } from "./useDecoderConfigurationController";
-import { useEffect, useRef } from "react";
 
 export function DecoderConfigurationForm({ controller: model }: { controller: DecoderConfigurationController }) {
   const { t } = useI18n(), { context, draft } = model;
@@ -101,9 +102,9 @@ export function DecoderConfigurationForm({ controller: model }: { controller: De
     {(model.needsReview || model.stale) && <p role="alert">{t("decoderManage.reviewRequired")}</p>}
     {!valid && <p className="decoder-command-help">{t("decoderManage.checkFields")}</p>}
     <div className="decoder-command-actions">
-      <button type="button" className="secondary-button" disabled={disabled} onClick={() => void model.load(true)}>{t("decoderManage.compare")}</button>
+      <button type="button" className="secondary-button" disabled={disabled} onClick={() => observeAction(model.load(true))}>{t("decoderManage.compare")}</button>
       <button type="button" className="primary-button" disabled={disabled || model.needsReview || model.stale || model.conflicts.length > 0 || !valid}
-        onClick={() => void model.confirm()}>{t(`decoderManage.confirm.${draft.kind}`)}</button>
+        onClick={() => observeAction(model.confirm())}>{t(`decoderManage.confirm.${draft.kind}`)}</button>
       <button type="button" className="secondary-button" disabled={model.busy || model.saving} onClick={model.discard}>{t("decoderManage.discard")}</button>
     </div>
   </section>;

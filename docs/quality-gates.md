@@ -4,13 +4,13 @@
 
 `.go-version` pins Go 1.27.3 for CI runtime tests, CodeQL, native Windows qualification and
 release builds. Docker uses the same version. `check_go_toolchain.py` rejects drift between
-these settings. `backend/go.mod` separately declares the supported minimum, Go 1.26.10;
-a dedicated CI job runs the complete suite with `GOTOOLCHAIN=local` at that minimum.
+these settings. `backend/go.mod` declares the same Go 1.27.3 version; drift in either
+direction fails the policy check. The dedicated module-compiler job runs the complete suite
+with `GOTOOLCHAIN=local`, so implicit toolchain selection cannot conceal a mismatch.
 
-The pinned golangci-lint 2.11.4 analyzer runs against the minimum compiler. Its current
-export-data reader cannot decode Go 1.27's version-5 export data. Using the declared
-minimum retains every existing lint rule while both compilers run the actual application
-suite. This is an explicit analysis-tool limitation, not a claim that lint ran under Go 1.27.
+The pinned golangci-lint 2.14.0 analyzer supports Go 1.27 export data and runs with the same
+module/compiler version. Every existing lint rule remains enabled. The previous separate
+Go 1.26 analysis toolchain is no longer needed.
 
 ## Frontend
 
@@ -41,9 +41,21 @@ retries. Digital adapter ports remain editable when cleared; configuration succe
 actual save acknowledgement. Pending saves prevent conflicting edits, and failed saves retain
 inputs. Error messages remain inside the relevant exhibition dialog.
 
-The optional type-aware promise rules remain subject to the documented
-[compiler compatibility decision](typed-lint-compatibility.md). Existing syntax, React hook and
-strict build checks remain mandatory; unsupported TypeScript versions are not hidden.
+Typed `no-floating-promises` checks are mandatory, including explicit `void` discards.
+The [compiler compatibility decision](typed-lint-compatibility.md) documents the supported
+side-by-side TypeScript 6 analysis API and unchanged TypeScript 7 production compiler.
+Existing syntax, React hook and strict build checks remain mandatory.
+
+## Executable file budgets
+
+`python3 tools/check_source_size.py` checks all production Go and frontend TypeScript/TSX
+modules, including unimported files. Executable files must contain fewer than 500 physical
+lines. Only tests, test fixtures and declaration files are outside that executable scope.
+The two translation dictionaries are explicit data exceptions, validated to contain only
+literal string mappings. An executable expression invalidates that exception. Negative
+fixtures prove both overflow rejection and the dictionary restriction. Routing, models,
+transport, import review, settings cards and command-station controllers have separate
+responsibilities while their existing public import paths remain compatible.
 
 ## Backend
 
@@ -54,8 +66,9 @@ percentage is not its final coverage. The merged statement profile is the measur
 observed execution. Its result agrees with `go tool cover`; it rejects missing required
 modules and coverage below `tools/go-coverage-baseline.json`.
 
-The measured starting result for this scope was 74.73%. The total floor is 74%, with
-separate floors for every current internal module, including authentication, credentials,
+The measured starting result for this scope was 74.73%. The total floor is now 80%, with
+a dedicated 80% API floor and separate floors for every current internal module, including
+authentication, credentials,
 decoder/CV, backup, transfer, valuation and their storage adapters. Those module floors
 were originally rounded down from measured results. Separated application/storage slices
 have explicit fixed floors in the same baseline; splitting a package neither narrows the

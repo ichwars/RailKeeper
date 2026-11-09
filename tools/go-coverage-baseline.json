@@ -1,8 +1,8 @@
 {
   "scope": "railkeeper/backend/internal/",
-  "total": 74,
+  "total": 80,
   "modules": {
-    "api": 54,
+    "api": 80,
     "application": 78,
     "authentication": 98,
     "authentication/bootstrap": 78,

@@ -41,6 +41,7 @@ export function saveSidebarPreference(username: string, current: () => boolean, 
     } catch { finish("failed"); }
   });
   queues.set(username, work);
-  void work.then(() => { if (queues.get(username) === work) queues.delete(username); });
+  const releaseQueue = () => { if (queues.get(username) === work) queues.delete(username); };
+  work.then(releaseQueue, releaseQueue);
   return work;
 }

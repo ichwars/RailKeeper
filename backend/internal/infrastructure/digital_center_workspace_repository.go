@@ -8,35 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
-	"time"
-	"unicode"
-	"unicode/utf8"
-
 	"railkeeper/backend/internal/application"
 )
-
-const digitalCenterSessionMessageLimit = 100
-
-var digitalCenterPersistedMessageCodes = map[application.DigitalCenterMessageCode]struct{}{
-	application.DigitalCenterMessageConnectionSucceeded:   {},
-	application.DigitalCenterMessageConnectionFailed:      {},
-	application.DigitalCenterMessageConnectionInterrupted: {},
-	application.DigitalCenterMessageReadStarted:           {},
-	application.DigitalCenterMessageReadCompleted:         {},
-	application.DigitalCenterMessageReadFailed:            {},
-	application.DigitalCenterMessageParseFailed:           {},
-	application.DigitalCenterMessageCapabilityUnavailable: {},
-	application.DigitalCenterMessageLiveStarted:           {},
-	application.DigitalCenterMessageLiveStopped:           {},
-	application.DigitalCenterMessageLiveInterrupted:       {},
-	application.DigitalCenterMessageWritePreviewFailed:    {},
-	application.DigitalCenterMessageWriteFailed:           {},
-	application.DigitalCenterMessageWriteUnknown:          {},
-	application.DigitalCenterMessageWriteVerified:         {},
-	application.DigitalCenterMessageWriteVerifyFailed:     {},
-	application.DigitalCenterMessageLiveRestartFailed:     {},
-}
 
 type DigitalCenterWorkspaceRepository struct {
 	db *sql.DB
@@ -243,163 +216,6 @@ WHERE session_id=? AND id=?`, item.CenterObjectID, item.VehicleID, item.Name, it
 	return repository.GetWorkItem(ctx, item.SessionID, item.ID)
 }
 
-func (repository *DigitalCenterWorkspaceRepository) AddMessage(
-	ctx context.Context,
-	message application.DigitalCenterSessionMessage,
-) error {
-	message.Code = application.DigitalCenterMessageCode(strings.TrimSpace(string(message.Code)))
-	message.Message = normalizeDigitalCenterMessageText(message.Message)
-	message.NextAction = normalizeDigitalCenterMessageText(message.NextAction)
-	if _, allowed := digitalCenterPersistedMessageCodes[message.Code]; !allowed ||
-		!isSafeDigitalCenterMessageText(message.Message, false, 512) ||
-		!isSafeDigitalCenterMessageText(message.NextAction, true, 256) {
-		return errors.New("add digital center session message: raw or private protocol content is not allowed")
-	}
-	if message.ID == "" {
-		message.ID = randomID()
-	}
-	if message.CreatedAt == "" {
-		message.CreatedAt = timestamp()
-	}
-	tx, err := repository.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("add digital center session message: begin transaction: %w", err)
-	}
-	if _, err := tx.ExecContext(ctx, `
-INSERT INTO digital_center_session_messages(id, session_id, severity, code, message, next_action, created_at)
-VALUES(?, ?, ?, ?, ?, ?, ?)`, message.ID, message.SessionID, message.Severity, message.Code,
-		message.Message, message.NextAction, message.CreatedAt); err != nil {
-		_ = tx.Rollback()
-		return fmt.Errorf("add digital center session message: insert: %w", err)
-	}
-	if _, err := tx.ExecContext(ctx, `
-DELETE FROM digital_center_session_messages
-WHERE session_id=? AND id NOT IN (
-  SELECT id FROM digital_center_session_messages
-  WHERE session_id=? ORDER BY created_at DESC, rowid DESC LIMIT ?
-)`, message.SessionID, message.SessionID, digitalCenterSessionMessageLimit); err != nil {
-		_ = tx.Rollback()
-		return fmt.Errorf("add digital center session message: enforce bound: %w", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("add digital center session message: commit transaction: %w", err)
-	}
-	return nil
-}
-
-func (repository *DigitalCenterWorkspaceRepository) ListMessages(
-	ctx context.Context,
-	sessionID string,
-) ([]application.DigitalCenterSessionMessage, error) {
-	rows, err := repository.db.QueryContext(ctx, `
-SELECT id, session_id, severity, code, message, next_action, created_at
-FROM digital_center_session_messages
-WHERE session_id=?
-ORDER BY created_at DESC, rowid DESC`, sessionID)
-	if err != nil {
-		return nil, fmt.Errorf("list digital center session messages: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
-	messages := []application.DigitalCenterSessionMessage{}
-	for rows.Next() {
-		message := application.DigitalCenterSessionMessage{}
-		if err := rows.Scan(&message.ID, &message.SessionID, &message.Severity, &message.Code,
-			&message.Message, &message.NextAction, &message.CreatedAt); err != nil {
-			return nil, fmt.Errorf("scan digital center session message: %w", err)
-		}
-		messages = append(messages, message)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate digital center session messages: %w", err)
-	}
-	return messages, nil
-}
-
-func (repository *DigitalCenterWorkspaceRepository) CreateWriteGrant(
-	ctx context.Context,
-	grant application.DigitalCenterWriteGrant,
-) error {
-	if grant.ID == "" {
-		grant.ID = randomID()
-	}
-	if grant.CreatedAt == "" {
-		grant.CreatedAt = timestamp()
-	}
-	result, err := repository.db.ExecContext(ctx, `
-INSERT INTO digital_center_write_grants(
-  id, token_hash, session_id, work_item_id, preview_hash, actor_user_id, expires_at, consumed_at, created_at
-) SELECT ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?
-WHERE EXISTS(
-  SELECT 1 FROM digital_center_work_items WHERE id=? AND session_id=?
-)`, grant.ID, grant.TokenHash, grant.SessionID, grant.WorkItemID, grant.PreviewHash, grant.ActorUserID,
-		grant.ExpiresAt, grant.ConsumedAt, grant.CreatedAt, grant.WorkItemID, grant.SessionID)
-	if err != nil {
-		return fmt.Errorf("create digital center write grant: %w", err)
-	}
-	if err := requireDigitalCenterUpdate(result, "create digital center write grant"); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repository *DigitalCenterWorkspaceRepository) ConsumeWriteGrant(
-	ctx context.Context,
-	tokenHash string,
-	actorUserID string,
-) (application.DigitalCenterWriteGrant, error) {
-	tx, err := repository.db.BeginTx(ctx, nil)
-	if err != nil {
-		return application.DigitalCenterWriteGrant{}, fmt.Errorf("consume digital center write grant: begin: %w", err)
-	}
-	rollback := func(operationErr error) (application.DigitalCenterWriteGrant, error) {
-		_ = tx.Rollback()
-		return application.DigitalCenterWriteGrant{}, operationErr
-	}
-	consumedAt := timestamp()
-	result, err := tx.ExecContext(ctx, `
-UPDATE digital_center_write_grants
-SET consumed_at=?
-WHERE token_hash=? AND consumed_at IS NULL AND actor_user_id=?
-  AND julianday(expires_at) > julianday(?)`, consumedAt, tokenHash, actorUserID, consumedAt)
-	if err != nil {
-		return rollback(fmt.Errorf("consume digital center write grant: update: %w", err))
-	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return rollback(fmt.Errorf("consume digital center write grant: read update result: %w", err))
-	}
-	grant, loadErr := scanDigitalCenterWriteGrant(tx.QueryRowContext(ctx, digitalCenterWriteGrantSelect+`
-WHERE token_hash=?`, tokenHash))
-	if loadErr != nil {
-		return rollback(fmt.Errorf("consume digital center write grant: load: %w", loadErr))
-	}
-	if affected != 1 {
-		switch {
-		case grant.ActorUserID != actorUserID:
-			return rollback(fmt.Errorf("consume digital center write grant: %w",
-				application.ErrDigitalCenterGrantActorMismatch))
-		case grant.ConsumedAt != "":
-			return rollback(fmt.Errorf("consume digital center write grant: %w",
-				application.ErrDigitalCenterGrantConsumed))
-		}
-		expiresAt, parseErr := time.Parse(time.RFC3339, grant.ExpiresAt)
-		if parseErr != nil {
-			return rollback(fmt.Errorf("consume digital center write grant: parse expiry: %w", parseErr))
-		}
-		if !time.Now().UTC().Before(expiresAt) {
-			return rollback(fmt.Errorf("consume digital center write grant: %w",
-				application.ErrDigitalCenterGrantExpired))
-		}
-		return rollback(fmt.Errorf("consume digital center write grant: %w",
-			application.ErrDigitalCenterGrantConsumed))
-	}
-	if err := tx.Commit(); err != nil {
-		return application.DigitalCenterWriteGrant{}, fmt.Errorf("consume digital center write grant: commit: %w", err)
-	}
-	grant.ConsumedAt = consumedAt
-	return grant, nil
-}
-
 const digitalCenterSessionSelect = `
 SELECT id, provider, state, host, port, capability_json, COALESCE(read_started_at, ''),
        COALESCE(read_completed_at, ''), COALESCE(created_by_user_id, ''), created_at, updated_at
@@ -410,11 +226,6 @@ SELECT id, session_id, center_object_id, COALESCE(vehicle_id, ''), name, decoder
        compare_status, station_status, center_json, railkeeper_json, proposed_json, conflict_json,
        created_at, updated_at
 FROM digital_center_work_items`
-
-const digitalCenterWriteGrantSelect = `
-SELECT id, token_hash, session_id, work_item_id, preview_hash, actor_user_id, expires_at,
-       COALESCE(consumed_at, ''), created_at
-FROM digital_center_write_grants`
 
 type digitalCenterRowScanner interface {
 	Scan(...any) error
@@ -471,16 +282,6 @@ func scanDigitalCenterWorkItem(scanner digitalCenterRowScanner) (application.Dig
 	return item, nil
 }
 
-func scanDigitalCenterWriteGrant(scanner digitalCenterRowScanner) (application.DigitalCenterWriteGrant, error) {
-	grant := application.DigitalCenterWriteGrant{}
-	if err := scanner.Scan(&grant.ID, &grant.TokenHash, &grant.SessionID, &grant.WorkItemID,
-		&grant.PreviewHash, &grant.ActorUserID, &grant.ExpiresAt, &grant.ConsumedAt,
-		&grant.CreatedAt); err != nil {
-		return application.DigitalCenterWriteGrant{}, err
-	}
-	return grant, nil
-}
-
 func encodeDigitalCenterMap(value map[string]any) (string, error) {
 	if value == nil {
 		value = map[string]any{}
@@ -517,48 +318,6 @@ func decodeDigitalCenterJSON(payload string, target any) error {
 		return err
 	}
 	return nil
-}
-
-func isSafeDigitalCenterMessageText(value string, allowEmpty bool, maximumRunes int) bool {
-	if value == "" {
-		return allowEmpty
-	}
-	if utf8.RuneCountInString(value) > maximumRunes {
-		return false
-	}
-	for _, character := range value {
-		if unicode.IsLetter(character) || unicode.IsDigit(character) || unicode.IsSpace(character) {
-			continue
-		}
-		if !strings.ContainsRune(".,:;!?-/+%'", character) {
-			return false
-		}
-	}
-	compact := strings.Map(func(character rune) rune {
-		if unicode.IsLetter(character) || unicode.IsDigit(character) {
-			return unicode.ToLower(character)
-		}
-		return -1
-	}, value)
-	for _, restricted := range []string{
-		"password", "passwort", "passwd", "pwd", "secret", "token", "apikey",
-		"authorization", "bearer", "basic", "queryobjects", "release", "subscribe", "unsubscribe",
-	} {
-		if strings.Contains(compact, restricted) {
-			return false
-		}
-	}
-	return true
-}
-
-func normalizeDigitalCenterMessageText(value string) string {
-	withoutControls := strings.Map(func(character rune) rune {
-		if unicode.IsControl(character) || unicode.In(character, unicode.Cf, unicode.Co, unicode.Cs) {
-			return ' '
-		}
-		return character
-	}, value)
-	return strings.Join(strings.Fields(withoutControls), " ")
 }
 
 func requireDigitalCenterUpdate(result sql.Result, operation string) error {

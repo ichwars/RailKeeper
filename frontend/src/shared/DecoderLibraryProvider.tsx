@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api } from "./api";
+import { observeAction } from "./asyncAction";
 import { bundledDecoderInventory, bundledDecoderProfiles, type DecoderInventory, type DecoderLibraryProfile } from "./decoderLibraryModel";
 
 export const decoderLibraryChanged = "railkeeper-decoder-library-changed";
@@ -21,7 +22,7 @@ export function DecoderLibraryProvider({ children, enabled = true }: { children:
         if (active && request === sequence) setState({ profiles: [], failed: true });
       }
     };
-    void load();
+    observeAction(load());
     window.addEventListener(decoderLibraryChanged, load);
     return () => { active = false; window.removeEventListener(decoderLibraryChanged, load); };
   }, [enabled]);

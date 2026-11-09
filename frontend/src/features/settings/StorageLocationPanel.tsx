@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, DatabaseBackup, FolderOpen, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { observeAction } from "../../shared/asyncAction";
 
 import { api, type StorageLocationInfo } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -26,7 +27,7 @@ export function StorageLocationPanel() {
   }, [loadFailedLabel]);
 
   useEffect(() => {
-    void load();
+    observeAction(load());
   }, [load]);
 
   const openFolder = async () => {
@@ -66,7 +67,7 @@ export function StorageLocationPanel() {
   if (!info) {
     return <div className="storage-location-panel storage-location-error">
       <p className="form-message">{message || t("settings.storage.location.loadFailed")}</p>
-      <button type="button" className="secondary-button" onClick={() => void load()}>
+      <button type="button" className="secondary-button" onClick={() => observeAction(load())}>
         <RefreshCw size={15} aria-hidden="true" />
         {t("settings.storage.location.retry")}
       </button>
@@ -83,7 +84,7 @@ export function StorageLocationPanel() {
         <strong>{modeLabel}</strong>
       </div>
       {info.openFolderAvailable && <button type="button" className="secondary-button"
-        onClick={() => void openFolder()} disabled={busyAction !== null}>
+        onClick={() => observeAction(openFolder())} disabled={busyAction !== null}>
         <FolderOpen size={15} aria-hidden="true" />
         {t("settings.storage.location.open")}
       </button>}
@@ -113,7 +114,7 @@ export function StorageLocationPanel() {
         </div>
       </dl>
       {!receipt.acknowledged && <button type="button" className="secondary-button"
-        onClick={() => void acknowledgeMigration()} disabled={busyAction !== null}>
+        onClick={() => observeAction(acknowledgeMigration())} disabled={busyAction !== null}>
         {t("settings.storage.location.migration.acknowledge")}
       </button>}
     </section>}

@@ -1,14 +1,14 @@
-import { lazy, Suspense, useEffect, useState } from "react";
-import { Shell } from "./Shell";
-import { DecoderLibraryProvider } from "../shared/DecoderLibraryProvider";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { LoginView } from "../features/auth/LoginView";
 import { PersonalViewWelcome } from "../features/setup/PersonalViewWelcome";
-import { readSetupWelcome, markSetupWelcome, clearSetupWelcome } from "./setupWelcome";
 import { SetupView } from "../features/setup/SetupView";
-import { api, Session } from "../shared/api";
+import { DecoderLibraryProvider } from "../shared/DecoderLibraryProvider";
+import { Session, api } from "../shared/api";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference } from "../shared/theme";
+import { Shell } from "./Shell";
 import { availableStartView } from "./navigationAvailability";
+import { clearSetupWelcome, markSetupWelcome, readSetupWelcome } from "./setupWelcome";
 
 export type AppView = "overview" | "vehicles" | "accessories" | "exhibition" | "importExport" | "digitalCenters" | "settings";
 
@@ -91,6 +91,7 @@ export function App() {
   const [setupRequired, setSetupRequired] = useState<boolean | null>(null);
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [loadError, setLoadError] = useState("");
+  const [logoutError, setLogoutError] = useState("");
   const [view, setView] = useState<AppView>(currentView);
   const [navigationRevision, setNavigationRevision] = useState(0);
   const { t } = useI18n();
@@ -203,9 +204,11 @@ export function App() {
         setNavigationRevision(previous => previous + 1);
       }}
       onLogout={() => {
-        api.logout().finally(() => setSession(null));
+        setLogoutError("");
+        api.logout().then(() => setSession(null)).catch((error: Error) => setLogoutError(error.message));
       }}
     >
+      {logoutError && <p className="form-message error" role="alert">{logoutError}</p>}
       <Suspense key={navigationRevision} fallback={<ViewLoading />}>
         {effectiveView === "overview" && <OverviewView username={session.username} roles={session.roles} />}
         {effectiveView === "vehicles" && <VehiclesView username={session.username} roles={session.roles} />}

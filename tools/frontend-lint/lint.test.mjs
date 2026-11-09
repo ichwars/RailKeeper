@@ -6,7 +6,10 @@ import { ESLint } from "eslint";
 const frontend = fileURLToPath(new URL("../../frontend/", import.meta.url));
 const eslint = new ESLint({
   cwd: frontend,
-  overrideConfigFile: fileURLToPath(new URL("./eslint.config.mjs", import.meta.url))
+  overrideConfigFile: fileURLToPath(new URL("./eslint.config.mjs", import.meta.url)),
+  overrideConfig: [{ languageOptions: { parserOptions: {
+    projectService: { allowDefaultProject: ["src/quality-lint-fixture.tsx"], defaultProject: "tsconfig.json" }
+  } } }]
 });
 const filePath = "src/quality-lint-fixture.tsx";
 
@@ -41,4 +44,29 @@ test("production files are checked while generated contracts and test fixtures a
   assert.equal(await eslint.isPathIgnored(fileURLToPath(new URL("../../frontend/src/generated/api.d.ts", import.meta.url))), true);
   assert.equal(await eslint.isPathIgnored(fileURLToPath(new URL("../../frontend/src/shared/i18n.test.ts", import.meta.url))), true);
   assert.equal(await eslint.isPathIgnored(fileURLToPath(new URL("../../frontend/src/shared/i18n.ts", import.meta.url))), false);
+});
+
+test("typed promise analysis rejects implicit and explicitly discarded rejections", async () => {
+  const [result] = await eslint.lintText(`
+    declare function save(): Promise<void>;
+    export function Example() {
+      save();
+      void save();
+      return <button>Save</button>;
+    }
+  `, { filePath });
+  const rules = result.messages.map(message => message.ruleId);
+  assert.equal(rules.filter(rule => rule === "@typescript-eslint/no-floating-promises").length, 2, JSON.stringify(result.messages));
+  assert.ok(result.messages.every(message => message.ruleId), "fixture must use the supported compiler API");
+});
+
+test("real rejection handling in a synchronous event callback is accepted", async () => {
+  const [result] = await eslint.lintText(`
+    declare function save(): Promise<void>;
+    declare function showError(error: unknown): void;
+    export function Example() {
+      return <button onClick={() => { save().catch(showError); }}>Save</button>;
+    }
+  `, { filePath });
+  assert.deepEqual(result.messages, []);
 });

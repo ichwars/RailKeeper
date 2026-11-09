@@ -1,6 +1,7 @@
-import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
-import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Download, FileText, Image as ImageIcon, ShoppingCart, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { observeAction } from "../../shared/asyncAction";
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 
 import {
   api,
@@ -15,9 +16,9 @@ import { AppFilePicker } from "../../shared/ui/AppFilePicker";
 import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
-import type { ArticleEditorResources } from "./useArticleEditorController";
 import { AccessoryConfirmDialog, type AccessoryPendingAction } from "./AccessoryConfirmDialog";
 import { articlePurchaseWriteInput } from "./articleEditorModel";
+import type { ArticleEditorResources } from "./useArticleEditorController";
 
 const today = () => {
   const value = new Date();
@@ -203,7 +204,7 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
               className="icon-button" disabled={busy}
               aria-label={t("accessories.editor.documents.makePrimaryNamed", { name: document.originalName })}
               title={t("accessories.editor.documents.makePrimaryNamed", { name: document.originalName })}
-              onClick={() => void makePrimaryImage(document.id, document.description)}>
+              onClick={() => observeAction(makePrimaryImage(document.id, document.description))}>
               <ImageIcon size={16} aria-hidden="true" />
             </button> : null}
             <a className="icon-button" href={api.accessoryDocumentDownloadPath(article.id, document.id)}

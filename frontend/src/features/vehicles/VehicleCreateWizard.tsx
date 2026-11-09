@@ -1,15 +1,16 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useReducer, useRef, useState, type ComponentProps, type FormEventHandler, type FormEvent } from "react";
+import { useEffect, useReducer, useRef, useState, type ComponentProps, type FormEvent, type FormEventHandler } from "react";
+import { observeAction } from "../../shared/asyncAction";
 
 import { api, type CreateVehicleRequest, type InventoryNumberScheme } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
-import { VehicleCreateStepBasics } from "./VehicleCreateStepBasics";
-import { VehicleCreateStepArticle } from "./VehicleCreateStepArticle";
 import { selectedArticleReviewCount } from "./VehicleCreateArticleReview";
+import { VehicleCreateStepArticle } from "./VehicleCreateStepArticle";
+import { VehicleCreateStepBasics } from "./VehicleCreateStepBasics";
 import { VehicleCreateStepDetails } from "./VehicleCreateStepDetails";
 import { VehicleCreateWizardShell } from "./VehicleCreateWizardShell";
 import { VehicleModelTab } from "./VehicleModelTab";
-import { emptyVehicle } from "./vehicleViewModel";
+import type { ArticleSearchController } from "./useArticleSearchController";
 import {
   clearVehicleCreateDraft,
   createVehicleCreateWizardState,
@@ -18,10 +19,10 @@ import {
   vehicleCreateWizardReducer,
   type VehicleSetMemberDraft
 } from "./vehicleCreateWizardState";
+import { newVehicleCreationIdentity } from "./vehicleCreationIdentity";
 import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
 import type { PendingArticleImage } from "./vehicleTransforms";
-import type { ArticleSearchController } from "./useArticleSearchController";
-import { newVehicleCreationIdentity } from "./vehicleCreationIdentity";
+import { emptyVehicle } from "./vehicleViewModel";
 
 type VehicleCreateWizardProps = {
   draftOwner: string;
@@ -110,7 +111,7 @@ export function VehicleCreateWizard({
     try { creationId = wizard.creationId || creationIdRef.current || newVehicleCreationIdentity(); }
     catch { setDraftMessage(t("vehicles.creation.prepareFailed")); return; }
     creationIdRef.current = creationId; dispatch({ type: "set-creation-id", id: creationId });
-    if (kind === "set") void onSubmitSet(members, wizard.articleImageOwners || {}, creationId);
+    if (kind === "set") observeAction(onSubmitSet(members, wizard.articleImageOwners || {}, creationId));
     else onSubmitSingle(event, creationId);
   };
 

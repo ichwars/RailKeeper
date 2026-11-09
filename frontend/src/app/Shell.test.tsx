@@ -74,7 +74,7 @@ describe("Shell article navigation", () => {
       onLogout={vi.fn()} onNavigate={navigate}><p>Inhalt</p></Shell>);
     const main = screen.getByRole("main");
     main.scrollTop = 300; main.scrollLeft = 100;
-    await user.click(screen.getByRole("link", { name: "Einstellungen" }));
+    await user.click(screen.getAllByRole("link", { name: "Einstellungen" }).find(link => link.classList.contains("nav-entry"))!);
     expect(navigate).toHaveBeenCalledWith("settings");
     expect(main.scrollTop).toBe(0);
     expect(main.scrollLeft).toBe(0);
@@ -177,7 +177,7 @@ describe("Shell article navigation", () => {
     const entries = Array.from(navigation.querySelectorAll(".nav-entry"));
     expect(entries.slice(-2)).toEqual([
       within(navigation).getByRole("link", { name: "Digitalzentralen" }),
-      within(navigation).getByRole("link", { name: "Einstellungen" })
+      within(navigation).getAllByRole("link", { name: "Einstellungen" }).find(link => link.classList.contains("nav-entry"))!
     ]);
   });
 
@@ -198,7 +198,7 @@ describe("Shell article navigation", () => {
     expect(within(navigation).queryByRole("link", { name: "Anlage" })).not.toBeInTheDocument();
     expect(entries.slice(-2)).toEqual([
       within(navigation).getByRole("link", { name: "Digitalzentralen" }),
-      within(navigation).getByRole("link", { name: "Einstellungen" })
+      within(navigation).getAllByRole("link", { name: "Einstellungen" }).find(link => link.classList.contains("nav-entry"))!
     ]);
   });
 
