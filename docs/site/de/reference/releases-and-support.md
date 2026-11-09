@@ -2,9 +2,9 @@
 title: Versionen und Hilfe
 description: Versionen und Hilfe.
 audience: reference
-status: development
-reviewedVersion: main
-lastReviewed: 2026-11-07
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Versionen und Hilfe
@@ -20,6 +20,11 @@ Wert als Hinweis. Gib bei einer Fehlermeldung Version und Build an. `railkeeper 
 ohne Anwendungsdaten zu öffnen. Ein älterer Server ohne Buildangaben behält seine Versionsanzeige.
 
 Die sichtbare **redaktionelle Prüfung** einer Seite ist das Datum der Inhaltsprüfung. **Letzte Änderung** am Seitenende ist das Git-Änderungsdatum. Beides sagt allein nichts über einen Test mit echter Hardware aus. Die [Abdeckungsübersicht](coverage) erklärt den jeweiligen Nachweis.
+
+Die Handbuchbilder zeigen **v0.2.0**. Aufnahmeversion und redaktioneller Prüfstand werden getrennt
+angegeben. Das vollständige [deutsche Änderungsprotokoll](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.de.md#020---2026-11-09)
+und die [englische Fassung](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.md#020---2026-11-09)
+beschreiben die Änderungen dieses Releases.
 
 ## Wo gehört meine Frage hin?
 

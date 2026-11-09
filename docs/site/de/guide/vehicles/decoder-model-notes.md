@@ -2,9 +2,9 @@
 title: Modell- und Firmwarehinweise
 description: Modell- und Firmwarehinweise.
 audience: user
-status: development
-reviewedVersion: main
-lastReviewed: 2026-10-23
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Modell- und Firmwarehinweise
@@ -34,7 +34,8 @@ und der Exportzeitpunkt aus dem TXT-Dateikopf gespeichert und in der Seitenleist
 Die Uhrzeit bleibt ohne angenommene Zeitzone erhalten. JSON-Exporte und Backups enthalten diese
 Angaben; Importe oder Bearbeitungen ohne Herkunftsangaben erhalten bereits gespeicherte Angaben.
 Bei älteren Datensätzen ohne Quelle steht weiterhin „Nicht erfasst“; das Speicherdatum wird nicht
-als Exportdatum verwendet. Backupformat 22 erhält die Herkunft, ältere Backups bleiben einlesbar.
+als Exportdatum verwendet. Das aktuelle Backupformat 28 erhält die Herkunft und die getrennten
+Decoder-Arbeitsstände; ältere unterstützte Backups bleiben einlesbar.
 Zusätzliche Verbund-/Decoderangaben sind eingeklappt erreichbar. Die ESU-Anzeige für DC-Analogbetrieb
 berücksichtigt CV29 und CV50 gemeinsam. **Dateien & Import** erklärt die beiden Dateiarten und
 zeigt den übernommenen Wertebestand sowie gespeicherte Originaldateien.

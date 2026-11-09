@@ -2,14 +2,15 @@
 title: What is documented and reviewed?
 description: What is documented and reviewed?
 audience: reference
-status: development
-reviewedVersion: main
-lastReviewed: 2026-10-23
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # What is documented and reviewed?
 
-All 20 topics now have an English and a German entry page. This is content coverage, not a claim that every device, firmware or edge case has been fully tested.
+All 25 topics have an English and a German entry page. This is content coverage, not a claim that
+every device, firmware or edge case has been fully tested.
 
 ## Read the evidence
 
@@ -19,7 +20,14 @@ All 20 topics now have an English and a German entry page. This is content cover
 | Demo interface | Also illustrated by real screenshots from an isolated test installation | Synthetic data, no connected command station |
 | Hardware verification | Only where a chapter explicitly identifies a concrete device test | Applies to that device and firmware |
 
-Pictures were captured on **23 October 2026** with synthetic vehicles. Their CV values are not factory settings. Pages show their version scope and editorial review date. Their Git modification date appears separately at the bottom.
+All **142 handbook pictures (71 per language)** were recaptured on **9 November 2026** from the
+unchanged **v0.2.0** release, commit `ecf28f1acdacf9d9254cef0e31e8f1e642258a09`. Separate local demos
+use synthetic collections only. Their CV values are not factory settings. Search and command-station
+replies are simulated only in the explicitly identified pictures. The version display comes from
+the actual release and has not been replaced.
+The [capture manifest](https://github.com/ichwars/RailKeeper/blob/main/docs/screenshot-sources.json)
+records each file's language, capture timestamp, version, commit, dimensions and SHA256.
+Pages show their version scope and editorial review date; their Git modification date is separate.
 
 ## Topics and evidence
 
@@ -48,7 +56,12 @@ No actual backup or credentials are publicly downloadable.
 
 ## Keeping it current
 
-The topic list and evidence come from [docs/coverage.json](https://github.com/ichwars/RailKeeper/blob/main/docs/coverage.json). Automated checks inventory routes, API areas, translation keys and configuration variables. They verify language pairs, metadata, picture files and ownership by handbook topics. Content accuracy and hardware behaviour require separate review.
+The topic list and evidence come from [docs/coverage.json](https://github.com/ichwars/RailKeeper/blob/main/docs/coverage.json).
+Automated checks inventory routes, API areas, translation keys and configuration variables. They
+verify language pairs, metadata, picture files and ownership by handbook topics. Runtime version,
+stable documentation version, bilingual changelogs, release notes and every capture record must
+also agree. Changed pictures require matching digests and capture evidence. Content accuracy
+and hardware behaviour require separate review.
 
 A workflow change updates its guide and both languages in the same pull request. In `docs`, `npm run check` runs tests, ownership checks and the site build. [Report a gap](https://github.com/ichwars/RailKeeper/discussions/categories/q-a).
 

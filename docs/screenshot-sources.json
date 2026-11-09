@@ -1,187 +1,1466 @@
 {
-  "schemaVersion": 1,
-  "applicationCommit": "1251bf085fd62cf0d82113020217f9148aa7a851",
-  "capturedAt": "2026-10-23",
-  "environment": "isolated local demo; synthetic vehicles and CV values; no connected command station",
+  "schemaVersion": 2,
+  "applicationVersion": "0.2.0",
+  "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+  "buildStatus": "release",
+  "releaseTag": "v0.2.0",
+  "capturedAt": "2026-11-09",
   "languages": [
     "de",
     "en"
   ],
-  "capture": "Actual application dialogs in an isolated demo. Station replies and external search replies are simulated only for the explicitly listed states. Local TXT extraction and backup restore use real API and storage operations.",
-  "privacy": "No production database, credentials, uploaded collection pictures or device writes",
-  "images": [
-    "accessories.png",
-    "account-create-viewer.png",
-    "account-smtp-fields.png",
-    "account-two-factor-login.png",
-    "account-two-factor-setup.png",
-    "appearance.png",
-    "article-barcode.png",
-    "article-no-results.png",
-    "article-result-review.png",
-    "backup.png",
-    "central-workspace.png",
-    "cv-analysis.png",
-    "cv-details.png",
-    "decoder-identification.png",
-    "decoder-library.png",
-    "digital-settings.png",
-    "ecos-functions.png",
-    "exhibition-entry.png",
-    "exhibition-lock-conflicts.png",
-    "exhibition-locked.png",
-    "exhibition-open.png",
-    "exhibition-print-report.png",
-    "exhibition.png",
-    "functions-manual-protected.png",
-    "functions-provenance.png",
-    "functions-recognized.png",
-    "functions.png",
-    "image-ecos-pause.png",
-    "image-ecos-preview.png",
-    "image-ecos-result.png",
-    "image-export.png",
-    "image-low-resolution.png",
-    "import-csv-conflict.png",
-    "import-csv-mapping.png",
-    "import-csv-result.png",
-    "import-csv-review.png",
-    "import-cv-preview.png",
-    "import-cv-provenance.png",
-    "import-cv-values.png",
-    "import-dialog.png",
-    "import-export.png",
-    "import-json-review.png",
-    "installation-first-admin.png",
-    "login.png",
-    "maintenance-done.png",
-    "maintenance-open.png",
-    "maintenance.png",
-    "media.png",
-    "overview.png",
-    "preferences.png",
-    "restore-confirmation.png",
-    "restore-incompatible.png",
-    "restore-preflight.png",
-    "restore-result.png",
-    "set-members.png",
-    "set-shared-edit.png",
-    "spare-document.png",
-    "spare-extraction-result.png",
-    "stock-installed.png",
-    "stock-reserved.png",
-    "stock-returned.png",
-    "update-storage.png",
-    "update-version.png",
-    "users.png",
-    "vehicle-editor.png",
-    "vehicle-set.png",
-    "vehicles.png"
-  ],
-  "simulatedStationImages": [
-    "image-ecos-preview.png",
-    "image-ecos-pause.png",
-    "image-ecos-result.png"
-  ],
-  "exampleImageSource": "Synthetic locomotive drawing in site/assets/examples/locomotive-demo.svg; PNG inputs rendered from that drawing.",
-  "simulatedSearchImages": [
-    "article-result-review.png",
-    "article-no-results.png"
-  ],
-  "additionalCaptures": {
-    "applicationCommit": "db9b1a7ee853a1fb4977d1643d38ca1279587b68",
-    "capturedAt": "2026-10-23",
-    "evidence": "Real local function adoption, restore, set edit, stock transactions, maintenance and report generation. Search replies and station replies are simulated only where explicitly listed. No real station or production data."
+  "environment": {
+    "isolation": "Fresh temporary local databases with synthetic collection and accounts only",
+    "platform": "linux/amd64",
+    "goVersion": "go1.27.3",
+    "renderer": "Playwright Chromium",
+    "viewports": [
+      "1440x1000",
+      "1440x1400"
+    ],
+    "fixtureSources": [
+      "tools/regression/fixture.py",
+      "docs/site/assets/examples/"
+    ],
+    "productionDataUsed": false,
+    "hardwareContacted": false,
+    "externalBrowserRequests": "blocked"
   },
-  "imagePreparationCaptures": {
-    "baseCommit": "bb6f27dedd1d1740101b874fe2e94564b3738786",
-    "workingTree": "codex/locomotive-image-dialog",
-    "capturedAt": "2026-10-25",
-    "images": [
-      "image-export.png",
-      "image-low-resolution.png"
+  "capture": "Real application UI from the unchanged v0.2.0 production source. Fixtures use the actual local APIs; CV/function saves, CSV/JSON imports, stock transitions, maintenance, exhibition locking/report generation, TOTP sign-in and backup restore were exercised. Version responses and displayed version text were never replaced.",
+  "privacy": "Synthetic accounts only. QR codes, authenticator secrets and filled password fields are masked by Playwright during capture. No private collection data or usable credentials are published.",
+  "simulations": {
+    "article-search": [
+      "article-result-review.png",
+      "article-no-results.png"
     ],
-    "languages": [
-      "de",
-      "en"
-    ],
-    "evidence": "Actual revised image preparation dialog with the published synthetic PNG examples. Enlarged output preview, automatic background and local image processing. No station connection or device write."
+    "command-station": [
+      "ecos-functions.png",
+      "image-ecos-preview.png",
+      "image-ecos-pause.png",
+      "image-ecos-result.png"
+    ]
   },
-  "privacyMasks": [
-    "account-two-factor-setup: QR code and secret masked during screenshot capture"
-  ],
-  "notTested": [
-    "Physical command stations in this documentation task",
-    "Windows/Docker version migration",
-    "Native printer/PDF dialogs",
-    "SMTP delivery",
-    "Physical camera/barcode scanner"
-  ],
-  "ecosFunctionCaptures": {
-    "baseCommit": "ed668ceed6232c31e9e072215f430d21df84b147",
-    "workingTree": "codex/ecos-function-import",
-    "capturedAt": "2026-10-26",
-    "images": [
-      "ecos-functions.png"
-    ],
-    "languages": [
-      "de",
-      "en"
-    ],
-    "evidence": "Actual vehicle editor, function draft controller, decoder-library evaluator and ECoS function preview with synthetic CVs/manual data and simulated station replies. No production data or station writes."
-  },
-  "qualityImprovementsCaptures": {
-    "applicationCommit": "1ccdffe975632f30b1fdd1ff179021d329d26f7b",
-    "capturedAt": "2026-11-07",
-    "images": [
-      "login.png",
-      "overview.png",
-      "vehicles.png",
-      "accessories.png",
-      "exhibition.png",
-      "import-export.png",
-      "central-workspace.png",
-      "preferences.png",
-      "update-version.png",
-      "vehicle-editor.png",
-      "media.png",
-      "maintenance.png",
-      "installation-first-admin.png"
-    ],
-    "languages": [
-      "de",
-      "en"
-    ],
-    "evidence": "Actual clean Go 1.27.3 linux/amd64 executable, local synthetic reference collection and the published synthetic locomotive drawing. Visible inventory filters, current navigation, source-identified update card and local first-setup code. External browser requests blocked; no production records, filled passwords, setup codes or device writes."
-  },
-  "qualityStatusTranslationCaptures": {
-    "applicationCommit": "9ede2e3ec68f8f79cdfc0509b118a0fa455d7fbe",
-    "capturedAt": "2026-11-07",
-    "images": [
-      "update-version.png"
-    ],
-    "languages": [
-      "en"
-    ],
-    "evidence": "Actual clean Go 1.27.3 executable and real local Settings card. The existing local-version message is translated to English; both German and English were exercised. Synthetic installation, no filled credentials, blocked external browser requests and no devices."
-  },
-  "technicalFollowupCaptures": {
-    "baseCommit": "5724d8964849b3bcbbe3d02ab264f54b8c0e3963",
-    "workingTree": "codex/r7-branch-reserve",
-    "workingTreeModified": true,
-    "productionSourceChangesDuringCapture": false,
-    "capturedAt": "2026-11-08T21:41:59.667823+01:00",
-    "images": [
-      "vehicles.png",
-      "decoder-installations.png",
-      "cv-working-groups.png",
-      "cv-analysis.png",
-      "cv-details.png"
-    ],
-    "languages": [
-      "de",
-      "en"
-    ],
-    "evidence": "Actual application with a newly created isolated synthetic collection, published synthetic locomotive illustration, two distinct decoder units, an explicitly unknown installation date, exact CV index pages, original CSV provenance and a saved partial CV snapshot. Current toolbar and CV-group labels. Only the visible viewport was scrolled; no UI or image content altered. External browser requests blocked; no production data, filled credentials, setup codes or station connection."
+  "unhandledBrowserErrors": 0,
+  "captures": {
+    "de/accessories.png": {
+      "sha256": "8012602a03c4609b304026a256d9f8f1709db17e898ce3fad7259fad27350af9",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:48:54.416Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/account-create-viewer.png": {
+      "sha256": "a2c10e6c0e4b4dc2e27ed926de27b3c4851c85e2a70e7b20aa2a4915447fa2ff",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:00:23.066Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": true
+    },
+    "de/account-smtp-fields.png": {
+      "sha256": "c6d5a4ed132c82a7b644bc6b3b77c44646b139cbcd58bdc11ffc779f53aea856",
+      "width": 424,
+      "height": 775,
+      "capturedAt": "2026-11-09T18:01:40.392Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/account-two-factor-login.png": {
+      "sha256": "de65bc58c168655aec7166e974955104c9384aae9a87dc9eef3df302dad084bf",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:43.032Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": true
+    },
+    "de/account-two-factor-setup.png": {
+      "sha256": "fc1127d70ef27240933b946e0309cd522b1f2ca202fd04ffff55519c1a04862b",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:10:15.076Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": true
+    },
+    "de/appearance.png": {
+      "sha256": "2116a3b6af8dcd80df55f1132a9c740df210fcf5dfc8b26c5221d2d585c94feb",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:48:58.963Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/article-barcode.png": {
+      "sha256": "5c83cda4d531301e0194742712c983fb6e89e6b0c08a14b64d9971b4bced9d49",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:05:48.619Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/article-no-results.png": {
+      "sha256": "bde302a008f3cbf7b276f97c773e7c1ec07d7997ad86de005be15d89acfbf644",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:05:48.765Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": "article-search",
+      "privacyMask": false
+    },
+    "de/article-result-review.png": {
+      "sha256": "4a67f38ef1c886b862ac6846c6805cc455c6397966bdf877b0656504a7b9a41a",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:05:48.482Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": "article-search",
+      "privacyMask": false
+    },
+    "de/backup.png": {
+      "sha256": "c92d10fcc4dfa4215dda7d9ac04aecddd8ecba40aa76ca4481947f8d25f465f4",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:11:22.897Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/central-workspace.png": {
+      "sha256": "4348f6fe4fde11d89df5b5b725bab5ae8dee57598dbdc3383e5e3668848fc386",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:48:57.031Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/cv-analysis.png": {
+      "sha256": "8579752cc105d155cd990114cdec24b93994c1da16d435a549247671ccb28ef1",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T17:49:04.129Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/cv-archive.png": {
+      "sha256": "ae0243481b99617881d0057d006928f7415f6b7b2b178b5391e595c1be17d6a2",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:54:13.777Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/cv-details.png": {
+      "sha256": "dbe47df499dfe91cfe618cfceac459413cbc8565089c860d90c3606f4724f462",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T17:49:04.531Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/cv-working-groups.png": {
+      "sha256": "f1e1f129c2a731e745ceab4058fc33e719cd3a6ae5d9acb1e324df0139d32aa3",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T17:49:04.431Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/decoder-identification.png": {
+      "sha256": "fef2f93dea69e796a6885a9b7ccd89d12559e3b6a5f693f3434256d483d29c21",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:54:16.007Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/decoder-installations.png": {
+      "sha256": "820f9761a03fcbe051b6f310b0da5d686e41f4426ee412aceac8ffc725ad37b5",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T17:49:04.215Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/decoder-library.png": {
+      "sha256": "ec7af41e7a7b4788414e3d3bdaa79f20718d404ee9be7f6d9044944b152c23f6",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:54:14.839Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/digital-settings.png": {
+      "sha256": "fc600edca3782fe3422b5f6926c3a9a2e26d88ae9713e8ea0e9a57aa7fd838cf",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:48:59.861Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/ecos-functions.png": {
+      "sha256": "e25c6a593f178134d22bd707c7e7fc67684cbdc38135d152b7e386a18879b393",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:07:29.686Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": "command-station",
+      "privacyMask": false
+    },
+    "de/exhibition-entry.png": {
+      "sha256": "e7171e1ab416e23070c61dfd3066d076198230cf84e15495b7a137f405f2b9dc",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:06.610Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/exhibition-lock-conflicts.png": {
+      "sha256": "a2a4f5c3f8c5b9857942923b2f3dc3dcee26908e3487046b4810ca1a02b371a1",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:06.476Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/exhibition-locked.png": {
+      "sha256": "17802e5993be094efaee2e67ce91349db4bad55ddc56e4a977c6c0eeda3ce5c8",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:06.755Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/exhibition-open.png": {
+      "sha256": "285d22a3a9b413b84b93a13398d9558ea0596a048b1c7bc4ecfd3dbdc13ebf49",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:06.388Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/exhibition-print-report.png": {
+      "sha256": "2604e3048d2bf343c700b1e9eca9d2c79163fe2308ff615c60b1d8b7db75ebbd",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:06.862Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/exhibition.png": {
+      "sha256": "cee6da31b337617f41f07fd18ba489adecadcda72aa396ca5393ffbb17e9293d",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:48:55.350Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/functions-manual-protected.png": {
+      "sha256": "37dd029c5a6c9eaa547a5066186db150a1e838e61db1c046f473b939fa667fa6",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:54:17.740Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/functions-provenance.png": {
+      "sha256": "63a403fc9de41d280c054b8fc2c0b0a85560235f1112b88f457181a7965d5035",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:54:16.308Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/functions-recognized.png": {
+      "sha256": "b129782e03ab74da4be6cff72301d8e95f604d20ec0e03493c0ba733f8580b95",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:54:16.153Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/functions.png": {
+      "sha256": "a594c7de7ffb5374f4165bed893e6ce6489b87d3f4b89eebb09105f1e0203d10",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:03.987Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/image-ecos-pause.png": {
+      "sha256": "9f606e9fb1c5b91fe75070adaa279d58c28cb6099518951a64247d1e68678d26",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:07:32.485Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": "command-station",
+      "privacyMask": false
+    },
+    "de/image-ecos-preview.png": {
+      "sha256": "1754b36a6574cbeb75fedb8a640c40f63dbca0fd68842224c69c84631ed63203",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:07:32.365Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": "command-station",
+      "privacyMask": false
+    },
+    "de/image-ecos-result.png": {
+      "sha256": "b44d618b57e1e0b0d940e9034afa63203ca1a2f1da662427a895fe98c4509ac2",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:07:32.604Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": "command-station",
+      "privacyMask": false
+    },
+    "de/image-export.png": {
+      "sha256": "562fe024a8bf9d3ec1f29a4de1b9636d0d05ffc94c61ecfee6d61ffccdb26efc",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:07:32.167Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/image-low-resolution.png": {
+      "sha256": "07e67f82b8260c19df8f755e795ed068d015c50907dfc437f3286b360d48375a",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:07:30.856Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/import-csv-conflict.png": {
+      "sha256": "f1a13d085567677880c475ab79ee18d1dc17d2283814d4c06624e24ecec63ac9",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:03:19.121Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/import-csv-mapping.png": {
+      "sha256": "bf3a1384063dc082ae025b256cf19328f75f7d4f90e1704ffb10942dc1de3194",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:03:17.603Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/import-csv-result.png": {
+      "sha256": "fde9033d3a63dd67ec60c021398ffef7071a293817a01c72f99e00062569c323",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:03:17.952Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/import-csv-review.png": {
+      "sha256": "e2b33bbb29593c268567746715d87e5da181aed94908db8fb002824ef0abf84e",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:03:17.837Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/import-cv-preview.png": {
+      "sha256": "b32eb38f42ba2b3f671729cd53653f2f74cb71b223be195af70fe67c575813ab",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T18:10:16.600Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/import-cv-provenance.png": {
+      "sha256": "314562bc56f46375efd275feba03d0deb541ae771c40eb11329f67fa0ffa4b92",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T18:10:16.947Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/import-cv-values.png": {
+      "sha256": "363fa8670ee4d338d607bcbc12efa6e7eba54cacd862ab5b7beebbba3307ddf4",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T18:10:16.837Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/import-dialog.png": {
+      "sha256": "87c7c2cc1824ba9423e5fdd18c617c08f6d9756410df6f77ffd7f34b4a749943",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:03:17.435Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/import-export.png": {
+      "sha256": "6225c8fbe2de6d24b7bc0707fd95eafed3dfffe22fc1739f6594a1a7a281f837",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:48:56.186Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/import-json-review.png": {
+      "sha256": "705f073fadb4a5abae0918d18f1d8f9b9437bc216b81be63a3d2bf5f72043d97",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:03:20.386Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/installation-first-admin.png": {
+      "sha256": "f8b666b478ed653ae7853719353b95dc270268ca4e342237566e29b9b8a70058",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:48:50.222Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/login.png": {
+      "sha256": "76256192bb6dfb37a6c064d3d980ba3b771eea2ddb2376f91b6ba95ed92e5310",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:48:50.928Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/maintenance-done.png": {
+      "sha256": "26658b0361eac58b8bf990ed0136f29711111fc724368226daddb9736a4dd3b8",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:57:44.950Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/maintenance-open.png": {
+      "sha256": "33cecb2fe414b77f46b1dc4bab2d73534483350199a6009dc96b5e30ca0184fe",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:57:44.867Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/maintenance.png": {
+      "sha256": "e95a3212f6e802ee7c2c49dc791647ba374ae74b5ae5b3239bb22a653ac09035",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:03.770Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/media.png": {
+      "sha256": "b270cbf20dab48b5008551a468d19ccceb5bf1272740a46e9f9068e7598e8655",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:03.692Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/overview.png": {
+      "sha256": "f7da7b910b0730288778615c051fd64c5ebd683ed104ec005ab4c5a336d2ed3d",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:48:52.541Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/preferences.png": {
+      "sha256": "3a16bf45f362073416c80cf63a413b6111805f460c58bd8bb3fcccb0c6b78656",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:48:57.904Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/restore-confirmation.png": {
+      "sha256": "ea38f4606c78c0b631ae9af77191a88eaf2d93dc3bc6eeadd5573d23cb86191a",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:11:22.986Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/restore-incompatible.png": {
+      "sha256": "a2d3fdd072e743a3635e601f353deb92d3b71e460665cd3b934f6d59a5caff50",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:11:26.948Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/restore-preflight.png": {
+      "sha256": "c92d10fcc4dfa4215dda7d9ac04aecddd8ecba40aa76ca4481947f8d25f465f4",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:11:22.850Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/restore-result.png": {
+      "sha256": "f6b2b211472504bb460557039010358d3f6ac7b1ee898ba38f99319052c5058b",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:11:24.998Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/set-members.png": {
+      "sha256": "c55810f098e2d9d5d88ec21165709f560b50a683842bcaa2be411367aab729aa",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:05.243Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/set-shared-edit.png": {
+      "sha256": "6e3507d471e680984847c7f04948bca13c9e7e79fdd5fffd21b9687d2cbdc967",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:05.361Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/spare-document.png": {
+      "sha256": "07d2fdcddf79387ab3a82457b41f257599b3c354295f851289ec1eee292661e3",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:05:49.900Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/spare-extraction-result.png": {
+      "sha256": "0717c23f4489fbb1214ab12ee9e14723de7333e59c085a315b510dfc1b1007f9",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:05:50.064Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/stock-installed.png": {
+      "sha256": "f62ece7ea9f8ffd9a43d1601445ddbe89f8834433d7051c0b7762aadf0a29dc6",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:57:42.866Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/stock-reserved.png": {
+      "sha256": "d4b944427f239208fa8d8bbeba05530e6248b046eacc68d4381ba96a35536595",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:57:41.931Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/stock-returned.png": {
+      "sha256": "a148b0a101d2b5f235c5f9acff7b03f7d74db2b662de8fcaa82ebc1fa24af49e",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:57:43.800Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/update-storage.png": {
+      "sha256": "9363b1e9b2f7b6819384160e001afc8085b27eb0c5ada723145c071fd27fb17f",
+      "width": 424,
+      "height": 469,
+      "capturedAt": "2026-11-09T18:10:14.139Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/update-version.png": {
+      "sha256": "63a612b60ef7192e3eec353ea98e09bfd9b09e2236459f288a2da74e704be2c8",
+      "width": 424,
+      "height": 359,
+      "capturedAt": "2026-11-09T17:48:58.012Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/users.png": {
+      "sha256": "1df6b943592653e4b95ce7d81e176244e6e40282dc0fb4d5aa77040649740835",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:00.756Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/valuations.png": {
+      "sha256": "966defbecd025e8d7d71fc6e434a5854a119569fedbdcecbce1ebe20516d748a",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:03.870Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/vehicle-editor.png": {
+      "sha256": "88e3bafdc01b7b7c7d74ca9d638c357ce85f614a77903b1ae8d6cd6222d3c569",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:03.604Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/vehicle-set.png": {
+      "sha256": "ac93f3775c3375837274641fff621d599e4f7ab0481e3e049f4fd462addf8d9d",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:04.249Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "de/vehicles.png": {
+      "sha256": "f7baf91b7f7bff7f73b9d96252bcabf4d3ac022556acec7114ce01efe51862a9",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:48:53.552Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/accessories.png": {
+      "sha256": "a0dcee10c9f8f66ad76ba95948e546d6500d786afe3a1fae510f055b708e72b3",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:09.398Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/account-create-viewer.png": {
+      "sha256": "2008d4352172e116e8b1e27cff5f893e0438521987e80953b3402524c0f1796c",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:02:02.343Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": true
+    },
+    "en/account-smtp-fields.png": {
+      "sha256": "38097217de3c0608d6ac834dcc605a72c22ddaeb9f83d136f8e66ce00e524b7e",
+      "width": 424,
+      "height": 684,
+      "capturedAt": "2026-11-09T18:02:02.153Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/account-two-factor-login.png": {
+      "sha256": "f7a760eed925d5b42e136a50c6e4738f352f1b4b4ddde59f0671a1ee871f09db",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:02:05.063Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": true
+    },
+    "en/account-two-factor-setup.png": {
+      "sha256": "45bdc30e87a98df2df8c9fbd30c567b78903a3fecadf5bceedf5235727e288c6",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:10:19.809Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": true
+    },
+    "en/appearance.png": {
+      "sha256": "e19b3625d4886a291760f28f5fc1b76f6f09f3e0cb6366387103689a2e748d18",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:13.928Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/article-barcode.png": {
+      "sha256": "5dca0664c776707956faec0c9f88e303ff0c8b70c0d216ed1b187c1c220fa095",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:05:52.251Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/article-no-results.png": {
+      "sha256": "9ff1db140223b6f4ff777e73c46e1dad922957de7ea353baf5cc0f4620aec8a3",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:05:52.397Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": "article-search",
+      "privacyMask": false
+    },
+    "en/article-result-review.png": {
+      "sha256": "bc53ab613c73f650bd26bf85e388004b60aa2fe0b97545037d30003a3bb90b0a",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:05:52.119Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": "article-search",
+      "privacyMask": false
+    },
+    "en/backup.png": {
+      "sha256": "53dea6e08d56de511c8ce2b11da17b62515ee50b79da8aa95a0470f97d08ea1a",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:11:30.665Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/central-workspace.png": {
+      "sha256": "6835346d35bcb4725ebc80f5191add8a70a76a6b96e4cb874814a107c75157a7",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:12.012Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/cv-analysis.png": {
+      "sha256": "98122fc23203db475d50d736d03c0040eacbf96509c91fbe1c53dafea1819163",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T17:49:19.076Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/cv-archive.png": {
+      "sha256": "0e72552f8182ff9d430a6b2587a694336056244fb8a8cad5c0478a46300c69ee",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:55:40.056Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/cv-details.png": {
+      "sha256": "28b534fb53c7410da85224a8466f85f8735fd83b1ee232f0c8b273588dec0fe3",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T17:49:19.479Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/cv-working-groups.png": {
+      "sha256": "bdcce71c8b70115d7d9bda26523a1618b7a8fb30f8c307291f184b5a4cb605f2",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T17:49:19.377Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/decoder-identification.png": {
+      "sha256": "be317ec35b481ab576694bff7fec43692d4a7502fb03a8546c2cdca7272dc88a",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:55:42.210Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/decoder-installations.png": {
+      "sha256": "e3aae5cfdacc1114b3746be6a2b3aef4cb03920f1d3235c1b9ad1ac820954f81",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T17:49:19.163Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/decoder-library.png": {
+      "sha256": "3ed9cd7aa588cf3a64a2ae2874046e9f3db568b8127a5f405df99b72c1e60335",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:55:41.119Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/digital-settings.png": {
+      "sha256": "e32442689bef76309447af6eb7d32b43d900432adf64e7174ccf11e77fe67288",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:14.787Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/ecos-functions.png": {
+      "sha256": "daa4b477a23e2af1c45fce07d1d64ed1dada7ee25029cbf2e3a5206c6066b4d7",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:07:34.815Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": "command-station",
+      "privacyMask": false
+    },
+    "en/exhibition-entry.png": {
+      "sha256": "5c09879b21d51782e45107f64771d89483cf3139a5b565dfa2105b9d2fb32080",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:15.443Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/exhibition-lock-conflicts.png": {
+      "sha256": "794da1238da423920d6d8c422a93fb6ca5d1e451b976fa50df519983cfced043",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:15.325Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/exhibition-locked.png": {
+      "sha256": "4db009d492dc16d0ea03927019e4c4026e4d37a261bf760285d72290e8e7bf4f",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:15.588Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/exhibition-open.png": {
+      "sha256": "86e8d7c970d478b3664ff6f4a3b04d092107ccc94af797658a845a1f73113e57",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:15.237Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/exhibition-print-report.png": {
+      "sha256": "d26bb47611854306e2223b19c1b823e2c224e9276efea6a6a7a89f1660855984",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:15.679Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/exhibition.png": {
+      "sha256": "7eeb34d8113288716118526bf7b645a697fe7c2ad9640a208ce46f54ab0a66ea",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:10.333Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/functions-manual-protected.png": {
+      "sha256": "715325ed5cb40508d4dbe8e5a57c9c5b378227765d9870dd6ca4a81b234f8417",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:55:43.903Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/functions-provenance.png": {
+      "sha256": "69526970089575c68b9389f5805be207be25e7c537bd98701b0744f01bb9fb18",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:55:42.504Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/functions-recognized.png": {
+      "sha256": "f3cc0cb8a8425bb5ce5ee0aed609caabfc905df38dc6c693df914ecbe5a2b316",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:55:42.348Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/functions.png": {
+      "sha256": "7988206cf4753c7945a2c45b7c37dfd15d9dbb929e4d750280bd97c0fefd6ef0",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:18.921Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/image-ecos-pause.png": {
+      "sha256": "287ba0b99bbcf425c4c4be4017bcbda7c47cbca21ca02adfb9c15679eff33d23",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:07:37.651Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": "command-station",
+      "privacyMask": false
+    },
+    "en/image-ecos-preview.png": {
+      "sha256": "a2511ffc545823b2f9b6b755978bf15d7f8acfb47ec5fcfa4ce7a1038f1c1328",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:07:37.531Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": "command-station",
+      "privacyMask": false
+    },
+    "en/image-ecos-result.png": {
+      "sha256": "ed188b5c762f0613c7c3aa6d7aff7fea408788e0c2d010b5e84b405290223823",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:07:37.771Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": "command-station",
+      "privacyMask": false
+    },
+    "en/image-export.png": {
+      "sha256": "088b06940337fc70ad0a66479ae9fdf275b3c09ecd4d50b58cce3aae9933c3ca",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:07:37.333Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/image-low-resolution.png": {
+      "sha256": "696b815e72c54e27bc9852c250495006677eb382dceec738f27139ab25143622",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:07:36.006Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/import-csv-conflict.png": {
+      "sha256": "cd048d4007f2c32e802531e49dd90961d9190c21417da00f1d33852cb8cb1b63",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:03:23.937Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/import-csv-mapping.png": {
+      "sha256": "75aad000ba0478814a57ea395df4078cc7dd72e26e511d7a6c0236559c5ce116",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:03:22.503Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/import-csv-result.png": {
+      "sha256": "69d402c573b401c7acfb4f5429a077491954183e425eb771009b92bffc34996d",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:03:22.834Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/import-csv-review.png": {
+      "sha256": "cfdacd3bc9ef2a1f79803661fd834920811b38663a1bce98da59ead6c2b6f9ac",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:03:22.735Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/import-cv-preview.png": {
+      "sha256": "1ce3d78027cb315e48bc876fe14f7f173f04bd8ea0cfe12fc356179520885084",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T18:10:21.333Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/import-cv-provenance.png": {
+      "sha256": "6b6cdab017b538889c7f7004e0ae27ff9f571310f76472992b20d28ce9a5721c",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T18:10:21.664Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/import-cv-values.png": {
+      "sha256": "24d564961eebb16627750902cdd96b599f8a813a5818a7dbfeca8baa4a7ccf2b",
+      "width": 1440,
+      "height": 1400,
+      "capturedAt": "2026-11-09T18:10:21.558Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/import-dialog.png": {
+      "sha256": "a2e0c3abc43f2df9ac60eb50007ed87dd921d718c5c80adb236763ffec78822e",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:03:22.367Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/import-export.png": {
+      "sha256": "5aeb4b1afe23d1716ca370a6ee25d558275a7194a487a141c3f3df70d9bebd4f",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:11.182Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/import-json-review.png": {
+      "sha256": "bc20368a09847518f79f9c6cb85cd83acf002c303a4e3f713396ea8481737a62",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:03:25.223Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/installation-first-admin.png": {
+      "sha256": "1c2e86bc2c2bd69af160feb352122b1dec5786bd5e164037d3a6980edeb8bf43",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:05.244Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/login.png": {
+      "sha256": "c089d8abb89b5bbd80f48b86ad19dd49b8fde3da48ea65f38adcdeee4571dde1",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:05.943Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/maintenance-done.png": {
+      "sha256": "4826e53ffbd8231c471d78c1b4f160f5f9af5a104831849ebf4d96036e401528",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:11.776Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/maintenance-open.png": {
+      "sha256": "5acaae82e781f70de852681b81f98ac24e5b8487c70c96edbb37f3fd695eb61e",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:11.691Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/maintenance.png": {
+      "sha256": "7220fd7969434a0bd056e5aedb7bb0def094a72c2c8598761fda80bac2e62047",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:18.718Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/media.png": {
+      "sha256": "e9c6ccf990d29c4f901d4ffbebf7cb5c7c552a93fa692a8ebe2efc087f0d1331",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:18.640Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/overview.png": {
+      "sha256": "881de7eccc994d30340c1ca2ed1e54708ef54de3f613534316dd5b7943a24643",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:07.529Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/preferences.png": {
+      "sha256": "ed3618a6ea11691c14b5557354deb5a7592039a9e9459e454cd2dbe037b44e1a",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:12.869Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/restore-confirmation.png": {
+      "sha256": "1a09726a966d8313319889b6ac54ecb621552c982db5f9e88f6b39d4baf4e348",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:11:30.766Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/restore-incompatible.png": {
+      "sha256": "bd8ac88a5bac045210f3eb5514c2228cab47b3b731762e93af331b02ac222b8d",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:11:34.647Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/restore-preflight.png": {
+      "sha256": "53dea6e08d56de511c8ce2b11da17b62515ee50b79da8aa95a0470f97d08ea1a",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:11:30.618Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/restore-result.png": {
+      "sha256": "b2ff7871e1960643eb03e2efebffad8a0c69ef42d7383fe87d1d4f8f0c45a7a8",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:11:32.764Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/set-members.png": {
+      "sha256": "948bbea5d9c3721d020802fa0d73d7a17778b43efe3a883e697282db98d6b5c2",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:14.108Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/set-shared-edit.png": {
+      "sha256": "aa490150ac9c66f2b919acd51918a0f10e9841f0ff8bf18cf43fa36bf527f5c6",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:14.226Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/spare-document.png": {
+      "sha256": "16a83b330a7e5062e726ff24eb8c5b87c4156406291d0dfb193a8c93cc038975",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:05:53.516Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/spare-extraction-result.png": {
+      "sha256": "0f93743a49b63d8a24e75d839cdc3fda6453b0f5c37b7728493b5bb080f77501",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:05:53.696Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/stock-installed.png": {
+      "sha256": "0c3c6cd2e56c8e735c37502b2378027425ba8d8bf4abf5f9ad8fd1410cd22fdb",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:09.690Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/stock-reserved.png": {
+      "sha256": "1ba15b69f62be9baf87e62a201493479e37c697348ec543ad06393f562912d31",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:08.740Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/stock-returned.png": {
+      "sha256": "3a6c48acafea4886b74ee429255fbebf8d9af19430655b089d6f3db6c9eb6dde",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:10.623Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/update-storage.png": {
+      "sha256": "e63118167772f548de4856acec4e0fa86b48d08a75f9eff43944b9ae95d511f1",
+      "width": 424,
+      "height": 469,
+      "capturedAt": "2026-11-09T18:10:18.879Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/update-version.png": {
+      "sha256": "aae069e5b011ec33b5774d00b7b8190bffdedee0e0e3aecc52437e3ed198b5af",
+      "width": 424,
+      "height": 339,
+      "capturedAt": "2026-11-09T17:49:12.978Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/users.png": {
+      "sha256": "7eefb89c4aaf806a6fb090f97521eb7a223b0e7d2f696a90637db887c6b92f41",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:15.638Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/valuations.png": {
+      "sha256": "072e6d62237dff2fcbae1bb6769e17d71fe9b629cdbf3efa269dac90ba84b38d",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:18.786Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/vehicle-editor.png": {
+      "sha256": "d8d57b55fd8cdad638fec1902b47c9e5ee430fbc9f8fc988dc44530ca4331c3e",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:18.553Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/vehicle-set.png": {
+      "sha256": "484b27de1c2991ec1c98e6651f7883e11182ab010b457286a137d7761c923eb0",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T18:01:13.125Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    },
+    "en/vehicles.png": {
+      "sha256": "a08011de2875644cc17dc24d348fc5c587f53a5a0723c997c304d92ebc21077c",
+      "width": 1440,
+      "height": 1000,
+      "capturedAt": "2026-11-09T17:49:08.516Z",
+      "applicationVersion": "0.2.0",
+      "applicationCommit": "ecf28f1acdacf9d9254cef0e31e8f1e642258a09",
+      "simulation": null,
+      "privacyMask": false
+    }
   }
 }

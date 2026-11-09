@@ -6,6 +6,50 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.2.0] - 2026-11-09
+
+### Added
+
+- Manual vehicle valuations with effective dates, provenance, corrections and retained history.
+  Collection summaries separate currencies and explicitly identify missing valuations.
+- Separate decoder units, installations and removals, CV working groups and archived partial
+  snapshots with original sources. Indexed CVs retain their full identity and provenance.
+- Recognized browsers, protection against reused two-factor codes and administrator recovery
+  of locked logins.
+- Personal inventory views, guided first setup and additional guides for decoders, valuations,
+  data preservation and operator handoff.
+
+### Changed
+
+- The command-station workspace retains the latest read until another read is requested.
+  Reading, comparison, adoption and explicitly confirmed device changes remain separate steps.
+- Interface typography, local fonts and application controls consistently follow the established
+  design. Accessories use the inventory layout; narrow views, dialogs, action targets and global
+  navigation have been refined.
+- Vehicle, catalog, decoder, valuation, authentication and exhibition logic is split into smaller
+  domain modules with checked boundaries. Existing API contracts are preserved.
+- Application backups use format version 28. Compatibility checks and restore preserve supported
+  older collection data; local users and configuration remain separate.
+- Go 1.27.3 is aligned across the module, analyzer, CI and native builds. Enforced size,
+  architecture, coverage, race, fuzz and HTTP contract checks guard subsequent changes.
+
+### Fixed
+
+- Failed saves and imports retain drafts and support retrying or reloading. Conflicts are
+  visibly reviewed before adoption.
+- Corrected logout after session revocation, mobile labels, file and numeric controls,
+  overlapping actions and popup geometry.
+- Valuation calculations do not treat unknown historical values as zero. Sets contribute
+  through their vehicles; set prices are not added to the collection again.
+
+### Security
+
+- Login and password verification have bounded time and workload; role, CSRF, cookie, upload
+  and private file access checks have been strengthened.
+- Dependencies and build tools were updated and qualified for Windows and Linux AMD64/ARM64.
+  Existing authentication data is neither published in collection backups nor overwritten
+  when restoring such a backup.
+
 ## [0.1.22] - 2026-11-01
 
 ### Added

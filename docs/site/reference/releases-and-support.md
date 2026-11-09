@@ -2,9 +2,9 @@
 title: Versions and help
 description: Versions and help.
 audience: reference
-status: development
-reviewedVersion: main
-lastReviewed: 2026-11-07
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Versions and help
@@ -20,6 +20,11 @@ Include version and build when reporting an issue. `railkeeper version` (Windows
 application data. An old server without build metadata keeps its existing version display.
 
 A page's visible **editorial review** date records content review. **Last updated** at the bottom is its Git modification date. Neither alone proves testing with real hardware. The [coverage overview](coverage) explains the evidence.
+
+Handbook pictures show **v0.2.0**. Capture version and editorial review scope are recorded separately.
+The complete [German changelog](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.de.md#020---2026-11-09)
+and [English changelog](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.md#020---2026-11-09)
+describe this release's changes.
 
 ## Where should I ask?
 

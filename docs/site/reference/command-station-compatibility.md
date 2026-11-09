@@ -2,15 +2,16 @@
 title: "Command stations: scope and evidence"
 description: "Command stations: scope and evidence."
 audience: reference
-status: development
-reviewedVersion: main
-lastReviewed: 2026-10-23
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Command stations: scope and evidence
 
 This overview separates implemented functions from documented device acceptance.
-It describes the reviewed **main development branch on 23 October 2026**; older releases may differ.
+It describes **v0.2.0**; older releases may differ. Recaptured handbook pictures do not add
+hardware acceptance. The device evidence below retains its own review scope.
 
 ## Functions by connection
 

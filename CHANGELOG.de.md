@@ -6,6 +6,50 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.2.0] - 2026-11-09
+
+### Hinzugefügt
+
+- Manuelle Fahrzeugbewertungen mit Stichtagen, Herkunft, Berichtigungen und erhaltenem Verlauf.
+  Die Sammlungsauswertung trennt Währungen und weist fehlende Bewertungen ausdrücklich aus.
+- Getrennte Decoderexemplare, Ein- und Ausbauten, CV-Arbeitsgruppen und archivierte Teilstände
+  mit Originalquellen. Indizierte CVs behalten ihre vollständige Identität und Herkunft.
+- Wiedererkannte Browser, Schutz vor wiederverwendeten Zwei-Faktor-Codes und gezielte
+  Freigabe gesperrter Anmeldungen durch Administratoren.
+- Persönliche Bestandsansichten, geführte Ersteinrichtung sowie zusätzliche Anleitungen
+  für Decoder, Wertentwicklung, Datenerhalt und Betreiberübergabe.
+
+### Geändert
+
+- Die Digitalzentralen-Ansicht hält den letzten Lesestand bis zum erneuten Einlesen vor.
+  Lesen, Vergleichen, Übernehmen und ausdrücklich bestätigte Geräteänderungen bleiben getrennt.
+- Oberfläche, Schriftgrößen, lokale Schriften und eigene Steuerelemente folgen einheitlich
+  dem bestehenden Design. Zubehör nutzt die Bestandsdarstellung; schmale Ansichten, Dialoge,
+  Aktionsflächen und globale Navigation wurden überarbeitet.
+- Fahrzeug-, Artikel-, Decoder-, Bewertungs-, Authentifizierungs- und Ausstellungslogik sind
+  in kleinere Fachmodule mit geprüften Grenzen ausgelagert. Bestehende API-Verträge bleiben erhalten.
+- App-Backups verwenden Formatversion 28. Kompatibilitätsprüfung und Wiederherstellung
+  erhalten unterstützte ältere Sammlungsdaten; lokale Benutzer und Konfiguration bleiben getrennt.
+- Go 1.27.3 ist für Modul, Analyse, CI und native Builds vereinheitlicht. Verbindliche Größen-,
+  Architektur-, Abdeckungs-, Race-, Fuzz- und HTTP-Vertragsprüfungen sichern Änderungen ab.
+
+### Behoben
+
+- Fehlgeschlagene Speicher- und Importvorgänge erhalten Entwürfe und bieten erneutes Laden
+  beziehungsweise Speichern an. Konflikte werden vor einer Übernahme sichtbar geprüft.
+- Abmeldung nach Sitzungswiderruf, mobile Beschriftungen, Datei- und Zahlenfelder sowie
+  überlagernde Aktionen und unpassende Popup-Geometrie wurden korrigiert.
+- Bewertungsberechnungen behandeln unbekannte historische Werte nicht als null. Sets werden
+  über ihre Fahrzeuge gezählt; Setpreise werden nicht zusätzlich zur Sammlung addiert.
+
+### Sicherheit
+
+- Anmeldung und Passwortprüfung sind zeitlich und mengenmäßig begrenzt; Rollen-, CSRF-,
+  Cookie-, Upload- und private Dateizugriffsprüfungen wurden verstärkt.
+- Abhängigkeiten und Buildwerkzeuge wurden aktualisiert und für Windows sowie Linux AMD64/ARM64
+  geprüft. Bestehende Authentifizierungsdaten werden weder in Sammlungsbackups veröffentlicht
+  noch beim Einspielen einer solchen Sicherung überschrieben.
+
 ## [0.1.22] - 2026-11-01
 
 ### Hinzugefügt

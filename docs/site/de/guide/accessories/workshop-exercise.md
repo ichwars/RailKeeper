@@ -2,9 +2,9 @@
 title: Zubehör und Wartung in der Werkstatt üben
 description: Zubehör und Wartung in der Werkstatt üben.
 audience: user
-status: development
-reviewedVersion: main
-lastReviewed: 2026-10-23
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Zubehör und Wartung in der Werkstatt üben
@@ -25,7 +25,7 @@ Buchung an einer Digitalzentrale.
 
 ## 2. Ein Stück reservieren
 
-Öffne den Artikel zum Bearbeiten und **Verwendung & Historie**. Wähle Fahrzeug, Lagerort und
+Öffne den Artikel zum Bearbeiten und **Bestand**. Wähle im Reservierungsformular Fahrzeug, Lagerort und
 Menge **1**. Optional beschreibe Platzierung und Anschluss. Wähle **Reservierung anlegen** und bestätige.
 
 <GuideFigure name="stock-reserved" alt="Aktive Reservierung eines Stücks für das Demo-Fahrzeug." caption="Reservierung vorhanden: Vier Stück bleiben im Lager, eines ist reserviert und drei sind verfügbar." />
@@ -36,6 +36,9 @@ Eine Reservierung hält Material für ein Fahrzeug frei. Sie dokumentiert noch k
 
 Wähle die aktive Reservierung im Einbauformular. Prüfe das übernommene Ziel und die Quelle.
 Wähle den Zustand, dann **Einbau erfassen**, und bestätige.
+
+Die Buchungsformulare stehen ebenfalls unter **Bestand**. **Verwendung & Historie** zeigt
+die gespeicherten Reservierungen, aktiven Einbauten und den Verlauf. Die Bildfolge zeigt diese Lesesicht.
 
 <GuideFigure name="stock-installed" alt="Aktiver Einbau des zuvor reservierten Zubehörstücks." caption="Die Reservierung ist erfüllt. Drei Stück liegen noch im Lager und eines ist eingebaut." />
 

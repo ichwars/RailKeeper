@@ -2,14 +2,15 @@
 title: Was ist dokumentiert und geprüft?
 description: Was ist dokumentiert und geprüft?
 audience: reference
-status: development
-reviewedVersion: main
-lastReviewed: 2026-10-23
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Was ist dokumentiert und geprüft?
 
-Alle 20 Themen haben jetzt eine deutsche und eine englische Einstiegsseite. Das ist eine Inhaltsabdeckung, keine Behauptung, dass jedes Gerät, jede Firmware oder jeder Sonderfall vollständig getestet wurde.
+Alle 25 Themen haben eine deutsche und eine englische Einstiegsseite. Das ist eine Inhaltsabdeckung,
+keine Behauptung, dass jedes Gerät, jede Firmware oder jeder Sonderfall vollständig getestet wurde.
 
 ## So liest du den Prüfstand
 
@@ -19,7 +20,14 @@ Alle 20 Themen haben jetzt eine deutsche und eine englische Einstiegsseite. Das 
 | Demo-Oberfläche | Zusätzlich echte Screenshots aus einer isolierten Testinstallation | Künstliche Daten; keine angeschlossene Zentrale |
 | Hardwareprüfung | Nur dort, wo ein Kapitel einen konkreten Gerätetest ausdrücklich nennt | Gilt für dieses Gerät und diesen Firmwarestand |
 
-Die Bilder wurden am **23.10.2026** mit künstlichen Fahrzeugen aufgenommen. CV-Werte darin sind keine Werkseinstellungen. Die Seiten nennen ihren Versionsbezug und die redaktionelle Prüfung. Am Seitenende steht zusätzlich das Git-Änderungsdatum.
+Alle **142 Handbuchbilder (71 je Sprache)** wurden am **09.11.2026** aus dem unveränderten Release
+**v0.2.0**, Commit `ecf28f1acdacf9d9254cef0e31e8f1e642258a09`, neu aufgenommen. Die getrennten lokalen
+Demos verwenden ausschließlich künstliche Bestände. CV-Werte darin sind keine Werkseinstellungen.
+Suchtreffer und Zentralenantworten sind nur in den ausdrücklich bezeichneten Bildern simuliert.
+Die Versionsanzeige stammt vom tatsächlichen Release und wurde nicht ersetzt.
+Die [Bildnachweise](https://github.com/ichwars/RailKeeper/blob/main/docs/screenshot-sources.json)
+halten für jede Datei Sprache, Aufnahmezeit, Version, Commit, Abmessungen und SHA256 fest.
+Seiten nennen ihren Versionsbezug und die redaktionelle Prüfung; das Git-Änderungsdatum steht separat.
 
 ## Themen und Nachweise
 
@@ -48,7 +56,12 @@ Aufnahme verdeckt. Eine öffentlich herunterladbare echte Sicherung oder Anmelde
 
 ## Wie halten wir das aktuell?
 
-Die Themenliste und Prüfhinweise kommen aus [docs/coverage.json](https://github.com/ichwars/RailKeeper/blob/main/docs/coverage.json). Die automatische Prüfung erfasst Routen, API-Bereiche, Übersetzungsschlüssel und Konfigurationsvariablen. Sie prüft Sprachpaare, Metadaten, Bilddateien und die Zuordnung zu Handbuchthemen. Inhaltliche Richtigkeit und Hardwareverhalten bleiben eigene Prüfaufgaben.
+Die Themenliste und Prüfhinweise kommen aus [docs/coverage.json](https://github.com/ichwars/RailKeeper/blob/main/docs/coverage.json).
+Die automatische Prüfung erfasst Routen, API-Bereiche, Übersetzungsschlüssel und Konfigurationsvariablen.
+Sie prüft Sprachpaare, Metadaten, Bilddateien und die Zuordnung zu Handbuchthemen. Zusätzlich müssen
+Laufzeitversion, stabile Dokumentationsversion, zweisprachige Changelogs, Release Notes und sämtliche
+Bildnachweise zusammenpassen. Geänderte Bilddateien benötigen passende Prüfsummen und Aufnahmebelege.
+Inhaltliche Richtigkeit und Hardwareverhalten bleiben eigene Prüfaufgaben.
 
 Änderungen an einem Arbeitsablauf aktualisieren seine Anleitung und beide Sprachen im selben Pull Request. Unter `docs` prüft `npm run check` Tests, Zuordnungen und den Website-Build. [Eine Lücke melden](https://github.com/ichwars/RailKeeper/discussions/categories/q-a).
 

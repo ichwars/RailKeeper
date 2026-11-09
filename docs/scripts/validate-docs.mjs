@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { validateGuideAssets } from "./validate-guide-assets.mjs";
 import { buildSourceInventory } from "./source-inventory.mjs";
+import { validateReleaseDocs } from "./validate-release-docs.mjs";
 
 const requiredFields = ["audience", "status", "reviewedVersion", "lastReviewed"];
 const allowedAudiences = ["admin", "developer", "reference", "user"];
@@ -255,11 +256,13 @@ async function runCli() {
   const contentRoot = resolve(scriptDirectory, "../site");
   const versions = JSON.parse(await readFile(resolve(scriptDirectory, "../versions.json"), "utf8"));
   const manifest = JSON.parse(await readFile(resolve(scriptDirectory, "../coverage.json"), "utf8"));
+  const screenshotSources = JSON.parse(await readFile(resolve(scriptDirectory, "../screenshot-sources.json"), "utf8"));
   const inventory = await buildSourceInventory(repositoryRoot);
   const errors = [
     ...(await validateDocumentTree(contentRoot, versions)),
     ...validateCoverage(inventory, manifest, contentRoot),
     ...(await validateGuideAssets(contentRoot, await markdownFiles(contentRoot), manifest.topics)),
+    ...(await validateReleaseDocs(repositoryRoot, versions, screenshotSources)),
   ].sort((left, right) => left.localeCompare(right, "en"));
 
   for (const error of errors) {

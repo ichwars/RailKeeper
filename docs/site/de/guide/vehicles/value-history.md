@@ -2,9 +2,9 @@
 title: Manuelle Wertentwicklung
 description: Datierte Fahrzeugbewertungen erfassen, berichtigen und nach Währung auswerten.
 audience: user
-status: development
-reviewedVersion: main
-lastReviewed: 2026-11-07
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Manuelle Wertentwicklung
@@ -13,7 +13,7 @@ Bewertungen beschreiben deine eigene Einschätzung zu einem bestimmten Datum. Li
 Kaufpreise bleiben unverändert. RailKeeper ruft keine Preisportale ab und ergänzt keine
 fehlenden früheren Marktwerte.
 
-<GuideFigure name="valuations" alt="Datierte manuelle Fahrzeugbewertung mit Herkunft und erhaltenem Verlauf." caption="Manuelle Bewertung und Berichtigung im Entwicklungsstand. Ausschließlich künstliche Demodaten. Anklicken für die volle Größe." />
+<GuideFigure name="valuations" alt="Datierte manuelle Fahrzeugbewertung mit Herkunft und erhaltenem Verlauf." caption="Manuelle Bewertung und Berichtigung in v0.2.0. Ausschließlich künstliche Demodaten. Anklicken für die volle Größe." />
 
 ## Bewertung erfassen
 

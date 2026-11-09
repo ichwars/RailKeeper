@@ -2,9 +2,9 @@
 title: Create and edit a coach set
 description: Create and edit a coach set.
 audience: user
-status: development
-reviewedVersion: main
-lastReviewed: 2026-11-07
+status: stable
+reviewedVersion: 0.2.0
+lastReviewed: 2026-11-09
 ---
 
 # Create and edit a coach set
@@ -16,11 +16,13 @@ Use Admin or Editor and synthetic exercise data.
 
 1. Open **Vehicle inventory > New vehicle** and choose **Set** entry.
 2. Name it **Demo-Wagenset**, manufacturer **Roco**, article number **DEMO-SET**, gauge **H0**.
-3. Choose a suitable category and subtype, for example passenger coach and express coach.
-4. Add **Demo-Wagen A** and **Demo-Wagen B**, with different vehicle numbers.
-5. Review shared details and save.
+3. Choose a suitable category, for example **Personenwagen**, and a vehicle count of **2**.
+4. Select **Continue to article data**. Review a suggestion or continue without adopting one.
+5. Under **Vehicle details**, complete the shared set fields and the **Vehicle 1** and **Vehicle 2**
+   tabs. Supply suitable subtypes and distinct names or vehicle numbers.
+6. Review the fields and save the set.
 
-<GuideFigure name="vehicle-set" alt="Set creation with shared fields and individual members." caption="The set draft groups product information; members retain their individual vehicle details. Synthetic demo." />
+<GuideFigure name="vehicle-set" alt="First set creation step with shared basics and two planned member vehicles." caption="Guided creation starts with type and basic data. Article data and individual vehicles follow in separate steps. Synthetic v0.2.0 demo." />
 
 **Expected:** One set inventory number and two independent vehicle inventory numbers.
 The active set scheme supplies the set number; members use their matching vehicle schemes.
