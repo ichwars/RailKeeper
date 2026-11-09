@@ -541,7 +541,7 @@ a {
 
 .sidebar-footer-actions svg { flex-shrink: 0; }
 
-@media (min-width: 761px) {
+@media (min-width: 901px) {
   .sidebar.collapsed .sidebar-footer-actions :is(a, button) {
     width: 32px;
     justify-content: center;
