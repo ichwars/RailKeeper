@@ -112,7 +112,7 @@ async function assertQueuedProfileNavigation(page, { base, key, de }) {
     const stored = await page.request.get(profileURL);
     assert.equal(stored.status(), 200);
     assert.equal((await stored.json()).settings[key], desired, "latest queued choice must win");
-    await page.locator("#main-navigation").getByRole("link", { name: de ? "Einstellungen" : "Settings", exact: true }).click();
+    await page.locator('#main-navigation > a.nav-entry[href="/settings"]').click();
     await page.locator(".settings-dashboard-grid").waitFor();
     const synchronized = page.waitForResponse(response => response.url() === profileURL && response.request().method() === "GET");
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -124,7 +124,7 @@ async function assertQueuedProfileNavigation(page, { base, key, de }) {
     const main = page.locator("main.main");
     await main.evaluate(element => { element.scrollTop = 10000; });
     assert.ok(await main.evaluate(element => element.scrollTop > 0), "scroll restoration reference must actually scroll");
-    await page.locator("#main-navigation").getByRole("link", { name: de ? "Einstellungen" : "Settings", exact: true }).click();
+    await page.locator('#main-navigation > a.nav-entry[href="/settings"]').click();
     await page.locator(".settings-dashboard-grid").waitFor();
     assert.equal(await main.evaluate(element => element.scrollTop), 0, "explicit navigation retained the old scroll offset");
     assert.equal(await main.evaluate(element => document.activeElement === element), true);
@@ -133,7 +133,7 @@ async function assertQueuedProfileNavigation(page, { base, key, de }) {
     const activeTab = page.locator(".settings-primary-tabs button.active");
     await activeTab.waitFor();
     const digitalTab = await activeTab.innerText();
-    await page.locator("#main-navigation").getByRole("link", { name: de ? "Einstellungen" : "Settings", exact: true }).click();
+    await page.locator('#main-navigation > a.nav-entry[href="/settings"]').click();
     await page.locator(".settings-dashboard-grid").waitFor();
     const generalTab = await activeTab.innerText();
     assert.notEqual(digitalTab, generalTab);
