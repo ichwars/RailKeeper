@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { useMemo, useRef, useState } from "react";
 import { TriangleAlert, X } from "lucide-react";
 
@@ -78,7 +79,7 @@ export function VehicleAssignmentDialog({
               {candidates.map((vehicle) => {
                 const reason = digitalCenterVehicleMatchReason(item, vehicle, provider);
                 return <label key={vehicle.id} className="digital-assignment-candidate">
-                  <input type="radio" name="digital-center-vehicle" value={vehicle.id}
+                  <AppChoiceInput type="radio" name="digital-center-vehicle" value={vehicle.id}
                     checked={selectedVehicleId === vehicle.id}
                     onChange={() => onSelect(vehicle.id)} />
                   <span className="digital-assignment-candidate-copy">

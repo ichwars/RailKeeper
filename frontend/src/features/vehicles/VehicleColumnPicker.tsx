@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Columns3, RotateCcw } from "lucide-react";
 
@@ -129,7 +130,7 @@ export function VehicleColumnPicker({
                     .filter((definition) => definition.group === group)
                     .map(({ key }) => (
                       <label key={key}>
-                        <input
+                        <AppChoiceInput
                           type="checkbox"
                           checked={columns.includes(key)}
                           onChange={() => onToggle(key)}

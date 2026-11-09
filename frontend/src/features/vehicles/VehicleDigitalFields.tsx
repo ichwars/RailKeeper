@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { ArrowRight, Check, ChevronRight, FileText } from "lucide-react";
 import { useId, type ReactNode } from "react";
 import type { CreateVehicleRequest, ECoSDecoderProfileEvidence, VehicleCVValue } from "../../shared/api";
@@ -57,7 +58,7 @@ export function VehicleDigitalFields({ form, values, readonly, update, onOpenCV,
     <DecoderLibraryNotice values={values} profile={state.profile} match={a.libraryMatch}
       vehicleDecoderType={a.vehicleDecoderType} />
     <div className="digital-state-row">
-      <label className="digital-equipped"><input type="checkbox" checked={Boolean(form.digital)}
+      <label className="digital-equipped"><AppChoiceInput type="checkbox" checked={Boolean(form.digital)}
         aria-label="Digital" onChange={(event) => update({ digital: event.target.checked })}
         disabled={readonly} />{t("vehicles.decoder.equipped")}</label>
       <button type="button" className="secondary-button" disabled={readonly || !canApply} onClick={apply}>
@@ -71,7 +72,7 @@ export function VehicleDigitalFields({ form, values, readonly, update, onOpenCV,
           ? "vehicles.decoder.longAddressSource" : "vehicles.decoder.shortAddressSource")}
         title={cvSource(a, 1, 17, 18, 29)} />
       <div className="digital-field dt-primary">
-        <label className="digital-field-caption dt-enable-control"><input type="checkbox" aria-label={t("vehicles.decoder.dtEnabled")} checked={Boolean(form.dtDecoder)}
+        <label className="digital-field-caption dt-enable-control"><AppChoiceInput type="checkbox" aria-label={t("vehicles.decoder.dtEnabled")} checked={Boolean(form.dtDecoder)}
           onChange={(event) => update({ dtDecoder: event.target.checked })} disabled={readonly} />{t("vehicle.field.dtDecoderNumber")}</label>
         <input id={dtNumberId} aria-label={t("vehicle.field.dtDecoderNumber")} value={form.dtDecoderNumber || ""} placeholder={t("vehicles.decoder.doubleHeading")}
           onChange={(event) => update({ dtDecoderNumber: event.target.value })} disabled={readonly || !form.dtDecoder} />
@@ -127,7 +128,7 @@ export function VehicleDigitalFields({ form, values, readonly, update, onOpenCV,
               onChange={(event) => update({ digitalDecoderNumber: event.target.value })} disabled={readonly || !form.digital} /></label>
             <label>{t("vehicle.field.decoderType")}<input value={form.decoderType || ""} placeholder={typeName || ""}
               onChange={(event) => update({ decoderType: event.target.value })} disabled={readonly} /></label>
-            <label className="digital-manual-abc"><input type="checkbox" checked={Boolean(form.abcBrakes)}
+            <label className="digital-manual-abc"><AppChoiceInput type="checkbox" checked={Boolean(form.abcBrakes)}
               onChange={(event) => update({ abcBrakes: event.target.checked })} disabled={readonly} />{t("vehicles.decoder.manualAbc")}</label>
           </div><p className="decoder-hint">{t("vehicles.decoder.applyFieldsHelp")}</p>
         </section>

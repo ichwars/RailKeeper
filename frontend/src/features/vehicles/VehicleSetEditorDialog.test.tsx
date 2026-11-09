@@ -94,7 +94,7 @@ describe("VehicleSetEditorDialog", () => {
 		expect(choose).toHaveBeenCalledWith("set-1", { mode: "member", memberImageId: "image-1" });
 
 		const file = new File(["image"], "set.png", { type: "image/png" });
-		await user.upload(screen.getByLabelText(/Eigenes Setbild hochladen/), file);
+		await user.upload(screen.getByLabelText(/Eigenes Setbild hochladen/, { selector: "input" }), file);
 		expect(upload).toHaveBeenCalledWith("set-1", file);
 
 		await user.click(screen.getByRole("button", { name: /Automatische Auswahl verwenden/ }));

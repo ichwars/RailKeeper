@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { useEffect, useRef } from "react";
 import { ChevronDown, ChevronUp, Copy, Eye, ImageOff, Pencil } from "lucide-react";
 
@@ -91,7 +92,7 @@ export function VehicleSetInventoryRow({
 		<tr className="vehicle-set-inventory-row">
 			<td className="select-cell">
 				<label className="table-select-field" title={t("vehicles.report.selectVehicle")}>
-					<input ref={checkboxRef} type="checkbox" checked={memberIDs.length > 0 && selectedCount === memberIDs.length}
+					<AppChoiceInput ref={checkboxRef} type="checkbox" checked={memberIDs.length > 0 && selectedCount === memberIDs.length}
 						onChange={() => onToggleSelection(memberIDs)}
 						aria-label={`${group.set.inventoryNumber} ${t("vehicles.report.selectVehicle")}`} />
 				</label>

@@ -6,7 +6,7 @@ function canvasFixture(width = 640, height = 240) {
   const context = {
     setTransform: vi.fn(), clearRect: vi.fn(), setLineDash: vi.fn(), beginPath: vi.fn(),
     moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(), fillText: vi.fn(), closePath: vi.fn(),
-    fill: vi.fn(), arc: vi.fn(), createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() }))
+    fill: vi.fn(), arc: vi.fn(), font: "", createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() }))
   };
   // This DOM adapter fixture supplies only the canvas drawing operations used by these charts.
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as unknown as CanvasRenderingContext2D);
@@ -33,6 +33,17 @@ describe("overview chart rendering and lifecycle", () => {
     expect(draw.arc).toHaveBeenCalledWith(630, 10, 3, 0, Math.PI * 2);
     expect(draw.arc).toHaveBeenCalledTimes(4);
     expect(draw.createLinearGradient).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses the canvas typography so chart labels follow the shared font and size", () => {
+    const draw = canvasFixture();
+    const { container } = render(<InventoryTrendChart points={[]} />);
+    const canvas = container.querySelector("canvas")!;
+    canvas.style.font = '12px "RailKeeper Sans"';
+    act(() => window.dispatchEvent(new Event("resize")));
+    const font = getComputedStyle(canvas);
+    // ResizeObserver owns resizing when available; changing the theme also redraws.
+    expect(draw.font).toBe(`${font.fontSize} ${font.fontFamily}`);
   });
 
   it.each([{ points: [] }, { points: [{ label: "Only", vehicles: 0, accessories: 0 }] }])("keeps empty and single-point collections finite", ({ points }) => {

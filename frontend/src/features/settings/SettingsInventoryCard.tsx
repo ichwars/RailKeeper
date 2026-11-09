@@ -1,3 +1,4 @@
+import { AppNumberControl } from "../../shared/ui/AppNumberControl";
 import { useI18n } from "../../shared/i18n";
 import { Plus, RefreshCw } from "lucide-react";
 import type { SettingsGeneralController } from "./useSettingsGeneral";
@@ -63,10 +64,10 @@ export function SettingsInventoryCard({ general }: { general: SettingsGeneralCon
                 />
               </td>
               <td>
-                <input type="number" min={1} value={newInventoryScheme.nextNumber} onChange={(event) => updateNewInventoryScheme({ nextNumber: Number(event.target.value) })} />
+                <AppNumberControl min={1} value={newInventoryScheme.nextNumber} onChange={(event) => updateNewInventoryScheme({ nextNumber: Number(event.target.value) })} />
               </td>
               <td>
-                <input type="number" min={1} max={12} value={newInventoryScheme.padding} onChange={(event) => updateNewInventoryScheme({ padding: Number(event.target.value) })} />
+                <AppNumberControl min={1} max={12} value={newInventoryScheme.padding} onChange={(event) => updateNewInventoryScheme({ padding: Number(event.target.value) })} />
               </td>
               <td>
                 <label className="switch-field" aria-label={t("settings.inventoryNumbers.newActiveAria")}>
@@ -98,10 +99,10 @@ export function SettingsInventoryCard({ general }: { general: SettingsGeneralCon
                     <input value={scheme.prefix} onChange={(event) => updateInventoryScheme(scheme.category, { prefix: event.target.value })} />
                   </td>
                   <td>
-                    <input type="number" min={1} value={scheme.nextNumber} onChange={(event) => updateInventoryScheme(scheme.category, { nextNumber: Number(event.target.value) })} />
+                    <AppNumberControl min={1} value={scheme.nextNumber} onChange={(event) => updateInventoryScheme(scheme.category, { nextNumber: Number(event.target.value) })} />
                   </td>
                   <td>
-                    <input type="number" min={1} max={12} value={scheme.padding} onChange={(event) => updateInventoryScheme(scheme.category, { padding: Number(event.target.value) })} />
+                    <AppNumberControl min={1} max={12} value={scheme.padding} onChange={(event) => updateInventoryScheme(scheme.category, { padding: Number(event.target.value) })} />
                   </td>
                   <td>
                     <label className="switch-field" aria-label={t("settings.inventoryNumbers.activeAria", { category: inventoryCategoryLabel(scheme.category) })}>

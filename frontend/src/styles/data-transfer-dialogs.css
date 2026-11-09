@@ -110,7 +110,7 @@
   min-height: 92px;
   padding: 9px 10px;
   resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: var(--font-size-sm);
 }
 
@@ -681,7 +681,8 @@
 
   .data-transfer-wizard-steps li {
     padding-inline: 2px;
-    font-size: 0.65rem;
+    font-size: var(--font-size-xs);
+    overflow-wrap: anywhere;
   }
 
   .data-transfer-file-drop,
@@ -689,7 +690,7 @@
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .data-transfer-file-drop .secondary-button,
+  .data-transfer-file-drop .app-file-button,
   .transfer-export-result .secondary-button {
     grid-column: 1 / -1;
   }

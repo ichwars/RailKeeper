@@ -168,7 +168,7 @@
   min-height: 180px;
   padding: 10px 11px;
   resize: vertical;
-  font-family: var(--font-mono);
+  font-family: inherit;
   font-size: var(--font-size-md);
   line-height: var(--line-height-normal);
 }
@@ -195,7 +195,7 @@
 .app-field-help,
 .app-field-error {
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-regular);
   line-height: var(--line-height-normal);
 }
 
@@ -374,7 +374,7 @@
   flex: 1 1 auto;
   overflow: hidden;
   color: var(--text);
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-regular);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -382,6 +382,12 @@
 .app-file-picker-name.empty,
 .app-multi-select-trigger .empty {
   color: var(--muted);
+}
+
+.app-file-button { display: inline-flex; min-width: 0; }
+.app-file-button > button:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
 }
 
 .app-multi-select-trigger {
@@ -574,7 +580,7 @@
   width: 36px;
   height: 20px;
   border-radius: var(--radius-pill);
-  background: #b8c2cc;
+  background: var(--line-strong);
   cursor: pointer;
   transition: background var(--duration-slow) var(--ease-standard);
 }
@@ -592,17 +598,26 @@
 }
 
 .switch-field input:checked + span {
-  background: #22c55e;
+  background: var(--accent);
 }
 
 .switch-field input:checked + span::after {
   transform: translateX(16px);
 }
 
+.switch-field input:focus-visible + span {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
 .switch-field input:disabled + span,
 .inline-switch-input input:disabled {
   cursor: not-allowed;
   opacity: 0.62;
+}
+
+.switch-field > input:disabled {
+  opacity: 0;
 }
 
 .list-head {

@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import {
   AlertTriangle,
   Barcode,
@@ -167,7 +168,7 @@ export function VehicleCreateArticleReview({
                     const defaultMemberIndex = memberCount > 0 ? imageIndex % memberCount : 0;
                     return (
                       <div className="vehicle-create-review-image" key={image.url}>
-                        <label><input type="checkbox"
+                        <label><AppChoiceInput type="checkbox"
                           checked={Boolean(controller.state.selectedImages[selectionKey])}
                           onChange={(event) => {
                             controller.commands.toggleImage(result, resultIndex, image, event.target.checked);
@@ -209,7 +210,7 @@ export function VehicleCreateArticleReview({
                         <span className="vehicle-create-review-field"><FieldIcon size={13} />
                           {articleFieldLabels[key as keyof CreateVehicleRequest] || field.label}</span>
                         <span className="vehicle-create-review-value">{field.value}</span>
-                        <input type="checkbox" checked={Boolean(controller.state.selectedFields[selectionKey])}
+                        <AppChoiceInput type="checkbox" checked={Boolean(controller.state.selectedFields[selectionKey])}
                           aria-label={`${articleFieldLabels[key as keyof CreateVehicleRequest] || field.label}: ${field.value}`}
                           onChange={(event) => controller.commands.toggleField(result, resultIndex, key, event.target.checked)} />
                       </label>

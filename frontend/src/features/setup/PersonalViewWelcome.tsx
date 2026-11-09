@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   applySidebarProfile, defaultSidebarOrder, normalizeSidebarPrefs, readSidebarPrefs,
@@ -70,7 +71,7 @@ export function PersonalViewWelcome({ username, onComplete }: { username: string
       <fieldset disabled={saving || loading}>
         <legend>{t("settings.sidebarProfile.title")}</legend>
         {(["collection", "all"] as const).map(value => <label className="personal-view-choice" key={value}>
-          <input type="radio" name="personalView" value={value} checked={profile === value}
+          <AppChoiceInput type="radio" name="personalView" value={value} checked={profile === value}
             onChange={() => setProfile(value)} />
           <span><strong>{t(`settings.sidebarProfile.${value}`)}</strong><small>{t(`setup.personalView.${value}`)}</small></span>
         </label>)}

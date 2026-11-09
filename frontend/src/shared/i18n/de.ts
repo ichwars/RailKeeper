@@ -424,6 +424,8 @@ export const deTranslations: Record<string, string> = {
     "settings.masterTransfer.fileMissing": "Bitte zuerst eine Stammdaten-Datei auswählen.",
     "settings.masterTransfer.confirm": "Stammdaten wirklich importieren? Bestehende Stammdaten und Kategorie/Gattung-Abhängigkeiten werden ersetzt. Bestand und Uploads bleiben unverändert.",
     "settings.masterTransfer.imported": "Stammdaten importiert: {entries} Einträge, {relations} Abhängigkeiten.",
+    "controls.number.increase": "Wert erhöhen",
+    "controls.number.decrease": "Wert verringern",
     "settings.file.pick": "Datei auswählen",
     "settings.file.none": "Keine ausgewählt",
     "settings.masterTransfer.saving": "Wird importiert...",

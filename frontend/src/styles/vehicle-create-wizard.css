@@ -34,7 +34,7 @@
 }
 
 .vehicle-create-head .icon-button {
-  font-size: 25px;
+  font-size: var(--font-size-title-2xl);
   line-height: 1;
 }
 

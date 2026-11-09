@@ -17,7 +17,7 @@ const result: ECoSBackupImportResult = {
 };
 
 function choose(file: File) {
-  fireEvent.change(screen.getByLabelText("ECoS-Sicherung (.eco)"), { target: { files: [file] } });
+  fireEvent.change(screen.getByLabelText("ECoS-Sicherung (.eco)", { selector: "input" }), { target: { files: [file] } });
 }
 
 describe("ECoSBackupImport", () => {

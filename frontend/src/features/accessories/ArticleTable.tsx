@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { type CSSProperties, type ReactNode, useEffect, useRef } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
@@ -220,7 +221,7 @@ export function ArticleTable({
           <tr>
             <th className="select-cell" aria-label={t("accessories.table.select")}>
               <label className="table-select-field" title={t("accessories.table.selectAll")}>
-                <input ref={selectAllRef} type="checkbox" checked={allSelected}
+                <AppChoiceInput ref={selectAllRef} type="checkbox" checked={allSelected}
                   disabled={items.length === 0} aria-label={t("accessories.table.selectAll")}
                   onChange={() => onToggleAll?.()} />
               </label>
@@ -238,7 +239,7 @@ export function ArticleTable({
             ].filter(Boolean).join(" ")}>
               <td className="select-cell">
                 <label className="table-select-field" title={t("accessories.table.selectNamed", { name: article.name })}>
-                  <input type="checkbox" checked={selectedIDs.has(article.id)}
+                  <AppChoiceInput type="checkbox" checked={selectedIDs.has(article.id)}
                     aria-label={t("accessories.table.selectNamed", { name: article.name })}
                     onChange={() => onToggleSelection?.(article.id)} />
                 </label>

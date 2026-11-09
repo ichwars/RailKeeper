@@ -1,3 +1,4 @@
+import { AppNumberControl } from "../../shared/ui/AppNumberControl";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Archive, Check, CircleHelp, Cpu, Database, Download, FileCode, FileText, FolderOpen, Save, Trash2, Upload } from "lucide-react";
 import { DecoderCVArchive } from "./DecoderCVArchive";
@@ -259,19 +260,19 @@ export function VehicleCVTab({
                         <div className="cv-form">
                           <label>
                             CV-Nr.
-                            <input type="number" min={1} max={1024} value={cvForm.cvNumber} onChange={(event) => updateCVForm({ cvNumber: Number(event.target.value) })} disabled={readonly || saving} />
+                            <AppNumberControl min={1} max={1024} value={cvForm.cvNumber} onChange={(event) => updateCVForm({ cvNumber: Number(event.target.value) })} disabled={readonly || saving} />
                           </label>
                           <label>CV31
-                            <input aria-label="CV31" type="number" min={0} max={255} value={cvForm.indexCV31 ?? ""}
+                            <AppNumberControl aria-label="CV31" min={0} max={255} value={cvForm.indexCV31 ?? ""}
                               onChange={(event) => updateCVForm({ indexCV31: event.target.value === "" ? null : Number(event.target.value) })} disabled={readonly || saving} />
                           </label>
                           <label>CV32
-                            <input aria-label="CV32" type="number" min={0} max={255} value={cvForm.indexCV32 ?? ""}
+                            <AppNumberControl aria-label="CV32" min={0} max={255} value={cvForm.indexCV32 ?? ""}
                               onChange={(event) => updateCVForm({ indexCV32: event.target.value === "" ? null : Number(event.target.value) })} disabled={readonly || saving} />
                           </label>
                           <label>
                             {t("vehicle.field.value")}
-                            <input type="number" min={0} max={255} value={cvForm.value} onChange={(event) => updateCVForm({ value: Number(event.target.value) })} disabled={readonly || saving} />
+                            <AppNumberControl min={0} max={255} value={cvForm.value} onChange={(event) => updateCVForm({ value: Number(event.target.value) })} disabled={readonly || saving} />
                           </label>
                           <label>
                             {t("vehicle.field.category")}

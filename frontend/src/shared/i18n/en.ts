@@ -424,6 +424,8 @@ export const enTranslations: Record<string, string> = {
     "settings.masterTransfer.fileMissing": "Choose a master data file first.",
     "settings.masterTransfer.confirm": "Import master data now? Existing master data and category/subtype dependencies will be replaced. Inventory and uploads remain unchanged.",
     "settings.masterTransfer.imported": "Master data imported: {entries} entries, {relations} dependencies.",
+    "controls.number.increase": "Increase value",
+    "controls.number.decrease": "Decrease value",
     "settings.file.pick": "Choose file",
     "settings.file.none": "None selected",
     "settings.masterTransfer.saving": "Importing...",

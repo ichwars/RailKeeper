@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { useI18n } from "../../shared/i18n";
 import { Database } from "lucide-react";
 import { articleSearchSourceOptions } from "./settingsModel";
@@ -31,7 +32,7 @@ export function SettingsArticleSearchCard({ preferences }: { preferences: Settin
       <div className="article-source-grid" aria-label={t("settings.articleSearch.sources")}>
         {articleSearchSourceOptions.map((option) => (
           <label key={option.id} className="article-source-option">
-            <input
+            <AppChoiceInput
               type="checkbox"
               checked={articleSearchSources.includes(option.id)}
               onChange={(event) => updateArticleSearchSource(option.id, event.target.checked)}

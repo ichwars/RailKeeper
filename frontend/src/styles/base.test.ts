@@ -16,6 +16,17 @@ function cssFiles(directory: string): string[] {
 }
 
 describe("base design system", () => {
+  it("inherits approved typography for every native form control", () => {
+    expect(baseCss).toMatch(/button,\s*input,\s*select,\s*textarea\s*\{[^}]*font:\s*inherit/s);
+    expect(baseCss).toMatch(/small\s*\{[^}]*font-size:\s*var\(--font-size-xs\)/s);
+  });
+
+  it("allows authentication headings and columns to shrink on narrow screens", () => {
+    const css = readFileSync(join(stylesDirectory, "settings.css"), "utf8");
+    expect(css).toMatch(/\.auth-settings-grid,\s*\.digital-settings-grid\s*\{[^}]*min-width:\s*0/s);
+    expect(css).toMatch(/\.settings-card-title > div\s*\{[^}]*min-width:\s*0[^}]*overflow-wrap:\s*anywhere/s);
+  });
+
   it("confines hidden exhibition row actions to the scrollable table", () => {
     const exhibitionCss = readFileSync(join(stylesDirectory, "exhibition.css"), "utf8");
     expect(exhibitionCss).toMatch(/\.exhibition-row-menu\s*\{[^}]*position:\s*relative/s);

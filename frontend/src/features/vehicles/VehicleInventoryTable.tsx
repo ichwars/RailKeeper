@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { Fragment, useId, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowUpDown,
@@ -161,7 +162,7 @@ export function VehicleInventoryTable({
           className={vehicle.exhibition ? "inventory-inline-switch active" : "inventory-inline-switch"}
           title={t("vehicles.exhibition.toggle")}
         >
-          <input
+          <AppChoiceInput
             type="checkbox"
             checked={Boolean(vehicle.exhibition)}
             onChange={(event) => onToggleExhibition(vehicle, event.target.checked)}
@@ -186,7 +187,7 @@ export function VehicleInventoryTable({
     >
       <td className="select-cell">
         <label className="table-select-field" title={t("vehicles.report.selectVehicle")}>
-          <input
+          <AppChoiceInput
             type="checkbox"
             checked={selectedVehicleIDs.has(vehicle.id)}
             onChange={() => onToggleSelection(vehicle.id)}
@@ -250,7 +251,7 @@ export function VehicleInventoryTable({
           <tr>
             <th className="select-cell">
               <label className="table-select-field" title={t("vehicles.report.selectAll")}>
-                <input
+                <AppChoiceInput
                   type="checkbox"
                   checked={allVisibleSelected}
                   onChange={onToggleAllVisibleSelection}

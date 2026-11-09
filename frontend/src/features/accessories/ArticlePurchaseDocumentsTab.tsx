@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Download, FileText, Image as ImageIcon, ShoppingCart, Trash2 } from "lucide-react";
 
@@ -171,7 +172,7 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
             <AppDateInput value={purchase.warrantyUntil || ""}
               onChange={(event) => setPurchase((current) => ({ ...current, warrantyUntil: event.target.value }))} />
           </label>
-          <label className="article-checkbox"><input type="checkbox" checked={Boolean(purchase.bookToStock)}
+          <label className="article-checkbox"><AppChoiceInput type="checkbox" checked={Boolean(purchase.bookToStock)}
             onChange={(event) => setPurchase((current) => ({ ...current, bookToStock: event.target.checked }))} />
             <span>{t("accessories.editor.purchase.bookToStock")}</span>
           </label>

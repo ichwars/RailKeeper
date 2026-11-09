@@ -1,3 +1,4 @@
+import { AppChoiceInput } from "../ui/AppChoiceInput";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, Check, ExternalLink, X } from "lucide-react";
@@ -167,7 +168,7 @@ export function ArticleSearchDialog({
                       const selectionKey = imageSelectionKey(result, image, index);
                       return (
                         <label key={image.url} className="article-image-option">
-                          <input
+                          <AppChoiceInput
                             type="checkbox"
                             checked={Boolean(selectedImages[selectionKey])}
                             onChange={(event) => onToggleImage(result, index, image, event.target.checked)}
@@ -229,7 +230,7 @@ export function ArticleSearchDialog({
                                   <tr key={key} className={status === "conflict" ? "conflict" : ""}>
                                     <td>
                                       <label className="article-field-toggle">
-                                        <input
+                                        <AppChoiceInput
                                           type="checkbox"
                                           aria-label={`${t("vehicles.articleSearch.apply")}: ${articleFieldLabel(key, field.label)}`}
                                           checked={Boolean(selectedFields[selectionKey])}

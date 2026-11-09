@@ -130,6 +130,7 @@
 .digital-settings-grid {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .auth-settings-grid .auth-status-card,
@@ -171,6 +172,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  min-width: 0;
 }
 
 .settings-card-title > svg,
@@ -183,6 +185,8 @@
 .settings-card-title > div {
   display: grid;
   gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .settings-field-grid {
@@ -1695,6 +1699,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  flex: 1 1 auto;
 }
 
 .settings-section-head > .settings-card-actions {

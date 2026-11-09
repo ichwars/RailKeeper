@@ -80,13 +80,13 @@
 .ecos-disabled-content strong,
 .ecos-section-head strong {
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: var(--font-size-base);
 }
 
 .ecos-disabled-content span,
 .ecos-section-head span {
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-normal);
 }
@@ -212,7 +212,7 @@
 
 .ecos-detail-popover dt {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--font-size-xs);
 }
 
 .ecos-detail-popover dd {
@@ -238,12 +238,12 @@
 
 .ecos-flow-note strong {
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: var(--font-size-md);
 }
 
 .ecos-flow-note span {
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-normal);
 }
@@ -275,7 +275,7 @@
 .ecos-cv-review-panel > p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: var(--font-size-md);
 }
 
 .ecos-cv-profile-grid {
@@ -317,12 +317,12 @@
 .ecos-card-actions .secondary-button {
   min-height: 32px;
   padding: 6px 9px;
-  font-size: 0.76rem;
+  font-size: var(--font-size-xs);
 }
 
 .ecos-cv-profile-card strong {
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: var(--font-size-md);
 }
 
 .ecos-cv-profile-card dl {
@@ -339,7 +339,7 @@
 
 .ecos-cv-profile-card dt {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
 }
@@ -347,7 +347,7 @@
 .ecos-cv-profile-card dd {
   margin: 0;
   color: var(--text);
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
 }
@@ -375,7 +375,7 @@
   border-radius: 999px;
   background: var(--panel-subtle);
   color: var(--muted);
-  font-size: 0.74rem;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-black);
 }
 
@@ -397,7 +397,7 @@
 .ecos-worklist-table small,
 .ecos-cv-review-table small {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
 }
 
 .ecos-row-actions {
@@ -409,7 +409,7 @@
 .ecos-row-actions .secondary-button {
   min-height: 30px;
   padding: 5px 8px;
-  font-size: 0.74rem;
+  font-size: var(--font-size-xs);
 }
 
 .ecos-sync-preview {
@@ -434,7 +434,7 @@
 .ecos-sync-preview small {
   display: block;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
 }
 
@@ -451,7 +451,7 @@
 .ecos-cv-interpretation {
   min-width: 220px;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
 }
 
@@ -632,7 +632,7 @@
   border-radius: 999px;
   background: var(--input-bg);
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-heavy);
 }
 
@@ -703,7 +703,7 @@
 .ecos-raw-card summary small,
 .ecos-raw-card summary em {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--font-size-xs);
   font-style: normal;
 }
 
@@ -727,7 +727,7 @@
 .ecos-raw-section h3 {
   margin: 0;
   color: var(--accent);
-  font-size: 0.82rem;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-heavy);
 }
 
@@ -748,7 +748,7 @@
 
 .ecos-raw-definition-list dt {
   color: var(--muted);
-  font-size: 0.73rem;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-black);
 }
 
@@ -783,7 +783,7 @@
 .ecos-raw-function-grid small,
 .ecos-raw-function-grid em {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
   font-style: normal;
 }
 
@@ -797,12 +797,12 @@
 
 .ecos-raw-cv-grid strong {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--font-size-xs);
 }
 
 .ecos-raw-cv-grid em {
   color: var(--text);
-  font-size: 1rem;
+  font-size: var(--font-size-lg);
   font-style: normal;
   font-weight: var(--font-weight-heavy);
 }
@@ -823,7 +823,7 @@
 
 .ecos-raw-attributes dt {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-black);
   text-transform: uppercase;
 }
@@ -853,7 +853,7 @@
   border-radius: 6px;
   background: var(--input-bg);
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   white-space: pre-wrap;
 }
 

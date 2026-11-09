@@ -1,3 +1,4 @@
+import { AppNumberControl } from "../../shared/ui/AppNumberControl";
 import { Barcode, ChevronDown, ChevronRight, FileText, ExternalLink, PackageSearch, RadioTower } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { CreateVehicleRequest, MasterDataEntry, MasterDataRelation, VehicleExternalMapping, VehicleCVValue, type ECoSDecoderProfileEvidence } from "../../shared/api";
@@ -280,8 +281,7 @@ export function VehicleModelTab({
               <label>
                 {t("vehicle.field.maximumSpeedKmh")}
                 <span className="input-with-unit">
-                  <input
-                    type="number"
+                  <AppNumberControl
                     min={1}
                     max={1000}
                     step={1}

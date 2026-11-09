@@ -52,7 +52,7 @@ describe("Settings transfer safety and state", () => {
     render(<SettingsView username="editor" />);
 
     const file = backup();
-    await user.upload(screen.getByLabelText(/^Backup-Datei/), file);
+    await user.upload(screen.getByLabelText(/^Backup-Datei/, { selector: "input" }), file);
     expect(screen.getByText("Backup wird geprüft...")).toBeInTheDocument();
     const restore = screen.getByRole("button", { name: "Backup einspielen" });
     expect(restore).toBeDisabled();
@@ -88,11 +88,11 @@ describe("Settings transfer safety and state", () => {
       .mockRejectedValueOnce(new Error("Invalid backup JSON"));
     render(<SettingsView username="editor" />);
 
-    await user.upload(screen.getByLabelText(/^Backup-Datei/), backup());
+    await user.upload(screen.getByLabelText(/^Backup-Datei/, { selector: "input" }), backup());
     expect(await screen.findByText("Future backup version")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Backup einspielen" })).toBeDisabled();
     expect(screen.queryByPlaceholderText("WIEDERHERSTELLEN")).not.toBeInTheDocument();
-    await user.upload(screen.getByLabelText(/^Backup-Datei/), new File(["bad"], "invalid.json"));
+    await user.upload(screen.getByLabelText(/^Backup-Datei/, { selector: "input" }), new File(["bad"], "invalid.json"));
     expect(await screen.findByText("Invalid backup JSON")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Backup einspielen" })).toBeDisabled();
     expect(api.restoreBackup).not.toHaveBeenCalled();
@@ -102,7 +102,7 @@ describe("Settings transfer safety and state", () => {
     const user = userEvent.setup();
     vi.mocked(api.restoreBackup).mockRejectedValueOnce(new Error("Restore rejected"));
     render(<SettingsView username="editor" />);
-    await user.upload(screen.getByLabelText(/^Backup-Datei/), backup());
+    await user.upload(screen.getByLabelText(/^Backup-Datei/, { selector: "input" }), backup());
     await user.type(await screen.findByPlaceholderText("WIEDERHERSTELLEN"), "WIEDERHERSTELLEN");
     await user.click(screen.getByRole("button", { name: "Darstellung" }));
     await user.click(screen.getByRole("button", { name: "Backup" }));
@@ -124,7 +124,7 @@ describe("Settings transfer safety and state", () => {
     await waitFor(() => expect(api.managedMasterDataAll).toHaveBeenCalledTimes(1));
     await user.click(screen.getByRole("button", { name: "Backup" }));
     const file = backup();
-    await user.upload(screen.getByLabelText(/^Stammdaten-Datei/), file);
+    await user.upload(screen.getByLabelText(/^Stammdaten-Datei/, { selector: "input" }), file);
     const importButton = screen.getByRole("button", { name: "Stammdaten einspielen" });
     await user.click(importButton);
     expect(api.importMasterData).not.toHaveBeenCalled();
