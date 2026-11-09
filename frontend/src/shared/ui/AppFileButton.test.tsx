@@ -12,6 +12,7 @@ describe("AppFileButton", () => {
       onChange={event => names.push(Array.from(event.target.files || [], file => file.name))}>Browse</AppFileButton>);
     const click = vi.spyOn(ref.current!, "click");
     const button = screen.getByRole("button", { name: "Import files" });
+    expect(screen.getAllByRole("button")).toEqual([button]);
     button.focus();
     await userEvent.keyboard("{Enter}");
     expect(click).toHaveBeenCalledTimes(1);

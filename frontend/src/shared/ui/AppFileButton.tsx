@@ -11,7 +11,7 @@ export const AppFileButton = forwardRef<HTMLInputElement, AppFileButtonProps>(fu
 ) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   return <span className={`app-file-button ${className}`.trim()}>
-    <input {...inputProps} type="file" className="visually-hidden" tabIndex={-1} disabled={disabled}
+    <input {...inputProps} type="file" className="visually-hidden" tabIndex={-1} aria-hidden="true" disabled={disabled}
       ref={node => {
         inputRef.current = node;
         if (typeof forwardedRef === "function") forwardedRef(node);

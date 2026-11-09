@@ -1790,6 +1790,7 @@ export const enTranslations: Record<string, string> = {
     "vehicles.articleSearch.empty": "No matching article data found.",
     "vehicles.articleSearch.sourceOpen": "Open source",
     "vehicles.articleSearch.imagesFound": "Found images",
+    "vehicles.articleSearch.selectImage": "Select image {index}: {name}",
     "vehicles.articleSearch.conflicts": "Conflicts with existing fields: {fields}",
     "vehicles.articleSearch.apply": "Apply",
     "vehicles.articleSearch.field": "Field",

@@ -28,6 +28,11 @@ describe("base design system", () => {
     expect(css).toMatch(/\.smtp-settings-card \.settings-form\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
   });
 
+  it("keeps article image selection above its thumbnail without taking image space", () => {
+    const css = readFileSync(join(stylesDirectory, "vehicle-dialogs.css"), "utf8");
+    expect(css).toMatch(/\.article-image-option > \.app-choice-control\s*\{[^}]*position:\s*absolute/s);
+  });
+
   it("confines hidden exhibition row actions to the scrollable table", () => {
     const exhibitionCss = readFileSync(join(stylesDirectory, "exhibition.css"), "utf8");
     expect(exhibitionCss).toMatch(/\.exhibition-row-menu\s*\{[^}]*position:\s*relative/s);

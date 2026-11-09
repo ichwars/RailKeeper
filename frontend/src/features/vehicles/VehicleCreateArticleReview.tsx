@@ -169,6 +169,8 @@ export function VehicleCreateArticleReview({
                     return (
                       <div className="vehicle-create-review-image" key={image.url}>
                         <label><AppChoiceInput type="checkbox"
+                          aria-label={t("vehicles.articleSearch.selectImage", { index: imageIndex + 1,
+                            name: image.title || result.title })}
                           checked={Boolean(controller.state.selectedImages[selectionKey])}
                           onChange={(event) => {
                             controller.commands.toggleImage(result, resultIndex, image, event.target.checked);

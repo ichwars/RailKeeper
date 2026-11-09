@@ -162,7 +162,7 @@ export function VehicleInventoryTable({
           className={vehicle.exhibition ? "inventory-inline-switch active" : "inventory-inline-switch"}
           title={t("vehicles.exhibition.toggle")}
         >
-          <AppChoiceInput
+          <input
             type="checkbox"
             checked={Boolean(vehicle.exhibition)}
             onChange={(event) => onToggleExhibition(vehicle, event.target.checked)}

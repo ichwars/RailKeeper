@@ -164,12 +164,14 @@ export function ArticleSearchDialog({
 
                 {visibleImages.length > 0 && (
                   <div className="article-image-strip" aria-label={t("vehicles.articleSearch.imagesFound")}>
-                    {visibleImages.map((image) => {
+                    {visibleImages.map((image, imageIndex) => {
                       const selectionKey = imageSelectionKey(result, image, index);
                       return (
                         <label key={image.url} className="article-image-option">
                           <AppChoiceInput
                             type="checkbox"
+                            aria-label={t("vehicles.articleSearch.selectImage", { index: imageIndex + 1,
+                              name: image.title || result.title })}
                             checked={Boolean(selectedImages[selectionKey])}
                             onChange={(event) => onToggleImage(result, index, image, event.target.checked)}
                           />

@@ -1790,6 +1790,7 @@ export const deTranslations: Record<string, string> = {
     "vehicles.articleSearch.empty": "Keine passenden Artikeldaten gefunden.",
     "vehicles.articleSearch.sourceOpen": "Quelle öffnen",
     "vehicles.articleSearch.imagesFound": "Gefundene Bilder",
+    "vehicles.articleSearch.selectImage": "Bild {index} auswählen: {name}",
     "vehicles.articleSearch.conflicts": "Konflikte mit bestehenden Feldern: {fields}",
     "vehicles.articleSearch.apply": "Übernehmen",
     "vehicles.articleSearch.field": "Feld",
