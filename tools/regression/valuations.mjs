@@ -191,7 +191,14 @@ export async function assertValuations(page, input, de, { actor, csrfToken }) {
       await page.setViewportSize({ width, height: 1000 });
       await page.locator(".main").evaluate(main => { main.scrollTop = main.scrollHeight; });
       const content = await card.boundingBox(), report = await page.locator(".feedback-button").boundingBox();
-      assert.ok(content.y + content.height <= report.y, "The fixed report action must not cover the valuation summary");
+      const main = await page.locator(".main").boundingBox();
+      assert.ok(main);
+      const overlapWidth = Math.min(content.x + content.width, main.x + main.width, report.x + report.width)
+        - Math.max(content.x, main.x, report.x);
+      const overlapHeight = Math.min(content.y + content.height, main.y + main.height, report.y + report.height)
+        - Math.max(content.y, main.y, report.y);
+      assert.ok(overlapWidth <= 0 || overlapHeight <= 0,
+        "The fixed report action must not cover the visible valuation summary");
     }
     checks.push(`${language}:valuation-dashboard-cutoff-shows-unknown-past-and-exact-currency`);
   } finally {
