@@ -4,7 +4,7 @@ description: Versions and help.
 audience: reference
 status: stable
 reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+lastReviewed: 2026-11-10
 ---
 
 # Versions and help
@@ -26,6 +26,19 @@ The complete [German changelog](https://github.com/ichwars/RailKeeper/blob/main/
 and [English changelog](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.md#020---2026-11-09)
 describe this release's changes.
 
+The [v0.2.0 release evidence](https://github.com/ichwars/RailKeeper/blob/main/docs/releases/v0.2.0.md#go-test-and-coverage-evidence)
+links the successful Go test run and permanently retained coverage reports.
+
+## Feedback from the v0.2.x trial
+
+Use the short [experience report template](https://github.com/ichwars/RailKeeper/issues/new?template=experience_report.md).
+Include version/build, installation method, optional command station and trial period. What worked,
+what was unclear and which feature was difficult to find? Fill in either language section.
+The [initial club feedback review](https://github.com/ichwars/RailKeeper/issues/376)
+is planned for 23 November to 7 December 2026. Keep new features separate during this period;
+verified 0.2.x fixes and related documentation go through PRs.
+A review without actual feedback does not constitute practical acceptance.
+
 ## Where should I ask?
 
 | Need | Destination |
@@ -33,6 +46,7 @@ describe this release's changes.
 | How do I use a feature? | [Handbook](../guide/) and [Q&A](https://github.com/ichwars/RailKeeper/discussions/categories/q-a) |
 | An idea or desired workflow | [Ideas](https://github.com/ichwars/RailKeeper/discussions/categories/ideas) |
 | Reproducible bug | [New issue](https://github.com/ichwars/RailKeeper/issues/new/choose) |
+| Experience from the trial | [Experience report](https://github.com/ichwars/RailKeeper/issues/new?template=experience_report.md) |
 | Vulnerability or private data | [Private security report](https://github.com/ichwars/RailKeeper/security/advisories/new) |
 | Packages and official release notes | [GitHub Releases](https://github.com/ichwars/RailKeeper/releases) |
 | Current project entry | [Discussion welcome](https://github.com/ichwars/RailKeeper/discussions/1) |

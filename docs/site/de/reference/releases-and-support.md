@@ -4,7 +4,7 @@ description: Versionen und Hilfe.
 audience: reference
 status: stable
 reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+lastReviewed: 2026-11-10
 ---
 
 # Versionen und Hilfe
@@ -26,6 +26,19 @@ angegeben. Das vollständige [deutsche Änderungsprotokoll](https://github.com/i
 und die [englische Fassung](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.md#020---2026-11-09)
 beschreiben die Änderungen dieses Releases.
 
+Die [Release-Nachweise zu v0.2.0](https://github.com/ichwars/RailKeeper/blob/main/docs/releases/v0.2.0.md#go-test--und-coverage-nachweis)
+verlinken den erfolgreichen Go-Testlauf sowie dauerhaft gespeicherte Coverage-Berichte.
+
+## Rückmeldung zur v0.2.x-Testphase
+
+Nutze die kurze [Vorlage für Erfahrungsberichte](https://github.com/ichwars/RailKeeper/issues/new?template=experience_report.md).
+Nenne Version/Build, Installationsweg, optionale Zentrale und Testzeitraum. Was hat funktioniert,
+was war unklar und welche Funktion war schwer zu finden? Es genügt eine Sprachfassung der Vorlage.
+Die [erste Auswertung der Vereinsrückmeldungen](https://github.com/ichwars/RailKeeper/issues/376)
+ist für den 23. November bis 7. Dezember 2026 vorgesehen. Bis dahin bleiben neue Funktionen
+zurückgestellt; geprüfte 0.2.x-Fehlerbehebungen und passende Dokumentation erfolgen über PRs.
+Eine Auswertung ohne eingegangene Rückmeldungen gilt nicht als Praxisabnahme.
+
 ## Wo gehört meine Frage hin?
 
 | Anliegen | Richtiger Ort |
@@ -33,6 +46,7 @@ beschreiben die Änderungen dieses Releases.
 | Wie verwende ich eine Funktion? | [Handbuch](../guide/) und [Fragen & Antworten](https://github.com/ichwars/RailKeeper/discussions/categories/q-a) |
 | Eine Idee oder ein gewünschter Arbeitsablauf | [Ideen](https://github.com/ichwars/RailKeeper/discussions/categories/ideas) |
 | Reproduzierbarer Fehler | [Neues Issue](https://github.com/ichwars/RailKeeper/issues/new/choose) |
+| Erfahrung aus der Testphase | [Erfahrungsbericht](https://github.com/ichwars/RailKeeper/issues/new?template=experience_report.md) |
 | Sicherheitslücke oder private Daten | [Private Sicherheitsmeldung](https://github.com/ichwars/RailKeeper/security/advisories/new) |
 | Pakete und verbindliche Versionshinweise | [GitHub-Releases](https://github.com/ichwars/RailKeeper/releases) |
 | Aktueller Projekteinstieg | [Willkommen in den Diskussionen](https://github.com/ichwars/RailKeeper/discussions/1) |

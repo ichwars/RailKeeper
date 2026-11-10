@@ -217,6 +217,18 @@ bleiben gesonderte Betreiberaufträge.
 
 ## Release-Veröffentlichung
 
+Jede Veröffentlichung, einschließlich eines kommenden v0.2.1-Korrekturreleases, wird über einen
+eigenen geprüften Pull Request vorbereitet. Keine direkten Release-Commits auf `main`.
+Die [Release-PR-Vorlage](../.github/PULL_REQUEST_TEMPLATE/release.md) enthält die nötigen Nachweise;
+beim Anlegen des GitHub-PRs lässt sie sich mit `template=release.md` auswählen. Die automatische
+Veröffentlichung folgt erst nach Merge und erfolgreicher Main-CI. Ein neuer Release-Tag ist erst
+bei einer tatsächlichen, geprüften Korrektur erforderlich, nicht für reine Dokumentationsnachträge.
+
+Während der v0.2.x-Testphase nur Fehlerbehebungen und zugehörige Dokumentation übernehmen.
+Neue Funktionen separat planen. Die [Auswertung der Vereinsrückmeldungen](https://github.com/ichwars/RailKeeper/issues/376)
+beginnt am 23. November 2026; die erste Runde soll bis 7. Dezember abgeschlossen sein.
+Berichte aus tatsächlich getesteten Umgebungen auswerten, fehlende Praxisnachweise offen lassen.
+
 Nach erfolgreicher `CI` für einen Push auf `main` prüft **Publish Release** die Laufzeitversion
 in `backend/cmd/railkeeper/main.go` und die passende Release-Datei, beispielsweise
 `docs/releases/v0.1.22.md`.
@@ -237,6 +249,14 @@ Das repositoryeigene `GITHUB_TOKEN` benötigt nur `contents: write` zum Veröffe
 Push-Workflows aus; deshalb werden die beiden Builds ausdrücklich per `workflow_dispatch`
 gestartet. Vor einem produktiven Update den erfolgreichen Docker-Build und die Verfügbarkeit
 des gewünschten Windows-Pakets im Release prüfen.
+
+Die Go-Test- und Coverage-Nachweise des tatsächlichen Release-Commits aus der erfolgreichen CI
+als zusätzliche Release-Anhänge dauerhaft sichern und in den DE/EN-Release-Notizen verlinken.
+CI-Artefakte allein genügen wegen ihrer begrenzten Aufbewahrung nicht. Quellcommit, Lauf, Compiler,
+Messumfang, Istwerte und Grenzen nennen; das Rohprofil vor Veröffentlichung gegen die unveränderten
+Grenzen prüfen. Nur Quellcode-Testnachweise veröffentlichen, keine Laufzeitdaten oder privaten
+Sicherungen. Zusätzliche Berichte erhalten eigene Dateinamen und Prüfsummen, bestehende
+Installationspakete und deren Prüfsummen bleiben erhalten. Beispiel: [v0.2.0](releases/v0.2.0.md).
 
 ## Beta-Releases
 
