@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { DecoderLibraryProvider } from "../../shared/DecoderLibraryProvider";
 import { observeAction } from "../../shared/asyncAction";
 
 import { useI18n } from "../../shared/i18n";
@@ -213,4 +214,8 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
       )}
     </section>
   );
+}
+
+export function DigitalCentersRoute(props: ComponentProps<typeof DigitalCentersView>) {
+  return <DecoderLibraryProvider><DigitalCentersView {...props} /></DecoderLibraryProvider>;
 }

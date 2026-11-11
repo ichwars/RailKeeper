@@ -2,7 +2,6 @@ import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { LoginView } from "../features/auth/LoginView";
 import { PersonalViewWelcome } from "../features/setup/PersonalViewWelcome";
 import { SetupView } from "../features/setup/SetupView";
-import { DecoderLibraryProvider } from "../shared/DecoderLibraryProvider";
 import { ApiError, Session, api } from "../shared/api";
 import { observeAction } from "../shared/asyncAction";
 import { useI18n } from "../shared/i18n";
@@ -15,11 +14,12 @@ export type AppView = "overview" | "vehicles" | "accessories" | "exhibition" | "
 
 const defaultViewSettingKey = "railkeeper.settings.defaultView";
 const OverviewView = lazy(() => import("../features/overview/OverviewView").then((module) => ({ default: module.OverviewView })));
-const VehiclesView = lazy(() => import("../features/vehicles/VehiclesView").then((module) => ({ default: module.VehiclesView })));
+const VehiclesView = lazy(() => import("../features/vehicles/VehiclesView").then((module) => ({ default: module.VehiclesRoute })));
 const AccessoriesView = lazy(() => import("../features/accessories/AccessoriesView").then((module) => ({ default: module.AccessoriesView })));
 const ExhibitionView = lazy(() => import("../features/exhibition/ExhibitionView").then((module) => ({ default: module.ExhibitionView })));
 const ImportExportView = lazy(() => import("../features/importExport/ImportExportView").then((module) => ({ default: module.ImportExportView })));
-const DigitalCentersView = lazy(() => import("../features/digitalCenters/DigitalCentersView").then((module) => ({ default: module.DigitalCentersView })));
+const DigitalCentersView = lazy(() => import("../features/digitalCenters/DigitalCentersView")
+  .then((module) => ({ default: module.DigitalCentersRoute })));
 const SettingsView = lazy(() => import("../features/settings/SettingsView").then((module) => ({ default: module.SettingsView })));
 
 export function configuredStartView(): AppView {
@@ -225,7 +225,7 @@ export function App() {
   }
 
   return (
-    <DecoderLibraryProvider enabled={session.roles.some(role => ["Admin", "Editor", "Viewer"].includes(role))}><Shell
+    <Shell
       username={session.username}
       roles={session.roles}
       activeView={effectiveView}
@@ -246,6 +246,6 @@ export function App() {
         {effectiveView === "digitalCenters" && <DigitalCentersView roles={session.roles} />}
         {effectiveView === "settings" && <SettingsView username={session.username} />}
       </Suspense>
-    </Shell></DecoderLibraryProvider>
+    </Shell>
   );
 }
