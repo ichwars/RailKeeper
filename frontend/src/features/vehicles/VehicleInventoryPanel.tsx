@@ -12,6 +12,7 @@ import {
   Plus,
   Printer,
   RefreshCw,
+  Rows3,
   Search,
   Table2,
   Trash2,
@@ -36,11 +37,11 @@ import type {
 } from "./vehicleTableColumns";
 import { previewImageUrl, primaryImage } from "./vehicleTransforms";
 import type {
+  InventoryViewMode,
   SortDirection,
   SortKey
 } from "./vehicleViewModel";
 
-type InventoryViewMode = "table" | "cards";
 type InventoryPanelProps = Omit<VehicleInventoryFilterProps, "resultCount"> & {
   vehicles: Vehicle[];
   sortedVehicles: Vehicle[];
@@ -268,10 +269,20 @@ export function VehicleInventoryPanel({
               <span className="visually-hidden" id={searchHelpId}>{t("vehicles.search.help")}</span>
             </label>
             <div className="table-actions inventory-toolbar-actions">
-              <span className="inventory-view-tools" aria-label={t("vehicles.inventoryView.switch")}>
+              <span className="inventory-view-tools" role="group" aria-label={t("vehicles.inventoryView.switch")}>
                 <button type="button" className={`icon-button inventory-labeled-action${inventoryView === "table" ? " active" : ""}`} onClick={() => onInventoryViewChange("table")} aria-pressed={inventoryView === "table"} aria-label={t("vehicles.inventoryView.table")} title={t("vehicles.inventoryView.table")}>
                   <Table2 size={16} aria-hidden="true" /><span>{t("vehicles.inventoryView.tableShort")}</span>
                 </button>
+                {!compact && <button
+                  type="button"
+                  className={`icon-button inventory-labeled-action${inventoryView === "virtualized" ? " active" : ""}`}
+                  onClick={() => onInventoryViewChange("virtualized")}
+                  aria-pressed={inventoryView === "virtualized"}
+                  aria-label={t("vehicles.inventoryView.virtualized")}
+                  title={t("vehicles.inventoryView.virtualized")}
+                >
+                  <Rows3 size={16} aria-hidden="true" /><span>{t("vehicles.inventoryView.virtualizedShort")}</span>
+                </button>}
                 <button type="button" className={`icon-button inventory-labeled-action${inventoryView === "cards" ? " active" : ""}`} onClick={() => onInventoryViewChange("cards")} aria-pressed={inventoryView === "cards"} aria-label={t("vehicles.inventoryView.cards")} title={t("vehicles.inventoryView.cards")}>
                   <Grid2X2 size={16} aria-hidden="true" /><span>{t("vehicles.inventoryView.cardsShort")}</span>
                 </button>
@@ -444,6 +455,7 @@ export function VehicleInventoryPanel({
             ) : (
               <VehicleInventoryTable
                 vehicles={sortedVehicles}
+                virtualized={inventoryView === "virtualized"}
                 columns={columns}
                 columnWidths={columnWidths}
                 columnWidthsLoading={columnsLoading}

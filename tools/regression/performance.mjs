@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { blockExternalRequests, closeBrowser, closeContext } from "./browser-network.mjs";
+import { checkInventoryWindow } from "./inventory-window.mjs";
 
 const catalogPath = "/api/v1/decoder-library";
 const catalogChunk = /^\/assets\/decoderLibrary-[^/]+\.js$/;
@@ -101,7 +102,10 @@ async function checkViewport(browser, { base, credentials, imageCount }, width) 
       await openInventoryFromOverview(page, base, requests);
     }
     await checkLazyImages(page, requests, imageCount, compact);
-    if (!compact) await checkResponsiveState(page);
+    if (!compact) {
+      await checkResponsiveState(page);
+      await checkInventoryWindow(page, imageCount);
+    }
     assert.deepEqual(errors, [], "No browser runtime errors");
   } finally {
     await closeContext(context);
