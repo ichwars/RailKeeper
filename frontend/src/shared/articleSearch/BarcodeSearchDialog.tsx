@@ -15,23 +15,15 @@ type ScannerControls = {
   stop: () => void;
 };
 
-type BarcodeReader = {
-  decodeFromConstraints: (
-    constraints: MediaStreamConstraints,
-    previewElem: HTMLVideoElement,
-    callbackFn: (result: { getText: () => string } | undefined, error: unknown, controls: ScannerControls) => void
-  ) => Promise<ScannerControls>;
-};
-
 export function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }: BarcodeSearchDialogProps) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { anchorRef, layerRef, onKeyDown } = useModalDialogLayer(onClose, inputRef);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const scannerControlsRef = useRef<ScannerControls | null>(null);
-  const readerRef = useRef<BarcodeReader | null>(null);
-  const scannerActiveRef = useRef(false);
-  const [scannerOpen, setScannerOpen] = useState(false);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanSequence = useRef(0);
+  const [openScan, setOpenScan] = useState<number | null>(null);
   const [scannerMessage, setScannerMessage] = useState("");
 
   useEffect(() => {
@@ -40,13 +32,16 @@ export function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }:
   }, []);
 
   const stopCameraScan = useCallback(() => {
-    scannerActiveRef.current = false;
-    scannerControlsRef.current?.stop();
+    scanSequence.current += 1;
+    const controls = scannerControlsRef.current;
+    if (controls) controls.stop();
+    else streamRef.current?.getTracks().forEach(track => track.stop());
     scannerControlsRef.current = null;
+    streamRef.current = null;
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-    setScannerOpen(false);
+    setOpenScan(null);
   }, []);
 
   useEffect(() => () => stopCameraScan(), [stopCameraScan]);
@@ -54,46 +49,49 @@ export function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }:
   const startCameraScan = async () => {
     if (!window.isSecureContext) {
       setScannerMessage(t("vehicles.barcode.cameraSecureContext"));
-      setScannerOpen(false);
       return;
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setScannerMessage(t("vehicles.barcode.cameraUnsupported"));
-      setScannerOpen(false);
       return;
     }
 
     stopCameraScan();
+    const scan = scanSequence.current;
     setScannerMessage(t("vehicles.barcode.cameraStarting"));
-    setScannerOpen(true);
+    setOpenScan(scan);
 
     try {
       await new Promise((resolve) => window.setTimeout(resolve, 0));
+      if (scan !== scanSequence.current) return;
 
       const video = videoRef.current;
       if (!video) {
         setScannerMessage(t("vehicles.barcode.cameraUnavailable"));
+        stopCameraScan();
         return;
       }
 
-      const reader = readerRef.current ?? new (await import("@zxing/browser")).BrowserMultiFormatReader();
-      readerRef.current = reader;
-      scannerActiveRef.current = true;
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      if (scan !== scanSequence.current) return;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: { ideal: "environment" }, height: { ideal: 720 }, width: { ideal: 1280 } }
+      });
+      if (scan !== scanSequence.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      streamRef.current = stream;
       setScannerMessage(t("vehicles.barcode.cameraReady"));
 
-      const controls = await reader.decodeFromConstraints(
-        {
-          audio: false,
-          video: {
-            facingMode: { ideal: "environment" },
-            height: { ideal: 720 },
-            width: { ideal: 1280 }
-          }
-        },
+      let detected = false;
+      const controls = await new BrowserMultiFormatReader().decodeFromStream(
+        stream,
         video,
         (result, _error, controlsFromCallback) => {
-          if (!scannerActiveRef.current || !result) {
+          if (scan !== scanSequence.current || !result) {
             return;
           }
 
@@ -103,21 +101,24 @@ export function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }:
             return;
           }
 
+          detected = true;
+          scannerControlsRef.current = controlsFromCallback;
+          stopCameraScan();
           onValueChange(ean);
           setScannerMessage(t("vehicles.barcode.cameraDetected"));
-          scannerActiveRef.current = false;
-          controlsFromCallback.stop();
-          scannerControlsRef.current = null;
-          setScannerOpen(false);
           inputRef.current?.focus();
           inputRef.current?.select();
         }
       );
+      if (scan !== scanSequence.current) {
+        if (!detected) controls.stop();
+        return;
+      }
       scannerControlsRef.current = controls;
     } catch {
-      scannerActiveRef.current = false;
+      if (scan !== scanSequence.current) return;
+      stopCameraScan();
       setScannerMessage(t("vehicles.barcode.cameraPermission"));
-      setScannerOpen(false);
     }
   };
 
@@ -162,9 +163,9 @@ export function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }:
           </span>
         </label>
 
-        {scannerOpen && (
+        {openScan !== null && (
           <section className="barcode-camera-panel">
-            <video ref={videoRef} muted playsInline />
+            <video key={openScan} ref={videoRef} muted playsInline />
             <div>
               <strong>{t("vehicles.barcode.cameraTitle")}</strong>
               <p>{scannerMessage}</p>
@@ -175,7 +176,7 @@ export function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }:
           </section>
         )}
 
-        {!scannerOpen && scannerMessage && <p className="barcode-scan-message">{scannerMessage}</p>}
+        {openScan === null && scannerMessage && <p className="barcode-scan-message">{scannerMessage}</p>}
 
         <p className="barcode-hint">
           {t("vehicles.barcode.hint")}
