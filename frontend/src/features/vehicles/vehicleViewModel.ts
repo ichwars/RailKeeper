@@ -93,7 +93,7 @@ export type ModalMode = "create" | "view" | "edit";
 export type ModalTab = "model" | "control" | "speedCurve" | "cv" | "uploads" | "maintenance" | "spareParts" | "valuations";
 export type SortKey = VehicleSortableColumn;
 export type SortDirection = "asc" | "desc";
-export type InventoryViewMode = "table" | "cards";
+export type InventoryViewMode = "table" | "virtualized" | "cards";
 export type InventoryFilter = "all" | "digital" | "analog" | "withImages" | "withoutImages";
 export type MaintenanceFilter = "all" | "due" | "none";
 export type InventoryQualityFilter = "none" | "missingArticleNumber" | "missingEan" | "digitalMissingDecoder";
@@ -330,7 +330,8 @@ export function hasQrPayloadData(vehicle: Vehicle | null, form: CreateVehicleReq
 }
 
 export function inventoryViewMode(): InventoryViewMode {
-  return window.localStorage.getItem(inventoryViewSettingKey) === "cards" ? "cards" : "table";
+  const saved = window.localStorage.getItem(inventoryViewSettingKey);
+  return saved === "cards" || saved === "virtualized" ? saved : "table";
 }
 
 export function vehicleFieldsForSearch(form: CreateVehicleRequest) {

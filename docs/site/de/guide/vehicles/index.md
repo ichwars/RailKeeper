@@ -89,9 +89,12 @@ der Browseradresse. Der Ergebniszähler bezieht sich immer auf alle aktiven Filt
 
 ## Ansicht wählen und sortieren
 
-Auf dem Desktop wechselst du über die Ansichtssymbole zwischen Tabelle und Karten. RailKeeper
-speichert die Auswahl im lokalen Speicher des aktuellen Browsers, nicht im Benutzerkonto. Auf
-schmalen Bildschirmen zeigt die Oberfläche unabhängig davon kompakte, aufklappbare Fahrzeugkarten.
+Auf dem Desktop stehen **Tabelle**, **Schnelle Tabelle** und **Karten** zur Auswahl. Die schnelle
+Tabelle rendert bei großen Beständen nur die Zeilen in der Nähe des sichtbaren Bereichs. Markierung,
+Sets, Sortierung und **Bestand durchsuchen** verwenden weiterhin den gesamten gefilterten Bestand.
+Wähle **Tabelle**, wenn du den vollständigen Inhalt mit der Seitensuche des Browsers durchsuchen willst.
+RailKeeper speichert die Ansicht im aktuellen Browser. Auf schmalen Bildschirmen erscheinen kompakte,
+aufklappbare Fahrzeugkarten.
 
 Über **Tabellenspalten auswählen** bestimmst du sichtbare Spalten und deren Reihenfolge. Die
 Standardauswahl umfasst Bild, Inventarnummer, Hersteller, Artikelnummer, Bezeichnung, Spurweite,

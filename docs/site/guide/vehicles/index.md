@@ -86,9 +86,10 @@ address. The result counter always reports the number after every active filter.
 
 ## Choose a view and sort
 
-On a desktop, switch between table and card view with the view icons. RailKeeper stores that choice
-in the current browser's local storage. It is not an account-wide setting. At narrow widths, the
-interface uses compact, expandable vehicle cards regardless of the desktop preference.
+On desktop, choose **Table**, **Fast table**, or **Cards**. The fast table renders rows near the
+visible area in large collections. Selection, sets, sorting, and **Search inventory** still use the
+full filtered inventory. Choose **Table** to search the full contents with your browser's Find command.
+RailKeeper saves the view in the current browser. Narrow screens use compact, expandable vehicle cards.
 
 Use **Choose table columns** to control visible columns and their order. The default selection is
 Image, Inventory number, Manufacturer, Article number, Designation, Gauge, Epoch, and Exhibition

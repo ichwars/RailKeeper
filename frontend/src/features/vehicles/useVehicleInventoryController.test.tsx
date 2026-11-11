@@ -71,6 +71,17 @@ describe("useVehicleInventoryController", () => {
     expect(window.localStorage.getItem(inventoryViewSettingKey)).toBe("cards");
   });
 
+  it("restores the virtualized table when chosen and defaults to the full table for an unknown value", () => {
+    window.localStorage.setItem(inventoryViewSettingKey, "unknown");
+    const { result, unmount } = renderHook(() => useVehicleInventoryController([]));
+    expect(result.current.inventoryView).toBe("table");
+    act(() => result.current.setInventoryViewMode("virtualized"));
+    unmount();
+    const restored = renderHook(() => useVehicleInventoryController([]));
+    expect(restored.result.current.inventoryView).toBe("virtualized");
+    window.localStorage.removeItem(inventoryViewSettingKey);
+  });
+
   it("combines railway company, epoch, and adapter filters", () => {
     const db = vehicleFixture({
       id: "db",

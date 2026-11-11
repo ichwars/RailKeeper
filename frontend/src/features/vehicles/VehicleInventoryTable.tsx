@@ -1,5 +1,5 @@
 import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
-import { Fragment, useId, type CSSProperties, type ReactNode } from "react";
+import { useId, useMemo, type CSSProperties, type ReactNode } from "react";
 import { useExpandedInventoryRows, type ExpandedInventoryRows } from "./useExpandedInventoryRows";
 import {
   ArrowUpDown,
@@ -29,11 +29,13 @@ import {
   type VehicleTableColumn
 } from "./vehicleTableColumns";
 import type { SortDirection, SortKey } from "./vehicleViewModel";
-import { groupVehicleInventory } from "./vehicleSetGroups";
+import { groupVehicleInventory, type VehicleInventorySetGroup } from "./vehicleSetGroups";
+import { VehicleInventoryWindow } from "./VehicleInventoryWindow";
 import { VehicleSetInventoryRow } from "./VehicleSetInventoryRow";
 
 type VehicleInventoryTableProps = {
   vehicles: Vehicle[];
+  virtualized?: boolean;
   columns: readonly VehicleTableColumn[];
   columnWidths?: TableColumnWidths<VehicleTableColumn>;
   columnWidthsLoading?: boolean;
@@ -57,8 +59,13 @@ type VehicleInventoryTableProps = {
   renderQuickMenu: (vehicle: Vehicle) => ReactNode;
 };
 
+type InventoryRow =
+  | { key: string; kind: "set"; group: VehicleInventorySetGroup }
+  | { key: string; kind: "vehicle"; vehicle: Vehicle; member?: "member" | "last" };
+
 export function VehicleInventoryTable({
   vehicles,
+  virtualized = false,
   columns,
   columnWidths = {},
   columnWidthsLoading = false,
@@ -85,7 +92,17 @@ export function VehicleInventoryTable({
   const scrollHelpID = useId();
   const localExpansion = useExpandedInventoryRows();
   const [expandedSetIDs, setExpandedSetIDs] = setExpansion ?? localExpansion;
-  const groupedVehicles = groupVehicleInventory(vehicles, sort);
+  const { key, direction } = sort;
+  const groups = useMemo(() => groupVehicleInventory(vehicles, { key, direction }), [vehicles, key, direction]);
+  const rows = useMemo(() => groups.flatMap<InventoryRow>(group => {
+    if (group.kind === "single") return [{ key: `vehicle:${group.vehicle.id}`, kind: "vehicle", vehicle: group.vehicle }];
+    const setRow: InventoryRow = { key: `set:${group.id}`, kind: "set", group };
+    if (!expandedSetIDs.has(group.id)) return [setRow];
+    return [setRow, ...group.members.map<InventoryRow>((vehicle, index) => ({
+      key: `vehicle:${vehicle.id}`, kind: "vehicle", vehicle, member: index === group.members.length - 1 ? "last" : "member"
+    }))];
+  }), [groups, expandedSetIDs]);
+  const rowKeys = useMemo(() => rows.map(row => row.key), [rows]);
   const columnLayout = { columns: [...columns], widths: columnWidths };
   const minimumWidth = tableMinimumWidth(
     columnLayout,
@@ -180,13 +197,15 @@ export function VehicleInventoryTable({
     return vehicleColumnText(vehicle, column, language, t);
   };
 
-  const vehicleRow = (vehicle: Vehicle, setMember = false, lastSetMember = false) => (
+  const vehicleRow = ({ key, vehicle, member }: Extract<InventoryRow, { kind: "vehicle" }>, rowIndex?: number) => (
     <tr
-      key={vehicle.id}
+      key={key}
+      data-inventory-row={rowIndex === undefined ? undefined : key}
+      aria-rowindex={rowIndex}
       className={[
         selectedVehicleIDs.has(vehicle.id) ? "selected-row" : "",
-        setMember ? "vehicle-set-child-row" : "",
-				lastSetMember ? "vehicle-set-child-row-last" : ""
+        member ? "vehicle-set-child-row" : "",
+        member === "last" ? "vehicle-set-child-row-last" : ""
       ].filter(Boolean).join(" ")}
     >
       <td className="select-cell">
@@ -200,7 +219,7 @@ export function VehicleInventoryTable({
         </label>
       </td>
 			{columns.map((column) => (
-				<td key={column} className={`vehicle-column-${column}`}>{cell(vehicle, column, setMember)}</td>
+				<td key={column} className={`vehicle-column-${column}`}>{cell(vehicle, column, member !== undefined)}</td>
 			))}
       <td className="table-fill-cell" aria-hidden="true" />
       <td className="actions-cell">
@@ -224,12 +243,38 @@ export function VehicleInventoryTable({
     </tr>
   );
 
+  const renderRow = (row: InventoryRow, rowIndex?: number) => {
+    if (row.kind === "vehicle") return vehicleRow(row, rowIndex);
+    const { group } = row;
+    return (
+      <VehicleSetInventoryRow
+        key={row.key}
+        group={group}
+        windowRow={rowIndex === undefined ? undefined : { key: row.key, index: rowIndex }}
+        columns={columns}
+        collapsed={!expandedSetIDs.has(group.id)}
+        selectedVehicleIDs={selectedVehicleIDs}
+        onToggleCollapsed={() => setExpandedSetIDs(current => {
+          const next = new Set(current);
+          if (next.has(group.id)) next.delete(group.id);
+          else next.add(group.id);
+          return next;
+        })}
+        onToggleSelection={ids => onToggleSetSelection?.(ids)}
+        onOpen={id => onOpenSet?.(id)}
+        onEdit={onEditSet}
+        onDuplicate={onDuplicateSet}
+      />
+    );
+  };
+
   return (
     <div className="table-wrap inventory-table-scroll-region" role="region" tabIndex={0}
       aria-label={t("vehicles.table.scrollRegion")} aria-describedby={scrollHelpID}>
       <p className="inventory-table-scroll-help" id={scrollHelpID}>{t("vehicles.table.scrollHelp")}</p>
       <table
         className="inventory-table vehicle-inventory-table"
+        aria-rowcount={virtualized ? rows.length + 1 : undefined}
         style={{
           "--vehicle-data-column-count": Math.max(columns.length, 1),
           "--vehicle-table-min-width": `${minimumWidth}px`
@@ -252,7 +297,7 @@ export function VehicleInventoryTable({
           <col className="actions-cell" style={{ width: 122, minWidth: 122, maxWidth: 122 }} />
         </colgroup>
         <thead>
-          <tr>
+          <tr aria-rowindex={virtualized ? 1 : undefined}>
             <th className="select-cell">
               <label className="table-select-field" title={t("vehicles.report.selectAll")}>
                 <AppChoiceInput
@@ -292,31 +337,13 @@ export function VehicleInventoryTable({
             <th className="actions-cell">{t("vehicles.actions")}</th>
           </tr>
         </thead>
-        <tbody>
-          {groupedVehicles.map((group) => group.kind === "single" ? vehicleRow(group.vehicle) : (
-            <Fragment key={group.id}>
-							<VehicleSetInventoryRow
-								group={group}
-								columns={columns}
-								collapsed={!expandedSetIDs.has(group.id)}
-								selectedVehicleIDs={selectedVehicleIDs}
-								onToggleCollapsed={() => setExpandedSetIDs((current) => {
-									const next = new Set(current);
-									if (next.has(group.id)) next.delete(group.id);
-									else next.add(group.id);
-									return next;
-								})}
-								onToggleSelection={(ids) => onToggleSetSelection?.(ids)}
-								onOpen={(id) => onOpenSet?.(id)}
-								onEdit={onEditSet}
-								onDuplicate={onDuplicateSet}
-							/>
-              {expandedSetIDs.has(group.id) && group.members.map((vehicle, index) => (
-								vehicleRow(vehicle, true, index === group.members.length - 1)
-							))}
-            </Fragment>
-          ))}
-        </tbody>
+        {virtualized ? (
+          <VehicleInventoryWindow
+            rowKeys={rowKeys}
+            columnCount={columns.length + 3}
+            renderRow={index => renderRow(rows[index], index + 2)}
+          />
+        ) : <tbody>{rows.map(row => renderRow(row))}</tbody>}
       </table>
     </div>
   );

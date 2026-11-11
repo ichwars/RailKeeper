@@ -8,6 +8,7 @@ import type { VehicleTableColumn } from "./vehicleTableColumns";
 
 type VehicleSetInventoryRowProps = {
 	group: VehicleInventorySetGroup;
+	windowRow?: { key: string; index: number };
 	columns: readonly VehicleTableColumn[];
 	collapsed: boolean;
 	selectedVehicleIDs: ReadonlySet<string>;
@@ -26,6 +27,7 @@ const sharedSetColumns = new Set<VehicleTableColumn>([
 
 export function VehicleSetInventoryRow({
 	group,
+	windowRow,
 	columns,
 	collapsed,
 	selectedVehicleIDs,
@@ -89,7 +91,7 @@ export function VehicleSetInventoryRow({
 	};
 
 	return (
-		<tr className="vehicle-set-inventory-row">
+		<tr className="vehicle-set-inventory-row" data-inventory-row={windowRow?.key} aria-rowindex={windowRow?.index}>
 			<td className="select-cell">
 				<label className="table-select-field" title={t("vehicles.report.selectVehicle")}>
 					<AppChoiceInput ref={checkboxRef} type="checkbox" checked={memberIDs.length > 0 && selectedCount === memberIDs.length}
