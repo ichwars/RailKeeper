@@ -204,6 +204,8 @@ Node.js is only used to build the frontend.
   migrations, seeds, file services, authentication routes, and the normal frontend remain inactive.
 - Pending schema migrations on an existing database require a validated SQLite snapshot under
   `safety-backups` before any migration statement runs.
+- The [SQLite index audit](architecture/sqlite-query-indexes.md) records the query paths served
+  by the inventory, media, transfer and operational indexes.
 - The Admin storage API exposes only the already resolved path and capabilities. It never accepts a
   filesystem path from the browser.
 

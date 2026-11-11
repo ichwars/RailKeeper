@@ -4,6 +4,7 @@ import type { DigitalCenterWorkspaceOptions } from "./digitalCenterWorkspacePoli
 export type { DigitalCenterWorkspaceOptions } from "./digitalCenterWorkspacePolicy";
 import { useCallback, useEffect, useMemo } from "react";
 import { observeAction } from "../../shared/asyncAction";
+import { useDebouncedSearch } from "../../shared/useDebouncedSearch";
 import { normalizeLiveStatus } from "./digitalCenterWorkspacePolicy";
 import { emptyErrors, useDigitalCenterWorkspaceState } from "./useDigitalCenterWorkspaceState";
 import { useDigitalCenterWorkspaceWrites } from "./useDigitalCenterWorkspaceWrites";
@@ -107,36 +108,43 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     };
   }, [loadWorkspace, mountedRef, readSessionIDRef, requestsRef]);
 
+  const searchQuery = useDebouncedSearch(search);
+  const searchPending = search !== searchQuery;
   const filter = useMemo<DigitalCenterWorkItemFilter>(() => ({
-    query: search,
+    query: searchQuery,
     compareStatus,
     page,
     pageSize
-  }), [compareStatus, page, pageSize, search]);
+  }), [compareStatus, page, pageSize, searchQuery]);
 
   useEffect(() => {
     const sessionID = readSession?.id;
-    if (!sessionID) return;
+    if (!sessionID || searchPending) return;
     const clampPage = clampWorklistPageRef.current;
     clampWorklistPageRef.current = false;
     const requestID = ++requestsRef.current.worklist;
     setError("worklist", "");
     setLoadingArea("worklist", true);
-    const aggregateRequest = filter.query.trim() || filter.compareStatus !== "all"
-      ? api.digitalCenterWorkItems(sessionID, unfilteredSessionTotal)
-      : Promise.resolve(null);
-    void Promise.all([api.digitalCenterWorkItems(sessionID, filter), aggregateRequest])
-      .then(([result, aggregate]) => {
+    const loadPage = async () => {
+      const result = await api.digitalCenterWorkItems(sessionID, filter);
+      if (result.sessionTotal !== undefined || (!filter.query.trim() && filter.compareStatus === "all")) {
+        return result;
+      }
+      const aggregate = await api.digitalCenterWorkItems(sessionID, unfilteredSessionTotal);
+      return { ...result, sessionTotal: aggregate.total };
+    };
+    void loadPage()
+      .then((result) => {
         if (mountedRef.current && requestID === requestsRef.current.worklist &&
           readSessionIDRef.current === sessionID) {
           const lastPage = Math.max(1, result.totalPages);
           if (clampPage && filter.page > lastPage) {
             setPageState(lastPage);
-            setSessionTotal(aggregate?.total ?? result.total);
+            setSessionTotal(result.sessionTotal ?? result.total);
             return;
           }
           setWorkItems(result);
-          setSessionTotal(aggregate?.total ?? result.total);
+          setSessionTotal(result.sessionTotal ?? result.total);
         }
       })
       .catch((loadError: unknown) => {
@@ -151,7 +159,8 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
           setLoadingArea("worklist", false);
         }
       });
-  }, [clampWorklistPageRef, filter, localizedError, mountedRef, readSession?.id, readSessionIDRef, requestsRef, setError, setLoadingArea, setPageState, setSessionTotal, setWorkItems, worklistRevision]);
+  }, [clampWorklistPageRef, filter, localizedError, mountedRef, readSession?.id, readSessionIDRef, requestsRef,
+    searchPending, setError, setLoadingArea, setPageState, setSessionTotal, setWorkItems, worklistRevision]);
 
   useEffect(() => {
     const sessionID = readSession?.id;

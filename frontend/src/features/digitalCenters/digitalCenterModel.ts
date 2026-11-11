@@ -157,6 +157,7 @@ export type DigitalCenterWorkItemPage = {
   pageSize: number;
   total: number;
   totalPages: number;
+  sessionTotal?: number;
 };
 
 export type DigitalCenterSessionMessage = {

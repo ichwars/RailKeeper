@@ -12,7 +12,7 @@ COPY frontend ./
 COPY openapi /src/openapi
 RUN npm run build
 
-FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS backend-build
+FROM --platform=$BUILDPLATFORM golang:1.27.4-alpine AS backend-build
 ARG TARGETOS
 ARG TARGETARCH
 ARG BUILD_COMMIT=unknown

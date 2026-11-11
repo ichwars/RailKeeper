@@ -50,6 +50,14 @@ The [quality gates](quality-gates.md) define the fixed frontend/backend measurem
 compiler/minimum-version policy and recurring race/fuzz checks. Those automated results
 remain separate from the preservation and platform qualification below.
 
+## Startup asset budget
+
+The frontend production build reports the gzip size of JavaScript and CSS referenced by the generated
+`index.html`, including module preloads. It emits a GitHub Actions warning above 250 KiB of JavaScript
+or 75 KiB of CSS. The build still completes so the change can be reviewed with the measured sizes.
+For a timing comparison, use fresh Chromium contexts against isolated builds with the same synthetic
+data, viewport, CPU profile and interactions. Record browser and sample size alongside the timings.
+
 ## Synthetic reference collection and process checks
 
 The reference contains two separate vehicles with the same model article, a two-member set with individual

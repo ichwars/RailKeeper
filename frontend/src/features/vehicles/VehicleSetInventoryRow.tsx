@@ -52,7 +52,7 @@ export function VehicleSetInventoryRow({
 			return (
 				<div className="vehicle-set-type-cell">
 					{setPreviewImage
-						? <img className="inventory-thumb" src={setPreviewImage.thumbnailUrl || setPreviewImage.url} alt="" />
+						? <img loading="lazy" className="inventory-thumb" src={setPreviewImage.thumbnailUrl || setPreviewImage.url} alt="" />
 						: <div className="image-placeholder inventory-image-placeholder"
 							aria-label={t("exhibition.noPreview")} title={t("exhibition.noPreview")}>
 							<ImageOff size={18} strokeWidth={1.7} aria-hidden="true" />

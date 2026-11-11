@@ -62,6 +62,7 @@ describe("Digital Centers operational journeys", () => {
     await user.click(screen.getByRole("button", { name: "Konflikt filtern" }));
     await user.click(screen.getByRole("button", { name: "Zeilen pro Seite" }));
     await user.click(screen.getByRole("option", { name: "25" }));
+    await screen.findByText("1–25 von 60");
     await user.click(screen.getByRole("button", { name: "Nächste Seite" }));
     await user.click(screen.getByRole("button", { name: "BR 218 vergleichen" }));
     await screen.findByRole("dialog", { name: "Lok-Vergleich BR 218" });
@@ -70,7 +71,7 @@ describe("Digital Centers operational journeys", () => {
     expect(screen.getByRole("searchbox", { name: "Lok suchen" })).toHaveValue("BR");
     expect(screen.getByRole("button", { name: "Konflikt filtern" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "Zeilen pro Seite" })).toHaveTextContent("25");
-    expect(screen.getByText("26–50 von 60")).toBeInTheDocument();
+    expect(await screen.findByText("26–50 von 60")).toBeInTheDocument();
   });
 
   it("disables unsupported operations and explains each capability boundary", async () => {
@@ -197,7 +198,8 @@ describe("Digital Centers operational journeys", () => {
       page: filter.page,
       pageSize: filter.pageSize,
       total: filter.query ? 4 : 42,
-      totalPages: filter.query ? 1 : 5
+      totalPages: filter.query ? 1 : 5,
+      sessionTotal: 42
     }));
     const user = userEvent.setup();
     render(<DigitalCentersView roles={["Admin"]} />);

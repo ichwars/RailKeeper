@@ -51,19 +51,23 @@ describe("useArticleOverview", () => {
     expect(api.accessoryArticles).toHaveBeenCalledTimes(1);
   });
 
-  it("maps instant search and every filter to a stable server query", async () => {
+  it("coalesces search input and maps every filter to the server query", async () => {
     const { result } = renderHook(() => useArticleOverview());
     await waitFor(() => expect(api.accessoryArticles).toHaveBeenLastCalledWith({
       sort: "inventoryNumber",
       direction: "asc"
     }));
 
+    act(() => result.current.setFilter("query", "T"));
+    act(() => result.current.setFilter("query", "Tillig"));
     act(() => result.current.setFilter("query", "Tillig 83101"));
     act(() => result.current.setFilter("articleType", "track"));
     act(() => result.current.setFilter("manufacturer", "Tillig"));
     act(() => result.current.setFilter("gauge", "TT"));
     act(() => result.current.setFilter("status", "allocated"));
     act(() => result.current.setFilter("locationId", "location-1"));
+    expect(result.current.filters.query).toBe("Tillig 83101");
+    expect(api.accessoryArticles).toHaveBeenCalledTimes(1);
 
     await waitFor(() => expect(api.accessoryArticles).toHaveBeenLastCalledWith({
       query: "Tillig 83101",
@@ -75,6 +79,7 @@ describe("useArticleOverview", () => {
       sort: "inventoryNumber",
       direction: "asc"
     }));
+    expect(api.accessoryArticles).toHaveBeenCalledTimes(2);
 
     act(() => result.current.resetFilters());
     await waitFor(() => expect(api.accessoryArticles).toHaveBeenLastCalledWith({

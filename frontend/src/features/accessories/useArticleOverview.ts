@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   api,
@@ -9,6 +9,7 @@ import {
   type AccessoryArticleType,
   type AccessorySortDirection
 } from "../../shared/api";
+import { useDebouncedSearch } from "../../shared/useDebouncedSearch";
 
 export type ArticleOverviewStatusFilter = "" | AccessoryArticleStatus | "allocated";
 
@@ -81,18 +82,18 @@ export function useArticleOverview({ enabled = true }: { enabled?: boolean } = {
   const [error, setError] = useState("");
   const [reloadToken, setReloadToken] = useState(0);
   const requestSequence = useRef(0);
-
-  const query = useMemo(() => buildQuery(filters, sort, direction), [direction, filters, sort]);
+  const search = useDebouncedSearch(filters.query);
 
   useEffect(() => {
     if (!enabled) {
       setLoading(false);
       return;
     }
+    if (search !== filters.query) return;
     const request = ++requestSequence.current;
     setLoading(true);
     setError("");
-    api.accessoryArticles(query)
+    api.accessoryArticles(buildQuery(filters, sort, direction))
       .then((next) => {
         if (request === requestSequence.current) setData(next);
       })
@@ -106,7 +107,7 @@ export function useArticleOverview({ enabled = true }: { enabled?: boolean } = {
     return () => {
       if (request === requestSequence.current) requestSequence.current += 1;
     };
-  }, [enabled, query, reloadToken]);
+  }, [direction, enabled, filters, reloadToken, search, sort]);
 
   const setFilter = useCallback(<Key extends keyof ArticleOverviewFilters>(
     key: Key,
