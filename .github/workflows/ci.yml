@@ -272,9 +272,11 @@ jobs:
         run: go build -o "$RUNNER_TEMP/railkeeper-performance" ./cmd/railkeeper
       - name: Install Chromium for browser checks
         working-directory: tools/regression
+        timeout-minutes: 5
         run: |
           npm ci
-          npx playwright install --with-deps chromium
+          # The hosted Ubuntu runner provides the libraries for Chromium's headless shell.
+          npx playwright install --only-shell chromium
       - name: Check browser performance regressions
         run: python3 tools/regression/check_performance.py --binary "$RUNNER_TEMP/railkeeper-performance"
 
