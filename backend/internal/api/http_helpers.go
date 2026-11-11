@@ -331,6 +331,9 @@ func staticHandler(staticDir string) http.Handler {
 		if info, err := os.Stat(path); err == nil && !info.IsDir() {
 			if strings.HasPrefix(r.URL.Path, "/assets/") {
 				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+				if serveCompressedAsset(w, r, path) {
+					return
+				}
 			} else {
 				w.Header().Set("Cache-Control", "no-cache")
 			}
