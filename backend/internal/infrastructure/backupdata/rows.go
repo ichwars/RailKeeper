@@ -51,19 +51,29 @@ func (s *Store) exportDataTransferProfiles(ctx context.Context, tx *sql.Tx) ([]m
 	if err != nil {
 		return nil, err
 	}
+	if len(profiles) == 0 {
+		return profiles, nil
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT id FROM users`)
+	if err != nil {
+		return nil, fmt.Errorf("check exported transfer profile creators: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	creators := map[string]bool{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan exported transfer profile creator: %w", err)
+		}
+		creators[id] = true
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	for _, profile := range profiles {
 		delete(profile, "name_key")
 		creatorID, valid := backup.BackupNonEmptyString(profile["created_by_user_id"])
-		if !valid {
-			profile["created_by_user_id"] = nil
-			continue
-		}
-		var exists int
-		if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE id=?)`, creatorID).
-			Scan(&exists); err != nil {
-			return nil, fmt.Errorf("check exported transfer profile creator: %w", err)
-		}
-		if exists == 0 {
+		if !valid || !creators[creatorID] {
 			profile["created_by_user_id"] = nil
 		}
 	}

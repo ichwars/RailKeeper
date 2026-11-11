@@ -426,7 +426,7 @@ func (repository *workspaceRepositoryMemory) GetSession(context.Context, string)
 	return repository.session, nil
 }
 
-func (*workspaceRepositoryMemory) LatestReadySession(context.Context, string, string, int) (*DigitalCenterReadSession, error) {
+func (*workspaceRepositoryMemory) LatestReadySessions(context.Context, []DigitalCenterSummary) (map[string]*DigitalCenterReadSession, error) {
 	return nil, nil
 }
 

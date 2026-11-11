@@ -72,12 +72,12 @@ func TestReconciliationRetainsBundledIdentityAndRejectsOmittedReferences(t *test
 	current := map[Identity]MasterDataEntry{IdentityOf(bundled): bundled, IdentityOf(custom): custom}
 	for _, referenced := range []bool{false, true} {
 		calls := 0
-		desired, _, err := BuildDesiredEntries(t.Context(), func(_ context.Context, entry MasterDataEntry) (bool, error) {
+		desired, _, err := BuildDesiredEntries(t.Context(), func(_ context.Context, entries []MasterDataEntry) (map[Identity]bool, error) {
 			calls++
-			if entry.ID != custom.ID {
+			if len(entries) != 1 || entries[0].ID != custom.ID {
 				t.Fatal("bundled record was tested as a deletion candidate")
 			}
-			return referenced, nil
+			return map[Identity]bool{IdentityOf(custom): referenced}, nil
 		}, current, nil, "2026-11-08T13:00:00Z", false, false)
 		if calls != 1 {
 			t.Fatal("omitted custom identity did not receive exactly one reference check", calls)

@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"fmt"
 )
 
 // ListWorkspaceCenters restores completed reads from local storage without contacting a station.
@@ -14,12 +13,12 @@ func (service *DigitalCenterWorkspaceService) ListWorkspaceCenters(ctx context.C
 	if err != nil {
 		return nil, err
 	}
-	for index := range centers {
-		center := &centers[index]
-		center.LastReadSession, err = service.repository.LatestReadySession(ctx, center.Provider, center.Host, center.Port)
-		if err != nil {
-			return nil, fmt.Errorf("load saved %s read session: %w", center.Provider, err)
-		}
+	sessions, err := service.repository.LatestReadySessions(ctx, centers)
+	if err != nil {
+		return nil, err
+	}
+	for i := range centers {
+		centers[i].LastReadSession = sessions[centers[i].Provider]
 	}
 	return centers, nil
 }

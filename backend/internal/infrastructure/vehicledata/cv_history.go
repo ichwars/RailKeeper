@@ -12,12 +12,16 @@ import (
 func ReadCVHistory(ctx context.Context, query interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }, cvValueID string) ([]decoder.VehicleCVValueHistory, error) {
+	return readCVHistory(ctx, query, "cv_value_id=?", strings.TrimSpace(cvValueID))
+}
+
+func readCVHistory(ctx context.Context, query vehicleMediaQuery, filter string, args ...any) ([]decoder.VehicleCVValueHistory, error) {
 	rows, err := query.QueryContext(ctx, `
 SELECT id, cv_value_id, vehicle_id, old_value, new_value, changed_at
 FROM vehicle_cv_value_history
-WHERE cv_value_id=?
+WHERE `+filter+`
 ORDER BY changed_at DESC
-`, strings.TrimSpace(cvValueID))
+`, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicle cv value history: %w", err)
 	}

@@ -711,7 +711,7 @@ func (stub *digitalCenterWriteRepositoryStub) GetSession(context.Context, string
 	return stub.session, nil
 }
 
-func (*digitalCenterWriteRepositoryStub) LatestReadySession(context.Context, string, string, int) (*DigitalCenterReadSession, error) {
+func (*digitalCenterWriteRepositoryStub) LatestReadySessions(context.Context, []DigitalCenterSummary) (map[string]*DigitalCenterReadSession, error) {
 	return nil, nil
 }
 

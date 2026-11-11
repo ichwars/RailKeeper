@@ -33,8 +33,8 @@ func (s *Store) ImportReconciled(ctx context.Context, request masterdata.ImportR
 	now := time.Now().UTC().Format(time.RFC3339)
 	desired, importedEntries, err := masterdata.BuildDesiredEntries(
 		ctx,
-		func(ctx context.Context, entry masterdata.MasterDataEntry) (bool, error) {
-			return masterDataIsUsed(ctx, tx, entry)
+		func(ctx context.Context, entries []masterdata.MasterDataEntry) (map[masterdata.Identity]bool, error) {
+			return readMasterDataUsage(ctx, tx, entries)
 		},
 		current,
 		entriesByType,

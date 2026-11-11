@@ -9057,6 +9057,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /vehicles/report-data:
+    post:
+      tags: [Vehicles]
+      summary: Load full vehicle records for an inventory report in the requested order
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vehicleIds]
+              properties:
+                vehicleIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Vehicle report data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vehicle"
+        "400":
+          description: Invalid request body
+        "403":
+          description: Insufficient role or invalid CSRF token
+        "404":
+          description: A requested vehicle no longer exists
   /vehicles/{id}:
     get:
       tags: [Vehicles]

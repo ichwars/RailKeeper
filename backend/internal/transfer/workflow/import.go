@@ -33,7 +33,7 @@ type dataTransferImportRepository interface {
 	CompareAndUpdateImportJob(context.Context, DataTransferImportMutation) (DataTransferJob, error)
 	ApplyImport(context.Context, DataTransferJob, string) error
 	ApplyImportWithPolicy(context.Context, DataTransferJob, string, DataTransferImportPolicy) error
-	ValidateTransferAccessoryReferences(context.Context, TransferAccessory, string) error
+	ValidateTransferAccessoryReferences(context.Context, []transfer.AccessoryReferenceCheck) ([]bool, error)
 }
 
 func (s *Service) CreateImportJob(
@@ -214,24 +214,35 @@ func validateTransferAccessoryPreviewReferences(
 	records []DataTransferPreviewRecord,
 	issues []DataTransferIssue,
 ) ([]DataTransferPreviewRecord, []DataTransferIssue, error) {
-	for index := range records {
-		record := &records[index]
-		if record.Area != TransferAccessories || transferpolicy.TransferRecordHasIssue(issues, *record, "invalid_accessory") {
+	var checks []transfer.AccessoryReferenceCheck
+	var indices []int
+	for i, record := range records {
+		if record.Area != TransferAccessories || transferpolicy.TransferRecordHasIssue(issues, record, "invalid_accessory") {
 			continue
 		}
-		accessory := TransferAccessory{}
+		var accessory TransferAccessory
 		if err := json.Unmarshal(record.Data, &accessory); err != nil {
 			return nil, nil, fmt.Errorf("%w: invalid accessory preview data", ErrDataTransferValidation)
 		}
-		if err := repository.ValidateTransferAccessoryReferences(ctx, accessory, record.TargetID); err != nil {
-			if !errors.Is(err, ErrDataTransferValidation) {
-				return nil, nil, err
-			}
-			issues = append(issues, transferpolicy.NewTransferIssue(jobID, TransferAccessories, record.RecordKey, record.RowNumber,
-				"record", TransferIssueError, "invalid_accessory",
-				"Accessory article type or subtype is not active.", "skip"))
-			transferpolicy.FinalizeDataTransferRecord(record, transferpolicy.TransferIssuesForPreviewRecord(issues, *record))
+		checks = append(checks, transfer.AccessoryReferenceCheck{Accessory: accessory, TargetID: record.TargetID})
+		indices = append(indices, i)
+	}
+	if len(checks) == 0 {
+		return records, issues, nil
+	}
+	valid, err := repository.ValidateTransferAccessoryReferences(ctx, checks)
+	if err != nil {
+		return nil, nil, err
+	}
+	for i, ok := range valid {
+		if ok {
+			continue
 		}
+		record := &records[indices[i]]
+		issues = append(issues, transferpolicy.NewTransferIssue(jobID, TransferAccessories, record.RecordKey, record.RowNumber,
+			"record", TransferIssueError, "invalid_accessory",
+			"Accessory article type or subtype is not active.", "skip"))
+		transferpolicy.FinalizeDataTransferRecord(record, transferpolicy.TransferIssuesForPreviewRecord(issues, *record))
 	}
 	return records, issues, nil
 }

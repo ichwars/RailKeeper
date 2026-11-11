@@ -88,3 +88,9 @@ type TransferAccessoryAsset struct {
 	CreatedAt           string `json:"createdAt,omitempty"`
 	UpdatedAt           string `json:"updatedAt,omitempty"`
 }
+
+// AccessoryReferenceCheck carries a preview record and its optional existing product.
+type AccessoryReferenceCheck struct {
+	Accessory TransferAccessory
+	TargetID  string
+}

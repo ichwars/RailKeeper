@@ -30,13 +30,17 @@ func findFunction(ctx context.Context, query queryRower, id, key string) (vehicl
 	return item, err == nil, err
 }
 func (s *functionStore) Functions(ctx context.Context, vehicleID string) ([]vehiclemodel.VehicleFunction, error) {
-	rows, err := s.db.QueryContext(ctx, `
-SELECT id, vehicle_id, function_key, COALESCE(name, ''), COALESCE(symbol_key, ''), function_type, mode,
-       direction_dependent, inverted, legacy_direction_dependent, COALESCE(notes, ''), sort_order, created_at, updated_at
-FROM vehicle_functions
-WHERE vehicle_id=?
+	return readFunctions(ctx, s.db, "vehicle_id=?", strings.TrimSpace(vehicleID))
+}
+
+func ReadFunctionsForVehicles(ctx context.Context, query vehicleMediaQuery, vehicleIDsJSON string) ([]vehiclemodel.VehicleFunction, error) {
+	return readFunctions(ctx, query, "vehicle_id IN (SELECT value FROM json_each(?))", vehicleIDsJSON)
+}
+
+func readFunctions(ctx context.Context, query vehicleMediaQuery, filter string, arg string) ([]vehiclemodel.VehicleFunction, error) {
+	rows, err := query.QueryContext(ctx, functionSelect+`WHERE `+filter+`
 ORDER BY sort_order ASC, function_key ASC
-`, strings.TrimSpace(vehicleID))
+`, arg)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicle functions: %w", err)
 	}

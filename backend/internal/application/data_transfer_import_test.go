@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"railkeeper/backend/internal/transfer"
 	transferpolicy "railkeeper/backend/internal/transfer/policy"
 )
 
@@ -779,10 +780,10 @@ func (repository *dataTransferImportRepositoryStub) ApplyImportWithPolicy(
 	return repository.ApplyImport(ctx, job, actor)
 }
 
-func (repository *dataTransferImportRepositoryStub) ValidateTransferAccessoryReferences(
-	_ context.Context,
-	_ TransferAccessory,
-	_ string,
-) error {
-	return nil
+func (repository *dataTransferImportRepositoryStub) ValidateTransferAccessoryReferences(_ context.Context, checks []transfer.AccessoryReferenceCheck) ([]bool, error) {
+	valid := make([]bool, len(checks))
+	for i := range valid {
+		valid[i] = true
+	}
+	return valid, nil
 }

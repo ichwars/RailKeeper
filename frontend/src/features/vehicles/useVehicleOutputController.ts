@@ -116,10 +116,6 @@ export function useVehicleOutputController({
     return assets;
   };
 
-  const loadCompleteReportVehicles = (reportVehicles: Vehicle[]) => {
-    return Promise.all(reportVehicles.map((vehicle) => api.vehicle(vehicle.id)));
-  };
-
   const createInventoryReport = async (event?: FormEvent) => {
     event?.preventDefault();
     const reportVehicles = reportSelection === "selected" ? selectedVisibleVehicles : sortedVehicles;
@@ -133,7 +129,7 @@ export function useVehicleOutputController({
     setReportCreating(true);
     const reportWindow = reservePrintDocument(reportName, reportTitle.trim() || "Fahrzeugsammlung");
     try {
-      const completeReportVehicles = await loadCompleteReportVehicles(reportVehicles);
+      const completeReportVehicles = await api.vehicleReportData(reportVehicles.map((vehicle) => vehicle.id));
       const assets = await buildInventoryReportAssets(completeReportVehicles);
       const html = inventoryReportHtml(completeReportVehicles, query, sort, {
         mode: reportMode,

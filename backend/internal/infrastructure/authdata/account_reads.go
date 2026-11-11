@@ -12,10 +12,12 @@ import (
 )
 
 func (s *Store) ListUsers(ctx context.Context) ([]management.UserView, error) {
-	rows, err := s.db.QueryContext(
-		ctx,
-		`SELECT id, username, COALESCE(email, ''), created_at, two_factor_enabled FROM users ORDER BY lower(username)`,
-	)
+	rows, err := s.db.QueryContext(ctx, `
+SELECT u.id, u.username, COALESCE(u.email, ''), u.created_at, u.two_factor_enabled, r.name
+FROM users u
+LEFT JOIN user_roles ur ON ur.user_id=u.id
+LEFT JOIN roles r ON r.id=ur.role_id
+ORDER BY lower(u.username), u.id, r.name`)
 	if err != nil {
 		return nil, fmt.Errorf("list users: %w", err)
 	}
@@ -24,24 +26,21 @@ func (s *Store) ListUsers(ctx context.Context) ([]management.UserView, error) {
 	users := []management.UserView{}
 	for rows.Next() {
 		var user management.UserView
-		if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.TwoFactorEnabled); err != nil {
-			_ = rows.Close()
+		var role sql.NullString
+		if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.TwoFactorEnabled, &role); err != nil {
 			return nil, fmt.Errorf("scan user: %w", err)
 		}
-		users = append(users, user)
+		if len(users) == 0 || users[len(users)-1].ID != user.ID {
+			user.Roles = []string{}
+			users = append(users, user)
+		}
+		if role.Valid {
+			last := &users[len(users)-1]
+			last.Roles = append(last.Roles, role.String)
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("read users: %w", err)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, fmt.Errorf("close users: %w", err)
-	}
-
-	for index := range users {
-		users[index].Roles, err = s.roles(ctx, users[index].ID)
-		if err != nil {
-			return nil, err
-		}
 	}
 	return users, nil
 }

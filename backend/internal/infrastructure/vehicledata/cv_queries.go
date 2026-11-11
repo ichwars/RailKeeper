@@ -19,8 +19,16 @@ func (q *cvQueries) CVValue(ctx context.Context, vehicleID, id string) (decoder.
 	return record, err == nil, err
 }
 func (q *cvQueries) CVValues(ctx context.Context, vehicleID string) ([]decoder.CVRecord, error) {
-	rows, err := q.query.QueryContext(ctx, CVSelect+`
-WHERE vehicle_id=? ORDER BY decoder_profile ASC, index_cv31 ASC, index_cv32 ASC, cv_number ASC`, strings.TrimSpace(vehicleID))
+	return readCVValues(ctx, q.query, "vehicle_id=?", strings.TrimSpace(vehicleID))
+}
+
+func ReadCVValuesForVehicles(ctx context.Context, query vehicleMediaQuery, vehicleIDsJSON string) ([]decoder.CVRecord, error) {
+	return readCVValues(ctx, query, "vehicle_id IN (SELECT value FROM json_each(?))", vehicleIDsJSON)
+}
+
+func readCVValues(ctx context.Context, query vehicleMediaQuery, filter string, arg string) ([]decoder.CVRecord, error) {
+	rows, err := query.QueryContext(ctx, CVSelect+`
+WHERE `+filter+` ORDER BY decoder_profile ASC, index_cv31 ASC, index_cv32 ASC, cv_number ASC`, arg)
 	if err != nil {
 		return nil, fmt.Errorf("list CV values: %w", err)
 	}
@@ -45,8 +53,16 @@ func (q *cvQueries) CVHistory(ctx context.Context, id string) ([]decoder.Vehicle
 	return ReadCVHistory(ctx, q.query, id)
 }
 func (q *cvQueries) CVHistories(ctx context.Context, vehicleID string) ([]decoder.VehicleCVValueHistory, error) {
-	rows, err := q.query.QueryContext(ctx, `SELECT id, cv_value_id, vehicle_id, old_value, new_value, changed_at
-FROM vehicle_cv_value_history WHERE vehicle_id=? ORDER BY changed_at DESC, id DESC`, strings.TrimSpace(vehicleID))
+	return readCVHistories(ctx, q.query, "vehicle_id=?", strings.TrimSpace(vehicleID))
+}
+
+func ReadCVHistoriesForVehicles(ctx context.Context, query vehicleMediaQuery, vehicleIDsJSON string) ([]decoder.VehicleCVValueHistory, error) {
+	return readCVHistories(ctx, query, "vehicle_id IN (SELECT value FROM json_each(?))", vehicleIDsJSON)
+}
+
+func readCVHistories(ctx context.Context, query vehicleMediaQuery, filter string, arg string) ([]decoder.VehicleCVValueHistory, error) {
+	rows, err := query.QueryContext(ctx, `SELECT id, cv_value_id, vehicle_id, old_value, new_value, changed_at
+FROM vehicle_cv_value_history WHERE `+filter+` ORDER BY changed_at DESC, id DESC`, arg)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +89,15 @@ func (q *cvQueries) CVFile(ctx context.Context, vehicleID, id string) (*decoder.
 	return file, nil
 }
 func (q *cvQueries) CVFiles(ctx context.Context, vehicleID string) ([]decoder.VehicleCVFile, error) {
-	rows, err := q.query.QueryContext(ctx, CVFileSelect+`WHERE vehicle_id=? ORDER BY created_at ASC`, strings.TrimSpace(vehicleID))
+	return readCVFiles(ctx, q.query, "vehicle_id=?", strings.TrimSpace(vehicleID))
+}
+
+func ReadCVFilesForVehicles(ctx context.Context, query vehicleMediaQuery, vehicleIDsJSON string) ([]decoder.VehicleCVFile, error) {
+	return readCVFiles(ctx, query, "vehicle_id IN (SELECT value FROM json_each(?))", vehicleIDsJSON)
+}
+
+func readCVFiles(ctx context.Context, query vehicleMediaQuery, filter string, arg string) ([]decoder.VehicleCVFile, error) {
+	rows, err := query.QueryContext(ctx, CVFileSelect+`WHERE `+filter+` ORDER BY created_at ASC`, arg)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicle cv files: %w", err)
 	}

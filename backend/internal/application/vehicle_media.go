@@ -8,18 +8,6 @@ import (
 	vehiclemodel "railkeeper/backend/internal/inventory/vehicle"
 )
 
-func (s *VehicleService) attachImages(ctx context.Context, vehicles []Vehicle) error {
-	for index := range vehicles {
-		images, err := s.loadVehicleImages(ctx, vehicles[index].ID)
-		if err != nil {
-			return err
-		}
-		vehicles[index].Images = images
-		vehicles[index].ImagesRevision = vehicleImagesRevision(images)
-	}
-	return nil
-}
-
 func (s *VehicleService) loadVehicleImages(ctx context.Context, vehicleID string) ([]VehicleImage, error) {
 	return readVehicleImages(ctx, s.db, vehicleID)
 }
@@ -30,66 +18,6 @@ type vehicleMediaQuery interface {
 
 func readVehicleImages(ctx context.Context, query vehicleMediaQuery, vehicleID string) ([]VehicleImage, error) {
 	return vehicledata.ReadImages(ctx, query, vehicleID)
-}
-
-func (s *VehicleService) attachAttachments(ctx context.Context, vehicles []Vehicle) error {
-	for index := range vehicles {
-		attachments, err := s.loadVehicleAttachments(ctx, vehicles[index].ID)
-		if err != nil {
-			return err
-		}
-		vehicles[index].Attachments = attachments
-	}
-	return nil
-}
-
-func (s *VehicleService) attachMaintenance(ctx context.Context, vehicles []Vehicle) error {
-	for index := range vehicles {
-		maintenance, err := s.loadVehicleMaintenance(ctx, vehicles[index].ID)
-		if err != nil {
-			return err
-		}
-		vehicles[index].Maintenance = maintenance
-	}
-	return nil
-}
-
-func (s *VehicleService) attachSpareParts(ctx context.Context, vehicles []Vehicle) error {
-	for index := range vehicles {
-		spareParts, err := s.loadVehicleSpareParts(ctx, vehicles[index].ID)
-		if err != nil {
-			return err
-		}
-		vehicles[index].SpareParts = spareParts
-	}
-	return nil
-}
-
-func (s *VehicleService) attachFunctions(ctx context.Context, vehicles []Vehicle) error {
-	for index := range vehicles {
-		functions, err := s.loadVehicleFunctions(ctx, vehicles[index].ID)
-		if err != nil {
-			return err
-		}
-		vehicles[index].Functions = functions
-	}
-	return nil
-}
-
-func (s *VehicleService) attachCVData(ctx context.Context, vehicles []Vehicle) error {
-	for index := range vehicles {
-		values, err := s.loadVehicleCVValues(ctx, vehicles[index].ID)
-		if err != nil {
-			return err
-		}
-		vehicles[index].CVValues = values
-		files, err := s.loadVehicleCVFiles(ctx, vehicles[index].ID)
-		if err != nil {
-			return err
-		}
-		vehicles[index].CVFiles = files
-	}
-	return nil
 }
 
 func (s *VehicleService) CreateImage(ctx context.Context, vehicleID string, input VehicleImageInput) (*VehicleImage, error) {

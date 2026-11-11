@@ -47,6 +47,7 @@ func BuildDesiredEntries(
 			}
 		}
 	}
+	var omitted []MasterDataEntry
 	for identity, entry := range current {
 		if _, imported := desired[identity]; imported {
 			continue
@@ -55,14 +56,20 @@ func BuildDesiredEntries(
 			desired[identity] = entry
 			continue
 		}
-		used, err := usage(ctx, entry)
-		if err != nil {
-			return nil, 0, fmt.Errorf("check omitted master data %s/%s: %w",
-				identity.typeName, identity.key, err)
+		omitted = append(omitted, entry)
+	}
+	usedByIdentity, err := usage(ctx, omitted)
+	if err != nil {
+		return nil, 0, fmt.Errorf("check omitted master data: %w", err)
+	}
+	for _, entry := range omitted {
+		used, known := usedByIdentity[IdentityOf(entry)]
+		if !known {
+			return nil, 0, fmt.Errorf("check omitted master data %s/%s: %w", entry.Type, entry.Key, ErrMasterDataUsageUnknown)
 		}
 		if used {
 			return nil, 0, fmt.Errorf("%w: omitted referenced master data %s/%s",
-				ErrMasterDataInUse, identity.typeName, identity.key)
+				ErrMasterDataInUse, entry.Type, entry.Key)
 		}
 	}
 	return desired, importedCount, nil
