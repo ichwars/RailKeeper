@@ -8,9 +8,9 @@ import (
 	"strings"
 )
 
-func serveCompressedAsset(w http.ResponseWriter, r *http.Request, path string) bool {
+func serveCompressedAsset(w http.ResponseWriter, r *http.Request, root *os.Root, name string) bool {
 	var contentType string
-	switch filepath.Ext(path) {
+	switch filepath.Ext(name) {
 	case ".js":
 		contentType = "text/javascript; charset=utf-8"
 	case ".css":
@@ -23,7 +23,7 @@ func serveCompressedAsset(w http.ResponseWriter, r *http.Request, path string) b
 		return false
 	}
 
-	file, err := os.Open(path + ".gz")
+	file, err := root.Open(filepath.FromSlash(name + ".gz"))
 	if err != nil {
 		return false
 	}
@@ -36,7 +36,7 @@ func serveCompressedAsset(w http.ResponseWriter, r *http.Request, path string) b
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("Content-Length", strconv.FormatInt(info.Size(), 10))
-	http.ServeContent(w, r, filepath.Base(path), info.ModTime(), file)
+	http.ServeContent(w, r, filepath.Base(name), info.ModTime(), file)
 	return true
 }
 

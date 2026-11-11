@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -78,5 +79,51 @@ func TestStaticAssetCompressionNegotiation(t *testing.T) {
 	head := request(http.MethodHead, "main-hash.js", "gzip")
 	if head.Header().Get("Content-Encoding") != "gzip" || head.Body.Len() != 0 {
 		t.Fatal("HEAD must describe the negotiated representation without a body")
+	}
+}
+
+func TestStaticAssetsStayInsideWebRoot(t *testing.T) {
+	root := t.TempDir()
+	assets := filepath.Join(root, "assets")
+	if err := os.Mkdir(assets, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	const index = "safe index"
+	const script = "safe script"
+	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte(index), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(assets, "main.js"), []byte(script), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	private := filepath.Join(t.TempDir(), "private")
+	if err := os.WriteFile(private, []byte("private file"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"main.js.gz", "outside.js"} {
+		if err := os.Symlink(private, filepath.Join(assets, name)); err != nil {
+			if runtime.GOOS == "windows" {
+				t.Skipf("symlink creation is unavailable: %v", err)
+			}
+			t.Fatal(err)
+		}
+	}
+
+	handler := staticHandler(root)
+	for _, test := range []struct{ path, body string }{
+		{"/assets/main.js", script},
+		{"/assets/main.js.gz", index},
+		{"/assets/outside.js", index},
+	} {
+		t.Run(test.path, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodGet, test.path, nil)
+			r.Header.Set("Accept-Encoding", "gzip")
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, r)
+			if w.Code != http.StatusOK || w.Header().Get("Content-Encoding") != "" || w.Body.String() != test.body {
+				t.Fatalf("unexpected response: status %d, encoding %q, body %q", w.Code,
+					w.Header().Get("Content-Encoding"), w.Body.String())
+			}
+		})
 	}
 }

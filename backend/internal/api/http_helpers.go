@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/netip"
 	"os"
-	"path/filepath"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -319,8 +320,6 @@ func actorUserID(r *http.Request) string {
 }
 
 func staticHandler(staticDir string) http.Handler {
-	fileServer := http.FileServer(http.Dir(staticDir))
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			respondJSON(w, http.StatusNotFound, map[string]string{
@@ -330,21 +329,29 @@ func staticHandler(staticDir string) http.Handler {
 			return
 		}
 
-		path := filepath.Join(staticDir, filepath.Clean(r.URL.Path))
-		if info, err := os.Stat(path); err == nil && !info.IsDir() {
+		root, err := os.OpenRoot(staticDir)
+		if err != nil {
+			w.Header().Set("Cache-Control", "no-store")
+			http.NotFound(w, r)
+			return
+		}
+		defer func() { _ = root.Close() }()
+		files := root.FS()
+		name := strings.TrimPrefix(path.Clean("/"+r.URL.Path), "/")
+		if info, err := fs.Stat(files, name); err == nil && info.Mode().IsRegular() {
 			if strings.HasPrefix(r.URL.Path, "/assets/") {
 				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-				if serveCompressedAsset(w, r, path) {
+				if serveCompressedAsset(w, r, root, name) {
 					return
 				}
 			} else {
 				w.Header().Set("Cache-Control", "no-cache")
 			}
-			fileServer.ServeHTTP(w, r)
+			http.FileServerFS(files).ServeHTTP(w, r)
 			return
 		}
 
 		w.Header().Set("Cache-Control", "no-store")
-		http.ServeFile(w, r, filepath.Join(staticDir, "index.html"))
+		http.ServeFileFS(w, r, files, "index.html")
 	})
 }
