@@ -414,7 +414,7 @@ export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
                 <thead><tr><th>{de ? "Fahrzeug" : "Vehicle"}</th><th>{de ? "Besitzer" : "Owner"}</th><th>{de ? "Adresse" : "Address"}</th><th>{de ? "Schnittstelle" : "Interface"}</th><th>{de ? "Tage" : "Days"}</th><th>Status</th><th>{de ? "Aktion" : "Action"}</th></tr></thead>
                 <tbody>
                   {filteredEntries.map((entry) => <tr key={entry.id}>
-                    <td><div className="exhibition-vehicle-cell">{entry.imageUrl ? <img src={entry.imageUrl} alt="" /> : <span><TrainFront size={23} /></span>}<strong>{entry.locomotiveName}</strong></div></td>
+                    <td><div className="exhibition-vehicle-cell">{entry.imageUrl ? <img loading="lazy" src={entry.imageUrl} alt="" /> : <span><TrainFront size={23} /></span>}<strong>{entry.locomotiveName}</strong></div></td>
                     <td>{entry.owner || "–"}</td><td>{entry.analog ? (de ? "Analog" : "Analogue") : entry.decoderNumber || entry.sxAddress || "–"}</td><td>{entry.interfaceName || entry.adapter || "–"}</td>
                     <td><div className="exhibition-day-badges">{workspace.dayScopes.map((scope, index) => dayScopeIncludes(entry.dayScope, scope) && <span key={scope}>{index + 1}</span>)}</div></td>
                     <td><span className={`exhibition-entry-status status-${entry.status}`}>{entry.status === "ready" ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}{entryStatusLabels[entry.status][language]}</span></td>

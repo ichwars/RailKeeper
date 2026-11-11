@@ -145,7 +145,7 @@ export function ArticleTable({
       case "image":
         return <td key={column} className="article-image-cell">
           {article.primaryImageUrl
-            ? <img className="inventory-thumb" src={article.primaryImageUrl} alt="" />
+            ? <img loading="lazy" className="inventory-thumb" src={article.primaryImageUrl} alt="" />
             : <div className="image-placeholder">{t("exhibition.noPreview")}</div>}
         </td>;
       case "inventoryNumber":

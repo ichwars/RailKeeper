@@ -115,7 +115,7 @@ export function VehicleInventoryTable({
 			return (
 				<div className="vehicle-member-type-cell">
 					{image
-						? <img className="inventory-thumb" src={previewImageUrl(image)} alt="" />
+						? <img loading="lazy" className="inventory-thumb" src={previewImageUrl(image)} alt="" />
 						: <div className="image-placeholder inventory-image-placeholder"
 							aria-label={t("exhibition.noPreview")} title={t("exhibition.noPreview")}>
 							<ImageOff size={18} strokeWidth={1.7} aria-hidden="true" />
@@ -132,7 +132,7 @@ export function VehicleInventoryTable({
     if (column === "image") {
       const image = primaryImage(vehicle.images);
       return image
-        ? <img className="inventory-thumb" src={previewImageUrl(image)} alt="" />
+        ? <img loading="lazy" className="inventory-thumb" src={previewImageUrl(image)} alt="" />
         : <div className="image-placeholder inventory-image-placeholder"
           aria-label={t("exhibition.noPreview")} title={t("exhibition.noPreview")}>
           <ImageOff size={18} strokeWidth={1.7} aria-hidden="true" />

@@ -389,7 +389,7 @@ export function VehicleInventoryPanel({
                     <article key={vehicle.id} className="inventory-card">
                       <button type="button" className="inventory-card-media" onClick={() => onOpenDetail(vehicle)} aria-label={`${vehicle.inventoryNumber} ${t("vehicles.view")}`}>
                         {image ? (
-                          <img src={previewImageUrl(image)} alt="" />
+                          <img loading="lazy" src={previewImageUrl(image)} alt="" />
                         ) : (
                           <div className="image-placeholder">{t("exhibition.noPreview")}</div>
                         )}

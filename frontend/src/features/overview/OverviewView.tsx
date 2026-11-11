@@ -346,7 +346,7 @@ export function OverviewView({ username = "local", roles = ["Editor"] }: Overvie
                 {stats.recentVehicles.map((vehicle) => <a href={`/vehicles?id=${encodeURIComponent(vehicle.id)}`}
                   key={vehicle.id}>
                   <span className="overview-vehicle-thumb">
-                    {primaryVehicleImage(vehicle) ? <img src={primaryVehicleImage(vehicle)} alt="" /> :
+                    {primaryVehicleImage(vehicle) ? <img loading="lazy" src={primaryVehicleImage(vehicle)} alt="" /> :
                       <TrainFront size={24} aria-hidden="true" />}
                   </span>
                   <strong>{vehicle.name || vehicle.inventoryNumber}</strong>
@@ -369,7 +369,7 @@ export function OverviewView({ username = "local", roles = ["Editor"] }: Overvie
                   href={`/vehicles?id=${encodeURIComponent(vehicle.id)}&tab=maintenance`} key={entry.id}
                   className={days <= 0 ? "overdue" : ""}>
                   <span className="overview-vehicle-thumb">
-                    {primaryVehicleImage(vehicle) ? <img src={primaryVehicleImage(vehicle)} alt="" /> :
+                    {primaryVehicleImage(vehicle) ? <img loading="lazy" src={primaryVehicleImage(vehicle)} alt="" /> :
                       <TrainFront size={24} aria-hidden="true" />}
                   </span>
                   <span><strong>{vehicle.name || vehicle.inventoryNumber}</strong>
