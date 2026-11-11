@@ -82,6 +82,22 @@ describe("useDigitalCentersWorkspace", () => {
     expect(api.confirmDigitalCenterWrite).not.toHaveBeenCalled();
   });
 
+  it("uses the unfiltered session count from a single filtered response", async () => {
+    vi.mocked(api.digitalCenterWorkspace).mockResolvedValue({
+      centers: [{ ...centers[0], lastReadSession: readySession }]
+    });
+    vi.mocked(api.digitalCenterWorkItems).mockResolvedValue({ ...worklist, sessionTotal: 12 });
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.sessionTotal).toBe(12));
+    vi.mocked(api.digitalCenterWorkItems).mockClear();
+    act(() => result.current.setSearch("BR"));
+    await waitFor(() => expect(api.digitalCenterWorkItems).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.loading.worklist).toBe(false));
+    expect(api.digitalCenterWorkItems).toHaveBeenCalledExactlyOnceWith(readySession.id, expect.objectContaining({ query: "BR" }));
+    expect(result.current.workItems.total).toBe(1);
+    expect(result.current.sessionTotal).toBe(12);
+  });
+
   it("keeps the previous result on a failed reread and restores each selected station", async () => {
     const z21Session = { ...readySession, id: "z21-saved", provider: "z21" as const };
     vi.mocked(api.digitalCenterWorkspace).mockResolvedValue({ centers: [

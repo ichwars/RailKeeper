@@ -1402,7 +1402,7 @@ components:
           format: date-time
     DigitalCenterWorkItemPage:
       type: object
-      required: [items, page, pageSize, total, totalPages]
+      required: [items, page, pageSize, total, totalPages, sessionTotal]
       properties:
         items:
           type: array
@@ -1421,6 +1421,10 @@ components:
         totalPages:
           type: integer
           minimum: 0
+        sessionTotal:
+          type: integer
+          minimum: 0
+          description: Number of work items before applying search or status filters.
     DigitalCenterSessionMessage:
       type: object
       required: [id, sessionId, severity, code, message, nextAction, createdAt]

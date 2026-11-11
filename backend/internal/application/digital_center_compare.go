@@ -33,11 +33,12 @@ type DigitalCenterWorkItemFilter struct {
 }
 
 type DigitalCenterWorkItemPage struct {
-	Items      []DigitalCenterWorkItem `json:"items"`
-	Page       int                     `json:"page"`
-	PageSize   int                     `json:"pageSize"`
-	Total      int                     `json:"total"`
-	TotalPages int                     `json:"totalPages"`
+	Items        []DigitalCenterWorkItem `json:"items"`
+	Page         int                     `json:"page"`
+	PageSize     int                     `json:"pageSize"`
+	Total        int                     `json:"total"`
+	TotalPages   int                     `json:"totalPages"`
+	SessionTotal int                     `json:"sessionTotal"`
 }
 
 func (service *DigitalCenterWorkspaceService) startReadSessionUnlocked(
@@ -274,11 +275,12 @@ func (service *DigitalCenterWorkspaceService) ListWorkItems(
 	}
 	end := min(start+pageSize, len(filtered))
 	return DigitalCenterWorkItemPage{
-		Items:      append([]DigitalCenterWorkItem(nil), filtered[start:end]...),
-		Page:       page,
-		PageSize:   pageSize,
-		Total:      len(filtered),
-		TotalPages: totalPages,
+		Items:        append([]DigitalCenterWorkItem(nil), filtered[start:end]...),
+		Page:         page,
+		PageSize:     pageSize,
+		Total:        len(filtered),
+		TotalPages:   totalPages,
+		SessionTotal: len(items),
 	}, nil
 }
 

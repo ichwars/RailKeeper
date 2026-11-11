@@ -48,7 +48,7 @@ export function ArticleCompactList({
               aria-label={t("accessories.actions.viewNamed", { name: article.name })}
             >
               {article.primaryImageUrl ? (
-                <img src={article.primaryImageUrl} alt="" />
+                <img loading="lazy" src={article.primaryImageUrl} alt="" />
               ) : (
                 <div className="image-placeholder">{t("exhibition.noPreview")}</div>
               )}

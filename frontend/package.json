@@ -10,6 +10,7 @@
     "dev": "vite --host 0.0.0.0 --port 3000",
     "prebuild": "npm run generate:api",
     "build": "tsc -b && vite build",
+    "postbuild": "node scripts/check-startup-budget.mjs",
     "pretypecheck": "npm run generate:api",
     "typecheck": "tsc -b",
     "lint": "node ../tools/frontend-lint/lint.test.mjs && node ../tools/frontend-lint/node_modules/eslint/bin/eslint.js --config ../tools/frontend-lint/eslint.config.mjs src --max-warnings 0",

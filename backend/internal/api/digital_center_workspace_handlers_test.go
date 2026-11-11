@@ -94,7 +94,7 @@ func TestDigitalCenterWorkspaceRoutesUseConfiguredTargetAndBoundPagination(t *te
 	assertStatus(t, itemsResponse, http.StatusOK)
 	var page application.DigitalCenterWorkItemPage
 	decodeResponse(t, itemsResponse, &page)
-	if page.PageSize != 100 || len(page.Items) != 100 || page.Total != 125 || page.TotalPages != 2 {
+	if page.PageSize != 100 || len(page.Items) != 100 || page.Total != 125 || page.TotalPages != 2 || page.SessionTotal != 125 {
 		t.Fatalf("work item page = %#v", page)
 	}
 

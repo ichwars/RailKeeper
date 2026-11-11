@@ -25,25 +25,24 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 	       COALESCE(traction_tire_count, ''), COALESCE(wheelset, ''), COALESCE(coupling_front, ''),
 	       COALESCE(coupling_rear, ''), COALESCE(power_pickup, ''), COALESCE(adapter, ''),
 	       drive_enabled, headlights_enabled, lighting_enabled, sound_generator_enabled, smoke_generator_enabled,
-	       COALESCE((SELECT m.vehicle_set_id FROM vehicle_set_members m WHERE m.vehicle_id=vehicles.id), ''),
-	       COALESCE((SELECT s.name FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
-	       COALESCE((SELECT m.position FROM vehicle_set_members m WHERE m.vehicle_id=vehicles.id), 0),
-	       COALESCE((SELECT COUNT(*) FROM vehicle_set_members m WHERE m.vehicle_set_id=(SELECT own.vehicle_set_id FROM vehicle_set_members own WHERE own.vehicle_id=vehicles.id)), 0),
-	       COALESCE((SELECT s.inventory_number FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
-	       COALESCE((SELECT s.manufacturer FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
-	       COALESCE((SELECT s.article_number FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
-	       COALESCE((SELECT s.gauge FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
-	       COALESCE((SELECT s.epoch FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
-	       COALESCE((SELECT s.acquisition_type FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
-	       COALESCE((SELECT s.purchase_date FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
-	       COALESCE((SELECT s.purchase_price FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
-	       COALESCE((SELECT s.condition FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE(member.vehicle_set_id, ''), COALESCE(inventory_set.set_name, ''), COALESCE(member.position, 0),
+	       (SELECT COUNT(*) FROM vehicle_set_members other WHERE other.vehicle_set_id=member.vehicle_set_id),
+	       COALESCE(inventory_set.set_inventory_number, ''), COALESCE(inventory_set.set_manufacturer, ''),
+	       COALESCE(inventory_set.set_article_number, ''), COALESCE(inventory_set.set_gauge, ''),
+	       COALESCE(inventory_set.set_epoch, ''), COALESCE(inventory_set.set_acquisition_type, ''),
+	       COALESCE(inventory_set.set_purchase_date, ''), COALESCE(inventory_set.set_purchase_price, ''),
+	       COALESCE(inventory_set.set_condition, ''),
 	       created_at, updated_at
 	FROM vehicles
-	WHERE (? = '' OR EXISTS (
-	  SELECT 1 FROM vehicle_set_members scope
-	  WHERE scope.vehicle_id=vehicles.id AND scope.vehicle_set_id=?
-	))
+	LEFT JOIN vehicle_set_members member ON member.vehicle_id=vehicles.id
+	LEFT JOIN (
+	  SELECT id AS set_id, name AS set_name, inventory_number AS set_inventory_number,
+	         manufacturer AS set_manufacturer, article_number AS set_article_number,
+	         gauge AS set_gauge, epoch AS set_epoch, acquisition_type AS set_acquisition_type,
+	         purchase_date AS set_purchase_date, purchase_price AS set_purchase_price, condition AS set_condition
+	  FROM vehicle_sets
+	) inventory_set ON inventory_set.set_id=member.vehicle_set_id
+	WHERE (? = '' OR member.vehicle_set_id=?)
 	AND (
 	   ? = '%%'
 	   OR inventory_number LIKE ? COLLATE NOCASE
@@ -55,15 +54,9 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 	   OR decoder_type LIKE ? COLLATE NOCASE
 	   OR home_base LIKE ? COLLATE NOCASE
 	   OR CAST(maximum_speed_kmh AS TEXT) LIKE ? COLLATE NOCASE
-	   OR EXISTS (
-	     SELECT 1
-	     FROM vehicle_set_members m
-	     JOIN vehicle_sets s ON s.id=m.vehicle_set_id
-	     WHERE m.vehicle_id=vehicles.id
-	       AND (s.inventory_number LIKE ? COLLATE NOCASE
-	         OR s.name LIKE ? COLLATE NOCASE
-	         OR s.article_number LIKE ? COLLATE NOCASE)
-	   )
+	   OR inventory_set.set_inventory_number LIKE ? COLLATE NOCASE
+	   OR inventory_set.set_name LIKE ? COLLATE NOCASE
+	   OR inventory_set.set_article_number LIKE ? COLLATE NOCASE
 	)
 	ORDER BY updated_at DESC, inventory_number ASC
 	`, vehicleSetID, vehicleSetID, like, like, like, like, like, like, like, like, like, like, like, like, like)

@@ -74,7 +74,7 @@ export function VehicleInventoryMobileCard({
         {showsImage ? (
           <span className="vehicle-mobile-image" aria-hidden="true">
             {image
-              ? <img src={previewImageUrl(image)} alt="" />
+              ? <img loading="lazy" src={previewImageUrl(image)} alt="" />
               : (
                   <span className="image-placeholder">
                     {t("exhibition.noPreview")}

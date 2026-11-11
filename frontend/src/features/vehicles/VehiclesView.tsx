@@ -1,3 +1,5 @@
+import type { ComponentProps } from "react";
+import { DecoderLibraryProvider } from "../../shared/DecoderLibraryProvider";
 import { ArticleSearchDialog } from "../../shared/articleSearch/ArticleSearchDialog";
 import { BarcodeSearchDialog } from "../../shared/articleSearch/BarcodeSearchDialog";
 import { DecoderArchiveDialog } from "./DecoderCVArchive";
@@ -216,4 +218,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       )}
     </>
   );
+}
+export function VehiclesRoute(props: ComponentProps<typeof VehiclesView>) {
+  return <DecoderLibraryProvider><VehiclesView {...props} /></DecoderLibraryProvider>;
 }

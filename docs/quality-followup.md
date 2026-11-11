@@ -69,10 +69,9 @@ Source freezing retains its existing atomicity until a separately tested equival
 
 ## Build and analysis policy
 
-The declared minimum Go version remains 1.26.10; release/compiler qualification uses
-1.27.3. `.github/scripts/check_go_toolchain.py` checks release pins and the independent
-minimum-compiler CI path. The lint analyzer's separate minimum-compiler requirement remains
-explicit until the analyzer supports the release compiler's export format.
+The module and release builds use Go 1.27.4. `.github/scripts/check_go_toolchain.py` verifies
+that their pins match and checks the dedicated minimum-compiler CI path. The qualified
+golangci-lint 2.14.0 analyzer uses the same compiler.
 
 Frontend lint continues to require hook rules and strict TypeScript compilation. Additional
 type-aware rules must support the actual project compiler. Unsupported versions, broad rule

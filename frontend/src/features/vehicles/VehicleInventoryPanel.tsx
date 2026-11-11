@@ -21,12 +21,14 @@ import { useId, type ReactNode } from "react";
 import { Vehicle, VehicleMaintenance } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import type { TableColumnWidths } from "../../shared/tableColumnLayout";
+import { useCompactInventory } from "../../shared/useCompactInventory";
 import { VehicleColumnPicker } from "./VehicleColumnPicker";
 import { VehicleInventoryFilters, type VehicleInventoryFilterProps } from "./VehicleInventoryFilters";
 import { VehicleInventoryMobileList } from "./VehicleInventoryMobileList";
 import { VehicleInventoryTable } from "./VehicleInventoryTable";
 import { formatDate } from "./vehicleFormat";
 import { maintenanceReminderText } from "./vehicleMaintenance";
+import { useExpandedInventoryRows } from "./useExpandedInventoryRows";
 import { groupVehicleInventory } from "./vehicleSetGroups";
 import type {
   VehicleColumnMove,
@@ -164,7 +166,10 @@ export function VehicleInventoryPanel({
   const { t } = useI18n();
   const searchHelpId = useId();
   const gaugeCount = new Set(vehicles.map((vehicle) => vehicle.gauge).filter(Boolean)).size;
-
+  const compact = useCompactInventory();
+  const tableSetExpansion = useExpandedInventoryRows();
+  const mobileSetExpansion = useExpandedInventoryRows();
+  const mobileVehicleExpansion = useExpandedInventoryRows();
 
   return (
     <>
@@ -322,11 +327,13 @@ export function VehicleInventoryPanel({
         {message && <p className={`form-message${messageTone === "status" ? " is-status" : ""}`}
           role={messageTone === "status" ? "status" : "alert"}>{message}</p>}
 
-        {!loading && sortedVehicles.length > 0 ? (
+        {compact && !loading && sortedVehicles.length > 0 ? (
           <VehicleInventoryMobileList
             vehicles={sortedVehicles}
             columns={columns}
             sort={sort}
+            setExpansion={mobileSetExpansion}
+            vehicleExpansion={mobileVehicleExpansion}
             onOpenDetail={onOpenDetail}
             onOpenEdit={onOpenEdit}
             onOpenSet={onOpenSet}
@@ -342,7 +349,7 @@ export function VehicleInventoryPanel({
           <p className="empty-state">{t("vehicles.empty")}</p>
         ) : sortedVehicles.length === 0 ? (
           <p className="empty-state">{t("vehicles.emptyFilter")}</p>
-        ) : (
+        ) : !compact && (
           <div className="inventory-desktop-content">
             {inventoryView === "cards" ? (
               <div className="inventory-card-grid">
@@ -389,7 +396,7 @@ export function VehicleInventoryPanel({
                     <article key={vehicle.id} className="inventory-card">
                       <button type="button" className="inventory-card-media" onClick={() => onOpenDetail(vehicle)} aria-label={`${vehicle.inventoryNumber} ${t("vehicles.view")}`}>
                         {image ? (
-                          <img src={previewImageUrl(image)} alt="" />
+                          <img loading="lazy" src={previewImageUrl(image)} alt="" />
                         ) : (
                           <div className="image-placeholder">{t("exhibition.noPreview")}</div>
                         )}
@@ -443,6 +450,7 @@ export function VehicleInventoryPanel({
                 allVisibleSelected={allVisibleSelected}
                 selectedVehicleIDs={selectedVehicleIDs}
                 sort={sort}
+                setExpansion={tableSetExpansion}
                 onToggleSort={onToggleSort}
                 onToggleSelection={onToggleSelection}
 								onToggleSetSelection={onToggleSetSelection}
