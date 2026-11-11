@@ -2,9 +2,9 @@
 
 ## Compiler and scope
 
-`.go-version` pins Go 1.27.3 for CI runtime tests, CodeQL, native Windows qualification and
+`.go-version` pins Go 1.27.4 for CI runtime tests, CodeQL, native Windows qualification and
 release builds. Docker uses the same version. `check_go_toolchain.py` rejects drift between
-these settings. `backend/go.mod` declares the same Go 1.27.3 version; drift in either
+these settings. `backend/go.mod` declares the same Go 1.27.4 version; drift in either
 direction fails the policy check. The dedicated module-compiler job runs the complete suite
 with `GOTOOLCHAIN=local`, so implicit toolchain selection cannot conceal a mismatch.
 
