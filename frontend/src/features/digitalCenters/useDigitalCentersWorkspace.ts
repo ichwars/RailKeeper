@@ -4,6 +4,7 @@ import type { DigitalCenterWorkspaceOptions } from "./digitalCenterWorkspacePoli
 export type { DigitalCenterWorkspaceOptions } from "./digitalCenterWorkspacePolicy";
 import { useCallback, useEffect, useMemo } from "react";
 import { observeAction } from "../../shared/asyncAction";
+import { useDebouncedSearch } from "../../shared/useDebouncedSearch";
 import { normalizeLiveStatus } from "./digitalCenterWorkspacePolicy";
 import { emptyErrors, useDigitalCenterWorkspaceState } from "./useDigitalCenterWorkspaceState";
 import { useDigitalCenterWorkspaceWrites } from "./useDigitalCenterWorkspaceWrites";
@@ -107,16 +108,18 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     };
   }, [loadWorkspace, mountedRef, readSessionIDRef, requestsRef]);
 
+  const searchQuery = useDebouncedSearch(search);
+  const searchPending = search !== searchQuery;
   const filter = useMemo<DigitalCenterWorkItemFilter>(() => ({
-    query: search,
+    query: searchQuery,
     compareStatus,
     page,
     pageSize
-  }), [compareStatus, page, pageSize, search]);
+  }), [compareStatus, page, pageSize, searchQuery]);
 
   useEffect(() => {
     const sessionID = readSession?.id;
-    if (!sessionID) return;
+    if (!sessionID || searchPending) return;
     const clampPage = clampWorklistPageRef.current;
     clampWorklistPageRef.current = false;
     const requestID = ++requestsRef.current.worklist;
@@ -151,7 +154,8 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
           setLoadingArea("worklist", false);
         }
       });
-  }, [clampWorklistPageRef, filter, localizedError, mountedRef, readSession?.id, readSessionIDRef, requestsRef, setError, setLoadingArea, setPageState, setSessionTotal, setWorkItems, worklistRevision]);
+  }, [clampWorklistPageRef, filter, localizedError, mountedRef, readSession?.id, readSessionIDRef, requestsRef,
+    searchPending, setError, setLoadingArea, setPageState, setSessionTotal, setWorkItems, worklistRevision]);
 
   useEffect(() => {
     const sessionID = readSession?.id;
