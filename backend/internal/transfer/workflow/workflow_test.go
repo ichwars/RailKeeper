@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"railkeeper/backend/internal/transfer"
 	transferpolicy "railkeeper/backend/internal/transfer/policy"
 )
 
@@ -49,8 +50,12 @@ func (r *workflowRepository) ApplyImportWithPolicy(context.Context, DataTransfer
 	r.mutations++
 	return nil
 }
-func (r *workflowRepository) ValidateTransferAccessoryReferences(context.Context, TransferAccessory, string) error {
-	return nil
+func (r *workflowRepository) ValidateTransferAccessoryReferences(_ context.Context, checks []transfer.AccessoryReferenceCheck) ([]bool, error) {
+	valid := make([]bool, len(checks))
+	for i := range valid {
+		valid[i] = true
+	}
+	return valid, nil
 }
 
 type workflowUpload struct {

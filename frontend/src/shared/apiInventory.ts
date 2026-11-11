@@ -16,6 +16,19 @@ export function createInventoryAPI(request: APIRequest) {
     backfillLegacyCatalog: () => request<VehicleCatalogBackfillReport>("/catalog/legacy-backfill", { method: "POST" }),
     vehicles: (query = "") =>
       request<Vehicle[]>(`/vehicles${query ? `?q=${encodeURIComponent(query)}` : ""}`),
+    vehicleReportData: async (vehicleIds: string[]) => {
+      // Keep batches of generated vehicle IDs within the API's JSON body limit.
+      const batchSize = 1000;
+      const vehicles: Vehicle[] = [];
+      for (let start = 0; start < vehicleIds.length; start += batchSize) {
+        const batch = await request<Vehicle[]>("/vehicles/report-data", {
+          method: "POST",
+          body: JSON.stringify({ vehicleIds: vehicleIds.slice(start, start + batchSize) })
+        });
+        vehicles.push(...batch);
+      }
+      return vehicles;
+    },
     overviewValuation: () => request<OverviewValuation>("/overview/valuation"),
     createVehicle: (input: CreateVehicleRequest & { externalMapping?: VehicleExternalMappingInput; creationId?: string }) =>
       request<Vehicle>("/vehicles", {

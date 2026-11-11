@@ -34,6 +34,7 @@ describe("Vehicle report, QR and exhibition output", () => {
     vi.spyOn(reports, "reservePrintDocument").mockReturnValue(null);
     vi.spyOn(reports, "openPrintDocument").mockImplementation(() => { });
     vi.spyOn(api, "vehicle").mockResolvedValue(vehicleFixture());
+    vi.spyOn(api, "vehicleReportData").mockResolvedValue([vehicleFixture()]);
     vi.spyOn(api, "exhibitionLists").mockResolvedValue([list]);
     vi.spyOn(api, "exhibitionEntries").mockResolvedValue([]);
   });
@@ -83,7 +84,8 @@ describe("Vehicle report, QR and exhibition output", () => {
       result.current.report.setters.setIncludeImages(false);
     });
     await act(() => result.current.report.commands.create());
-    expect(api.vehicle).toHaveBeenCalledExactlyOnceWith(a.id);
+    expect(api.vehicleReportData).toHaveBeenCalledExactlyOnceWith([a.id]);
+    expect(api.vehicle).not.toHaveBeenCalled();
     expect(qr.buildBrandedQrPngDataUrl).not.toHaveBeenCalled();
     const html = vi.mocked(reports.openPrintDocument).mock.calls[0][0];
     expect(html).toContain("Clubbestand");
@@ -95,7 +97,7 @@ describe("Vehicle report, QR and exhibition output", () => {
   it("keeps report options available after a failed data read and handles empty selection", async () => {
     const { result, onMessage } = workspace();
     act(() => result.current.report.setters.setOpen(true));
-    vi.mocked(api.vehicle).mockRejectedValueOnce(new Error("Reportdaten fehlen"));
+    vi.mocked(api.vehicleReportData).mockRejectedValueOnce(new Error("Reportdaten fehlen"));
     await act(() => result.current.report.commands.create());
     expect(onMessage).toHaveBeenLastCalledWith("Reportdaten fehlen");
     expect(result.current.report.state).toMatchObject({ open: true, creating: false });

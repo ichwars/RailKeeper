@@ -39,28 +39,10 @@ func (s *VehicleService) list(ctx context.Context, query string, vehicleSetID st
 	if err != nil {
 		return nil, err
 	}
-	if err := s.attachImages(ctx, vehicles); err != nil {
+	if err := s.attachVehicleRelations(ctx, vehicles); err != nil {
 		return nil, err
 	}
 	if err := s.attachVehicleSetMainImages(ctx, vehicles); err != nil {
-		return nil, err
-	}
-	if err := s.attachAttachments(ctx, vehicles); err != nil {
-		return nil, err
-	}
-	if err := s.attachMaintenance(ctx, vehicles); err != nil {
-		return nil, err
-	}
-	if err := s.attachSpareParts(ctx, vehicles); err != nil {
-		return nil, err
-	}
-	if err := s.attachFunctions(ctx, vehicles); err != nil {
-		return nil, err
-	}
-	if err := s.attachCVData(ctx, vehicles); err != nil {
-		return nil, err
-	}
-	if err := s.attachExternalMappings(ctx, vehicles); err != nil {
 		return nil, err
 	}
 	return vehicles, nil

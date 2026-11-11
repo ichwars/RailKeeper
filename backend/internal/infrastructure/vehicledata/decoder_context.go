@@ -46,29 +46,30 @@ FROM decoder_installations ORDER BY id`, nil, func(rows *sql.Rows) error {
 	}); err != nil {
 		return nil, err
 	}
-	if err := ReadDecoderRows(ctx, tx, `SELECT id,vehicle_id,profile_text,origin,installation_id,created_at,updated_at
-FROM decoder_cv_workspaces WHERE vehicle_id=? ORDER BY id`, []any{vehicleID}, func(rows *sql.Rows) error {
+	if err := ReadDecoderRows(ctx, tx, `
+SELECT w.id,w.vehicle_id,w.profile_text,w.origin,w.installation_id,w.created_at,w.updated_at,
+       COALESCE(i.decoder_id,''),COALESCE(i.state,'')
+FROM decoder_cv_workspaces w
+LEFT JOIN decoder_installations i ON i.id=w.installation_id
+WHERE w.vehicle_id=? ORDER BY w.id`, []any{vehicleID}, func(rows *sql.Rows) error {
 		var item decoder.DecoderCVWorkspace
-		if err := rows.Scan(&item.ID, &item.VehicleID, &item.Profile, &item.Origin, &item.InstallationID, &item.CreatedAt, &item.UpdatedAt); err != nil {
+		var binding decoder.CVBinding
+		if err := rows.Scan(&item.ID, &item.VehicleID, &item.Profile, &item.Origin, &item.InstallationID,
+			&item.CreatedAt, &item.UpdatedAt, &binding.DecoderID, &binding.State); err != nil {
 			return err
 		}
+		binding.WorkspaceID, binding.VehicleID, binding.Profile = item.ID, item.VehicleID, item.Profile
+		if item.InstallationID != nil {
+			binding.InstallationID = *item.InstallationID
+		}
+		item.BindingRevision = decoder.CVBindingRevision(binding)
 		result.Workspaces = append(result.Workspaces, item)
 		return nil
 	}); err != nil {
 		return nil, err
 	}
-	for index := range result.Workspaces {
-		if err := decoderWorkspaceContentTx(ctx, tx, &result.Workspaces[index]); err != nil {
-			return nil, err
-		}
-		binding, err := ReadCVWorkspaceBinding(ctx, tx, vehicleID, result.Workspaces[index].ID)
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, decoder.ErrCVValidation
-		}
-		if err != nil {
-			return nil, fmt.Errorf("read CV working group binding: %w", err)
-		}
-		result.Workspaces[index].BindingRevision = decoder.CVBindingRevision(binding)
+	if err := loadDecoderWorkspaceContent(ctx, tx, vehicleID, result.Workspaces); err != nil {
+		return nil, err
 	}
 	snapshots, err := ReadDecoderSnapshotSummaries(ctx, tx, vehicleID)
 	if err != nil {
@@ -91,58 +92,6 @@ func ReadDecoderRows(ctx context.Context, tx *sql.Tx, statement string, args []a
 		}
 	}
 	return rows.Err()
-}
-
-func decoderWorkspaceContentTx(ctx context.Context, tx *sql.Tx, workspace *decoder.DecoderCVWorkspace) error {
-	values := []CVRecord{}
-	histories := []decoder.VehicleCVValueHistory{}
-	files := []struct {
-		Value      decoder.VehicleCVFile
-		Path, Blob string
-	}{}
-	if err := ReadDecoderRows(ctx, tx, CVSelect+` WHERE vehicle_id=? AND decoder_profile=? ORDER BY id`,
-		[]any{workspace.VehicleID, workspace.Profile}, func(rows *sql.Rows) error {
-			item, err := ScanCV(rows)
-			if err == nil {
-				values = append(values, item)
-			}
-			return err
-		}); err != nil {
-		return err
-	}
-	if err := ReadDecoderRows(ctx, tx, `SELECT h.id,h.cv_value_id,h.vehicle_id,h.old_value,h.new_value,h.changed_at
-FROM vehicle_cv_value_history h JOIN vehicle_cv_values v ON v.id=h.cv_value_id
-WHERE v.vehicle_id=? AND v.decoder_profile=? ORDER BY h.id`, []any{workspace.VehicleID, workspace.Profile}, func(rows *sql.Rows) error {
-		var item decoder.VehicleCVValueHistory
-		if err := rows.Scan(&item.ID, &item.CVValueID, &item.VehicleID, &item.OldValue, &item.NewValue, &item.ChangedAt); err != nil {
-			return err
-		}
-		histories = append(histories, item)
-		return nil
-	}); err != nil {
-		return err
-	}
-	if err := ReadDecoderRows(ctx, tx, CVFileSelect+` WHERE vehicle_id=? AND decoder_profile=? ORDER BY id`,
-		[]any{workspace.VehicleID, workspace.Profile}, func(rows *sql.Rows) error {
-			file, err := ScanCVFile(rows)
-			if err != nil {
-				return err
-			}
-			files = append(files, struct {
-				Value      decoder.VehicleCVFile
-				Path, Blob string
-			}{*file, file.StoragePath, file.BlobID})
-			return nil
-		}); err != nil {
-		return err
-	}
-	workspace.ValueCount, workspace.SourceCount = len(values), len(files)
-	workspace.ContentRevision = revision.Hash(struct {
-		Values    []CVRecord
-		Histories []decoder.VehicleCVValueHistory
-		Files     any
-	}{values, histories, files})
-	return nil
 }
 
 func ReadDecoderSnapshotSummaries(ctx context.Context, tx *sql.Tx, vehicleID string) ([]decoder.DecoderCVSnapshotSummary, error) {

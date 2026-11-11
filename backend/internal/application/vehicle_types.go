@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"railkeeper/backend/internal/infrastructure/workshopdata"
 	vehiclemodel "railkeeper/backend/internal/inventory/vehicle"
 	"railkeeper/backend/internal/inventory/workshop"
 )
@@ -12,7 +13,7 @@ type VehicleService struct {
 	db             *sql.DB
 	imageLocalizer VehicleImageLocalizer
 	workshop       *workshop.Service
-	workshopRows   workshop.Repository
+	workshopRows   *workshopdata.Store
 }
 type VehicleImageLocalizer func(ctx context.Context, vehicleID string, images []VehicleImageInput) ([]VehicleImageInput, error)
 

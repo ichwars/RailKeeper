@@ -33,12 +33,20 @@ WHERE provider=? AND external_id=?
 }
 
 func (s *externalMappingStore) Mappings(ctx context.Context, vehicleID string) ([]vehiclemodel.VehicleExternalMap, error) {
-	rows, err := s.db.QueryContext(ctx, `
+	return readMappings(ctx, s.db, "vehicle_id=?", vehicleID)
+}
+
+func ReadMappingsForVehicles(ctx context.Context, query vehicleMediaQuery, vehicleIDsJSON string) ([]vehiclemodel.VehicleExternalMap, error) {
+	return readMappings(ctx, query, "vehicle_id IN (SELECT value FROM json_each(?))", vehicleIDsJSON)
+}
+
+func readMappings(ctx context.Context, query vehicleMediaQuery, filter string, arg string) ([]vehiclemodel.VehicleExternalMap, error) {
+	rows, err := query.QueryContext(ctx, `
 SELECT id, vehicle_id, provider, external_id, COALESCE(external_name, ''), COALESCE(external_address, ''), COALESCE(external_protocol, ''), sync_status, COALESCE(last_seen_at, ''), created_at, updated_at
 FROM vehicle_external_mappings
-WHERE vehicle_id=?
+WHERE `+filter+`
 ORDER BY provider ASC, external_id ASC
-`, vehicleID)
+`, arg)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicle external mappings: %w", err)
 	}

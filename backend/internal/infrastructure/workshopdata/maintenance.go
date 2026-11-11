@@ -83,17 +83,25 @@ func (s *Store) DeleteMaintenance(ctx context.Context, vehicleID, maintenanceID 
 	return nil
 }
 func (s *Store) ListMaintenance(ctx context.Context, vehicleID string) ([]domain.VehicleMaintenance, error) {
+	return s.listMaintenance(ctx, "vehicle_id=?", strings.TrimSpace(vehicleID))
+}
+
+func (s *Store) ListMaintenanceForVehicles(ctx context.Context, vehicleIDsJSON string) ([]domain.VehicleMaintenance, error) {
+	return s.listMaintenance(ctx, "vehicle_id IN (SELECT value FROM json_each(?))", vehicleIDsJSON)
+}
+
+func (s *Store) listMaintenance(ctx context.Context, filter, arg string) ([]domain.VehicleMaintenance, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, vehicle_id, kind, status, COALESCE(condition_rating, ''), COALESCE(due_date, ''), COALESCE(completed_at, ''),
        COALESCE(cost, ''), COALESCE(notes, ''), created_at, updated_at
 FROM vehicle_maintenance
-WHERE vehicle_id=?
+WHERE `+filter+`
 ORDER BY
   CASE WHEN status='erledigt' THEN 1 ELSE 0 END ASC,
   CASE WHEN due_date='' THEN 1 ELSE 0 END ASC,
   due_date ASC,
   created_at DESC
-`, strings.TrimSpace(vehicleID))
+`, arg)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicle maintenance: %w", err)
 	}

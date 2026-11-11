@@ -12,13 +12,17 @@ func (s *CVService) Values(ctx context.Context, vehicleID string) ([]decoder.Veh
 	if err != nil {
 		return nil, err
 	}
-	out := make([]decoder.VehicleCVValue, len(records))
-	for i, item := range records {
-		out[i] = decoder.CVRecordValue(item)
-	}
 	histories, err := s.repository.CVHistories(ctx, vehicleID)
 	if err != nil {
 		return nil, err
+	}
+	return CVValuesWithHistory(records, histories), nil
+}
+
+func CVValuesWithHistory(records []decoder.CVRecord, histories []decoder.VehicleCVValueHistory) []decoder.VehicleCVValue {
+	out := make([]decoder.VehicleCVValue, len(records))
+	for i, item := range records {
+		out[i] = decoder.CVRecordValue(item)
 	}
 	positions := make(map[string]int, len(out))
 	for i := range out {
@@ -30,5 +34,5 @@ func (s *CVService) Values(ctx context.Context, vehicleID string) ([]decoder.Veh
 			out[i].History = append(out[i].History, h)
 		}
 	}
-	return out, nil
+	return out
 }

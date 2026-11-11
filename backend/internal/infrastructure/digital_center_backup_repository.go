@@ -2,8 +2,7 @@ package infrastructure
 
 import (
 	"context"
-	"database/sql"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -14,37 +13,89 @@ func (repository *DigitalCenterWorkspaceRepository) LoadECoSBackupContexts(
 	ctx context.Context, host string, port int, ids []int,
 ) (map[int]application.ECoSBackupContext, error) {
 	result := make(map[int]application.ECoSBackupContext, len(ids))
-	for _, objectID := range ids {
-		item, err := scanDigitalCenterWorkItem(repository.db.QueryRowContext(ctx, digitalCenterWorkItemSelect+`
-WHERE center_object_id=? AND session_id IN (
- SELECT id FROM digital_center_read_sessions WHERE provider='ecos' AND state='ready' AND host=? AND port=?)
-AND CASE WHEN json_valid(center_json) THEN COALESCE(json_extract(center_json,'$.cvRead.source'),'') ELSE '' END != 'backup'
-ORDER BY julianday(updated_at) DESC, rowid DESC LIMIT 1`, strconv.Itoa(objectID), host, port))
-		if errors.Is(err, sql.ErrNoRows) {
-			continue
-		}
+	if len(ids) == 0 {
+		return result, nil
+	}
+	keys := make([]string, len(ids))
+	for i, id := range ids {
+		keys[i] = strconv.Itoa(id)
+	}
+	payload, err := json.Marshal(keys)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := repository.db.QueryContext(ctx, `
+WITH ranked AS (
+  SELECT item.rowid AS item_row, ROW_NUMBER() OVER (
+    PARTITION BY item.center_object_id ORDER BY julianday(item.updated_at) DESC, item.rowid DESC
+  ) AS rank
+  FROM digital_center_work_items item
+  JOIN digital_center_read_sessions session ON session.id=item.session_id
+  WHERE session.provider='ecos' AND session.state='ready' AND session.host=? AND session.port=?
+    AND item.center_object_id IN (SELECT value FROM json_each(?))
+    AND CASE WHEN json_valid(item.center_json)
+             THEN COALESCE(json_extract(item.center_json,'$.cvRead.source'),'') ELSE '' END != 'backup'
+)
+`+digitalCenterWorkItemSelect+` WHERE rowid IN (SELECT item_row FROM ranked WHERE rank=1)`, host, port, string(payload))
+	if err != nil {
+		return nil, fmt.Errorf("read saved ECoS backup contexts: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		item, err := scanDigitalCenterWorkItem(rows)
 		if err != nil {
-			return nil, fmt.Errorf("read saved ECoS backup context: %w", err)
+			return nil, fmt.Errorf("scan saved ECoS backup context: %w", err)
 		}
-		entry := application.ECoSBackupContext{Item: item}
-		var mappings, ownedMappings int
-		err = repository.db.QueryRowContext(ctx, `
-SELECT m.vehicle_id, v.name, v.decoder_type, COALESCE(m.external_address,''), COALESCE(m.external_protocol,''),
- (SELECT COUNT(*) FROM vehicle_external_mappings duplicate WHERE duplicate.provider='ecos' AND duplicate.external_id=m.external_id),
- (SELECT COUNT(*) FROM vehicle_external_mappings owned WHERE owned.provider='ecos' AND owned.vehicle_id=m.vehicle_id)
-FROM vehicle_external_mappings m JOIN vehicles v ON v.id=m.vehicle_id
-WHERE m.provider='ecos' AND m.external_id=? LIMIT 1`, strconv.Itoa(objectID)).Scan(
-			&entry.VehicleID, &entry.VehicleName, &entry.DecoderType, &entry.ExternalAddress, &entry.ExternalProtocol,
-			&mappings, &ownedMappings)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("read existing ECoS backup mapping: %w", err)
+		objectID, err := strconv.Atoi(item.CenterObjectID)
+		if err != nil {
+			return nil, fmt.Errorf("read ECoS backup context ID: %w", err)
 		}
-		if mappings != 1 || ownedMappings != 1 {
-			entry.VehicleID = ""
-		}
-		result[objectID] = entry
+		result[objectID] = application.ECoSBackupContext{Item: item}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(result) == 0 {
+		return result, nil
+	}
+	if err := repository.loadECoSBackupMappings(ctx, string(payload), result); err != nil {
+		return nil, err
 	}
 	return result, nil
+}
+
+func (repository *DigitalCenterWorkspaceRepository) loadECoSBackupMappings(
+	ctx context.Context, idsJSON string, contexts map[int]application.ECoSBackupContext,
+) error {
+	rows, err := repository.db.QueryContext(ctx, `
+SELECT m.external_id, m.vehicle_id, v.name, COALESCE(v.decoder_type,''), COALESCE(m.external_address,''),
+       COALESCE(m.external_protocol,''),
+       (SELECT COUNT(*) FROM vehicle_external_mappings owned WHERE owned.provider='ecos' AND owned.vehicle_id=m.vehicle_id)
+FROM vehicle_external_mappings m
+JOIN vehicles v ON v.id=m.vehicle_id
+WHERE m.provider='ecos' AND m.external_id IN (SELECT value FROM json_each(?))`, idsJSON)
+	if err != nil {
+		return fmt.Errorf("read existing ECoS backup mappings: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var objectID, ownedMappings int
+		var mapping application.ECoSBackupContext
+		if err := rows.Scan(&objectID, &mapping.VehicleID, &mapping.VehicleName, &mapping.DecoderType,
+			&mapping.ExternalAddress, &mapping.ExternalProtocol, &ownedMappings); err != nil {
+			return fmt.Errorf("scan existing ECoS backup mapping: %w", err)
+		}
+		entry, exists := contexts[objectID]
+		if !exists {
+			continue
+		}
+		mapping.Item = entry.Item
+		if ownedMappings != 1 {
+			mapping.VehicleID = ""
+		}
+		contexts[objectID] = mapping
+	}
+	return rows.Err()
 }
 
 // Persist only an offline comparison workspace. No inventory or authentication rows are changed.

@@ -10,7 +10,7 @@ import (
 func TestDigitalCenterReadCacheRetainsSuccessfulReadsUntilSuccessfulReplacement(t *testing.T) {
 	db := testDB(t)
 	repository := infrastructure.NewDigitalCenterWorkspaceRepository(db)
-	if saved, err := repository.LatestReadySession(t.Context(), "ecos", "center.local", 15471); err != nil || saved != nil {
+	if saved, err := latestECoSRead(t, repository); err != nil || saved != nil {
 		t.Fatalf("empty cache = %#v, %v", saved, err)
 	}
 	baseline := application.DigitalCenterReadSession{
@@ -45,7 +45,7 @@ func TestDigitalCenterReadCacheRetainsSuccessfulReadsUntilSuccessfulReplacement(
 			}
 			// A new adapter has no in-memory state and must recover the same stored result.
 			reopened := infrastructure.NewDigitalCenterWorkspaceRepository(db)
-			saved, err := reopened.LatestReadySession(t.Context(), "ecos", "center.local", 15471)
+			saved, err := latestECoSRead(t, reopened)
 			if err != nil || saved == nil || saved.ID != first.ID {
 				t.Fatalf("previous successful cache = %#v, %v", saved, err)
 			}
@@ -55,7 +55,7 @@ func TestDigitalCenterReadCacheRetainsSuccessfulReadsUntilSuccessfulReplacement(
 	if err != nil {
 		t.Fatal(err)
 	}
-	saved, err := repository.LatestReadySession(t.Context(), "ecos", "center.local", 15471)
+	saved, err := latestECoSRead(t, repository)
 	if err != nil || saved == nil || saved.ID != second.ID {
 		t.Fatalf("new completed read at the same timestamp = %#v, %v", saved, err)
 	}
@@ -66,7 +66,15 @@ func TestDigitalCenterReadCacheRetainsSuccessfulReadsUntilSuccessfulReplacement(
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repository.LatestReadySession(t.Context(), "ecos", "center.local", 15471); err == nil {
+	if _, err := latestECoSRead(t, repository); err == nil {
 		t.Fatal("storage failure must not be reported as an empty cache")
 	}
+}
+
+func latestECoSRead(t *testing.T, repository *infrastructure.DigitalCenterWorkspaceRepository) (*application.DigitalCenterReadSession, error) {
+	t.Helper()
+	sessions, err := repository.LatestReadySessions(t.Context(), []application.DigitalCenterSummary{
+		{Provider: "ecos", Host: "center.local", Port: 15471},
+	})
+	return sessions["ecos"], err
 }

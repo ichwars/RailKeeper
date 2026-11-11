@@ -76,12 +76,20 @@ func (s *Store) DeleteSparePart(ctx context.Context, vehicleID, sparePartID stri
 	return nil
 }
 func (s *Store) ListSpareParts(ctx context.Context, vehicleID string) ([]domain.VehicleSparePart, error) {
+	return s.listSpareParts(ctx, "vehicle_id=?", strings.TrimSpace(vehicleID))
+}
+
+func (s *Store) ListSparePartsForVehicles(ctx context.Context, vehicleIDsJSON string) ([]domain.VehicleSparePart, error) {
+	return s.listSpareParts(ctx, "vehicle_id IN (SELECT value FROM json_each(?))", vehicleIDsJSON)
+}
+
+func (s *Store) listSpareParts(ctx context.Context, filter, arg string) ([]domain.VehicleSparePart, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, vehicle_id, COALESCE(article_number, ''), COALESCE(description, ''), COALESCE(price, ''), COALESCE(url, ''), created_at, updated_at
 FROM vehicle_spare_parts
-WHERE vehicle_id=?
+WHERE `+filter+`
 ORDER BY article_number COLLATE NOCASE ASC, created_at DESC
-`, strings.TrimSpace(vehicleID))
+`, arg)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicle spare parts: %w", err)
 	}

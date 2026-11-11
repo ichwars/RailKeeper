@@ -54,12 +54,20 @@ type vehicleMediaQuery interface {
 }
 
 func ReadImages(ctx context.Context, query vehicleMediaQuery, vehicleID string) ([]vehiclemodel.VehicleImage, error) {
+	return readImages(ctx, query, "vehicle_id=?", vehicleID)
+}
+
+func ReadImagesForVehicles(ctx context.Context, query vehicleMediaQuery, vehicleIDsJSON string) ([]vehiclemodel.VehicleImage, error) {
+	return readImages(ctx, query, "vehicle_id IN (SELECT value FROM json_each(?))", vehicleIDsJSON)
+}
+
+func readImages(ctx context.Context, query vehicleMediaQuery, filter string, arg string) ([]vehiclemodel.VehicleImage, error) {
 	rows, err := query.QueryContext(ctx, `
 SELECT id, vehicle_id, url, COALESCE(title, ''), COALESCE(source_url, ''), COALESCE(file_name, ''), COALESCE(mime_type, ''), COALESCE(storage_path, ''), COALESCE(thumbnail_path, ''), COALESCE(blob_id, ''), COALESCE(thumbnail_blob_id, ''), COALESCE(maintenance_id, ''), is_primary, sort_order, created_at, COALESCE(updated_at, '')
 FROM vehicle_images
-WHERE vehicle_id=?
+WHERE `+filter+`
 ORDER BY is_primary DESC, sort_order ASC, created_at ASC
-`, vehicleID)
+`, arg)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicle images: %w", err)
 	}

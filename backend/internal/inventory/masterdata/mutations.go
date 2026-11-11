@@ -30,11 +30,11 @@ type Repository interface {
 	SetActiveMany(context.Context, string, []string, bool) error
 	Delete(context.Context, string, string) error
 	ImportReconciled(context.Context, ImportRequest) (*MasterDataImportResult, error)
-	Usage(context.Context, MasterDataEntry) (bool, error)
+	Usage(context.Context, []MasterDataEntry) (map[Identity]bool, error)
 }
 
 // Usage and AttributeReferences are bound to the persistence owner's transaction.
-type Usage func(context.Context, MasterDataEntry) (bool, error)
+type Usage func(context.Context, []MasterDataEntry) (map[Identity]bool, error)
 
 type ReferencedAttribute struct {
 	ProductID string

@@ -39,13 +39,21 @@ func (m *attachmentMutation) Attachment(ctx context.Context, id, attachmentID st
 }
 
 func (s *attachmentStore) Attachments(ctx context.Context, vehicleID string) ([]vehiclemodel.VehicleAttachment, error) {
-	rows, err := s.db.QueryContext(ctx, `
+	return readAttachments(ctx, s.db, "vehicle_id=?", vehicleID)
+}
+
+func ReadAttachmentsForVehicles(ctx context.Context, query vehicleMediaQuery, vehicleIDsJSON string) ([]vehiclemodel.VehicleAttachment, error) {
+	return readAttachments(ctx, query, "vehicle_id IN (SELECT value FROM json_each(?))", vehicleIDsJSON)
+}
+
+func readAttachments(ctx context.Context, query vehicleMediaQuery, filter string, arg string) ([]vehiclemodel.VehicleAttachment, error) {
+	rows, err := query.QueryContext(ctx, `
 SELECT id, vehicle_id, file_name, original_name, COALESCE(description, ''), COALESCE(category, ''),
        COALESCE(mime_type, ''), size_bytes, storage_path, COALESCE(blob_id, ''), COALESCE(maintenance_id, ''), created_at, updated_at
 FROM vehicle_attachments
-WHERE vehicle_id=?
+WHERE `+filter+`
 ORDER BY created_at ASC
-`, vehicleID)
+`, arg)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicle attachments: %w", err)
 	}

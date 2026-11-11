@@ -53,56 +53,49 @@ func (s *Service) ListForManagement(
 	if err != nil {
 		return nil, err
 	}
-	for index := range entries {
-		capabilities, err := masterDataCapabilities(ctx, s.repository.Usage, entries[index])
-		if err != nil {
-			return nil, err
-		}
-		entries[index].Capabilities = &capabilities
+	if err := s.attachManagementCapabilities(ctx, map[string][]MasterDataEntry{typeName: entries}); err != nil {
+		return nil, err
 	}
 	return entries, nil
 }
-func (s *Service) ListAllForManagement(
-	ctx context.Context,
-) (map[string][]MasterDataEntry, error) {
+func (s *Service) ListAllForManagement(ctx context.Context) (map[string][]MasterDataEntry, error) {
 	entriesByType, err := s.ListAll(ctx, false)
 	if err != nil {
 		return nil, err
 	}
-	for typeName, entries := range entriesByType {
-		for index := range entries {
-			capabilities, err := masterDataCapabilities(ctx, s.repository.Usage, entries[index])
-			if err != nil {
-				return nil, err
-			}
-			entries[index].Capabilities = &capabilities
-		}
-		entriesByType[typeName] = entries
+	if err := s.attachManagementCapabilities(ctx, entriesByType); err != nil {
+		return nil, err
 	}
 	return entriesByType, nil
 }
-func masterDataCapabilities(
-	ctx context.Context,
-	usage Usage,
-	entry MasterDataEntry,
-) (MasterDataCapabilities, error) {
-	capabilities := MasterDataCapabilities{
-		CanDeactivate: entry.Active,
-		CanReactivate: !entry.Active,
+
+func (s *Service) attachManagementCapabilities(ctx context.Context, entriesByType map[string][]MasterDataEntry) error {
+	var customEntries []MasterDataEntry
+	for _, entries := range entriesByType {
+		for _, entry := range entries {
+			if entry.Origin == MasterDataOriginCustom {
+				customEntries = append(customEntries, entry)
+			}
+		}
 	}
-	if entry.Origin != MasterDataOriginCustom {
-		return capabilities, nil
-	}
-	used, err := usage(ctx, entry)
-	if errors.Is(err, ErrMasterDataUsageUnknown) {
-		return capabilities, nil
-	}
+	usage, err := s.repository.Usage(ctx, customEntries)
 	if err != nil {
-		return capabilities, err
+		return err
 	}
-	capabilities.CanDelete = !used
-	return capabilities, nil
+	for _, entries := range entriesByType {
+		for i := range entries {
+			entry := &entries[i]
+			used, known := usage[IdentityOf(*entry)]
+			entry.Capabilities = &MasterDataCapabilities{
+				CanDeactivate: entry.Active,
+				CanReactivate: !entry.Active,
+				CanDelete:     entry.Origin == MasterDataOriginCustom && known && !used,
+			}
+		}
+	}
+	return nil
 }
+
 func (s *Service) SetActive(
 	ctx context.Context,
 	typeName, key string,

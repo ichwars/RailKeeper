@@ -195,175 +195,97 @@ ORDER BY inventory_number COLLATE NOCASE, id`)
 	if err := rows.Close(); err != nil {
 		return nil, fmt.Errorf("close transfer accessories: %w", err)
 	}
-	for index := range accessories {
-		accessories[index].Stock, err = transferAccessoryStock(ctx, tx, accessories[index].ID)
-		if err != nil {
-			return nil, err
+	if len(accessories) == 0 {
+		return accessories, nil
+	}
+	byID := make(map[string]*transfer.TransferAccessory, len(accessories))
+	for i := range accessories {
+		accessory := &accessories[i]
+		accessory.Stock = []transfer.TransferAccessoryStock{}
+		accessory.Assets = []transfer.TransferAccessoryAsset{}
+		accessory.FingerprintState = transfer.TransferAccessoryFingerprintState{
+			Reservations:     []transfer.TransferAccessoryReservationFingerprint{},
+			Installations:    []transfer.TransferAccessoryInstallationFingerprint{},
+			ConditionHistory: []transfer.TransferAccessoryConditionHistoryFingerprint{},
 		}
-		accessories[index].Assets, err = transferAccessoryAssets(ctx, tx, accessories[index].ID)
-		if err != nil {
-			return nil, err
-		}
-		accessories[index].FingerprintState, err = transferAccessoryFingerprintState(
-			ctx, tx, accessories[index].ID,
-		)
-		if err != nil {
-			return nil, err
-		}
+		byID[accessory.ID] = accessory
+	}
+	if err := loadTransferAccessoryStock(ctx, tx, byID); err != nil {
+		return nil, err
+	}
+	if err := loadTransferAccessoryAssets(ctx, tx, byID); err != nil {
+		return nil, err
+	}
+	if err := loadTransferAccessoryFingerprints(ctx, tx, byID); err != nil {
+		return nil, err
 	}
 	return accessories, nil
 }
 
-func transferAccessoryStock(
+func loadTransferAccessoryStock(
 	ctx context.Context,
 	tx *sql.Tx,
-	productID string,
-) ([]transfer.TransferAccessoryStock, error) {
+	accessories map[string]*transfer.TransferAccessory,
+) error {
 	rows, err := tx.QueryContext(ctx, `
-SELECT stock.location_id, location.name, stock.quantity, stock.updated_at
+SELECT stock.product_id, stock.location_id, location.name, stock.quantity, stock.updated_at
 FROM accessory_stock stock
+JOIN accessory_products product ON product.id=stock.product_id
 JOIN storage_locations location ON location.id=stock.location_id
-WHERE stock.product_id=?
-ORDER BY location.name COLLATE NOCASE, stock.location_id`, productID)
+ORDER BY location.name COLLATE NOCASE, stock.location_id`)
 	if err != nil {
-		return nil, fmt.Errorf("query transfer accessory stock: %w", err)
+		return fmt.Errorf("query transfer accessory stock: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	stock := []transfer.TransferAccessoryStock{}
 	for rows.Next() {
+		var productID string
 		level := transfer.TransferAccessoryStock{}
-		if err := rows.Scan(&level.LocationID, &level.LocationName, &level.Quantity, &level.UpdatedAt); err != nil {
-			return nil, fmt.Errorf("scan transfer accessory stock: %w", err)
+		if err := rows.Scan(&productID, &level.LocationID, &level.LocationName, &level.Quantity, &level.UpdatedAt); err != nil {
+			return fmt.Errorf("scan transfer accessory stock: %w", err)
 		}
-		stock = append(stock, level)
+		accessory := accessories[productID]
+		accessory.Stock = append(accessory.Stock, level)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate transfer accessory stock: %w", err)
+		return fmt.Errorf("iterate transfer accessory stock: %w", err)
 	}
-	return stock, nil
+	return nil
 }
 
-func transferAccessoryAssets(
+func loadTransferAccessoryAssets(
 	ctx context.Context,
 	tx *sql.Tx,
-	productID string,
-) ([]transfer.TransferAccessoryAsset, error) {
+	accessories map[string]*transfer.TransferAccessory,
+) error {
 	rows, err := tx.QueryContext(ctx, `
-SELECT asset.id, COALESCE(asset.inventory_number, ''), asset.serial_number, asset.condition_state,
+SELECT asset.product_id, asset.id, COALESCE(asset.inventory_number, ''), asset.serial_number, asset.condition_state,
        asset.lifecycle_state, COALESCE(asset.storage_location_id, ''), COALESCE(location.name, ''),
        asset.purchase_date, asset.purchase_price, asset.warranty_until, asset.notes, asset.created_at, asset.updated_at
 FROM accessory_assets asset
+JOIN accessory_products product ON product.id=asset.product_id
 LEFT JOIN storage_locations location ON location.id=asset.storage_location_id
-WHERE asset.product_id=?
-ORDER BY asset.inventory_number COLLATE NOCASE, asset.id`, productID)
+ORDER BY asset.inventory_number COLLATE NOCASE, asset.id`)
 	if err != nil {
-		return nil, fmt.Errorf("query transfer accessory assets: %w", err)
+		return fmt.Errorf("query transfer accessory assets: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	assets := []transfer.TransferAccessoryAsset{}
 	for rows.Next() {
+		var productID string
 		asset := transfer.TransferAccessoryAsset{}
 		if err := rows.Scan(
-			&asset.ID, &asset.InventoryNumber, &asset.SerialNumber, &asset.Condition, &asset.Lifecycle,
+			&productID, &asset.ID, &asset.InventoryNumber, &asset.SerialNumber, &asset.Condition, &asset.Lifecycle,
 			&asset.StorageLocationID, &asset.StorageLocationName, &asset.PurchaseDate, &asset.PurchasePrice,
 			&asset.WarrantyUntil, &asset.Notes, &asset.CreatedAt, &asset.UpdatedAt,
 		); err != nil {
-			return nil, fmt.Errorf("scan transfer accessory asset: %w", err)
+			return fmt.Errorf("scan transfer accessory asset: %w", err)
 		}
-		assets = append(assets, asset)
+		accessory := accessories[productID]
+		accessory.Assets = append(accessory.Assets, asset)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate transfer accessory assets: %w", err)
+		return fmt.Errorf("iterate transfer accessory assets: %w", err)
 	}
-	return assets, nil
-}
-
-func transferAccessoryFingerprintState(
-	ctx context.Context,
-	tx *sql.Tx,
-	productID string,
-) (transfer.TransferAccessoryFingerprintState, error) {
-	state := transfer.TransferAccessoryFingerprintState{
-		Reservations:     []transfer.TransferAccessoryReservationFingerprint{},
-		Installations:    []transfer.TransferAccessoryInstallationFingerprint{},
-		ConditionHistory: []transfer.TransferAccessoryConditionHistoryFingerprint{},
-	}
-	rows, err := tx.QueryContext(ctx, `
-SELECT id, COALESCE(asset_id, ''), location_id, quantity, status, updated_at
-FROM accessory_reservations
-WHERE product_id=?
-ORDER BY id`, productID)
-	if err != nil {
-		return state, fmt.Errorf("query transfer accessory reservation fingerprints: %w", err)
-	}
-	for rows.Next() {
-		reservation := transfer.TransferAccessoryReservationFingerprint{}
-		if err := rows.Scan(
-			&reservation.ID, &reservation.AssetID, &reservation.LocationID, &reservation.Quantity,
-			&reservation.Status, &reservation.UpdatedAt,
-		); err != nil {
-			_ = rows.Close()
-			return state, fmt.Errorf("scan transfer accessory reservation fingerprint: %w", err)
-		}
-		state.Reservations = append(state.Reservations, reservation)
-	}
-	if err := rows.Err(); err != nil {
-		_ = rows.Close()
-		return state, fmt.Errorf("iterate transfer accessory reservation fingerprints: %w", err)
-	}
-	if err := rows.Close(); err != nil {
-		return state, fmt.Errorf("close transfer accessory reservation fingerprints: %w", err)
-	}
-
-	rows, err = tx.QueryContext(ctx, `
-SELECT id, COALESCE(asset_id, ''), source_location_id, quantity, condition_state, installed_at,
-       COALESCE(removed_at, '')
-FROM accessory_installations
-WHERE product_id=?
-ORDER BY id`, productID)
-	if err != nil {
-		return state, fmt.Errorf("query transfer accessory installation fingerprints: %w", err)
-	}
-	for rows.Next() {
-		installation := transfer.TransferAccessoryInstallationFingerprint{}
-		if err := rows.Scan(
-			&installation.ID, &installation.AssetID, &installation.SourceLocationID, &installation.Quantity,
-			&installation.Condition, &installation.InstalledAt, &installation.RemovedAt,
-		); err != nil {
-			_ = rows.Close()
-			return state, fmt.Errorf("scan transfer accessory installation fingerprint: %w", err)
-		}
-		state.Installations = append(state.Installations, installation)
-	}
-	if err := rows.Err(); err != nil {
-		_ = rows.Close()
-		return state, fmt.Errorf("iterate transfer accessory installation fingerprints: %w", err)
-	}
-	if err := rows.Close(); err != nil {
-		return state, fmt.Errorf("close transfer accessory installation fingerprints: %w", err)
-	}
-
-	rows, err = tx.QueryContext(ctx, `
-SELECT history.id, history.installation_id, history.condition_state, history.changed_at
-FROM accessory_installation_condition_history history
-JOIN accessory_installations installation ON installation.id=history.installation_id
-WHERE installation.product_id=?
-ORDER BY history.id`, productID)
-	if err != nil {
-		return state, fmt.Errorf("query transfer accessory condition history fingerprints: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
-	for rows.Next() {
-		history := transfer.TransferAccessoryConditionHistoryFingerprint{}
-		if err := rows.Scan(&history.ID, &history.InstallationID, &history.Condition, &history.ChangedAt); err != nil {
-			return state, fmt.Errorf("scan transfer accessory condition history fingerprint: %w", err)
-		}
-		state.ConditionHistory = append(state.ConditionHistory, history)
-	}
-	if err := rows.Err(); err != nil {
-		return state, fmt.Errorf("iterate transfer accessory condition history fingerprints: %w", err)
-	}
-	return state, nil
+	return nil
 }
 
 func transferExhibitionSnapshot(ctx context.Context, tx *sql.Tx) ([]transfer.TransferExhibitionList, error) {
@@ -397,22 +319,28 @@ ORDER BY list_date, designation COLLATE NOCASE, id`)
 	if err := rows.Close(); err != nil {
 		return nil, fmt.Errorf("close transfer exhibition lists: %w", err)
 	}
-	for index := range lists {
-		lists[index].Entries, err = transferExhibitionEntries(ctx, tx, lists[index].ID)
-		if err != nil {
-			return nil, err
-		}
+	if len(lists) == 0 {
+		return lists, nil
+	}
+	byID := make(map[string]*transfer.TransferExhibitionList, len(lists))
+	for i := range lists {
+		list := &lists[i]
+		list.Entries = []transfer.TransferExhibitionEntry{}
+		byID[list.ID] = list
+	}
+	if err := loadTransferExhibitionEntries(ctx, tx, byID); err != nil {
+		return nil, err
 	}
 	return lists, nil
 }
 
-func transferExhibitionEntries(
+func loadTransferExhibitionEntries(
 	ctx context.Context,
 	tx *sql.Tx,
-	listID string,
-) ([]transfer.TransferExhibitionEntry, error) {
+	lists map[string]*transfer.TransferExhibitionList,
+) error {
 	rows, err := tx.QueryContext(ctx, `
-SELECT entry.id, entry.vehicle_id, COALESCE(vehicle.inventory_number, ''), entry.owner,
+SELECT entry.list_id, entry.id, entry.vehicle_id, COALESCE(vehicle.inventory_number, ''), entry.owner,
        COALESCE(entry.image_url, ''), entry.locomotive_name, entry.gattung, entry.series, entry.manufacturer,
        entry.epoch, entry.railway_company, entry.day_scope, entry.dt_decoder,
        COALESCE(entry.decoder_number, ''), entry.decoder_type, entry.adapter, entry.interface_name,
@@ -420,35 +348,36 @@ SELECT entry.id, entry.vehicle_id, COALESCE(vehicle.inventory_number, ''), entry
        COALESCE(entry.function_keys, ''), COALESCE(entry.notes, ''), entry.sort_order,
        entry.created_at, entry.updated_at
 FROM exhibition_entries entry
+JOIN exhibition_lists list ON list.id=entry.list_id
 LEFT JOIN vehicles vehicle ON vehicle.id=entry.vehicle_id
-WHERE entry.list_id=?
-ORDER BY entry.sort_order, entry.locomotive_name COLLATE NOCASE, entry.id`, listID)
+ORDER BY entry.sort_order, entry.locomotive_name COLLATE NOCASE, entry.id`)
 	if err != nil {
-		return nil, fmt.Errorf("query transfer exhibition entries: %w", err)
+		return fmt.Errorf("query transfer exhibition entries: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	entries := []transfer.TransferExhibitionEntry{}
 	for rows.Next() {
+		var listID string
 		entry := transfer.TransferExhibitionEntry{}
 		var dtDecoder, analog int
 		if err := rows.Scan(
-			&entry.ID, &entry.VehicleID, &entry.VehicleInventoryNumber, &entry.Owner, &entry.ImageURL,
+			&listID, &entry.ID, &entry.VehicleID, &entry.VehicleInventoryNumber, &entry.Owner, &entry.ImageURL,
 			&entry.LocomotiveName, &entry.Gattung, &entry.Series, &entry.Manufacturer, &entry.Epoch,
 			&entry.RailwayCompany, &entry.DayScope, &dtDecoder, &entry.DecoderNumber, &entry.DecoderType,
 			&entry.Adapter, &entry.InterfaceName, &entry.SXAddress, &analog, &entry.Availability,
 			&entry.FunctionKeys, &entry.Notes, &entry.SortOrder,
 			&entry.CreatedAt, &entry.UpdatedAt,
 		); err != nil {
-			return nil, fmt.Errorf("scan transfer exhibition entry: %w", err)
+			return fmt.Errorf("scan transfer exhibition entry: %w", err)
 		}
 		entry.DTDecoder = dtDecoder != 0
 		entry.Analog = analog != 0
-		entries = append(entries, entry)
+		list := lists[listID]
+		list.Entries = append(list.Entries, entry)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate transfer exhibition entries: %w", err)
+		return fmt.Errorf("iterate transfer exhibition entries: %w", err)
 	}
-	return entries, nil
+	return nil
 }
 
 func decodeTransferStringArray(value string, target *[]string) error {

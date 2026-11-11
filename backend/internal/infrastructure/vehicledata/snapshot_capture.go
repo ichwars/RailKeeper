@@ -72,14 +72,13 @@ func (m *snapshotCaptureMutation) Values(ctx context.Context, workspace workflow
 		return nil, fmt.Errorf("read decoder snapshot values: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	values := []decoder.VehicleCVValue{}
+	records := []decoder.CVRecord{}
 	for rows.Next() {
 		record, err := ScanCV(rows)
 		if err != nil {
 			return nil, err
 		}
-		value := decoder.CVRecordValue(record)
-		values = append(values, value)
+		records = append(records, record)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -87,11 +86,14 @@ func (m *snapshotCaptureMutation) Values(ctx context.Context, workspace workflow
 	if err := rows.Close(); err != nil {
 		return nil, err
 	}
-	for i := range values {
-		values[i].History, err = ReadCVHistory(ctx, m.tx, values[i].ID)
-		if err != nil {
-			return nil, err
-		}
+	if len(records) == 0 {
+		return []decoder.VehicleCVValue{}, nil
 	}
-	return values, nil
+	history, err := readCVHistory(ctx, m.tx, `cv_value_id IN (
+SELECT id FROM vehicle_cv_values WHERE vehicle_id=? AND decoder_profile=?
+)`, workspace.VehicleID, workspace.Profile)
+	if err != nil {
+		return nil, err
+	}
+	return workflow.CVValuesWithHistory(records, history), nil
 }
