@@ -50,13 +50,43 @@ The [quality gates](quality-gates.md) define the fixed frontend/backend measurem
 compiler/minimum-version policy and recurring race/fuzz checks. Those automated results
 remain separate from the preservation and platform qualification below.
 
-## Startup asset budget
+## Performance checks in CI
+
+The backend suite checks SQL query counts, upgrade migrations and SQLite query plans, gzip negotiation
+and cache headers. The frontend suite covers search debounce, requests for filtered worklists and camera
+cleanup. The **Frontend build** job also runs Chromium against a fresh local instance with 120 synthetic
+vehicles with primary images and a two-member set. It verifies that overview defers the inventory route and
+decoder catalog, off-screen previews load on scroll at desktop and mobile widths, and switching layouts
+preserves selection and expanded rows. It also checks keyboard focus and that only one layout is mounted.
+Chromium's exact request count can vary. The check requires that the last preview is deferred and loaded
+on scroll.
 
 The frontend production build reports the gzip size of JavaScript and CSS referenced by the generated
 `index.html`, including module preloads. It emits a GitHub Actions warning above 250 KiB of JavaScript
-or 75 KiB of CSS. The build still completes so the change can be reviewed with the measured sizes.
-For a timing comparison, use fresh Chromium contexts against isolated builds with the same synthetic
-data, viewport, CPU profile and interactions. Record browser and sample size alongside the timings.
+or 75 KiB of CSS and continues the build. The CI test verifies that both limits remain warning-only
+and that later route assets are excluded unless they are referenced by `index.html`.
+
+The local reproduction uses the build and Playwright installation below. Run
+`python3 tools/regression/check_performance.py --binary output/regression/railkeeper` from the repository root.
+
+## Performance measurements before a release
+
+Compare the release candidate and the previous release on the same host using fixed synthetic inputs.
+Record both commits, the browser and SQLite versions, fixture revision, per-run values and medians. Review
+changes with the release. Timing and Web Vitals results have no CI thresholds.
+
+- **SQLite:** Initialize a fresh test database with each build's migrations, stop the instance and load
+  `tools/regression/release-performance.sql` with `sqlite3 -bail` into both databases. The fixture creates
+  6,000 vehicles, 1,000 three-vehicle sets, 24,000 image records, 4,000 CV source files, 96,000 CV values,
+  144,000 CV history entries and 80,000 audit events. Measure the vehicle inventory query, CV history for
+  `v1`, the CV file and its value references for `v2`, and the newest 40 audit events. Use the build's
+  SQLite driver, warm each query once, then time ten full result reads. Save `EXPLAIN QUERY PLAN`
+  alongside the timings.
+- **Browser:** Use the synthetic inventory seeded by `tools/regression/check_performance.py` in each build.
+  Run three fresh Chromium contexts per page and viewport for login, overview, inventory and accessories.
+  Use 1440 × 900 at 2× CPU throttling and 390 × 900 at 4×. Record LCP and CLS, then Event Timing for
+  refreshing the overview, sorting the desktop inventory and expanding a mobile vehicle card. Report
+  those defined lab interactions separately from field INP.
 
 ## Synthetic reference collection and process checks
 
