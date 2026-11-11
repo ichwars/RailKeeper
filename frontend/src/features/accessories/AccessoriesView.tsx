@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { api, type AccessoryArticleListItem, type MasterDataEntry } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import { useCompactInventory } from "../../shared/useCompactInventory";
 import { ArticleCardGrid } from "./ArticleCardGrid";
 import { ArticleCompactList } from "./ArticleCompactList";
 import { ArticleEditorDialog } from "./ArticleEditorDialog";
@@ -18,24 +19,6 @@ import { useAccessoryArticleSearchController } from "./useAccessoryArticleSearch
 import { useArticleColumnPreferences } from "./useArticleColumnPreferences";
 
 export type ArticleOpenMode = "view" | "edit";
-
-const compactOverviewQuery = "(max-width: 900px)";
-
-function useCompactArticleOverview() {
-  const [compact, setCompact] = useState(() =>
-    typeof window.matchMedia === "function" && window.matchMedia(compactOverviewQuery).matches);
-
-  useEffect(() => {
-    if (typeof window.matchMedia !== "function") return;
-    const mediaQuery = window.matchMedia(compactOverviewQuery);
-    const update = () => setCompact(mediaQuery.matches);
-    update();
-    mediaQuery.addEventListener("change", update);
-    return () => mediaQuery.removeEventListener("change", update);
-  }, []);
-
-  return compact;
-}
 
 type AccessoriesViewProps = {
   roles: string[];
@@ -72,7 +55,7 @@ export function AccessoriesView({
   const [viewMode, setViewMode] = useState<ArticleViewMode>(storedArticleViewMode);
   const [columnMessage, setColumnMessage] = useState("");
   const columnPreferences = useArticleColumnPreferences(setColumnMessage);
-  const compactOverview = useCompactArticleOverview();
+  const compactOverview = useCompactInventory();
   const { t } = useI18n();
 
   useEffect(() => {

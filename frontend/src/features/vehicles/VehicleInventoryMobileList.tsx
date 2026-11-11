@@ -1,9 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import type { Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { VehicleInventoryMobileCard } from "./VehicleInventoryMobileCard";
 import { VehicleSetInventoryMobileCard } from "./VehicleSetInventoryMobileCard";
+import { useExpandedInventoryRows, type ExpandedInventoryRows } from "./useExpandedInventoryRows";
 import type { VehicleTableColumn } from "./vehicleTableColumns";
 import { groupVehicleInventory } from "./vehicleSetGroups";
 import type { SortDirection, SortKey } from "./vehicleViewModel";
@@ -12,6 +13,8 @@ type VehicleInventoryMobileListProps = {
   vehicles: Vehicle[];
   columns: readonly VehicleTableColumn[];
   sort: { key: SortKey; direction: SortDirection };
+  setExpansion?: ExpandedInventoryRows;
+  vehicleExpansion?: ExpandedInventoryRows;
   onOpenDetail: (vehicle: Vehicle) => void;
   onOpenEdit: (vehicle: Vehicle) => void;
   onOpenSet?: (setID: string) => void;
@@ -24,6 +27,8 @@ export function VehicleInventoryMobileList({
   vehicles,
   columns,
   sort,
+  setExpansion,
+  vehicleExpansion,
   onOpenDetail,
   onOpenEdit,
   onOpenSet = () => undefined,
@@ -32,8 +37,10 @@ export function VehicleInventoryMobileList({
   renderQuickMenu
 }: VehicleInventoryMobileListProps) {
   const { t } = useI18n();
-  const [expandedVehicleIDs, setExpandedVehicleIDs] = useState<Set<string>>(() => new Set());
-  const [expandedSetIDs, setExpandedSetIDs] = useState<Set<string>>(() => new Set());
+  const localVehicleExpansion = useExpandedInventoryRows();
+  const localSetExpansion = useExpandedInventoryRows();
+  const [expandedVehicleIDs, setExpandedVehicleIDs] = vehicleExpansion ?? localVehicleExpansion;
+  const [expandedSetIDs, setExpandedSetIDs] = setExpansion ?? localSetExpansion;
   const groupedVehicles = groupVehicleInventory(vehicles, sort);
 
   useEffect(() => {
@@ -42,7 +49,7 @@ export function VehicleInventoryMobileList({
       const next = new Set([...current].filter((vehicleID) => visibleIDs.has(vehicleID)));
       return next.size === current.size ? current : next;
     });
-  }, [vehicles]);
+  }, [setExpandedVehicleIDs, vehicles]);
 
   const toggleExpanded = (vehicleID: string) => {
     setExpandedVehicleIDs((current) => {

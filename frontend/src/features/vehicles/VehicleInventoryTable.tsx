@@ -1,5 +1,6 @@
 import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
-import { Fragment, useId, useState, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useId, type CSSProperties, type ReactNode } from "react";
+import { useExpandedInventoryRows, type ExpandedInventoryRows } from "./useExpandedInventoryRows";
 import {
   ArrowUpDown,
   ChevronDown,
@@ -39,6 +40,7 @@ type VehicleInventoryTableProps = {
   allVisibleSelected: boolean;
   selectedVehicleIDs: Set<string>;
   sort: { key: SortKey; direction: SortDirection };
+  setExpansion?: ExpandedInventoryRows;
   onToggleSort: (key: SortKey) => void;
   onToggleSelection: (vehicleID: string) => void;
 	onToggleSetSelection?: (vehicleIDs: string[]) => void;
@@ -63,6 +65,7 @@ export function VehicleInventoryTable({
   allVisibleSelected,
   selectedVehicleIDs,
   sort,
+  setExpansion,
   onToggleSort,
   onToggleSelection,
 	onToggleSetSelection,
@@ -80,7 +83,8 @@ export function VehicleInventoryTable({
 }: VehicleInventoryTableProps) {
   const { language, t } = useI18n();
   const scrollHelpID = useId();
-  const [expandedSetIDs, setExpandedSetIDs] = useState<Set<string>>(() => new Set());
+  const localExpansion = useExpandedInventoryRows();
+  const [expandedSetIDs, setExpandedSetIDs] = setExpansion ?? localExpansion;
   const groupedVehicles = groupVehicleInventory(vehicles, sort);
   const columnLayout = { columns: [...columns], widths: columnWidths };
   const minimumWidth = tableMinimumWidth(
