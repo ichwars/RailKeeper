@@ -1,5 +1,4 @@
--- Inventory list order, case-insensitive import matching and exhibition expiry.
-CREATE INDEX idx_vehicles_updated_inventory ON vehicles(updated_at DESC, inventory_number);
+-- Case-insensitive import matching and exhibition expiry.
 CREATE INDEX idx_vehicles_inventory_nocase ON vehicles(inventory_number COLLATE NOCASE);
 CREATE INDEX idx_vehicle_sets_inventory_nocase ON vehicle_sets(inventory_number COLLATE NOCASE);
 CREATE INDEX idx_vehicles_manufacturer_nocase ON vehicles(manufacturer COLLATE NOCASE);

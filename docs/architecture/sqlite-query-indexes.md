@@ -1,6 +1,6 @@
 # SQLite-Indizes für RailKeeper
 
-Die Migrationen 0082 bis 0085 ergänzen 30 Indizes und ersetzen fünf bisherige
+Die Migrationen 0082 bis 0085 ergänzen 29 Indizes und ersetzen fünf bisherige
 Indizes. Primärschlüssel und Eindeutigkeitsregeln bleiben in den bestehenden
 Definitionen. Die Migrationen enthalten ausschließlich Index-DDL.
 
@@ -8,7 +8,6 @@ Definitionen. Die Migrationen enthalten ausschließlich Index-DDL.
 
 | Index | Abfrage und Wirkung |
 | --- | --- |
-| `idx_vehicles_updated_inventory` | Fahrzeugbestand in `ListCore`. Liefert `updated_at DESC, inventory_number` ohne temporäre Sortierung. |
 | `idx_vehicles_inventory_nocase` | Bestandsnummern im Transfer und Fahrzeugzuordnung beim Ausstellungsimport. Der Plan wechselt vom linearen Indexdurchlauf zur direkten Suche mit `COLLATE NOCASE`. |
 | `idx_vehicle_sets_inventory_nocase` | Kollisionsprüfung für Bestandsnummern von Sets beim Transfer. Direkte Suche mit `COLLATE NOCASE`. |
 | `idx_vehicles_manufacturer_nocase` | Verwendungsprüfung beim Verwalten und Löschen von Hersteller-Stammdaten. Indexsuche nach dem Herstellernamen. |
@@ -69,10 +68,9 @@ verglichen. Das Upgrade von Schema 0081 mit bestehenden Daten, erneutes Starten
 und Datenbankintegrität deckt `TestQueryIndexMigrationsPreserveDataAndImprovePlans`
 ab.
 
-Der Datensatz mit 6.000 Fahrzeugen, 96.000 CV-Werten, 144.000 Historieneinträgen
-und 80.000 Audit-Ereignissen wuchs von 27.935 auf 33.137 Seiten (4 KiB pro Seite).
-Das entspricht rund 20,3 MiB zusätzlichem Platz in diesem Datensatz. Einige
-Schreiboperationen müssen zusätzliche Indizes pflegen.
+Der synthetische Datensatz enthielt 6.000 Fahrzeuge, 96.000 CV-Werte,
+144.000 Historieneinträge und 80.000 Audit-Ereignisse. Die zusätzlichen Indizes
+benötigen Speicherplatz und müssen bei betroffenen Schreiboperationen gepflegt werden.
 
 Vergleich der SQLite-VM-Schritte auf demselben Datensatz mit SQLite 3.46.1.
 Die VM-Schritte geben Ausführungsaufwand an. Antwortzeiten hängen zusätzlich von
@@ -80,7 +78,6 @@ Datengröße, Cache und Speicher ab.
 
 | Abfrage | Vorher | Nachher |
 | --- | ---: | ---: |
-| Fahrzeugbestand ohne Textfilter | 2.523.109 | 2.097.116 |
 | CV-Datei mit referenzierenden CV-Werten | 480.148 | 182 |
 | CV-Historie eines Fahrzeugs | 432.625 | 375 |
 | Neueste 40 Audit-Ereignisse | 1.129.389 | 1.092 |
@@ -90,7 +87,11 @@ Weitere Felder mit wenigen Ausprägungen wurden nach ihrer Selektivität und dem
 tatsächlichen Zugriffspfad beurteilt. Primär- und Fremdschlüsselpfade mit
 passendem führendem Indexpräfix benötigen keinen weiteren Index. Textsuche mit
 führendem `%`, JSON-Array-Suche, berechnete Sortierung nach Beständen und
-vollständige Backup-Exporte erfordern andere Ansätze. Der Ausdrucksindex auf
+vollständige Backup-Exporte erfordern andere Ansätze. Der Sortierindex auf
+`vehicles(updated_at DESC, inventory_number)` sparte VM-Schritte, erhöhte aber
+beim vollständigen Durchlauf und Auslesen von 6.000 Fahrzeugen die mediane Zeit
+von 113 auf 124 ms (zehn Wiederholungen mit SQLite 3.54.1). Er wurde verworfen.
+Der Ausdrucksindex auf
 ECoS-Objekt und `julianday(updated_at)` wurde verworfen. Die geprüften
 Sitzungsabfragen verwendeten den Stationsindex zusammen mit dem vorhandenen
 eindeutigen Schlüssel aus Sitzung und Objekt-ID.
