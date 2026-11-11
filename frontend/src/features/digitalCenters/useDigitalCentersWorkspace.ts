@@ -125,21 +125,26 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     const requestID = ++requestsRef.current.worklist;
     setError("worklist", "");
     setLoadingArea("worklist", true);
-    const aggregateRequest = filter.query.trim() || filter.compareStatus !== "all"
-      ? api.digitalCenterWorkItems(sessionID, unfilteredSessionTotal)
-      : Promise.resolve(null);
-    void Promise.all([api.digitalCenterWorkItems(sessionID, filter), aggregateRequest])
-      .then(([result, aggregate]) => {
+    const loadPage = async () => {
+      const result = await api.digitalCenterWorkItems(sessionID, filter);
+      if (result.sessionTotal !== undefined || (!filter.query.trim() && filter.compareStatus === "all")) {
+        return result;
+      }
+      const aggregate = await api.digitalCenterWorkItems(sessionID, unfilteredSessionTotal);
+      return { ...result, sessionTotal: aggregate.total };
+    };
+    void loadPage()
+      .then((result) => {
         if (mountedRef.current && requestID === requestsRef.current.worklist &&
           readSessionIDRef.current === sessionID) {
           const lastPage = Math.max(1, result.totalPages);
           if (clampPage && filter.page > lastPage) {
             setPageState(lastPage);
-            setSessionTotal(aggregate?.total ?? result.total);
+            setSessionTotal(result.sessionTotal ?? result.total);
             return;
           }
           setWorkItems(result);
-          setSessionTotal(aggregate?.total ?? result.total);
+          setSessionTotal(result.sessionTotal ?? result.total);
         }
       })
       .catch((loadError: unknown) => {

@@ -323,7 +323,7 @@ func TestDigitalCenterWorkspaceFiltersAndBoundsPagedWorkItems(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if page.PageSize != 100 || len(page.Items) != 63 || page.Total != 63 || page.TotalPages != 1 {
+	if page.PageSize != 100 || len(page.Items) != 63 || page.Total != 63 || page.TotalPages != 1 || page.SessionTotal != 125 {
 		t.Fatalf("page = %#v", page)
 	}
 }

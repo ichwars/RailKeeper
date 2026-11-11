@@ -198,7 +198,8 @@ describe("Digital Centers operational journeys", () => {
       page: filter.page,
       pageSize: filter.pageSize,
       total: filter.query ? 4 : 42,
-      totalPages: filter.query ? 1 : 5
+      totalPages: filter.query ? 1 : 5,
+      sessionTotal: 42
     }));
     const user = userEvent.setup();
     render(<DigitalCentersView roles={["Admin"]} />);
