@@ -3,7 +3,6 @@ package application
 import (
 	"fmt"
 	"railkeeper/backend/internal/ecosmodel"
-	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -90,18 +89,6 @@ func validDigitalCenterCompareStatus(status DigitalCenterCompareStatus) bool {
 	default:
 		return false
 	}
-}
-
-func digitalCenterWorkItemContains(item DigitalCenterWorkItem, query string) bool {
-	fields := []string{
-		item.Name, item.Protocol, item.VehicleID, item.CenterObjectID, strconv.Itoa(item.Address),
-	}
-	for _, field := range fields {
-		if strings.Contains(strings.ToLower(field), query) {
-			return true
-		}
-	}
-	return false
 }
 
 func digitalCenterTimestamp() string {

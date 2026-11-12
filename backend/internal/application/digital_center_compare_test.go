@@ -3,7 +3,6 @@ package application
 import (
 	"context"
 	"errors"
-	"math"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -303,46 +302,25 @@ func TestDigitalCenterWorkspaceRejectsUnboundedDeviceOutputBeforePersistence(t *
 	}
 }
 
-func TestDigitalCenterWorkspaceFiltersAndBoundsPagedWorkItems(t *testing.T) {
+func TestDigitalCenterWorkspaceNormalizesWorkItemPageFilter(t *testing.T) {
 	repository := &workspaceRepositoryMemory{}
-	for index := 0; index < 125; index++ {
-		status := DigitalCompareOK
-		if index%2 == 0 {
-			status = DigitalCompareDeviation
-		}
-		repository.items = append(repository.items, DigitalCenterWorkItem{
-			ID: "item-" + string(rune(index+1000)), Name: "BR 218", Address: index + 1,
-			Protocol: "DCC", CompareStatus: status,
-		})
-	}
 	service := NewDigitalCenterWorkspaceService(repository, nil, nil, nil, nil, nil)
 
-	page, err := service.ListWorkItems(t.Context(), "session-1", DigitalCenterWorkItemFilter{
-		Query: "218", CompareStatus: DigitalCompareDeviation, Page: 1, PageSize: 1000,
+	_, err := service.ListWorkItems(t.Context(), "session-1", DigitalCenterWorkItemFilter{
+		Query: " MÄRKLIN ", CompareStatus: DigitalCompareDeviation, Page: -1, PageSize: 1000,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if page.PageSize != 100 || len(page.Items) != 63 || page.Total != 63 || page.TotalPages != 1 || page.SessionTotal != 125 {
-		t.Fatalf("page = %#v", page)
+	want := DigitalCenterWorkItemFilter{Query: "märklin", CompareStatus: DigitalCompareDeviation, Page: 1, PageSize: 100}
+	if repository.pageFilter != want {
+		t.Fatalf("page filter = %#v, want %#v", repository.pageFilter, want)
 	}
-}
-
-func TestDigitalCenterWorkspaceHandlesExcessivePageWithoutIntegerOverflow(t *testing.T) {
-	repository := &workspaceRepositoryMemory{
-		session: DigitalCenterReadSession{ID: "session-1"},
-		items:   []DigitalCenterWorkItem{{ID: "item-1", Name: "BR 218"}},
-	}
-	service := NewDigitalCenterWorkspaceService(repository, nil, nil, nil, nil, nil)
-
-	page, err := service.ListWorkItems(t.Context(), "session-1", DigitalCenterWorkItemFilter{
-		Page: math.MaxInt, PageSize: 100,
-	})
-	if err != nil {
+	if _, err := service.ListWorkItems(t.Context(), "session-1", DigitalCenterWorkItemFilter{}); err != nil {
 		t.Fatal(err)
 	}
-	if len(page.Items) != 0 || page.Total != 1 {
-		t.Fatalf("page = %#v, want empty out-of-range page", page)
+	if repository.pageFilter != (DigitalCenterWorkItemFilter{Page: 1, PageSize: 10}) {
+		t.Fatalf("default page filter = %#v", repository.pageFilter)
 	}
 }
 
@@ -401,9 +379,10 @@ func (stub *workspaceVehicleReaderStub) ListReadOnly(context.Context, string) ([
 }
 
 type workspaceRepositoryMemory struct {
-	session  DigitalCenterReadSession
-	items    []DigitalCenterWorkItem
-	messages []DigitalCenterSessionMessage
+	session    DigitalCenterReadSession
+	items      []DigitalCenterWorkItem
+	messages   []DigitalCenterSessionMessage
+	pageFilter DigitalCenterWorkItemFilter
 }
 
 func (repository *workspaceRepositoryMemory) CreateSession(
@@ -443,8 +422,9 @@ func (repository *workspaceRepositoryMemory) ReplaceWorkItems(
 	return nil
 }
 
-func (repository *workspaceRepositoryMemory) ListWorkItems(context.Context, string) ([]DigitalCenterWorkItem, error) {
-	return append([]DigitalCenterWorkItem(nil), repository.items...), nil
+func (repository *workspaceRepositoryMemory) ListWorkItemPage(_ context.Context, _ string, filter DigitalCenterWorkItemFilter) (DigitalCenterWorkItemPage, error) {
+	repository.pageFilter = filter
+	return DigitalCenterWorkItemPage{}, nil
 }
 
 func (repository *workspaceRepositoryMemory) GetWorkItem(

@@ -120,7 +120,7 @@ type DigitalCenterWorkspaceRepository interface {
 	GetSession(context.Context, string) (DigitalCenterReadSession, error)
 	LatestReadySessions(context.Context, []DigitalCenterSummary) (map[string]*DigitalCenterReadSession, error)
 	ReplaceWorkItems(context.Context, string, []DigitalCenterWorkItem) error
-	ListWorkItems(context.Context, string) ([]DigitalCenterWorkItem, error)
+	ListWorkItemPage(context.Context, string, DigitalCenterWorkItemFilter) (DigitalCenterWorkItemPage, error)
 	GetWorkItem(context.Context, string, string) (DigitalCenterWorkItem, error)
 	UpdateWorkItem(context.Context, DigitalCenterWorkItem) (DigitalCenterWorkItem, error)
 	AddMessage(context.Context, DigitalCenterSessionMessage) error

@@ -719,8 +719,8 @@ func (*digitalCenterWriteRepositoryStub) ReplaceWorkItems(context.Context, strin
 	return errors.New("not used")
 }
 
-func (stub *digitalCenterWriteRepositoryStub) ListWorkItems(context.Context, string) ([]DigitalCenterWorkItem, error) {
-	return []DigitalCenterWorkItem{stub.item}, nil
+func (*digitalCenterWriteRepositoryStub) ListWorkItemPage(context.Context, string, DigitalCenterWorkItemFilter) (DigitalCenterWorkItemPage, error) {
+	return DigitalCenterWorkItemPage{}, errors.New("not used")
 }
 
 func (stub *digitalCenterWriteRepositoryStub) GetWorkItem(

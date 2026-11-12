@@ -148,11 +148,14 @@ func (repository *DigitalCenterWorkspaceRepository) ListWorkItems(
 	sessionID string,
 ) ([]application.DigitalCenterWorkItem, error) {
 	rows, err := repository.db.QueryContext(ctx, digitalCenterWorkItemSelect+`
-WHERE session_id=?
-ORDER BY name COLLATE NOCASE, center_object_id, id`, sessionID)
+WHERE session_id=?`+digitalCenterWorkItemOrder, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("list digital center work items: %w", err)
 	}
+	return scanDigitalCenterWorkItems(rows)
+}
+
+func scanDigitalCenterWorkItems(rows *sql.Rows) ([]application.DigitalCenterWorkItem, error) {
 	defer func() { _ = rows.Close() }()
 	items := []application.DigitalCenterWorkItem{}
 	for rows.Next() {
@@ -226,6 +229,8 @@ SELECT id, session_id, center_object_id, COALESCE(vehicle_id, ''), name, decoder
        compare_status, station_status, center_json, railkeeper_json, proposed_json, conflict_json,
        created_at, updated_at
 FROM digital_center_work_items`
+
+const digitalCenterWorkItemOrder = ` ORDER BY name COLLATE NOCASE, center_object_id, id`
 
 type digitalCenterRowScanner interface {
 	Scan(...any) error
