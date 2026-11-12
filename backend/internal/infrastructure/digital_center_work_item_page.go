@@ -14,18 +14,24 @@ import (
 
 func init() {
 	// SQLite's built-in lower function only handles ASCII. Use the same Unicode conversion as the Go search.
-	sqlite.MustRegisterDeterministicScalarFunction("railkeeper_work_item_contains", 6, digitalCenterWorkItemContains)
+	sqlite.MustRegisterFunction("railkeeper_work_item_contains", &sqlite.FunctionImpl{
+		NArgs:         6,
+		Deterministic: true,
+		// The callback reads arguments only during the call. Avoid copying the query for each row.
+		VolatileArgs: true,
+		Scalar:       digitalCenterWorkItemContains,
+	})
 }
 
 func digitalCenterWorkItemContains(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
-	needle, _ := args[0].([]byte)
-	if len(needle) > 0 {
-		query := string(needle)
-		for _, value := range args[1:] {
-			field, _ := value.([]byte)
-			if strings.Contains(strings.ToLower(string(field)), query) {
-				return int64(1), nil
-			}
+	query, _ := args[0].(string)
+	if query == "" {
+		return int64(0), nil
+	}
+	for _, value := range args[1:] {
+		field, _ := value.(string)
+		if strings.Contains(strings.ToLower(field), query) {
+			return int64(1), nil
 		}
 	}
 	return int64(0), nil
@@ -45,10 +51,9 @@ func (repository *DigitalCenterWorkspaceRepository) ListWorkItemPage(
 		args = append(args, filter.CompareStatus)
 	}
 	if filter.Query != "" {
-		// Bind text as bytes so the callback receives the full value even for embedded NULs.
-		match += ` AND railkeeper_work_item_contains(?, CAST(name AS BLOB), CAST(protocol AS BLOB),
-			CAST(vehicle_id AS BLOB), CAST(center_object_id AS BLOB), CAST(decoder_address AS BLOB))`
-		args = append(args, []byte(filter.Query))
+		match += ` AND railkeeper_work_item_contains(?, CAST(name AS TEXT), CAST(protocol AS TEXT),
+			CAST(vehicle_id AS TEXT), CAST(center_object_id AS TEXT), CAST(decoder_address AS TEXT))`
+		args = append(args, filter.Query)
 	}
 
 	tx, err := repository.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
