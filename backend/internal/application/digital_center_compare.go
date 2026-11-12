@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"strings"
 )
 
@@ -236,52 +235,17 @@ func (service *DigitalCenterWorkspaceService) ListWorkItems(
 	if !validDigitalCenterCompareStatus(filter.CompareStatus) {
 		return DigitalCenterWorkItemPage{}, ErrDigitalCenterFilterValidation
 	}
-	if _, err := service.repository.GetSession(ctx, strings.TrimSpace(sessionID)); err != nil {
+	sessionID = strings.TrimSpace(sessionID)
+	if _, err := service.repository.GetSession(ctx, sessionID); err != nil {
 		return DigitalCenterWorkItemPage{}, err
 	}
-	items, err := service.repository.ListWorkItems(ctx, strings.TrimSpace(sessionID))
-	if err != nil {
-		return DigitalCenterWorkItemPage{}, err
+	filter.Query = strings.ToLower(strings.TrimSpace(filter.Query))
+	filter.Page = max(1, filter.Page)
+	if filter.PageSize < 1 {
+		filter.PageSize = 10
 	}
-	query := strings.ToLower(strings.TrimSpace(filter.Query))
-	filtered := make([]DigitalCenterWorkItem, 0, len(items))
-	for _, item := range items {
-		if filter.CompareStatus != "" && item.CompareStatus != filter.CompareStatus {
-			continue
-		}
-		if query != "" && !digitalCenterWorkItemContains(item, query) {
-			continue
-		}
-		filtered = append(filtered, item)
-	}
-	page := filter.Page
-	if page < 1 {
-		page = 1
-	}
-	pageSize := filter.PageSize
-	if pageSize < 1 {
-		pageSize = 10
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
-	totalPages := 0
-	if len(filtered) > 0 {
-		totalPages = int(math.Ceil(float64(len(filtered)) / float64(pageSize)))
-	}
-	start := len(filtered)
-	if page <= totalPages {
-		start = (page - 1) * pageSize
-	}
-	end := min(start+pageSize, len(filtered))
-	return DigitalCenterWorkItemPage{
-		Items:        append([]DigitalCenterWorkItem(nil), filtered[start:end]...),
-		Page:         page,
-		PageSize:     pageSize,
-		Total:        len(filtered),
-		TotalPages:   totalPages,
-		SessionTotal: len(items),
-	}, nil
+	filter.PageSize = min(100, filter.PageSize)
+	return service.repository.ListWorkItemPage(ctx, sessionID, filter)
 }
 
 func (service *DigitalCenterWorkspaceService) GetWorkItem(
