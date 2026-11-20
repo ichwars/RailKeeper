@@ -80,7 +80,9 @@ def run(args):
             actor.request("POST", path, expected=403, csrf=False)
         passed("valuation-real-login-role-and-csrf-boundaries")
         document = backup(source.client)
-        if document["version"] != 28 or len(document["tables"]["vehicle_valuations"]) != 3:
+        if document["version"] < 28:
+            raise AssertionError("Application backup predates valuation history")
+        if len(document["tables"]["vehicle_valuations"]) != 3:
             raise AssertionError("Application backup omitted valuation rows")
         preflight = source.client.upload("/api/v1/backup/validate", "valuations.json", json.dumps(document).encode(),
                                          "application/json", expected=200)
@@ -121,7 +123,7 @@ def run(args):
         if target.client.request("GET", "/api/v1/auth/session")["username"] != target_credentials["username"]:
             raise AssertionError("Restore replaced target authentication")
         passed("valuation-fresh-restore-preserves-history-and-target-authentication")
-    report = {"synthetic": True, "passed": True, "candidate": candidate, "platform": platform.platform(), "backupVersion": 28, "checks": checks,
+    report = {"synthetic": True, "passed": True, "candidate": candidate, "platform": platform.platform(), "backupVersion": document["version"], "checks": checks,
               "binarySHA256": hashlib.sha256(args.binary.read_bytes()).hexdigest(), "hardware": "not contacted"}
     (root / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 

@@ -1,5 +1,6 @@
 param(
-  [string]$Version = ""
+  [string]$Version = "",
+  [string]$SourceRoot = (Join-Path $PSScriptRoot "..")
 )
 
 $ErrorActionPreference = "Stop"
@@ -7,7 +8,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "windows_package_validation.ps1")
 . (Join-Path $PSScriptRoot "windows_build_identity.ps1")
 
-$repo = Resolve-Path (Join-Path $PSScriptRoot "..")
+$repo = Resolve-Path $SourceRoot
 $frontend = Join-Path $repo "frontend"
 $backend = Join-Path $repo "backend"
 $packageRoot = Join-Path $repo "dist\windows-standalone"
@@ -266,7 +267,7 @@ Assert-RailKeeperPackageDirectory -PackageDir $packageDir
 # CI validates the actual resource-patched EXE before an archive can be published.
 # Local packaging retains its existing prerequisites.
 if ($env:GITHUB_ACTIONS -eq "true") {
-  & (Join-Path $PSScriptRoot "test_windows_baseline.ps1") -PackageDir $packageDir
+  & (Join-Path $PSScriptRoot "test_windows_baseline.ps1") -PackageDir $packageDir -SourceRoot $repo
 }
 
 if (Test-Path -LiteralPath $zipPath) {

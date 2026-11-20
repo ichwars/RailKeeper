@@ -1,13 +1,14 @@
 param(
   [Parameter(Mandatory = $true)]
-  [string]$PackageDir
+  [string]$PackageDir,
+  [string]$SourceRoot = (Join-Path $PSScriptRoot "..")
 )
 
 $ErrorActionPreference = "Stop"
-$repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+$repo = [IO.Path]::GetFullPath($SourceRoot)
 $package = [IO.Path]::GetFullPath($PackageDir)
-$regression = Join-Path $repo "tools\regression"
-$testRoot = Join-Path $repo ("output\windows-baseline-" + [Guid]::NewGuid().ToString("N"))
+$regression = Join-Path $PSScriptRoot "regression"
+$testRoot = Join-Path (Join-Path $PSScriptRoot "..") ("output\windows-baseline-" + [Guid]::NewGuid().ToString("N"))
 $previousSource = Join-Path $testRoot "previous-source"
 $previousBinary = Join-Path $testRoot "railkeeper-v0.1.22.exe"
 $archive = Join-Path $testRoot "previous-source.tar"

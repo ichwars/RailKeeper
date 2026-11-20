@@ -65,7 +65,10 @@ export async function assertInventoryToolbar(page, input, de, checks) {
     await page.locator(".inventory-toolbar .inventory-labeled-action").first().waitFor();
     await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
     const actions = page.locator(".inventory-toolbar .inventory-labeled-action");
-    assert.equal(await actions.count(), 5);
+    assert.equal(await actions.count(), width <= 900 ? 5 : 6);
+    assert.equal(await page.getByRole("button", { name: de ? "CV-Archiv" : "CV archive", exact: true }).isVisible(), true);
+    const fastTable = page.getByRole("button", { name: de ? "Schnelle Tabellenansicht" : "Fast table view", exact: true });
+    assert.equal(await fastTable.isVisible(), width > 900);
     for (const button of await actions.all()) {
       assert.ok((await button.innerText()).trim(), "action has no visible label");
       await button.scrollIntoViewIfNeeded();
@@ -77,7 +80,7 @@ export async function assertInventoryToolbar(page, input, de, checks) {
     }
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, "inventory page overflow");
     await page.screenshot({ path: `${input.output}/inventory-tools-${language}-${theme}-${width}.png` });
-    checks.push(`${language}:${theme}:${width}:five-visible-toolbar-actions-keyboard-no-overflow`);
+    checks.push(`${language}:${theme}:${width}:visible-toolbar-actions-keyboard-no-overflow`);
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
 }

@@ -11,7 +11,7 @@ export async function assertMediaDraftWorkflow(page, input, de, reference) {
       return response.json();
     };
     const put = (suffix, data) => actor.put(path + suffix, { data, headers: { "X-CSRF-Token": csrfToken } });
-    const before = await read(), image = before.images[0];
+    const before = await read(), image = before.images.find(value => value.id === input.fixture.imageId);
     const attachment = before.attachments.find(value => value.id === input.fixture.attachmentId);
     assert.ok(image && attachment);
     const fileBytes = async () => {
@@ -36,7 +36,8 @@ export async function assertMediaDraftWorkflow(page, input, de, reference) {
     await tab(de ? "Steuerung" : "Control");
     await dialog.getByRole("textbox", { name: de ? "F0 Funktionsname" : "F0 Function name", exact: true }).fill(ownFunction);
     await tab("Uploads");
-    const imageTitle = () => dialog.getByRole("textbox", { name: de ? "Bildbeschreibung" : "Image description", exact: true }).first();
+    const imageCard = dialog.locator("figure").filter({ has: page.locator(`img[src$="/images/${image.id}/file"]`) });
+    const imageTitle = () => imageCard.getByRole("textbox", { name: de ? "Bildbeschreibung" : "Image description", exact: true });
     const attachmentRow = () => dialog.locator(".attachment-row").filter({ hasText: attachment.originalName });
     const note = () => attachmentRow().getByPlaceholder(de ? "Bemerkung" : "Note", { exact: true });
     await imageTitle().fill(ownTitle); await note().fill(ownNote);

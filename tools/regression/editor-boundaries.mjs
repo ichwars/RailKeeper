@@ -99,7 +99,10 @@ try {
     assert.equal(await functionName().inputValue(), "UNSAVED-FUNCTION");
     assert.equal(await functionName("F2").inputValue(), "Project function");
     await tab("Uploads");
-    const imageTitle = () => dialog.getByRole("textbox", { name: de ? "Bildbeschreibung" : "Image description", exact: true }).first();
+    const originalImage = before.images.find(image => image.id === input.fixture.imageId);
+    assert.ok(originalImage);
+    const imageCard = dialog.locator("figure").filter({ has: page.locator(`img[src$="/images/${originalImage.id}/file"]`) });
+    const imageTitle = () => imageCard.getByRole("textbox", { name: de ? "Bildbeschreibung" : "Image description", exact: true });
     const originalAttachment = () => dialog.locator(".attachment-row").filter({ hasText: "anleitung.txt" });
     await imageTitle().fill("UNSAVED-IMAGE");
     await originalAttachment().getByPlaceholder(de ? "Bemerkung" : "Note", { exact: true }).fill("UNSAVED-ATTACHMENT");
@@ -137,7 +140,7 @@ try {
     await tab(de ? "Steuerung" : "Control");
     assert.equal(await functionName().inputValue(), before.functions.find(value => value.functionKey === "F0").name);
     await tab("Uploads");
-    assert.equal(await imageTitle().inputValue(), before.images[0].title);
+    assert.equal(await imageTitle().inputValue(), originalImage.title);
     assert.equal(await originalAttachment().getByPlaceholder(de ? "Bemerkung" : "Note", { exact: true }).inputValue(),
       before.attachments.find(value => value.id === input.fixture.attachmentId).description || "");
     for (const width of [2580, 1440, 820, 390]) {

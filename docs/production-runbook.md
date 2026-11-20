@@ -250,6 +250,13 @@ Push-Workflows aus; deshalb werden die beiden Builds ausdrücklich per `workflow
 gestartet. Vor einem produktiven Update den erfolgreichen Docker-Build und die Verfügbarkeit
 des gewünschten Windows-Pakets im Release prüfen.
 
+Für eine erneute Windows-Qualifikation eines veröffentlichten Tags kann der manuelle
+Windows-Workflow mit `qualification_tag` auf einem geprüften Stand der Testwerkzeuge laufen.
+Der Runner vergleicht Backend, Frontend, OpenAPI, Windows-Startdateien und Go-Version mit dem Tag.
+Er baut aus einem eigenen, unveränderten Tag-Checkout und speichert ZIP und Prüfberichte als
+Workflow-Artefakte. Vor dem Anhängen eines fehlenden ZIPs an das bestehende Release die
+Buildkennung der nativen EXE, Archivprüfung und Ziel-Tag abgleichen.
+
 Die Go-Test- und Coverage-Nachweise des tatsächlichen Release-Commits aus der erfolgreichen CI
 als zusätzliche Release-Anhänge dauerhaft sichern und in den DE/EN-Release-Notizen verlinken.
 CI-Artefakte allein genügen wegen ihrer begrenzten Aufbewahrung nicht. Quellcommit, Lauf, Compiler,
