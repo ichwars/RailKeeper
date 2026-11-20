@@ -4,8 +4,8 @@ title: Manage your model railway collection locally
 description: Vehicles, pictures, documents, maintenance and decoder data in one place. RailKeeper for Windows and Docker, with an English and German handbook.
 audience: reference
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 hero:
   name: RailKeeper
   text: Your model railway collection in one place
@@ -67,9 +67,9 @@ to adding a third vehicle with a picture. The downloads and a short checklist ar
 Windows runs from a ZIP. AMD64 and ARM64 Docker images are available for your home server.
 Use the [handbook](guide/) for the next tasks and the
 [installation guide](administration/deployment-configuration) for ongoing operation.
-The pictures show **v0.2.0** with synthetic demo data. See the
-[release notes](https://github.com/ichwars/RailKeeper/releases/tag/v0.2.0) and
-[changelog](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.md#020---2026-11-09) for this version's scope.
+The pictures show **v0.3.0** with synthetic demo data. See the
+[release notes](https://github.com/ichwars/RailKeeper/releases/tag/v0.3.0) and
+[changelog](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.md#030---2026-11-20) for this version's scope.
 
 ## Share your experience
 

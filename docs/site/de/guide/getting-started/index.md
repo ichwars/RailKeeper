@@ -3,8 +3,8 @@ title: Ersteinrichtung und Anmeldung
 description: Ersten Administrator anlegen, sicher anmelden und den Zugang zu RailKeeper wiederherstellen.
 audience: user
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Ersteinrichtung und Anmeldung
@@ -15,7 +15,7 @@ lastReviewed: 2026-11-09
 
 Dieses Kapitel erklärt das erste Administratorkonto, die normale Anmeldung und Anmeldung mit
 Zwei-Faktor-Code, die Abmeldung sowie die Passwort-Wiederherstellung. Es beschreibt den stabilen
-RailKeeper-Stand **v0.2.0**.
+RailKeeper-Stand **v0.3.0**.
 
 ## Voraussetzungen
 

@@ -15,7 +15,7 @@ lastReviewed: 2026-11-20
 
 Bei 15 Modellvarianten fehlt eine passende CV- oder Registertabelle. Bei elf ESU- und PIKO-Varianten suchen wir die Belegung der Platine oder des Soundprojekts. Eine vorhandene Datei, ein Foto vom Beiblatt oder ein Link zur Anleitung hilft.
 
-[Zweiseitige Suchliste für Forum und Verein herunterladen (PDF)](https://raw.githubusercontent.com/ichwars/RailKeeper/main/docs/community/decoder-suchliste.pdf)
+[Zweiseitige Suchliste für Forum und Verein herunterladen (PDF)](https://raw.githubusercontent.com/ichwars/RailKeeper/main/docs/community/decoder-suchliste.pdf) · [Datei, Foto oder Hinweis beisteuern](https://github.com/ichwars/RailKeeper/discussions/399)
 
 
 ## Digitaldaten im Fahrzeugdialog

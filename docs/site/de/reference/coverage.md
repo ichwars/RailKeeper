@@ -3,8 +3,8 @@ title: Was ist dokumentiert und geprüft?
 description: Was ist dokumentiert und geprüft?
 audience: reference
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Was ist dokumentiert und geprüft?
@@ -20,8 +20,8 @@ keine Behauptung, dass jedes Gerät, jede Firmware oder jeder Sonderfall vollst�
 | Demo-Oberfläche | Zusätzlich echte Screenshots aus einer isolierten Testinstallation | Künstliche Daten; keine angeschlossene Zentrale |
 | Hardwareprüfung | Nur dort, wo ein Kapitel einen konkreten Gerätetest ausdrücklich nennt | Gilt für dieses Gerät und diesen Firmwarestand |
 
-Alle **142 Handbuchbilder (71 je Sprache)** wurden am **09.11.2026** aus dem unveränderten Release
-**v0.2.0**, Commit `ecf28f1acdacf9d9254cef0e31e8f1e642258a09`, neu aufgenommen. Die getrennten lokalen
+Alle **150 Handbuchbilder (75 je Sprache)** wurden am **20.11.2026** aus dem Anwendungsstand für
+**v0.3.0**, Commit `b630d9f2a86c6118da21a98117462a68b926c755`, neu aufgenommen. Die getrennten lokalen
 Demos verwenden ausschließlich künstliche Bestände. CV-Werte darin sind keine Werkseinstellungen.
 Suchtreffer und Zentralenantworten sind nur in den ausdrücklich bezeichneten Bildern simuliert.
 Die Versionsanzeige stammt vom tatsächlichen Release und wurde nicht ersetzt.

@@ -24,6 +24,8 @@ Create the set as one accessory article. On the **Article** tab select **Accesso
 
 Stock movements count the set article. If you own two sets, book two sets into stock. The component list describes what comes in each one. Leave it empty for an ordinary single article.
 
+<GuideFigure name="accessory-set-contents" alt="Track pack contents with two components and quantities." caption="Quantities refer to one complete set." />
+
 ## Access rights and persistence
 
 Admin and Editor users can create and edit article records. Viewer users can inspect

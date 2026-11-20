@@ -3,14 +3,14 @@ title: "Digitalzentralen: Umfang und Prüfstand"
 description: "Digitalzentralen: Umfang und Prüfstand."
 audience: reference
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Digitalzentralen: Umfang und Prüfstand
 
 Diese Übersicht trennt vorhandene Funktionen von tatsächlich dokumentierten Geräteprüfungen.
-Sie beschreibt **v0.2.0**. Ältere Releases können abweichen. Die Neufassung der Handbuchbilder
+Sie beschreibt **v0.3.0**. Ältere Releases können abweichen. Die Neufassung der Handbuchbilder
 ergänzt keine Hardwareabnahme; die nachstehenden Gerätebelege behalten ihren eigenen Prüfstand.
 
 ## Funktionen je Anschluss

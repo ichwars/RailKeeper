@@ -15,7 +15,7 @@ lastReviewed: 2026-11-20
 
 We need a matching CV or register table for 15 variants and board or sound-project details for eleven ESU and PIKO variants. An existing file, a photo of the instruction sheet or a link to the manual will help.
 
-[Download the two-page German decoder list for clubs and forums (PDF)](https://raw.githubusercontent.com/ichwars/RailKeeper/main/docs/community/decoder-suchliste.pdf)
+[Download the two-page German decoder list for clubs and forums (PDF)](https://raw.githubusercontent.com/ichwars/RailKeeper/main/docs/community/decoder-suchliste.pdf) · [Contribute a file, photo or link](https://github.com/ichwars/RailKeeper/discussions/399)
 
 
 ## Digital settings in the vehicle dialog

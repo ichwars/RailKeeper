@@ -3,8 +3,8 @@ title: Create and edit a coach set
 description: Create and edit a coach set.
 audience: user
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Create and edit a coach set
@@ -22,7 +22,7 @@ Use Admin or Editor and synthetic exercise data.
    tabs. Supply suitable subtypes and distinct names or vehicle numbers.
 6. Review the fields and save the set.
 
-<GuideFigure name="vehicle-set" alt="First set creation step with shared basics and two planned member vehicles." caption="Guided creation starts with type and basic data. Article data and individual vehicles follow in separate steps. Synthetic v0.2.0 demo." />
+<GuideFigure name="vehicle-set" alt="First set creation step with shared basics and two planned member vehicles." caption="Guided creation starts with type and basic data. Article data and individual vehicles follow in separate steps. Synthetic v0.3.0 demo." />
 
 **Expected:** One set inventory number and two independent vehicle inventory numbers.
 The active set scheme supplies the set number; members use their matching vehicle schemes.

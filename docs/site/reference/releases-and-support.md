@@ -3,8 +3,8 @@ title: Versions and help
 description: Versions and help.
 audience: reference
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-10
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Versions and help
@@ -21,12 +21,12 @@ application data. An old server without build metadata keeps its existing versio
 
 A page's visible **editorial review** date records content review. **Last updated** at the bottom is its Git modification date. Neither alone proves testing with real hardware. The [coverage overview](coverage) explains the evidence.
 
-Handbook pictures show **v0.2.0**. Capture version and editorial review scope are recorded separately.
-The complete [German changelog](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.de.md#020---2026-11-09)
-and [English changelog](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.md#020---2026-11-09)
+Handbook pictures show **v0.3.0**. Capture version and editorial review scope are recorded separately.
+The complete [German changelog](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.de.md#030---2026-11-20)
+and [English changelog](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.md#030---2026-11-20)
 describe this release's changes.
 
-The [v0.2.0 release evidence](https://github.com/ichwars/RailKeeper/blob/main/docs/releases/v0.2.0.md#go-test-and-coverage-evidence)
+The [v0.3.0 release evidence](https://github.com/ichwars/RailKeeper/blob/main/docs/releases/v0.3.0.md#go-tests-and-coverage)
 links the successful Go test run and permanently retained coverage reports.
 
 ## Feedback from the v0.2.x trial

@@ -3,7 +3,7 @@ title: Practice accessory usage and maintenance
 description: Practice accessory usage and maintenance.
 audience: user
 status: stable
-reviewedVersion: 0.2.0
+reviewedVersion: 0.3.0
 lastReviewed: 2026-11-09
 ---
 

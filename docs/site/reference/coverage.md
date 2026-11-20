@@ -3,8 +3,8 @@ title: What is documented and reviewed?
 description: What is documented and reviewed?
 audience: reference
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # What is documented and reviewed?
@@ -20,8 +20,8 @@ every device, firmware or edge case has been fully tested.
 | Demo interface | Also illustrated by real screenshots from an isolated test installation | Synthetic data, no connected command station |
 | Hardware verification | Only where a chapter explicitly identifies a concrete device test | Applies to that device and firmware |
 
-All **142 handbook pictures (71 per language)** were recaptured on **9 November 2026** from the
-unchanged **v0.2.0** release, commit `ecf28f1acdacf9d9254cef0e31e8f1e642258a09`. Separate local demos
+All **150 handbook pictures (75 per language)** were recaptured on **20 November 2026** from the
+**v0.3.0** application source, commit `b630d9f2a86c6118da21a98117462a68b926c755`. Separate local demos
 use synthetic collections only. Their CV values are not factory settings. Search and command-station
 replies are simulated only in the explicitly identified pictures. The version display comes from
 the actual release and has not been replaced.

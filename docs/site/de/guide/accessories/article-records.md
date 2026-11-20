@@ -24,6 +24,8 @@ Lege das Set unter **Zubehör** als einen Artikel an. Aktiviere im Reiter **Arti
 
 Bestandsbuchungen zählen den Setartikel. Wenn du zwei dieser Sets lagerst, buche zwei Sets. Die Stückliste beschreibt den Lieferumfang je Set. Für einen normalen Einzelartikel bleiben die Positionen leer.
 
+<GuideFigure name="accessory-set-contents" alt="Stückliste eines Gleissets mit zwei Positionen und Stückzahlen." caption="Die Stückzahlen beziehen sich jeweils auf ein vollständiges Set." />
+
 ## Zugriffsrechte und Speichern
 
 Administratoren und Bearbeiter können Artikel anlegen und bearbeiten. Betrachter können sie ansehen,

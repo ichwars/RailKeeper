@@ -144,7 +144,7 @@ Reviewed on 2026-11-20. The [v0.3.0 release notes](releases/v0.3.0.md) describe 
   Raspberry Pi check are still open. The independent build and restore exercise and club pilot are pending.
 - The [club poll](https://github.com/ichwars/RailKeeper/discussions/391) collects practical feedback.
   The Stummiforum follow-up was published. The maintainer reported no replies as of 20 November.
-- The [decoder source list](architecture/decoder-cv-remaining-models.md) identifies 15 variants without
+- [Discussion #399](https://github.com/ichwars/RailKeeper/discussions/399) accepts files, photos and links. [Issue #400](https://github.com/ichwars/RailKeeper/issues/400) tracks verification. The [decoder source list](architecture/decoder-cv-remaining-models.md) identifies 15 variants without
   model-specific CV evidence and 11 with partial firmware references. Exact manuals and attributed programmer exports are welcome.
 
 ## Explicitly Deferred

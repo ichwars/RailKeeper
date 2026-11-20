@@ -3,7 +3,7 @@ title: Reservierungen, Einbauten und Verwendung
 description: Zubehör reservieren, Einbauten erfassen und die Verwendungshistorie verstehen.
 audience: user
 status: stable
-reviewedVersion: 0.2.0
+reviewedVersion: 0.3.0
 lastReviewed: 2026-11-09
 ---
 
