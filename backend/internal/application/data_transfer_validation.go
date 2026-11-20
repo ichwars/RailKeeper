@@ -65,7 +65,7 @@ func ValidateTransferAccessory(accessory TransferAccessory) error {
 		MinimumStock:      accessory.MinimumStock,
 		InventoryStrategy: domain.AccessoryInventoryStrategy(accessory.InventoryStrategy),
 		ManufacturerURL:   accessory.ManufacturerURL, ProductURL: accessory.ProductURL,
-		AlternativeNumbers: accessory.AlternativeNumbers, Keywords: accessory.Keywords,
+		AlternativeNumbers: accessory.AlternativeNumbers, Keywords: accessory.Keywords, SetContents: accessory.SetContents,
 		CompatibilityNotes: accessory.CompatibilityNotes, InternalNotes: accessory.InternalNotes,
 		Archived: accessory.Archived,
 	})

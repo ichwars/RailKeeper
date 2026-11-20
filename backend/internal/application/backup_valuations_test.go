@@ -34,7 +34,7 @@ func TestValuationBackupRestoreAndLegacyCompatibility(t *testing.T) {
 	}
 	backup := application.NewBackupService(db, dir)
 	doc, err := backup.Export(t.Context())
-	if err != nil || doc.Version != 28 || len(doc.Tables["vehicle_valuations"]) != 2 {
+	if err != nil || doc.Version != 29 || len(doc.Tables["vehicle_valuations"]) != 2 {
 		t.Fatalf("backup missing valuations: %v", err)
 	}
 	validation, err := backup.Validate(t.Context(), doc)

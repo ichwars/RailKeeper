@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"railkeeper/backend/internal/domain"
 )
 
 var vehicleCSVFieldAliases = vehicleTransferCSVAliases()
@@ -37,6 +39,7 @@ var accessoryCSVFieldAliases = transferCSVFieldAliases(map[string][]string{
 	"inventoryStrategy": {"Inventarstrategie", "inventory strategy", "inventory_strategy", "inventoryStrategy"},
 	"stock":             {"Bestand", "stock"},
 	"assets":            {"Einzelobjekte", "assets"},
+	"setContents":       {"Setbestandteile", "set contents", "set_contents", "setContents"},
 })
 
 func ParseDataTransferCSV(
@@ -421,6 +424,10 @@ func transferAccessoryFromCSV(row map[string]string, rowNumber int) (TransferAcc
 	if err != nil {
 		return TransferAccessory{}, err
 	}
+	var contents []domain.AccessorySetItem
+	if err := decodeTransferCSVJSON(row["setContents"], &contents); err != nil || !domain.ValidAccessorySetContents(contents) {
+		return TransferAccessory{}, fmt.Errorf("%w: invalid set contents in CSV row %d", ErrDataTransferValidation, rowNumber)
+	}
 	stock := []TransferAccessoryStock{}
 	if err := decodeTransferCSVJSON(row["stock"], &stock); err != nil {
 		return TransferAccessory{}, fmt.Errorf(
@@ -445,7 +452,7 @@ func transferAccessoryFromCSV(row map[string]string, rowNumber int) (TransferAcc
 		TrackingMode: row["trackingMode"], Description: row["description"], EAN: row["ean"],
 		ArticleType: row["articleType"], Subtype: row["subtype"], Gauges: gauges, Scale: row["scale"],
 		ListPrice: row["listPrice"], PackageQuantity: packageQuantity, StockUnit: row["stockUnit"],
-		MinimumStock: minimumStock, InventoryStrategy: row["inventoryStrategy"], Stock: stock, Assets: assets,
+		MinimumStock: minimumStock, InventoryStrategy: row["inventoryStrategy"], Stock: stock, Assets: assets, SetContents: contents,
 	}, nil
 }
 

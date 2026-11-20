@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Download, ExternalLink, Eye, FileText, Image, PackageSearch, Save, Search, Star, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, ExternalLink, GripVertical, Eye, FileText, Image, PackageSearch, Save, Search, Star, Trash2, Upload } from "lucide-react";
 import { useState, type DragEvent, type RefObject } from "react";
 import { ArticleSearchDocument, Vehicle, VehicleAttachment, VehicleMaintenance, api } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -49,6 +49,7 @@ export function VehicleUploadsTab({
   onSaveAttachment,
   onExtractAttachmentSpareParts,
   onDeleteAttachment,
+  onDeleteAttachments,
   onSearchDocuments,
   onImportDocument,
   onImportSelectedDocuments,
@@ -78,7 +79,7 @@ export function VehicleUploadsTab({
   onPreviewImage: (image: PendingArticleImage) => void;
   onUpdatePendingImageTitle: (id: string, title: string) => void;
   onUpdatePendingImageMaintenance: (id: string, maintenanceId: string) => void;
-  onMovePendingImage: (id: string, direction: -1 | 1) => void;
+  onMovePendingImage: (id: string, direction: number) => void;
   onSetPrimaryPendingImage: (id: string) => void;
   onRemovePendingImage: (image: PendingArticleImage) => void;
   onUploadAttachment: (files: FileList | null) => void;
@@ -89,6 +90,7 @@ export function VehicleUploadsTab({
   onUpdateAttachmentEdit: (id: string, patch: Partial<AttachmentEditState[string]>) => void;
   onSaveAttachment: (attachment: VehicleAttachment) => void;
   onExtractAttachmentSpareParts: (attachment: VehicleAttachment) => void;
+  onDeleteAttachments?: (attachments: VehicleAttachment[]) => void;
   onDeleteAttachment: (attachment: VehicleAttachment) => void;
   onSearchDocuments: () => void;
   onImportDocument: (document: ArticleSearchDocument) => void;
@@ -98,6 +100,10 @@ export function VehicleUploadsTab({
 }) {
   const { t } = useI18n();
   const [previewAttachment, setPreviewAttachment] = useState<VehicleAttachment | null>(null);
+  const [attachmentSelection, setAttachmentSelection] = useState<string[]>([]);
+  const chosen = (selected?.attachments || []).filter(item => attachmentSelection.includes(item.id));
+  const archiveTooLarge = chosen.length > 100 || chosen.reduce((sum, item) => sum + item.sizeBytes, 0) > 256 * 1024 * 1024;
+  const [draggedImage, setDraggedImage] = useState("");
   const [exportImage, setExportImage] = useState<PendingArticleImage | null>(null);
 
   const importedAttachmentForDocument = (document: ArticleSearchDocument) => selected?.attachments?.find((attachment) => Boolean(document.url) && (attachment.description || "").includes(document.url));
@@ -153,9 +159,17 @@ export function VehicleUploadsTab({
         ) : (
           <div className="pending-image-grid">
             {pendingArticleImages.map((image, imageIndex) => (
-              <figure key={image.id} className={image.isPrimary ? "pending-image-card primary" : "pending-image-card"}>
+              <figure key={image.id}
+                onDragOver={event => { if (draggedImage && !readonly && !saving) event.preventDefault(); }}
+                onDrop={event => {
+                  if (!draggedImage || readonly || saving) return;
+                  event.preventDefault();
+                  const start = pendingArticleImages.findIndex(item => item.id === draggedImage);
+                  if (start >= 0 && start !== imageIndex) onMovePendingImage(draggedImage, imageIndex - start);
+                  setDraggedImage("");
+                }} className={image.isPrimary ? "pending-image-card primary" : "pending-image-card"}>
                 <button type="button" className="image-preview-button" onClick={() => onPreviewImage(image)} title={t("vehicles.uploads.openOriginal")} aria-label={t("vehicles.uploads.openOriginal")}>
-                  <img src={image.url} alt="" />
+                  <img draggable={false} src={image.url} alt="" />
                 </button>
                 <figcaption>
                   <input
@@ -181,6 +195,14 @@ export function VehicleUploadsTab({
                     </AppSelect>
                   )}
                   <div className="image-card-actions">
+                    {!readonly && !saving && <span className="icon-button image-drag-handle" draggable
+                      title={t("vehicles.dragImage")} aria-label={t("vehicles.dragImage")} role="img"
+                      onDragStart={event => {
+                        event.dataTransfer.setData("text/plain", image.id);
+                        event.dataTransfer.effectAllowed = "move";
+                        setDraggedImage(image.id);
+                      }}
+                      onDragEnd={() => setDraggedImage("")}><GripVertical size={16} /></span>}
                     <button type="button" className="secondary-button locomotive-image-action" disabled={saving}
                       onClick={() => setExportImage(image)}>
                       <Download size={15} aria-hidden="true" />{t("locomotiveImage.action")}
@@ -188,10 +210,10 @@ export function VehicleUploadsTab({
                     <a className="icon-button" href={image.source || image.url} target="_blank" rel="noreferrer" aria-label={t("vehicles.uploads.openSource")} title={t("vehicles.uploads.openSource")}>
                       <ExternalLink size={15} />
                     </a>
-                    <button type="button" className="icon-button" onClick={() => onMovePendingImage(image.id, -1)} disabled={readonly || imageIndex === 0} aria-label={t("vehicles.uploads.moveUp")} title={t("vehicles.uploads.moveUp")}>
+                    <button type="button" className="icon-button" onClick={() => onMovePendingImage(image.id, -1)} disabled={readonly || saving || imageIndex === 0} aria-label={t("vehicles.uploads.moveUp")} title={t("vehicles.uploads.moveUp")}>
                       <ChevronUp size={15} />
                     </button>
-                    <button type="button" className="icon-button" onClick={() => onMovePendingImage(image.id, 1)} disabled={readonly || imageIndex === pendingArticleImages.length - 1} aria-label={t("vehicles.uploads.moveDown")} title={t("vehicles.uploads.moveDown")}>
+                    <button type="button" className="icon-button" onClick={() => onMovePendingImage(image.id, 1)} disabled={readonly || saving || imageIndex === pendingArticleImages.length - 1} aria-label={t("vehicles.uploads.moveDown")} title={t("vehicles.uploads.moveDown")}>
                       <ChevronDown size={15} />
                     </button>
                     <button type="button" className={image.isPrimary ? "icon-button active" : "icon-button"} onClick={() => onSetPrimaryPendingImage(image.id)} disabled={readonly || saving} aria-label={t("vehicles.uploads.markPrimary")} title={image.isPrimary ? t("vehicles.uploads.primary") : t("vehicles.uploads.markPrimary")}>
@@ -358,6 +380,18 @@ export function VehicleUploadsTab({
               <strong>{t("vehicles.uploads.attachmentsStored", { count: selected.attachments.length })}</strong>
               <span>{t("vehicles.uploads.attachmentsStoredHelp")}</span>
             </div>
+            <div className="table-actions attachment-bulk-actions">
+              <label><AppChoiceInput type="checkbox" checked={chosen.length === selected.attachments.length} disabled={saving}
+                onChange={event => setAttachmentSelection(event.target.checked ? selected.attachments!.map(item => item.id) : [])} /> {t("vehicles.bulkAll")}</label>
+              <span aria-live="polite">{t("vehicles.bulkSelected", { count: chosen.length })}</span>
+              {chosen.length > 0 && !archiveTooLarge && <a className="secondary-button" download href={api.vehicleAttachmentArchiveUrl(selected.id, chosen.map(item => item.id))}>
+                <Download size={15} />{t("vehicles.bulkZip")}
+              </a>}
+              {archiveTooLarge && <span role="alert">{t("vehicles.bulkSize")}</span>}
+              {!readonly && <button type="button" className="danger-button" disabled={saving || !chosen.length} onClick={() => onDeleteAttachments?.(chosen)}>
+                {t("vehicles.bulkDelete")}
+              </button>}
+            </div>
             {selected.attachments.map((attachment) => {
               const edit = attachmentEdits[attachment.id] || {
                 description: attachment.description || "",
@@ -368,6 +402,11 @@ export function VehicleUploadsTab({
               return (
                 <article key={attachment.id} className="attachment-row">
                   <div className="attachment-icon">
+                    <AppChoiceInput type="checkbox" disabled={saving} aria-label={t("vehicles.bulkChoose", { name: attachment.originalName })}
+                      checked={attachmentSelection.includes(attachment.id)} onChange={event => {
+                        const checked = event.target.checked;
+                        setAttachmentSelection(current => checked ? [...current, attachment.id] : current.filter(id => id !== attachment.id));
+                      }} />
                     <FileText size={18} aria-hidden="true" />
                     <span>{attachment.originalName.split(".").pop()?.toUpperCase() || "DATEI"}</span>
                   </div>

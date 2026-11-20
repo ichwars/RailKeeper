@@ -1,5 +1,7 @@
 package transfer
 
+import "railkeeper/backend/internal/domain"
+
 type TransferAccessory struct {
 	ID                 string                            `json:"id,omitempty"`
 	InventoryNumber    string                            `json:"inventoryNumber"`
@@ -23,6 +25,7 @@ type TransferAccessory struct {
 	ManufacturerURL    string                            `json:"manufacturerUrl,omitempty"`
 	ProductURL         string                            `json:"productUrl,omitempty"`
 	AlternativeNumbers []string                          `json:"alternativeNumbers"`
+	SetContents        []domain.AccessorySetItem         `json:"setContents"`
 	Keywords           []string                          `json:"keywords"`
 	CompatibilityNotes string                            `json:"compatibilityNotes,omitempty"`
 	InternalNotes      string                            `json:"internalNotes,omitempty"`

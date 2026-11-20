@@ -3,8 +3,8 @@ title: Sicherung und Wiederherstellung
 description: Sicherung und Wiederherstellung.
 audience: admin
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Sicherung und Wiederherstellung
@@ -26,6 +26,8 @@ Die Anwendungssicherung enthält Bestand, Zubehör, Wartungen, CVs mit Herkunft,
 Originaldateien können als SQLite-Blobs in den gesicherten Datensätzen liegen. Die Vorprüfung zählt
 unter **Dateien** nur separate Upload-Dateien. **0 Dateien** bedeutet deshalb nicht, dass Bilder,
 Beilagen oder Decoderquellen fehlen. Prüfe die Originale nach der Wiederherstellung am Fahrzeug.
+
+Format 29 sichert den Lieferumfang von Zubehörsets. Vor dem Einspielen werden Bezeichnung und Stückzahl jeder Position geprüft. Artikel aus älteren Sicherungen erhalten eine leere Stückliste, die du bei Bedarf ergänzen kannst.
 
 Format 28 ergänzt datierte manuelle Fahrzeugbewertungen einschließlich unveränderter
 Originaleinträge, Berichtigungen, Rücknahmen, Herkunft und tatsächlicher Erfassungszeit.

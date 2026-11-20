@@ -40,6 +40,7 @@ type AccessoryProduct struct {
 	ManufacturerURL    string                            `json:"manufacturerUrl,omitempty"`
 	ProductURL         string                            `json:"productUrl,omitempty"`
 	AlternativeNumbers []string                          `json:"alternativeNumbers"`
+	SetContents        []domain.AccessorySetItem         `json:"setContents"`
 	Keywords           []string                          `json:"keywords"`
 	CompatibilityNotes string                            `json:"compatibilityNotes,omitempty"`
 	InternalNotes      string                            `json:"internalNotes,omitempty"`
@@ -71,6 +72,7 @@ type CreateAccessoryProductInput struct {
 	ManufacturerURL    string                            `json:"manufacturerUrl"`
 	ProductURL         string                            `json:"productUrl"`
 	AlternativeNumbers []string                          `json:"alternativeNumbers"`
+	SetContents        []domain.AccessorySetItem         `json:"setContents"`
 	Keywords           []string                          `json:"keywords"`
 	CompatibilityNotes string                            `json:"compatibilityNotes"`
 	InternalNotes      string                            `json:"internalNotes"`

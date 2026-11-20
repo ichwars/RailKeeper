@@ -21,6 +21,11 @@ export async function validateReleaseDocs(repositoryRoot, versions, sources) {
   if (!version || runtimeVersion !== version) {
     errors.push(`docs/versions.json: stable ${version} differs from runtime ${runtimeVersion}`);
   }
+  const roadmap = await read("docs/roadmap.md");
+  const baselines = [...roadmap.matchAll(/^Stable baseline: v(\S+)$/gm)];
+  if (baselines.length !== 1 || baselines[0][1] !== version) {
+    errors.push(`docs/roadmap.md: expected stable baseline v${version}`);
+  }
   const dates = [];
   for (const path of ["CHANGELOG.de.md", "CHANGELOG.md"]) {
     const source = await read(path);

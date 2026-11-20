@@ -76,6 +76,7 @@ export type AccessoryArticle = {
   manufacturerUrl?: string;
   productUrl?: string;
   alternativeNumbers: string[];
+  setContents?: { name: string; quantity: number }[];
   keywords: string[];
   compatibilityNotes?: string;
   internalNotes?: string;
@@ -107,6 +108,7 @@ export type AccessoryArticleWriteInput = {
   manufacturerUrl?: string;
   productUrl?: string;
   alternativeNumbers?: string[];
+  setContents?: { name: string; quantity: number }[];
   keywords?: string[];
   compatibilityNotes?: string;
   internalNotes?: string;

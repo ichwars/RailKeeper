@@ -3,8 +3,8 @@ title: Practice a safe restore
 description: Practice a safe restore.
 audience: admin
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Practice a safe restore
@@ -53,7 +53,7 @@ Select the downloaded JSON under **Restore backup**.
 <GuideFigure name="restore-preflight" alt="Compatible exercise backup with version, tables, rows and files before restoration." caption="Actual validation of an exported demo backup. Selecting a file does not change inventory; confirmation is still missing." />
 
 Review compatibility, file count, errors and warnings. The reviewed backup format is version
-**28**. File selection alone does not restore data.
+**29**. File selection alone does not restore data.
 
 The file count covers separate files in the uploads directory. Originals stored as SQLite blobs
 belong to the backed-up records. A complete backup containing images and attachments can therefore

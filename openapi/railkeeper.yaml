@@ -4061,6 +4061,12 @@ components:
           date: "#/components/schemas/AccessoryDateAttribute"
           single_select: "#/components/schemas/AccessorySingleSelectAttribute"
           multi_select: "#/components/schemas/AccessoryMultiSelectAttribute"
+    AccessorySetItem:
+      type: object
+      required: [name, quantity]
+      properties:
+        name: { type: string, minLength: 1 }
+        quantity: { type: integer, minimum: 1, maximum: 1000000 }
     AccessoryProduct:
       type: object
       required:
@@ -4123,6 +4129,9 @@ components:
           type: array
           items:
             type: string
+        setContents:
+          type: array
+          items: { $ref: '#/components/schemas/AccessorySetItem' }
         keywords:
           type: array
           items:
@@ -4200,6 +4209,9 @@ components:
           type: array
           items:
             type: string
+        setContents:
+          type: array
+          items: { $ref: '#/components/schemas/AccessorySetItem' }
         keywords:
           type: array
           items:
@@ -8704,7 +8716,7 @@ paths:
     get:
       tags: [Vehicles]
       summary: Download the complete valuation history as JSON
-      description: Viewer, Editor or Admin required. A single read transaction preserves every history row, identity, source, date and correction relationship. Complete installation-independent restoration uses application backup format 28.
+      description: Viewer, Editor or Admin required. A single read transaction preserves every history row, identity, source, date and correction relationship. Complete installation-independent restoration uses application backup format 29.
       parameters:
         - name: id
           in: path
@@ -9281,6 +9293,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/attachment-archive:
+    get:
+      tags: [Vehicles]
+      summary: Download selected vehicle attachments as a ZIP archive (up to 256 MiB)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - name: file
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 100
+            uniqueItems: true
+            items: { type: string }
+      responses:
+        "200":
+          description: Selected attachments in ZIP format
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+        "400": { description: Invalid selection }
+        "404": { description: Selected attachment not found on this vehicle }
+        "413": { description: Selection exceeds archive size limit }
   /vehicles/{id}/attachments/{attachmentID}/download:
     get:
       tags: [Vehicles]

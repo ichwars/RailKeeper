@@ -3,13 +3,20 @@ title: Modell- und Firmwarehinweise
 description: Modell- und Firmwarehinweise.
 audience: user
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Modell- und Firmwarehinweise
 
 <GuideFigure name="decoder-library" alt="Decoderbibliothek mit Modellwahl und Quellen." caption="Die Regeln gelten für den jeweils genannten Quellen- und Firmwareumfang." />
+
+### Decoderunterlagen gesucht
+
+Bei 15 Modellvarianten fehlt eine passende CV- oder Registertabelle. Bei elf ESU- und PIKO-Varianten suchen wir die Belegung der Platine oder des Soundprojekts. Eine vorhandene Datei, ein Foto vom Beiblatt oder ein Link zur Anleitung hilft.
+
+[Zweiseitige Suchliste für Forum und Verein herunterladen (PDF)](https://raw.githubusercontent.com/ichwars/RailKeeper/main/docs/community/decoder-suchliste.pdf) · [Datei, Foto oder Hinweis beisteuern](https://github.com/ichwars/RailKeeper/discussions/399)
+
 
 ## Digitaldaten im Fahrzeugdialog
 
@@ -34,7 +41,7 @@ und der Exportzeitpunkt aus dem TXT-Dateikopf gespeichert und in der Seitenleist
 Die Uhrzeit bleibt ohne angenommene Zeitzone erhalten. JSON-Exporte und Backups enthalten diese
 Angaben; Importe oder Bearbeitungen ohne Herkunftsangaben erhalten bereits gespeicherte Angaben.
 Bei älteren Datensätzen ohne Quelle steht weiterhin „Nicht erfasst“; das Speicherdatum wird nicht
-als Exportdatum verwendet. Das aktuelle Backupformat 28 erhält die Herkunft und die getrennten
+als Exportdatum verwendet. Das aktuelle Backupformat 29 erhält die Herkunft und die getrennten
 Decoder-Arbeitsstände; ältere unterstützte Backups bleiben einlesbar.
 Zusätzliche Verbund-/Decoderangaben sind eingeklappt erreichbar. Die ESU-Anzeige für DC-Analogbetrieb
 berücksichtigt CV29 und CV50 gemeinsam. **Dateien & Import** erklärt die beiden Dateiarten und

@@ -2,9 +2,9 @@
 title: Fahrzeugbilder und Beilagen
 description: Fahrzeugbilder und Beilagen hochladen, ordnen, anzeigen, herunterladen und sicher entfernen.
 audience: user
-status: development
-reviewedVersion: main
-lastReviewed: 2026-11-06
+status: stable
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Fahrzeugbilder und Beilagen
@@ -19,6 +19,20 @@ Der Tab **Uploads** verwaltet lokale Fahrzeugbilder und allgemeine Beilagen am F
 Admin, Editor, Viewer können gespeicherte Medien ansehen. Nur Admin und Editor dürfen
 hochladen, Metadaten ändern oder löschen. Der Server prüft diese Regel auch dann, wenn ein
 Bedienelement sichtbar ist.
+
+## Direkt aus dem Fahrzeugbestand hochladen
+
+Öffne das Schnellmenü am Fahrzeug und wähle **Bilder hinzufügen** oder **Unterlagen hinzufügen**. Markiere bis zu 20 Dateien im Dateidialog. Prüfe Fahrzeug und Dateinamen und bestätige **Ausgewählte Dateien speichern**.
+
+<GuideFigure name="vehicle-quick-upload" alt="Kurzmenü mit beiden Direktuploads." caption="Wähle Bilder oder Unterlagen direkt beim Fahrzeug." />
+
+Ziehe zum Sortieren den Griff einer Bildkarte auf die gewünschte Karte oder verwende die Pfeile. Speichere anschließend das Fahrzeug. Der Stern bestimmt unabhängig davon das Hauptbild im Bestand.
+
+<GuideFigure name="vehicle-image-order" alt="Bildkarten mit Stern, Griff und Pfeilen." caption="Verschiebe die Bilder am Griff oder mit den Pfeilen." />
+
+Markiere unter den gespeicherten Beilagen einzelne Dateien oder **Alle Unterlagen auswählen**. **Auswahl als ZIP** lädt bis zu 100 Dateien mit zusammen höchstens 256 MiB herunter. Nummern vor den Dateinamen halten auch gleichnamige Unterlagen auseinander. **Auswahl löschen** zeigt vorab Fahrzeug und Dateinamen. Bei einem Konflikt stoppt RailKeeper und meldet die Zahl bestätigter Löschungen. Prüfe die aktualisierte Liste, bevor du erneut auswählst.
+
+<GuideFigure name="vehicle-document-selection" alt="Dateiliste und Schaltflächen zur Löschbestätigung." caption="Prüfe die Dateinamen, bevor du die Auswahl löschst." />
 
 ## Tab Uploads öffnen
 

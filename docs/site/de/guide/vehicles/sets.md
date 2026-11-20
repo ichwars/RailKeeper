@@ -3,8 +3,8 @@ title: Ein Wagenset anlegen und ändern
 description: Ein Wagenset anlegen und ändern.
 audience: user
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Ein Wagenset anlegen und ändern
@@ -22,7 +22,7 @@ Verwende für die Übung Admin oder Editor und künstliche Daten.
    **Fahrzeug 2**. Erfasse passende Gattungen und unterschiedliche Namen beziehungsweise Fahrzeugnummern.
 6. Prüfe die Angaben und speichere das Set.
 
-<GuideFigure name="vehicle-set" alt="Erster Schritt der Seterfassung mit gemeinsamen Grunddaten und zwei vorgesehenen Fahrzeugen." caption="Die geführte Erfassung beginnt mit Typ und Grunddaten. Artikeldaten und individuelle Fahrzeuge folgen in eigenen Schritten. Künstliche Demo in v0.2.0." />
+<GuideFigure name="vehicle-set" alt="Erster Schritt der Seterfassung mit gemeinsamen Grunddaten und zwei vorgesehenen Fahrzeugen." caption="Die geführte Erfassung beginnt mit Typ und Grunddaten. Artikeldaten und individuelle Fahrzeuge folgen in eigenen Schritten. Künstliche Demo in v0.3.0." />
 
 **Erwartung:** Eine eigene Set-Inventarnummer und zwei getrennte Fahrzeug-Inventarnummern.
 Die Setnummer kommt aus dem aktiven Set-Schema; die Mitglieder verwenden das passende Fahrzeugschema.

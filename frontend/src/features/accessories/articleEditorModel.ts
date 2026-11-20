@@ -36,6 +36,8 @@ export type ArticleEditorForm = {
   manufacturerUrl: string;
   productUrl: string;
   alternativeNumbers: string;
+  isSet: boolean;
+  setContents: { name: string; quantity: string }[];
   keywords: string;
   compatibilityNotes: string;
   internalNotes: string;
@@ -68,6 +70,8 @@ export function emptyArticleEditorForm(): ArticleEditorForm {
     manufacturerUrl: "",
     productUrl: "",
     alternativeNumbers: "",
+    isSet: false,
+    setContents: [],
     keywords: "",
     compatibilityNotes: "",
     internalNotes: "",
@@ -97,6 +101,8 @@ export function articleToEditorForm(article: AccessoryArticle): ArticleEditorFor
     manufacturerUrl: article.manufacturerUrl || "",
     productUrl: article.productUrl || "",
     alternativeNumbers: article.alternativeNumbers.join("\n"),
+    isSet: Boolean(article.setContents?.length),
+    setContents: (article.setContents || []).map(item => ({ ...item, quantity: String(item.quantity) })),
     keywords: article.keywords.join(", "),
     compatibilityNotes: article.compatibilityNotes || "",
     internalNotes: article.internalNotes || "",
@@ -110,6 +116,11 @@ export function articleToEditorForm(article: AccessoryArticle): ArticleEditorFor
 const splitValues = (value: string) => value.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
 const optional = (value: string) => value.trim() || undefined;
 const editorNumber = (value: string) => Number(value.replace(",", "."));
+
+function invalidSetContents(form: ArticleEditorForm) {
+  return form.isSet && (!form.setContents.length || form.setContents.some(item =>
+    !item.name.trim() || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1 || Number(item.quantity) > 1000000));
+}
 
 export function articleEditorWriteInput(
   form: ArticleEditorForm,
@@ -126,6 +137,7 @@ export function articleEditorWriteInput(
       !Number.isInteger(minimumStock) || minimumStock < 0) {
     throw new Error("invalid article quantities");
   }
+  if (invalidSetContents(form)) throw new Error("invalid set contents");
   if (listPrice === undefined) throw new Error("invalid list price");
   const inventoryStrategy = form.inventoryStrategy;
   const numberDefinitions = new Map(fieldDefinitionsForType(form.articleType, customFields)
@@ -162,6 +174,7 @@ export function articleEditorWriteInput(
     manufacturerUrl: optional(form.manufacturerUrl),
     productUrl: optional(form.productUrl),
     alternativeNumbers: splitValues(form.alternativeNumbers),
+    setContents: form.isSet ? form.setContents.map(item => ({ name: item.name.trim(), quantity: Number(item.quantity) })) : [],
     keywords: splitValues(form.keywords),
     compatibilityNotes: optional(form.compatibilityNotes),
     internalNotes: optional(form.internalNotes),
@@ -205,6 +218,10 @@ export function validateArticleEditorForm(
   const tabErrors: ArticleEditorTabErrors = {};
   const subjectFieldErrors: ArticleSubjectFieldErrors = {};
   if (!form.manufacturer.trim()) fieldErrors.manufacturer = messages.required;
+  if (invalidSetContents(form)) {
+    fieldErrors.setContents = messages.invalidSubject;
+    tabErrors.article = true;
+  }
   if (!form.name.trim()) fieldErrors.name = messages.required;
   if (!form.subtype.trim()) fieldErrors.subtype = messages.required;
   if (!form.stockUnit.trim()) fieldErrors.stockUnit = messages.required;

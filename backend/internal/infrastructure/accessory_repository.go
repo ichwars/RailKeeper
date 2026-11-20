@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"modernc.org/sqlite"
@@ -169,6 +170,9 @@ INSERT INTO accessory_products(
 			}
 			return fmt.Errorf("insert accessory product: %w", err)
 		}
+		if err := storeAccessorySetContents(ctx, tx, productID, input.SetContents); err != nil {
+			return err
+		}
 		if err := replaceAccessoryAttributes(ctx, tx, productID, input.Attributes, now); err != nil {
 			return err
 		}
@@ -233,6 +237,9 @@ WHERE id=?`, input.Manufacturer, input.ArticleNumber, input.Name, input.Category
 			return fmt.Errorf("update accessory product: %w", err)
 		}
 		if err := requireAccessoryUpdated(result); err != nil {
+			return err
+		}
+		if err := storeAccessorySetContents(ctx, tx, id, input.SetContents); err != nil {
 			return err
 		}
 		if err := replaceAccessoryAttributes(ctx, tx, id, input.Attributes, now); err != nil {
@@ -330,24 +337,37 @@ func (r *AccessoryRepository) SetProductArchived(
 	return r.GetProduct(ctx, id)
 }
 
+// Older clients omit setContents when updating an article.
+func storeAccessorySetContents(ctx context.Context, tx *sql.Tx, id string, contents []domain.AccessorySetItem) error {
+	if contents == nil {
+		return nil
+	}
+	data, err := json.Marshal(contents)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, "UPDATE accessory_products SET set_contents_json=? WHERE id=?", string(data), id)
+	return err
+}
+
 const accessoryProductSelect = `SELECT
   id, inventory_number, manufacturer, article_number, name, category, tracking_mode, description,
   ean, manufacturer_status, article_type, subtype, gauges_json, scale, list_price, package_quantity,
   stock_unit, minimum_stock, inventory_strategy, manufacturer_url, product_url,
   alternative_numbers_json, keywords_json, compatibility_notes, internal_notes, archived,
-  created_at, updated_at
+  created_at, updated_at, set_contents_json
 FROM accessory_products`
 
 func scanAccessoryProduct(scanner rowScanner) (*application.AccessoryProduct, error) {
 	product := &application.AccessoryProduct{}
-	var gauges, alternativeNumbers, keywords string
+	var gauges, alternativeNumbers, keywords, contents string
 	var archived int
 	err := scanner.Scan(&product.ID, &product.InventoryNumber, &product.Manufacturer, &product.ArticleNumber, &product.Name,
 		&product.Category, &product.TrackingMode, &product.Description, &product.EAN, &product.ManufacturerStatus,
 		&product.ArticleType, &product.Subtype, &gauges, &product.Scale, &product.ListPrice, &product.PackageQuantity,
 		&product.StockUnit, &product.MinimumStock, &product.InventoryStrategy, &product.ManufacturerURL,
 		&product.ProductURL, &alternativeNumbers, &keywords, &product.CompatibilityNotes, &product.InternalNotes,
-		&archived, &product.CreatedAt, &product.UpdatedAt)
+		&archived, &product.CreatedAt, &product.UpdatedAt, &contents)
 	if err != nil {
 		return nil, err
 	}
@@ -358,6 +378,9 @@ func scanAccessoryProduct(scanner rowScanner) (*application.AccessoryProduct, er
 		return nil, err
 	}
 	if err := decodeAccessoryStringArray(keywords, &product.Keywords); err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal([]byte(contents), &product.SetContents); err != nil {
 		return nil, err
 	}
 	product.Archived = archived != 0

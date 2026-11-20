@@ -19,6 +19,7 @@ async function fixture() {
     await writeFile(target, data);
   };
   await put("backend/cmd/railkeeper/main.go", 'var (\n version = "0.2.0"\n)');
+  await put("docs/roadmap.md", "# Roadmap\n\nStable baseline: v0.2.0\n");
   for (const path of ["CHANGELOG.md", "CHANGELOG.de.md"]) {
     await put(path, "# Changelog\n\n## Unreleased\n\n## [0.2.0] - 2026-11-09\n\n### Added\n\n- Retained data.\n\n## [0.1.22] - 2026-11-01\n\n- Previous.\n");
   }
@@ -60,6 +61,12 @@ test("rejects diverging changelog dates, runtime version and monolingual release
   assert.ok(errors.some((error) => error.includes("release dates differ")));
   assert.ok(errors.some((error) => error.includes("differs from runtime")));
   assert.ok(errors.some((error) => error.includes("German and English release notes")));
+});
+
+test("requires the roadmap to identify the current stable release", async () => {
+  const f = await fixture();
+  await f.put("docs/roadmap.md", "Stable baseline: v0.1.22\n");
+  assert.ok((await f.check()).some(error => error.startsWith("docs/roadmap.md:")));
 });
 
 test("rejects stale screenshot release provenance", async () => {

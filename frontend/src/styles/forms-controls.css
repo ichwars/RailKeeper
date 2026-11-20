@@ -1580,3 +1580,7 @@ td {
 .confirm-layer > form {
   border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
 }
+
+.image-drag-handle { cursor: grab; }
+.image-drag-handle:active { cursor: grabbing; }
+.attachment-bulk-actions { flex-wrap: wrap; }

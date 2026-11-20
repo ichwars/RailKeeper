@@ -3,13 +3,20 @@ title: Model and firmware notes
 description: Model and firmware notes.
 audience: user
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Model and firmware notes
 
 <GuideFigure name="decoder-library" alt="Decoder library with model selection and sources." caption="Rules apply within their stated source and firmware scope." />
+
+### Decoder references wanted
+
+We need a matching CV or register table for 15 variants and board or sound-project details for eleven ESU and PIKO variants. An existing file, a photo of the instruction sheet or a link to the manual will help.
+
+[Download the two-page German decoder list for clubs and forums (PDF)](https://raw.githubusercontent.com/ichwars/RailKeeper/main/docs/community/decoder-suchliste.pdf) · [Contribute a file, photo or link](https://github.com/ichwars/RailKeeper/discussions/399)
+
 
 ## Digital settings in the vehicle dialog
 
@@ -32,7 +39,7 @@ CV imports preserve the physical source line (including headers and blank lines)
 timestamp from the TXT header, shown in the detail panel. The timestamp retains its source wall-clock
 time without an assumed timezone. JSON exports and backups include these fields; edits or imports
 without provenance preserve existing metadata. Older records without a source still show “Not recorded”;
-the record timestamp is never used as the export date. Current backup format 28 preserves provenance
+the record timestamp is never used as the export date. Current backup format 29 preserves provenance
 and separate decoder working copies; supported older backups remain readable.
 Additional consist/decoder settings are collapsed. ESU DC
 analog permission is derived from CV29 and CV50 together. **Files & import** explains the two file types and lists imported records and

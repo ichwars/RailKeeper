@@ -3,7 +3,7 @@ title: Zubehör und Wartung in der Werkstatt üben
 description: Zubehör und Wartung in der Werkstatt üben.
 audience: user
 status: stable
-reviewedVersion: 0.2.0
+reviewedVersion: 0.3.0
 lastReviewed: 2026-11-09
 ---
 

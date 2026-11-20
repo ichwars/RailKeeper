@@ -129,6 +129,8 @@ export function createInventoryAPI(request: APIRequest) {
       request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/attachments/${encodeURIComponent(attachmentId)}${expectedRevision === undefined ? "" : `?expectedRevision=${encodeURIComponent(expectedRevision)}`}`, {
         method: "DELETE"
       }),
+    vehicleAttachmentArchiveUrl: (vehicleId: string, ids: string[]) =>
+      `/api/v1/vehicles/${encodeURIComponent(vehicleId)}/attachment-archive?${new URLSearchParams(ids.map(id => ["file", id]))}`,
     vehicleAttachmentDownloadUrl: (vehicleId: string, attachmentId: string) =>
       `/api/v1/vehicles/${encodeURIComponent(vehicleId)}/attachments/${encodeURIComponent(attachmentId)}/download`,
     importVehicleAttachmentFromUrl: (vehicleId: string, input: VehicleAttachmentImportInput) =>

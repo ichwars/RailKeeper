@@ -91,7 +91,7 @@ ON CONFLICT(vehicle_set_id) DO UPDATE SET revision_id=excluded.revision_id, over
 
 func TestVehicleCatalogBackupRoundTripPreservesRevisionsLinksAndIndividualOverrides(t *testing.T) {
 	service, doc := catalogBackupFixture(t)
-	if doc.Version != 28 {
+	if doc.Version != 29 {
 		t.Fatalf("version=%d", doc.Version)
 	}
 	validation, err := service.Validate(t.Context(), doc)

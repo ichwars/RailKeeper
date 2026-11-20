@@ -8,7 +8,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 28
+	backupVersion = 29
 )
 
 var (

@@ -3,8 +3,8 @@ title: Backup and restore
 description: Backup and restore.
 audience: admin
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Backup and restore
@@ -26,6 +26,8 @@ Application backups include inventory, accessories, maintenance, CVs and provena
 Original files can be stored as SQLite blobs in the backed-up records. Preflight counts only
 separate upload files under **Files**. **0 files** therefore does not mean that images, attachments
 or decoder sources are missing. Open the originals on their vehicle after restoring.
+
+Format 29 preserves accessory set contents. Restore checks component names and quantities before applying the backup. Articles from older backups start with an empty component list. Add components when the contents are known.
 
 Format 28 adds dated manual vehicle valuations, retaining original entries, corrections,
 withdrawals, provenance and actual recording times. Preflight also checks relationships and

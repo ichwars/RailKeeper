@@ -42,13 +42,13 @@ export function useVehicleImageDraftController() {
     )));
   };
 
-  const movePendingImage = (id: string, direction: -1 | 1) => {
+  const movePendingImage = (id: string, direction: number) => {
     setPendingImages((current) => {
       const index = current.findIndex((image) => image.id === id);
       const target = index + direction;
       if (index < 0 || target < 0 || target >= current.length) return current;
       const next = [...current];
-      [next[index], next[target]] = [next[target], next[index]];
+      next.splice(target, 0, ...next.splice(index, 1));
       return next;
     });
   };

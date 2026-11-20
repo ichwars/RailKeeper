@@ -1,8 +1,8 @@
 # Roadmap
 
-Reviewed against the current source on 2026-11-03. Stable baseline: v0.1.22. Implemented features, remaining
-development and missing hardware acceptance are listed separately below. An open
-integration issue does not mean that its entire adapter is missing.
+Stable baseline: v0.3.0
+
+Reviewed on 2026-11-20. The [v0.3.0 release notes](releases/v0.3.0.md) describe the published build.
 
 ## Completed Foundation
 
@@ -91,12 +91,19 @@ integration issue does not mean that its entire adapter is missing.
 - stable Linux AMD64 and ARM64 Docker images
 - lossless retirement of former layout planning, preserving vehicle installations and old backups
 
-## Implemented, Awaiting a Stable Release
+## Included in v0.2.0
 
 - Direct in-app bug reports for authenticated users, with operator-configured GitHub delivery.
 - Reviewable system/process/SQLite and browser diagnostics, a remembered opt-out, and no background upload.
 - Optional screenshot and encrypted-contact capabilities, independent of text reporting.
 - Safe report IDs also on local HTTP origins, persistent submission admission and retry reconciliation.
+
+## Included in v0.3.0
+
+- Record each component and quantity in an accessory set, including track sets without a vehicle.
+- Reorder saved vehicle images by dragging or with the existing arrow controls.
+- Download selected attachments in one ZIP or review their names and confirm deletion.
+- Select multiple images or documents directly from the inventory quick menu.
 
 ## Current Development
 
@@ -127,23 +134,18 @@ integration issue does not mean that its entire adapter is missing.
    - continue checking table, card and modal readability in dark mode
    - refine maintenance placement and visual hierarchy in the inventory area
    - adapt Bambuddy-style row context menus further where they add clear value
-5. Vehicle action depth
-   - evaluate direct upload shortcuts in the quick menu where useful
-   - keep destructive actions separated and confirmed
-   - later upload polish: drag sorting for vehicle images
-   - later upload polish: bulk actions for attachments
-
 ## Acceptance and Maintenance Follow-up
 
 - Existing compatibility evidence and limitations are recorded in
   [command-station compatibility](site/reference/command-station-compatibility.md).
   In particular, the ECoS busy-control image-transfer flow has automated coverage but still lacks
   an additional real-device acceptance run.
-- v0.1.22 has native AMD64/ARM64 container checks, but no new physical Raspberry Pi or Windows
-  runtime acceptance. The Windows EXE metadata/COFF-header anomaly from release verification
-  remains a separate builder follow-up, not a confirmed application runtime failure.
-- Dependency updates are tracked as pull requests rather than permanent feature milestones.
-  [PR #251](https://github.com/ichwars/RailKeeper/pull/251) updated lucide-react to 1.64.0 and was merged on 2026-11-03.
+- The v0.2.0 Windows executable was run on Windows. A timed first run by a new user and a physical
+  Raspberry Pi check are still open. The independent build and restore exercise and club pilot are pending.
+- The [club poll](https://github.com/ichwars/RailKeeper/discussions/391) collects practical feedback.
+  The Stummiforum follow-up was published. The maintainer reported no replies as of 20 November.
+- [Discussion #399](https://github.com/ichwars/RailKeeper/discussions/399) accepts files, photos and links. [Issue #400](https://github.com/ichwars/RailKeeper/issues/400) tracks verification. The [decoder source list](architecture/decoder-cv-remaining-models.md) identifies 15 variants without
+  model-specific CV evidence and 11 with partial firmware references. Exact manuals and attributed programmer exports are welcome.
 
 ## Explicitly Deferred
 

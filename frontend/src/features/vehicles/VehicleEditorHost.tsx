@@ -201,7 +201,7 @@ export function VehicleEditorHost({ workspace }: { workspace: VehicleWorkspace }
         uploads: {
           selected: selected,
           canTransferToECoS: roles.includes("Admin") && !editor.state.readonly && !editor.state.saving,
-          readonly: editor.state.readonly || editor.state.saving,
+          readonly: editor.state.readonly || editor.state.saving || !canEditVehicleSets,
           saving: editor.state.saving,
           imageInputRef: media.refs.imageInputRef,
           attachmentInputRef: media.refs.attachmentInputRef,
@@ -234,6 +234,7 @@ export function VehicleEditorHost({ workspace }: { workspace: VehicleWorkspace }
           onSaveAttachment: media.commands.saveAttachment,
           onExtractAttachmentSpareParts: spareParts.commands.extractAttachment,
           onDeleteAttachment: media.commands.deleteAttachment,
+          onDeleteAttachments: mediaDeletion.commands.prepareAttachments,
           onSearchDocuments: documents.commands.search,
           onImportDocument: documents.commands.importOne,
           onImportSelectedDocuments: documents.commands.importSelected,

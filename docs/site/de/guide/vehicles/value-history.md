@@ -3,8 +3,8 @@ title: Manuelle Wertentwicklung
 description: Datierte Fahrzeugbewertungen erfassen, berichtigen und nach Währung auswerten.
 audience: user
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Manuelle Wertentwicklung
@@ -13,7 +13,7 @@ Bewertungen beschreiben deine eigene Einschätzung zu einem bestimmten Datum. Li
 Kaufpreise bleiben unverändert. RailKeeper ruft keine Preisportale ab und ergänzt keine
 fehlenden früheren Marktwerte.
 
-<GuideFigure name="valuations" alt="Datierte manuelle Fahrzeugbewertung mit Herkunft und erhaltenem Verlauf." caption="Manuelle Bewertung und Berichtigung in v0.2.0. Ausschließlich künstliche Demodaten. Anklicken für die volle Größe." />
+<GuideFigure name="valuations" alt="Datierte manuelle Fahrzeugbewertung mit Herkunft und erhaltenem Verlauf." caption="Manuelle Bewertung und Berichtigung in v0.3.0. Ausschließlich künstliche Demodaten. Anklicken für die volle Größe." />
 
 ## Bewertung erfassen
 
@@ -68,7 +68,6 @@ Berichtigungen, Rücknahmen, Herkunft und Erfassungszeiten. Der Export dient der
 Ansicht und Archivierung dieses Verlaufs.
 
 Für eine Wiederherstellung verwende die [Anwendungssicherung](../../administration/backup-restore.md).
-Format 28 sichert die Bewertungstabelle vollständig. Ältere Sicherungen erhalten beim Restore
+Ab Format 28 enthält die Sicherung die vollständige Bewertungstabelle. Sicherungen vor Format 28 erhalten beim Restore
 einen leeren Bewertungsverlauf. Flache Fahrzeug-CSV-Dateien ersetzen keine vollständige
-Anwendungssicherung. Ältere RailKeeper-Versionen können Format 28 nicht vollständig lesen;
-setze die Formatnummer deshalb nicht von Hand herab.
+Anwendungssicherung. RailKeeper v0.3.0 schreibt Format 29. Verwende eine mit der Zielversion kompatible Sicherung.

@@ -124,6 +124,9 @@ UPDATE accessory_products SET inventory_number=?, manufacturer=?, article_number
 			return err
 		}
 	}
+	if err := storeAccessorySetContents(ctx, db, productID, accessory.SetContents); err != nil {
+		return err
+	}
 	for _, level := range stock {
 		if _, err := db.ExecContext(ctx, `
 INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at) VALUES(?, ?, ?, ?)

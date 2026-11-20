@@ -6,6 +6,12 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.3.0] - 2026-11-20
+
+- Accessory set component lists, drag-to-reorder vehicle images, direct multi-file uploads in the quick menu, and ZIP download or confirmed deletion of selected documents.
+
+- Backup format 29 preserves set contents. Older backups remain readable. The release check verifies the roadmap against the runtime version.
+
 ## [0.2.0] - 2026-11-09
 
 ### Added

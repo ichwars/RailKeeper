@@ -76,14 +76,15 @@ export function VehicleMediaDeleteDialog({ candidate, onClose, onConfirm }: {
   candidate: VehicleMediaDeletion; onClose: () => void; onConfirm: () => void;
 }) {
   const { t } = useI18n();
-  return <MediaDialog title={t("vehicles.mediaDelete.title")} busy={candidate.busy} onClose={onClose} actions={<>
+  return <MediaDialog title={t(candidate.attachments ? "vehicles.bulkDeleteTitle" : "vehicles.mediaDelete.title")} busy={candidate.busy} onClose={onClose} actions={<>
     <button type="button" className="secondary-button" disabled={candidate.busy} onClick={onClose}>{t("vehicles.cancel")}</button>
     <button type="button" className="danger-button" disabled={candidate.busy || candidate.stale} onClick={onConfirm}>
       {t("vehicles.delete")}
     </button>
   </>}>
     <p><strong>{candidate.vehicleLabel}</strong></p><p>{candidate.label}</p>
-    <p>{t(`vehicles.mediaDelete.scope.${candidate.kind}`)}</p>
+    {candidate.attachments && <ul>{candidate.attachments.map(entry => <li key={entry.id}>{entry.name}</li>)}</ul>}
+    <p>{t(candidate.attachments ? "vehicles.bulkDeleteScope" : `vehicles.mediaDelete.scope.${candidate.kind}`)}</p>
     {candidate.kind === "decoder" && <p>{t("vehicles.mediaDelete.references", { count: candidate.references })}</p>}
     {candidate.scopeLabel && <p>{t("cvScope.confirmedAssignment")}: {candidate.scopeLabel}</p>}
     <p>{t("vehicles.mediaUpload.independent")}</p>

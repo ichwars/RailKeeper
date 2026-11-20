@@ -2,9 +2,9 @@
 title: Vehicle images and attachments
 description: Upload, organize, preview, download, and safely remove vehicle images and attachments.
 audience: user
-status: development
-reviewedVersion: main
-lastReviewed: 2026-11-06
+status: stable
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Vehicle images and attachments
@@ -18,6 +18,20 @@ lastReviewed: 2026-11-06
 The **Uploads** tab keeps local vehicle images and general attachments with the vehicle record.
 Admin, Editor, Viewer users can inspect stored media. Only Admin and Editor can upload,
 change metadata, or delete it, and the server enforces that rule even if a control is visible.
+
+## Upload directly from inventory
+
+Open the vehicle quick menu and choose **Add images** or **Add documents**. Select up to 20 files, review the vehicle and filenames and choose **Save selected files**.
+
+<GuideFigure name="vehicle-quick-upload" alt="Quick menu showing both upload actions." caption="Choose images or documents directly from the vehicle list." />
+
+Drag a picture by its handle onto another card or use the arrows. Save the vehicle to keep the new order. The star independently selects the primary inventory image.
+
+<GuideFigure name="vehicle-image-order" alt="Image cards with star, handle and arrow buttons." caption="Move images with the handle or the arrow buttons." />
+
+Select individual stored attachments or **Select all documents**. **Download selection as ZIP** supports up to 100 files totalling 256 MiB. Numeric prefixes distinguish duplicate filenames. **Delete selection** lists the vehicle and filenames before confirmation. A conflict stops the batch and shows how many deletions were acknowledged. Review the refreshed list before making a new selection.
+
+<GuideFigure name="vehicle-document-selection" alt="File list and controls for confirming deletion." caption="Check the filenames before deleting your selection." />
 
 ## Open the Uploads tab
 

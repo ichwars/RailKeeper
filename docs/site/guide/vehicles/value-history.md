@@ -3,8 +3,8 @@ title: Manual value history
 description: Record, correct and summarize dated vehicle valuations by currency.
 audience: user
 status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+reviewedVersion: 0.3.0
+lastReviewed: 2026-11-20
 ---
 
 # Manual value history
@@ -12,7 +12,7 @@ lastReviewed: 2026-11-09
 Valuations record your own estimate for a particular date. List and purchase prices remain
 unchanged. RailKeeper does not contact price portals or fill in missing past market values.
 
-<GuideFigure name="valuations" alt="Dated manual vehicle valuation with provenance and retained history." caption="Manual valuation and correction in v0.2.0. Synthetic demo data only. Click for full size." />
+<GuideFigure name="valuations" alt="Dated manual vehicle valuation with provenance and retained history." caption="Manual valuation and correction in v0.3.0. Synthetic demo data only. Click for full size." />
 
 ## Record a valuation
 
@@ -63,7 +63,7 @@ their individual vehicles; set prices are not added again.
 withdrawals, provenance and recording times. It provides a complete view and archive of this
 history.
 
-Use an [application backup](../../administration/backup-restore.md) for restoration. Format 28
-preserves the entire valuation table. Restoring an older backup produces an empty valuation
-history. Flat vehicle CSV files are not complete application backups. Older RailKeeper
-versions cannot fully read format 28; do not lower the format number manually.
+Use an [application backup](../../administration/backup-restore.md) for restoration. Format 28 and later
+preserve the entire valuation table. Restoring a backup from before format 28 produces an empty valuation
+history. Flat vehicle CSV files are not complete application backups. RailKeeper v0.3.0
+writes format 29. Use a backup compatible with the target version.
