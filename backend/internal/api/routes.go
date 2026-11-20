@@ -127,6 +127,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodPost, "/api/v1/vehicles/{id}/attachments", routeAccessEditor, (*App).uploadVehicleAttachment, nil},
 		{http.MethodPut, "/api/v1/vehicles/{id}/attachments/{attachmentID}", routeAccessEditor, (*App).updateVehicleAttachment, nil},
 		{http.MethodDelete, "/api/v1/vehicles/{id}/attachments/{attachmentID}", routeAccessEditor, (*App).deleteVehicleAttachment, nil},
+		{http.MethodGet, "/api/v1/vehicles/{id}/attachment-archive", routeAccessViewer, (*App).downloadVehicleAttachmentArchive, nil},
 		{http.MethodGet, "/api/v1/vehicles/{id}/attachments/{attachmentID}/download", routeAccessViewer, (*App).downloadVehicleAttachment, nil},
 		{http.MethodPost, "/api/v1/vehicles/{id}/attachments/import-url", routeAccessEditor, (*App).importVehicleAttachmentFromURL, nil},
 		{http.MethodGet, "/api/v1/vehicles/{id}/maintenance", routeAccessViewer, (*App).listVehicleMaintenance, nil},

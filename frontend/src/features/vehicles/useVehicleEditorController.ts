@@ -214,7 +214,7 @@ export function useVehicleEditorController({
     onMessage("");
   };
 
-  const openVehicle = (vehicle: Vehicle, nextMode: Exclude<ModalMode, "create">, tab: ModalTab) => {
+  const openVehicle = (vehicle: Vehicle, nextMode: Exclude<ModalMode, "create">, tab: ModalTab, onReady?: () => void) => {
     sessionVersion.current++;
     setSaving(false);
     const request = ++requestVersion.current;
@@ -227,6 +227,7 @@ export function useVehicleEditorController({
         setActiveTab(tab);
         setOpenSections(initialOpenSections);
         setModalOpen(true);
+        onReady?.();
         onMessage("");
       })
       .catch((error: Error) => {
@@ -238,8 +239,8 @@ export function useVehicleEditorController({
     openVehicle(vehicle, "view", tab);
   };
 
-  const openEdit = (vehicle: Vehicle, tab: ModalTab = "model") => {
-    openVehicle(vehicle, "edit", tab);
+  const openEdit = (vehicle: Vehicle, tab: ModalTab = "model", onReady?: () => void) => {
+    openVehicle(vehicle, "edit", tab, onReady);
   };
 
   const refreshSelectedVehicle = (vehicleID = selectedRef.current?.id, action?: VehicleSavedAction, propagateError = false) => {

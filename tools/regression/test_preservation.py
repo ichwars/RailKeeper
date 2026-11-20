@@ -30,6 +30,13 @@ class PreservationTests(unittest.TestCase):
                         backup_manifest(changed)
         self.assertEqual(document, before)
 
+    def test_upgrade_adds_only_empty_accessory_contents_to_old_articles(self):
+        old = {"version": 28, "tables": {"accessory_products": [{"name": "Track"}]}}
+        new = {"version": 29, "tables": {"accessory_products": [{"name": "Track", "set_contents_json": "[]"}]}}
+        self.assertEqual(expected_backup_upgrade(old, 29), new)
+        self.assertNotIn("set_contents_json", old["tables"]["accessory_products"][0])
+        self.assertEqual(expected_backup_upgrade(new, 29), new)
+
     def test_valuation_upgrade_only_adds_empty_history_and_preserves_old_cells(self):
         document = {"version": 27, "tables": {"vehicles": [{"id": "vehicle", "purchase_price": "001,23"}],
                     "vehicle_cv_values": [{"id": "cv", "decoder_profile": "  Profile  ", "index_cv31": 0}]}}
@@ -102,7 +109,7 @@ class PreservationTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             expected_backup_upgrade(original, 27)
         with self.assertRaises(AssertionError):
-            expected_backup_upgrade(original, 29, decoder_model=True)
+            expected_backup_upgrade(original, 30, decoder_model=True)
 
     def test_decoder_upgrade_does_not_accept_unknown_or_accidentally_prefilled_data(self):
         original = {"version": 26, "tables": {"decoder_instances": [{"id": "unexpected"}]}}

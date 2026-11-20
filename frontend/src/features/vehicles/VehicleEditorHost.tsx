@@ -234,6 +234,7 @@ export function VehicleEditorHost({ workspace }: { workspace: VehicleWorkspace }
           onSaveAttachment: media.commands.saveAttachment,
           onExtractAttachmentSpareParts: spareParts.commands.extractAttachment,
           onDeleteAttachment: media.commands.deleteAttachment,
+          onDeleteAttachments: mediaDeletion.commands.prepareAttachments,
           onSearchDocuments: documents.commands.search,
           onImportDocument: documents.commands.importOne,
           onImportSelectedDocuments: documents.commands.importSelected,

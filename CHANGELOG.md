@@ -6,6 +6,8 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+- Accessory set component lists, drag-to-reorder vehicle images, direct multi-file uploads in the quick menu, and ZIP download or confirmed deletion of selected documents.
+
 ## [0.2.0] - 2026-11-09
 
 ### Added

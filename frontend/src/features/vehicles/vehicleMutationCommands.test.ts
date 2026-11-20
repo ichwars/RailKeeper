@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, ApiError, type Vehicle, type VehicleFunctionChange, type VehicleImage, type VehicleImageCreation } from "../../shared/api";
 import { createdImageFixture, imageFixture, vehicleFixture } from "../../test/fixtures/vehicles";
-import { uploadedImageToPending, type PendingArticleImage } from "./vehicleTransforms";
+import { vehicleImagesToPending, uploadedImageToPending, type PendingArticleImage } from "./vehicleTransforms";
 import { emptyVehicle, type ECoSVehicleDraftPayload } from "./vehicleViewModel";
 import { createVehicleMutationCommands } from "./vehicleMutationCommands";
 import { importPendingVehicleImages } from "./vehicleImagePersistence";
@@ -70,7 +70,7 @@ describe("createVehicleMutationCommands", () => {
     let finish!: (image: VehicleImageCreation) => void, current = true;
     const imported = vi.spyOn(api, "importVehicleImageFromUrl").mockReturnValue(new Promise(resolve => { finish = resolve; }));
     const acknowledge = vi.fn(), image = { id: "one", url: "https://example.invalid/one.png", title: "One", source: "" };
-    const pending = importPendingVehicleImages(vehicleFixture(), [image, { ...image, id: "two" }], 0, acknowledge, () => current);
+    const pending = importPendingVehicleImages(vehicleFixture(), [{ image, sortOrder: 1 }, { image: { ...image, id: "two" }, sortOrder: 2 }], acknowledge, () => current);
     current = false; finish(createdImageFixture()); await pending;
     expect(imported).toHaveBeenCalledOnce(); expect(acknowledge).not.toHaveBeenCalled();
   });
@@ -93,12 +93,12 @@ describe("createVehicleMutationCommands", () => {
   it("preserves untouched stored ordering numbers and renumbers only an explicit reordering", async () => {
     const selected = vehicleFixture({ images: [imageFixture({ id: "primary", sortOrder: 8 }),
       imageFixture({ id: "other", sortOrder: 2, isPrimary: false })] });
-    const pending = selected.images!.map(uploadedImageToPending);
+    const pending = vehicleImagesToPending(selected);
     const options = commandOptions();
     const update = vi.spyOn(api, "updateVehicle").mockResolvedValue(selected);
     const editor = { ...options.editor, mode: "edit" as const, selected };
     await createVehicleMutationCommands({ ...options, editor, media: { pendingImages: pending } }).submit(submitEvent());
-    expect(update.mock.calls[0][1].images?.map(image => image.sortOrder)).toEqual([8, 2]);
+    expect(update.mock.calls[0][1].images?.map(image => image.sortOrder)).toEqual([2, 8]);
     await createVehicleMutationCommands({ ...options, editor, media: { pendingImages: [...pending].reverse() } }).submit(submitEvent());
     expect(update.mock.calls[1][1].images?.map(image => image.sortOrder)).toEqual([0, 1]);
   });
@@ -250,7 +250,7 @@ describe("createVehicleMutationCommands", () => {
       expect.objectContaining({ id: "existing", url: "https://example.test/existing.png", sourceUrl: "Original source" })
     ] }));
     expect(api.importVehicleImageFromUrl).toHaveBeenCalledExactlyOnceWith(created.id, expect.objectContaining({
-      url: "https://example.test/new.png", sourceUrl: "New source", sortOrder: 1
+      url: "https://example.test/new.png", sourceUrl: "New source", sortOrder: 2
     }));
   });
 

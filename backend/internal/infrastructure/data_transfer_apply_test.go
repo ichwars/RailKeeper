@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"railkeeper/backend/internal/domain"
 	"sync"
 	"testing"
 
@@ -95,6 +96,7 @@ func TestDataTransferApplyCommitsAllSelectedAreasInOneTransaction(t *testing.T) 
 	repository := infrastructure.NewDataTransferRepository(db)
 	vehicle := applyVehicleRecord(t, "RK-ALL-1", "Roco")
 	accessoryData, err := json.Marshal(application.TransferAccessory{
+		SetContents:     []domain.AccessorySetItem{{Name: "Base plate", Quantity: 2}},
 		InventoryNumber: "RK-ART-ALL-1", Manufacturer: "Viessmann", Name: "Signal", Category: "Signal",
 		TrackingMode: "quantity", ManufacturerStatus: "unknown", ArticleType: "other", Gauges: []string{"H0"},
 		PackageQuantity: 1, StockUnit: "piece", InventoryStrategy: "quantity",
@@ -118,6 +120,10 @@ func TestDataTransferApplyCommitsAllSelectedAreasInOneTransaction(t *testing.T) 
 
 	if err := repository.ApplyImport(t.Context(), job, "editor-1"); err != nil {
 		t.Fatal(err)
+	}
+	contents := applyAccessorySnapshot(t, repository).SetContents
+	if len(contents) != 1 || contents[0].Name != "Base plate" || contents[0].Quantity != 2 {
+		t.Fatalf("set contents lost in import/export: %#v", contents)
 	}
 	for table, want := range map[string]int{"vehicles": 1, "accessory_products": 1, "exhibition_lists": 1, "exhibition_entries": 1} {
 		var count int

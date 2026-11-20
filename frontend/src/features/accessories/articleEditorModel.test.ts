@@ -34,6 +34,16 @@ const archivedArticle: AccessoryArticle = {
 };
 
 describe("articleEditorModel", () => {
+  it("requires a named positive quantity for each set component and preserves ordinary articles", () => {
+    const article = articleToEditorForm(archivedArticle);
+    expect(article.isSet).toBe(false);
+    for (const rows of [[], [{ name: "", quantity: "1" }], [{ name: "Track", quantity: "0" }], [{ name: "Track", quantity: "1.1" }]]) {
+      expect(validateArticleEditorForm({ ...article, isSet: true, setContents: rows }).tabErrors.article).toBe(true);
+    }
+    const set = { ...article, isSet: true, setContents: [{ name: " Track ", quantity: "4" }] };
+    expect(articleEditorWriteInput(set).setContents).toEqual([{ name: "Track", quantity: 4 }]);
+    expect(articleEditorWriteInput({ ...set, isSet: false }).setContents).toEqual([]);
+  });
   it("roundtrips and exactly normalizes compatible list-price input", () => {
     expect(articleToEditorForm(archivedArticle).listPrice).toBe("129.90");
     expect(articleEditorWriteInput({

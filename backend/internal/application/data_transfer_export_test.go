@@ -15,6 +15,7 @@ import (
 	"strings"
 	"testing"
 
+	"railkeeper/backend/internal/domain"
 	"railkeeper/backend/internal/infrastructure/transferfiles"
 	transferpolicy "railkeeper/backend/internal/transfer/policy"
 )
@@ -196,7 +197,8 @@ func TestDataTransferExportCSVNeutralizesSpreadsheetFormulas(t *testing.T) {
 func TestDataTransferExportAccessoryCSVIncludesCurrentStockAndAssets(t *testing.T) {
 	snapshot := DataTransferSnapshot{Accessories: []TransferAccessory{{
 		InventoryNumber: "RK-ART-1", Manufacturer: "Viessmann", ArticleNumber: "4011", Name: "Signal",
-		Category: "signal", Stock: []TransferAccessoryStock{{LocationID: "loc-1", LocationName: "Schrank", Quantity: 2}},
+		SetContents: []domain.AccessorySetItem{{Name: "Signal base", Quantity: 2}},
+		Category:    "signal", Stock: []TransferAccessoryStock{{LocationID: "loc-1", LocationName: "Schrank", Quantity: 2}},
 		Assets: []TransferAccessoryAsset{{ID: "asset-1", InventoryNumber: "RK-ASSET-1", SerialNumber: "S1"}},
 	}}}
 	payload, err := transferpolicy.MarshalDataTransferCSV(TransferAccessories, snapshot)
@@ -204,6 +206,10 @@ func TestDataTransferExportAccessoryCSVIncludesCurrentStockAndAssets(t *testing.
 		t.Fatal(err)
 	}
 	text := string(payload)
+	parsed, _, err := transferpolicy.ParseDataTransferCSV(TransferAccessories, bytes.NewReader(payload))
+	if err != nil || len(parsed.Accessories) != 1 || !reflect.DeepEqual(parsed.Accessories[0].SetContents, snapshot.Accessories[0].SetContents) {
+		t.Fatalf("CSV set contents round trip failed: %v", err)
+	}
 	for _, expected := range []string{"Inventarnummer;Hersteller;Artikelnummer;Bezeichnung", "RK-ART-1", `""locationId"":""loc-1""`, `""id"":""asset-1""`} {
 		if !strings.Contains(text, expected) {
 			t.Fatalf("accessory CSV missing %q: %s", expected, text)

@@ -9,6 +9,7 @@ export type VehicleMediaDeletion = {
   kind: VehicleUploadKind; vehicleId: string; vehicleLabel: string; id: string; label: string;
   revision: string; references: number; busy: boolean; stale: boolean; error: string;
   scope?: VehicleCVDeletionScope; scopeLabel?: string;
+  attachments?: { id: string; name: string; revision: string }[];
 };
 type Options = {
   selected: Vehicle | null; readonly: boolean; saving: boolean;
@@ -44,6 +45,17 @@ export function useVehicleMediaDeletion(options: Options) {
       ...(request.kind === "decoder" && request.scope ? { scope: { ...request.scope }, scopeLabel: request.scopeLabel } : {}),
       busy: false, stale: false, error: "" });
   };
+  const prepareAttachments = (records: VehicleAttachment[]) => {
+    const opts = optionsRef.current, vehicle = opts.selected;
+    if (!vehicle || !records.length || opts.readonly || opts.saving || busy.current) return;
+    if (records.some(record => record.vehicleId !== vehicle.id || !record.revision)) {
+      opts.onMessage(t("vehicles.mediaConflict.missingRevision")); return;
+    }
+    set({ kind: "attachment", vehicleId: vehicle.id, vehicleLabel: `${vehicle.inventoryNumber} · ${vehicle.name}`,
+      id: "", label: t("vehicles.bulkSelected", { count: records.length }), revision: "", references: 0,
+      attachments: records.map(record => ({ id: record.id, name: record.originalName, revision: record.revision! })),
+      busy: false, stale: false, error: "" });
+  };
   const close = () => { if (!busy.current) set(null); };
   const confirm = async () => {
     const value = current.current, opts = optionsRef.current;
@@ -52,8 +64,15 @@ export function useVehicleMediaDeletion(options: Options) {
     const active = () => generation.current === version && optionsRef.current.selected?.id === value.vehicleId;
     busy.current = true; opts.setSaving(true); opts.onMessage(""); set({ ...value, busy: true, error: "" });
     let deleted = false;
+    let deletedCount = 0;
     try {
-      if (value.kind === "image") await api.deleteVehicleImage(value.vehicleId, value.id, value.revision);
+      if (value.attachments) {
+        for (const entry of value.attachments) {
+          if (!active()) return;
+          await api.deleteVehicleAttachment(value.vehicleId, entry.id, entry.revision);
+          deletedCount++;
+        }
+      } else if (value.kind === "image") await api.deleteVehicleImage(value.vehicleId, value.id, value.revision);
       else if (value.kind === "attachment") await api.deleteVehicleAttachment(value.vehicleId, value.id, value.revision);
       else if (value.scope) await api.deleteVehicleCVFile(value.vehicleId, value.id, value.revision, value.scope);
       else await api.deleteVehicleCVFile(value.vehicleId, value.id, value.revision);
@@ -61,16 +80,20 @@ export function useVehicleMediaDeletion(options: Options) {
       if (!active()) return;
       if (value.kind === "image") optionsRef.current.onImageDeleted(value.id);
       await optionsRef.current.refreshSaved(value.vehicleId, value.kind);
-      if (active()) { set(null); optionsRef.current.onStatus(t("vehicles.mediaDelete.completed", { name: value.label })); }
+      if (active()) {
+        set(null);
+        optionsRef.current.onStatus(value.attachments ? t("vehicles.bulkDeleted", { count: deletedCount })
+          : t("vehicles.mediaDelete.completed", { name: value.label }));
+      }
     } catch (error) {
       if (!active()) return;
       const stale = !deleted && error instanceof ApiError && error.status === 409;
       const missing = !deleted && error instanceof ApiError && error.status === 404;
-      if (stale || missing) {
+      if (stale || missing || value.attachments) {
         try { await optionsRef.current.reload(value.vehicleId); } catch { /* Keep the original guarded action blocked. */ }
       }
-      if (active()) set({ ...value, busy: false, stale: stale || missing || deleted,
-        error: deleted ? t("vehicles.mediaDelete.refreshFailed") : stale || missing ? t("vehicles.mediaDelete.reviewAgain")
+      if (active()) set({ ...value, busy: false, stale: stale || missing || deleted || Boolean(value.attachments),
+        error: value.attachments ? t("vehicles.bulkIncomplete", { count: deletedCount, total: value.attachments.length, error: error instanceof Error ? error.message : String(error) }) : deleted ? t("vehicles.mediaDelete.refreshFailed") : stale || missing ? t("vehicles.mediaDelete.reviewAgain")
           : error instanceof Error ? error.message : String(error) });
     } finally {
       if (generation.current === version) {
@@ -79,5 +102,5 @@ export function useVehicleMediaDeletion(options: Options) {
       }
     }
   };
-  return { candidate, commands: { prepare, confirm, close, reset } };
+  return { candidate, commands: { prepare, prepareAttachments, confirm, close, reset } };
 }

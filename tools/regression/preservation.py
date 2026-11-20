@@ -107,6 +107,16 @@ def backup_manifest(document):
 
 
 def expected_backup_upgrade(document, target_version, catalog_backfill=None, catalog_authority=False, decoder_model=False, decoder_backfill=False):
+    if target_version == 29:
+        if document["version"] == 29:
+            return copy.deepcopy(document)
+        expected = expected_backup_upgrade(document, 28, catalog_backfill, catalog_authority, decoder_model, decoder_backfill)
+        for row in expected["tables"].get("accessory_products", []):
+            if "set_contents_json" in row:
+                raise AssertionError("Older backup unexpectedly contains accessory set contents")
+            row["set_contents_json"] = "[]"
+        expected["version"] = 29
+        return expected
     if target_version == 28:
         if document["version"] == 28:
             return copy.deepcopy(document)

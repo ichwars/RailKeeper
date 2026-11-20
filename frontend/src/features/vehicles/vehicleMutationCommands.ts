@@ -147,7 +147,7 @@ export function createVehicleMutationCommands({
       (editor.acknowledgeCoreSaved || editor.setSelectedDetail)(vehicle);
       editor.setMode("edit");
 
-      vehicle = await importPendingVehicleImages(vehicle, remoteImages, images.length, media.acknowledgeImportedImage, isCurrent);
+      vehicle = await importPendingVehicleImages(vehicle, remoteImages, media.acknowledgeImportedImage, isCurrent);
       if (!isCurrent()) return;
 
       for (const part of sparePartsToImport) {

@@ -4,7 +4,7 @@ description: Create accessory records, maintain their identity, and verify techn
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-20
 ---
 
 # Article records and technical data
@@ -17,6 +17,12 @@ An accessory article is the shared product record behind stock, purchases, docum
 reservations, and installations. Create it once for a manufacturer and catalogue article, then
 record quantities or individual items against it. This chapter covers the article identity and the
 type-specific data in stable RailKeeper.
+
+## Record track sets and other accessory sets
+
+Create the set as one accessory article. On the **Article** tab select **Accessory set with component list**. Fill in the first line, then choose **Add component** for each additional line under **Accessory set contents**. For example, enter “Straight track” with quantity 4 and “Left turnout” with quantity 1. Quantities describe one complete set. Save the article. A vehicle is optional.
+
+Stock movements count the set article. If you own two sets, book two sets into stock. The component list describes what comes in each one. Leave it empty for an ordinary single article.
 
 ## Access rights and persistence
 

@@ -13,6 +13,23 @@ function setup() {
 }
 describe("confirmed media deletion", () => {
   afterEach(() => vi.restoreAllMocks());
+  it("reviews all attachment revisions, stops on conflict and reloads the remaining records", async () => {
+    const remove = vi.spyOn(api, "deleteVehicleAttachment").mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new ApiError("Changed", "attachment_conflict", 409));
+    const { result, options } = setup();
+    const records = ["a", "b", "c"].map(id => ({
+      id, vehicleId: "vehicle-1", fileName: id, originalName: id, mimeType: "text/plain", sizeBytes: 1,
+      createdAt: "", updatedAt: "", revision: id.repeat(64)
+    }));
+    act(() => result.current.commands.prepareAttachments(records));
+    expect(remove).not.toHaveBeenCalled();
+    expect(result.current.candidate?.attachments?.map(item => item.name)).toEqual(["a", "b", "c"]);
+    await act(() => result.current.commands.confirm());
+    expect(remove.mock.calls).toEqual([["vehicle-1", "a", "a".repeat(64)], ["vehicle-1", "b", "b".repeat(64)]]);
+    expect(result.current.candidate?.stale).toBe(true);
+    expect(result.current.candidate?.error).toContain("1 von 3");
+    expect(options.reload).toHaveBeenCalledWith("vehicle-1");
+  });
   it("captures the reviewed decoder-file revision and reference count until explicit confirmation", async () => {
     const remove = vi.spyOn(api, "deleteVehicleCVFile").mockResolvedValue(undefined);
     const { result, options, rerender } = setup(), record = cvFileFixture({ sourceReferenceCount: 7 });

@@ -7,6 +7,20 @@ import (
 
 var ErrAllocationTarget = errors.New("exactly one allocation target is required")
 
+type AccessorySetItem struct {
+	Name     string `json:"name"`
+	Quantity int    `json:"quantity"`
+}
+
+func ValidAccessorySetContents(contents []AccessorySetItem) bool {
+	for _, item := range contents {
+		if strings.TrimSpace(item.Name) == "" || item.Quantity < 1 || item.Quantity > 1000000 {
+			return false
+		}
+	}
+	return true
+}
+
 type AccessoryTrackingMode string
 
 const (

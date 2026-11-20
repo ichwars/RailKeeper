@@ -201,7 +201,7 @@ ungeprüft auf der aktuellen Datenbank. Ab Schema 80 und App-Backupformat 28 geh
 Decoderexemplare, Einbauzeiträume, unveränderliche CV-Teilstände und manuelle Bewertungsverläufe zum Bestand.
 Schema 81 ergänzt private Browserbelege zur fairen Anmeldebegrenzung. Diese bleiben wie die
 Anmeldeschutzdaten aus Schema 78/79 ausschließlich in der Installationssicherung. Ältere Modelle können diese
-Angaben nicht vollständig ausdrücken. Die Formatnummer einer Sicherung darf nicht herabgesetzt werden.
+Angaben nicht vollständig ausdrücken. Schema 86 und App-Backupformat 29 erhalten Stücklisten für Zubehörsets. Ältere Installer benötigen für den Rückweg eine Sicherung vor dem Update. Die Formatnummer einer Sicherung darf nicht herabgesetzt werden.
 
 | Situation | Vorgehen |
 | --- | --- |

@@ -4,7 +4,7 @@ description: Zubehörartikel anlegen, ihre Identität pflegen und technische Ang
 audience: user
 status: development
 reviewedVersion: main
-lastReviewed: 2026-10-23
+lastReviewed: 2026-11-20
 ---
 
 # Artikelstammdaten und Fachangaben
@@ -17,6 +17,12 @@ Ein Zubehörartikel ist der gemeinsame Produktdatensatz für Bestand, Einkäufe,
 Reservierungen und Einbauten. Legen Sie ihn einmal für einen Hersteller- und Katalogartikel an und
 erfassen Sie anschließend Mengen oder Einzelstücke dazu. Dieses Kapitel beschreibt die
 Artikelidentität und die artabhängigen Fachangaben in RailKeeper.
+
+## Gleissets und andere Zubehörsets erfassen
+
+Lege das Set unter **Zubehör** als einen Artikel an. Aktiviere im Reiter **Artikel** die Option **Zubehörset mit Stückliste**. Die erste Position steht bereit. Wähle für weitere Positionen unter **Lieferumfang des Zubehörsets** die Aktion **Bestandteil hinzufügen**. Trage zum Beispiel „Gerades Gleis“ mit Stückzahl 4 und „Weiche links“ mit Stückzahl 1 ein. Die Menge gilt für ein vollständiges Set. Speichere den Artikel. Ein Fahrzeug ist dafür nicht erforderlich.
+
+Bestandsbuchungen zählen den Setartikel. Wenn du zwei dieser Sets lagerst, buche zwei Sets. Die Stückliste beschreibt den Lieferumfang je Set. Für einen normalen Einzelartikel bleiben die Positionen leer.
 
 ## Zugriffsrechte und Speichern
 

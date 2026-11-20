@@ -2,6 +2,7 @@ package transfer
 
 import (
 	"encoding/json"
+	"railkeeper/backend/internal/domain"
 	"testing"
 )
 
@@ -28,6 +29,15 @@ func TestExistingPreviewFingerprintsRemainByteCompatible(t *testing.T) {
 	if DataTransferTargetFingerprint(vehicle) != DataTransferTargetFingerprint(&vehicle) ||
 		DataTransferTargetFingerprint(accessory) != DataTransferTargetFingerprint(&accessory) {
 		t.Fatal("pointer/value preview identity differs")
+	}
+	empty := accessory
+	empty.SetContents = []domain.AccessorySetItem{}
+	if DataTransferTargetFingerprint(empty) != DataTransferTargetFingerprint(accessory) {
+		t.Fatal("legacy empty contents changed fingerprint")
+	}
+	accessory.SetContents = []domain.AccessorySetItem{{Name: "Track", Quantity: 1}}
+	if DataTransferTargetFingerprint(empty) == DataTransferTargetFingerprint(accessory) {
+		t.Fatal("set contents missing from fingerprint")
 	}
 	if DataTransferTargetFingerprint(make(chan int)) != "" {
 		t.Fatal("unsupported data received a fingerprint")

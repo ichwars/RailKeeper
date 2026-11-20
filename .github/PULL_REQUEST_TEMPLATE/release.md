@@ -10,6 +10,7 @@ vorhandenen Release-Workflow, ohne direkten Release-Commit auf `main`.
 
 - [ ] Änderungen und Datenerhalt geprüft; genaue Tests und Ergebnisse im PR beschrieben.
 - [ ] Laufzeitversion, DE/EN-Changelogs, DE/EN-Release-Notizen und stabile Doku-Version stimmen überein.
+- [ ] Roadmap auf die Releaseversion setzen und ausgelieferte, geplante und noch abzunehmende Funktionen aktualisieren.
 - [ ] Betroffene Handbuchtexte und Bilder sind aktuell, Bildnachweise vollständig.
 - [ ] Alle erforderlichen CI-Prüfungen dieses PR-Stands sind erfolgreich.
 - [ ] Nach dem Merge Main-CI und Paketprüfungen prüfen; erst danach das Release empfehlen.
@@ -29,6 +30,7 @@ without a direct release commit to `main`.
 
 - [ ] Verify changes and data preservation; describe exact checks and results in this PR.
 - [ ] Align runtime version, DE/EN changelogs, DE/EN release notes and stable documentation version.
+- [ ] Set the roadmap baseline to the release version and reconcile shipped features, plans and outstanding acceptance.
 - [ ] Update affected handbook text and pictures, including complete capture provenance.
 - [ ] All required checks for this PR revision have passed.
 - [ ] After merging, check Main CI and package qualification before recommending the release.

@@ -10,6 +10,7 @@ import type {
 import { masterDataDisplayLabel } from "../../shared/articleMasterDataLabels";
 import { useI18n } from "../../shared/i18n";
 import { masterDataOptions } from "../../shared/masterDataOptions";
+import { AppChoiceInput } from "../../shared/ui/AppChoiceInput";
 import { AppMultiSelect } from "../../shared/ui/AppMultiSelect";
 import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AppSelect } from "../../shared/ui/AppSelect";
@@ -202,6 +203,25 @@ export function ArticleCoreTab({
         <textarea disabled={disabled} value={form.description}
           onChange={(event) => onChange({ description: event.target.value })} />
       </label>
+      {!disabled && <label className="article-set-toggle">
+        <AppChoiceInput type="checkbox" checked={form.isSet} onChange={event => onChange({
+          isSet: event.target.checked,
+          setContents: form.setContents.length ? form.setContents : [{ name: "", quantity: "1" }]
+        })} /> {t("accessories.setToggle")}
+      </label>}
+      {form.isSet && <fieldset className="article-set-contents">
+        <legend>{t("accessories.setContents")}</legend>
+        {form.setContents.map((item, index) => {
+          const update = (patch: Partial<typeof item>) => onChange({ setContents: form.setContents.map((entry, i) => i === index ? { ...entry, ...patch } : entry) });
+          return <div className="article-set-row" key={index}>
+            <AppTextInput label={t("accessories.setItemName")} disabled={disabled} value={item.name} onChange={event => update({ name: event.target.value })} />
+            <AppNumberInput label={t("accessories.setItemQuantity")} min={1} max={1000000} step={1} disabled={disabled} value={item.quantity} onValueChange={quantity => update({ quantity })} />
+            {!disabled && <button type="button" className="secondary-button" disabled={form.setContents.length === 1} onClick={() => onChange({ setContents: form.setContents.filter((_, i) => i !== index) })}>{t("accessories.setRemove")}</button>}
+          </div>;
+        })}
+        {errors.setContents && <p className="form-message" role="alert">{t("accessories.setInvalid")}</p>}
+        {!disabled && <button type="button" className="secondary-button" onClick={() => onChange({ setContents: [...form.setContents, { name: "", quantity: "1" }] })}>{t("accessories.setAdd")}</button>}
+      </fieldset>}
       <details className="article-editor-more">
         <summary>{t("accessories.editor.more.title")}</summary>
         <div className="article-editor-grid">

@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+
+	"railkeeper/backend/internal/domain"
 )
 
 const DataTransferTargetFingerprintVersion = 2
@@ -16,16 +18,15 @@ func DataTransferTargetFingerprintForVersion(value any, version int) string {
 	fingerprintValue := value
 	switch accessory := value.(type) {
 	case TransferAccessory:
+		// Empty contents predate component lists and must retain existing preview hashes.
 		fingerprintValue = struct {
 			TransferAccessory
+			SetContents      []domain.AccessorySetItem         `json:"setContents,omitempty"`
 			FingerprintState TransferAccessoryFingerprintState `json:"fingerprintState"`
-		}{TransferAccessory: accessory, FingerprintState: accessory.FingerprintState}
+		}{accessory, accessory.SetContents, accessory.FingerprintState}
 	case *TransferAccessory:
 		if accessory != nil {
-			fingerprintValue = struct {
-				TransferAccessory
-				FingerprintState TransferAccessoryFingerprintState `json:"fingerprintState"`
-			}{TransferAccessory: *accessory, FingerprintState: accessory.FingerprintState}
+			return DataTransferTargetFingerprintForVersion(*accessory, version)
 		}
 	}
 	if version < DataTransferTargetFingerprintVersion {

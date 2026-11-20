@@ -38,6 +38,7 @@ export function useVehicleWorkspace({ username, roles = ["Editor"] }: { username
     useVehicleCollectionController();
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
   const [quickMenuVehicleID, setQuickMenuVehicleID] = useState("");
+  const [quickFiles, setQuickFiles] = useState<{ id: string; kind: "image" | "attachment"; files: File[] } | null>(null);
   const [archiveOwner, setArchiveOwner] = useState<string | null>(null);
   const canReadDecoderArchive = roles.some(role => ["Admin", "Editor", "Viewer"].includes(role));
   const canEditVehicleSets = roles.includes("Admin") || roles.includes("Editor");
@@ -48,6 +49,7 @@ export function useVehicleWorkspace({ username, roles = ["Editor"] }: { username
     onMessage: collection.setMessage,
     onFormChange: (nextForm) => ecos.commands.syncUnclearFields(nextForm),
     onReset: (reason) => {
+      setQuickFiles(null);
       ecos.commands.clear();
       media.commands.reset(reason === "close");
       mediaUploads.commands.reset();
@@ -146,6 +148,14 @@ export function useVehicleWorkspace({ username, roles = ["Editor"] }: { username
     onImageStored: media.commands.acknowledgeImage, refreshSaved: refreshSavedMedia,
     reload: vehicleId => editor.commands.refreshSelectedVehicle(vehicleId, undefined, true)
   });
+  useEffect(() => {
+    if (!quickFiles) return;
+    setQuickFiles(null);
+    if (editor.state.selected?.id === quickFiles.id && editor.state.modalOpen && !editor.state.readonly) {
+      mediaUploads.commands.prepare(quickFiles.kind, quickFiles.files,
+        quickFiles.kind === "image" ? { isPrimary: !editor.state.selected.images?.length } : {});
+    }
+  }, [quickFiles, editor.state.selected, editor.state.modalOpen, editor.state.readonly, mediaUploads.commands]);
   const mediaDeletion = useVehicleMediaDeletion({
     selected: editor.state.selected, readonly: editor.state.readonly, saving: editor.state.saving, setSaving: editor.setters.setSaving, onMessage: collection.setMessage, onStatus: collection.setStatusMessage,
     onImageDeleted: media.commands.removeDeletedImage, refreshSaved: refreshSavedMedia,
@@ -371,6 +381,9 @@ export function useVehicleWorkspace({ username, roles = ["Editor"] }: { username
     toggleSort: inventory.toggleSort,
     openDetail: editor.commands.openDetail,
     openEdit: editor.commands.openEdit,
+    quickUpload: canEditVehicleSets ? (vehicle, kind, files) => {
+      editor.commands.openEdit(vehicle, "uploads", () => setQuickFiles({ id: vehicle.id, kind, files }));
+    } : undefined,
     openQr: output.qr.commands.openForVehicle,
     printVehicle: output.report.commands.printVehicle,
     setDeleteCandidate,

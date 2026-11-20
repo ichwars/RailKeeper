@@ -69,11 +69,15 @@ func MarshalDataTransferCSV(area TransferArea, snapshot DataTransferSnapshot) ([
 		if err := writer.Write([]string{
 			"Inventarnummer", "Hersteller", "Artikelnummer", "Bezeichnung", "Kategorie", "Erfassungsart",
 			"Beschreibung", "EAN", "Artikelart", "Unterart", "Spurweiten", "Maßstab", "Listenpreis",
-			"Packungsmenge", "Bestandseinheit", "Mindestbestand", "Inventarstrategie", "Bestand", "Einzelobjekte",
+			"Packungsmenge", "Bestandseinheit", "Mindestbestand", "Inventarstrategie", "Bestand", "Einzelobjekte", "Setbestandteile",
 		}); err != nil {
 			return nil, err
 		}
 		for _, accessory := range snapshot.Accessories {
+			contents, err := json.Marshal(accessory.SetContents)
+			if err != nil {
+				return nil, err
+			}
 			stock, err := json.Marshal(accessory.Stock)
 			if err != nil {
 				return nil, err
@@ -87,7 +91,7 @@ func MarshalDataTransferCSV(area TransferArea, snapshot DataTransferSnapshot) ([
 				accessory.Category, accessory.TrackingMode, accessory.Description, accessory.EAN,
 				accessory.ArticleType, accessory.Subtype, strings.Join(accessory.Gauges, ","), accessory.Scale,
 				accessory.ListPrice, fmt.Sprintf("%d", accessory.PackageQuantity), accessory.StockUnit,
-				fmt.Sprintf("%d", accessory.MinimumStock), accessory.InventoryStrategy, string(stock), string(assets),
+				fmt.Sprintf("%d", accessory.MinimumStock), accessory.InventoryStrategy, string(stock), string(assets), string(contents),
 			})); err != nil {
 				return nil, err
 			}

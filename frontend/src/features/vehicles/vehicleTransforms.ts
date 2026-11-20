@@ -117,7 +117,7 @@ export function vehicleImageToPending(image: VehicleImageRecord): PendingArticle
 }
 
 export function vehicleImagesToPending(vehicle: Vehicle): PendingArticleImage[] {
-  return (vehicle.images || []).map(vehicleImageToPending);
+  return [...(vehicle.images || [])].sort((a, b) => a.sortOrder - b.sortOrder).map(vehicleImageToPending);
 }
 
 export function uploadedImageToPending(image: VehicleImageRecord): PendingArticleImage {

@@ -28,6 +28,7 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 		InventoryStrategy: domain.AccessoryInventoryQuantityLaterIndividual,
 		ManufacturerURL:   "https://example.test/tillig", ProductURL: "https://example.test/product",
 		AlternativeNumbers: []string{"83101-A"}, Keywords: []string{"track"},
+		SetContents:        []domain.AccessorySetItem{{Name: "Straight track", Quantity: 4}, {Name: "Left turnout", Quantity: 1}},
 		CompatibilityNotes: "compatible", InternalNotes: "internal", Archived: true,
 		Attributes: []domain.AccessoryAttributeValue{
 			{Key: "trackSystem", Kind: domain.AccessoryAttributeText, TextValue: &text},
@@ -42,7 +43,7 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(loaded.Gauges, input.Gauges) ||
+	if !reflect.DeepEqual(loaded.SetContents, input.SetContents) || !reflect.DeepEqual(loaded.Gauges, input.Gauges) ||
 		!reflect.DeepEqual(loaded.AlternativeNumbers, input.AlternativeNumbers) ||
 		!reflect.DeepEqual(loaded.Keywords, input.Keywords) || !reflect.DeepEqual(loaded.Attributes, input.Attributes) ||
 		loaded.EAN != input.EAN || loaded.ManufacturerStatus != input.ManufacturerStatus ||
@@ -59,6 +60,7 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 		t.Fatalf("create/get lost numeric attribute unit: %#v", loaded.Attributes[1])
 	}
 
+	input.SetContents = nil // Simulate an update from a client predating component lists.
 	input.Name = "Updated track"
 	input.ListPrice = "139,90"
 	input.Archived = false
@@ -70,9 +72,18 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.Name != input.Name || updated.ListPrice != input.ListPrice || updated.Archived ||
+	if !reflect.DeepEqual(updated.SetContents, loaded.SetContents) || updated.Name != input.Name || updated.ListPrice != input.ListPrice || updated.Archived ||
 		!reflect.DeepEqual(updated.Attributes, input.Attributes) {
 		t.Fatalf("full update did not round trip: %#v", updated)
+	}
+	input.SetContents = []domain.AccessorySetItem{{Name: "", Quantity: 1}}
+	if _, err := service.UpdateProduct(t.Context(), created.ID, application.UpdateAccessoryProductInput{CreateAccessoryProductInput: input}, "editor-1"); !errors.Is(err, application.ErrAccessoryValidation) {
+		t.Fatalf("invalid item: %v", err)
+	}
+	input.SetContents = []domain.AccessorySetItem{}
+	cleared, err := service.UpdateProduct(t.Context(), created.ID, application.UpdateAccessoryProductInput{CreateAccessoryProductInput: input}, "editor-1")
+	if err != nil || len(cleared.SetContents) != 0 {
+		t.Fatalf("explicitly clear set: %v", err)
 	}
 	if updated.Attributes[0].Unit == nil || *updated.Attributes[0].Unit != "cm" {
 		t.Fatalf("update/get lost numeric attribute unit: %#v", updated.Attributes[0])

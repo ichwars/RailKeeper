@@ -2,9 +2,9 @@
 title: Eine Wiederherstellung sicher üben
 description: Eine Wiederherstellung sicher üben.
 audience: admin
-status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+status: development
+reviewedVersion: main
+lastReviewed: 2026-11-20
 ---
 
 # Eine Wiederherstellung sicher üben
@@ -53,7 +53,7 @@ Wähle die gespeicherte JSON unter **Backup wiederherstellen**.
 <GuideFigure name="restore-preflight" alt="Kompatible Übungssicherung mit Version, Tabellen, Datensätzen und Dateien vor der Wiederherstellung." caption="Echte Prüfung einer selbst exportierten Demo-Sicherung. Die Dateiauswahl ändert noch keine Bestandsdaten; die Bestätigung fehlt noch." />
 
 Prüfe Kompatibilität, Dateianzahl, Fehler und Warnungen. Beim geprüften Stand lautet das
-Sicherungsformat Version **28**. Die Dateiauswahl allein spielt nichts zurück.
+Sicherungsformat Version **29**. Die Dateiauswahl allein spielt nichts zurück.
 
 Die Dateianzahl zählt separate Dateien im Upload-Verzeichnis. Als SQLite-Blobs gespeicherte
 Originale gehören zu den gesicherten Datensätzen. Deshalb kann eine vollständige Sicherung mit

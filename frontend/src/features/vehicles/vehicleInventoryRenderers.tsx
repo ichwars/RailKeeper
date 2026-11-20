@@ -28,6 +28,7 @@ import {
   Wrench
 } from "lucide-react";
 
+import { attachmentAccept, imageAccept } from "./vehicleFiles";
 import type { MasterDataEntry, Vehicle } from "../../shared/api";
 import { masterDataOptions } from "../../shared/masterDataOptions";
 import { optionValue, type ModalTab, type SortDirection, type SortKey } from "./vehicleViewModel";
@@ -41,6 +42,7 @@ type VehicleInventoryRenderersOptions = {
   toggleSort: (key: SortKey) => void;
   openDetail: (vehicle: Vehicle) => void;
   openEdit: (vehicle: Vehicle, tab?: ModalTab) => void;
+  quickUpload?: (vehicle: Vehicle, kind: "image" | "attachment", files: File[]) => void;
   openQr: (vehicle: Vehicle) => void;
   printVehicle: (vehicle: Vehicle) => void;
   setDeleteCandidate: Dispatch<SetStateAction<Vehicle | null>>;
@@ -118,6 +120,7 @@ type VehicleQuickMenuProps = {
   onClose: () => void;
   openDetail: (vehicle: Vehicle) => void;
   openEdit: (vehicle: Vehicle, tab?: ModalTab) => void;
+  quickUpload?: (vehicle: Vehicle, kind: "image" | "attachment", files: File[]) => void;
   openQr: (vehicle: Vehicle) => void;
   printVehicle: (vehicle: Vehicle) => void;
   setDeleteCandidate: Dispatch<SetStateAction<Vehicle | null>>;
@@ -131,11 +134,20 @@ function VehicleQuickMenu({
   onClose,
   openDetail,
   openEdit,
+  quickUpload,
   openQr,
   printVehicle,
   setDeleteCandidate,
   t
 }: VehicleQuickMenuProps) {
+  const picker = useRef<HTMLInputElement>(null);
+  const uploadKind = useRef<"image" | "attachment">("image");
+  const pick = (kind: "image" | "attachment") => {
+    if (!picker.current) return;
+    uploadKind.current = kind;
+    picker.current.accept = kind === "image" ? imageAccept : attachmentAccept;
+    picker.current.click();
+  };
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [floatingPosition, setFloatingPosition] = useState<QuickMenuFloatingPosition | null>(null);
@@ -203,6 +215,10 @@ function VehicleQuickMenu({
       <button type="button" role="menuitem" onClick={() => { onClose(); printVehicle(vehicle); }}>
         <Printer size={14} />{t("overview.print")}
       </button>
+      {quickUpload && <>
+        <button type="button" role="menuitem" onClick={() => pick("image")}><Image size={14} />{t("vehicles.quickImages")}</button>
+        <button type="button" role="menuitem" onClick={() => pick("attachment")}><Upload size={14} />{t("vehicles.quickAttachments")}</button>
+      </>}
       <button type="button" role="menuitem" onClick={() => { onClose(); openEdit(vehicle, "uploads"); }}>
         <Upload size={14} />Uploads
       </button>
@@ -232,6 +248,12 @@ function VehicleQuickMenu({
       >
         <MoreVertical size={16} />
       </button>
+      {open && quickUpload && <input ref={picker} hidden type="file" multiple onChange={event => {
+        const files = Array.from(event.target.files || []);
+        if (!files.length) return;
+        onClose();
+        quickUpload(vehicle, uploadKind.current, files);
+      }} />}
       {menu}
     </div>
   );
@@ -277,6 +299,7 @@ export function createVehicleInventoryRenderers({
   toggleSort,
   openDetail,
   openEdit,
+  quickUpload,
   openQr,
   printVehicle,
   setDeleteCandidate,
@@ -307,6 +330,7 @@ export function createVehicleInventoryRenderers({
       ))}
       onClose={() => setQuickMenuVehicleID("")}
       openDetail={openDetail}
+      quickUpload={quickUpload}
       openEdit={openEdit}
       openQr={openQr}
       printVehicle={printVehicle}

@@ -1,9 +1,11 @@
 package application
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"railkeeper/backend/internal/backup"
+	"railkeeper/backend/internal/domain"
 )
 
 type legacyBackupValidationRules struct{}
@@ -24,6 +26,20 @@ func (legacyBackupValidationRules) Table(doc *BackupDocument, table string, rows
 			result.Errors = append(result.Errors, fmt.Sprintf("Fachtabelle %s enthält unbekannte Spalten. / Unknown model table columns.", table))
 		} else {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Tabelle %s enthält unbekannte Spalten, die beim Restore ignoriert werden.", table))
+		}
+	}
+	if table == "accessory_products" {
+		for _, row := range rows {
+			text, present := row["set_contents_json"]
+			if !present && doc.Version < 29 {
+				continue
+			}
+			raw, ok := text.(string)
+			var contents []domain.AccessorySetItem
+			if !ok || json.Unmarshal([]byte(raw), &contents) != nil || contents == nil || !domain.ValidAccessorySetContents(contents) {
+				result.Errors = append(result.Errors, "Ungültiger Lieferumfang eines Zubehörsets. / Invalid accessory set contents.")
+				break
+			}
 		}
 	}
 	if table == "accessory_product_attributes" {

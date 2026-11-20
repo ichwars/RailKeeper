@@ -150,7 +150,7 @@ SELECT id, inventory_number, manufacturer, article_number, name, category, track
        ean, manufacturer_status, article_type, subtype, gauges_json, scale, list_price, package_quantity,
        stock_unit, minimum_stock, inventory_strategy, manufacturer_url, product_url,
        alternative_numbers_json, keywords_json, compatibility_notes, internal_notes, archived,
-       created_at, updated_at
+       created_at, updated_at, set_contents_json
 FROM accessory_products
 ORDER BY inventory_number COLLATE NOCASE, id`)
 	if err != nil {
@@ -159,7 +159,7 @@ ORDER BY inventory_number COLLATE NOCASE, id`)
 	accessories := []transfer.TransferAccessory{}
 	for rows.Next() {
 		accessory := transfer.TransferAccessory{}
-		var gauges, alternativeNumbers, keywords string
+		var gauges, alternativeNumbers, keywords, contents string
 		var archived int
 		if err := rows.Scan(
 			&accessory.ID, &accessory.InventoryNumber, &accessory.Manufacturer, &accessory.ArticleNumber,
@@ -168,7 +168,7 @@ ORDER BY inventory_number COLLATE NOCASE, id`)
 			&accessory.ListPrice, &accessory.PackageQuantity, &accessory.StockUnit, &accessory.MinimumStock,
 			&accessory.InventoryStrategy, &accessory.ManufacturerURL, &accessory.ProductURL, &alternativeNumbers,
 			&keywords, &accessory.CompatibilityNotes, &accessory.InternalNotes, &archived, &accessory.CreatedAt,
-			&accessory.UpdatedAt,
+			&accessory.UpdatedAt, &contents,
 		); err != nil {
 			_ = rows.Close()
 			return nil, fmt.Errorf("scan transfer accessory: %w", err)
@@ -184,6 +184,10 @@ ORDER BY inventory_number COLLATE NOCASE, id`)
 		if err := decodeTransferStringArray(keywords, &accessory.Keywords); err != nil {
 			_ = rows.Close()
 			return nil, fmt.Errorf("decode transfer accessory keywords: %w", err)
+		}
+		if err := json.Unmarshal([]byte(contents), &accessory.SetContents); err != nil {
+			_ = rows.Close()
+			return nil, err
 		}
 		accessory.Archived = archived != 0
 		accessories = append(accessories, accessory)

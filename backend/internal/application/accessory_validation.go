@@ -26,6 +26,9 @@ func cleanAccessoryProductInput(input CreateAccessoryProductInput) CreateAccesso
 	input.InternalNotes = strings.TrimSpace(input.InternalNotes)
 	input.Gauges = cleanStringArray(input.Gauges)
 	input.AlternativeNumbers = cleanStringArray(input.AlternativeNumbers)
+	for i := range input.SetContents {
+		input.SetContents[i].Name = strings.TrimSpace(input.SetContents[i].Name)
+	}
 	input.Keywords = cleanStringArray(input.Keywords)
 	input.Attributes = cleanAccessoryAttributes(input.Attributes, input.ArticleType == domain.AccessoryArticleOther)
 	if legacyInput {
@@ -47,7 +50,7 @@ func cleanAccessoryProductInput(input CreateAccessoryProductInput) CreateAccesso
 }
 
 func validateAccessoryProductStructure(input CreateAccessoryProductInput) error {
-	if !validAccessoryProductInput(input) {
+	if !domain.ValidAccessorySetContents(input.SetContents) || !validAccessoryProductInput(input) {
 		return ErrAccessoryValidation
 	}
 	if input.ArticleType != domain.AccessoryArticleOther {

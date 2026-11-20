@@ -6,6 +6,8 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+- Zubehörsets mit Stücklisten, Fahrzeugbilder per Ziehen sortieren, direkte Mehrfachuploads im Schnellmenü sowie ZIP-Download und bestätigtes Löschen ausgewählter Unterlagen.
+
 ## [0.2.0] - 2026-11-09
 
 ### Hinzugefügt

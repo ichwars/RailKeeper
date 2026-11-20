@@ -21,7 +21,7 @@ describe("acknowledged image baselines", () => {
     const before = vehicleFixture();
     const stored = imageFixture({ id: "new-primary", isPrimary: true, sortOrder: 1 });
     const ack = acknowledgeVehicleImage(vehicleImagesToPending(before), before, stored);
-    expect(ack.images.map(image => image.id)).toEqual(["new-primary", "image-1"]);
+    expect(ack.images.map(image => image.id)).toEqual(["image-1", "new-primary"]);
     expect(ack.images.filter(image => image.isPrimary).map(image => image.id)).toEqual(["new-primary"]);
   });
 

@@ -2,9 +2,9 @@
 title: Model and firmware notes
 description: Model and firmware notes.
 audience: user
-status: stable
-reviewedVersion: 0.2.0
-lastReviewed: 2026-11-09
+status: development
+reviewedVersion: main
+lastReviewed: 2026-11-20
 ---
 
 # Model and firmware notes
@@ -32,7 +32,7 @@ CV imports preserve the physical source line (including headers and blank lines)
 timestamp from the TXT header, shown in the detail panel. The timestamp retains its source wall-clock
 time without an assumed timezone. JSON exports and backups include these fields; edits or imports
 without provenance preserve existing metadata. Older records without a source still show “Not recorded”;
-the record timestamp is never used as the export date. Current backup format 28 preserves provenance
+the record timestamp is never used as the export date. Current backup format 29 preserves provenance
 and separate decoder working copies; supported older backups remain readable.
 Additional consist/decoder settings are collapsed. ESU DC
 analog permission is derived from CV29 and CV50 together. **Files & import** explains the two file types and lists imported records and
