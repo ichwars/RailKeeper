@@ -1,8 +1,8 @@
 # Roadmap
 
-Stable baseline: v0.2.0
+Stable baseline: v0.3.0
 
-Reviewed on 2026-11-20. The [v0.2.0 release notes](releases/v0.2.0.md) describe the published build.
+Reviewed on 2026-11-20. The [v0.3.0 release notes](releases/v0.3.0.md) describe the published build.
 
 ## Completed Foundation
 
@@ -98,7 +98,7 @@ Reviewed on 2026-11-20. The [v0.2.0 release notes](releases/v0.2.0.md) describe 
 - Optional screenshot and encrypted-contact capabilities, independent of text reporting.
 - Safe report IDs also on local HTTP origins, persistent submission admission and retry reconciliation.
 
-## Prepared locally for the next feature release
+## Included in v0.3.0
 
 - Record each component and quantity in an accessory set, including track sets without a vehicle.
 - Reorder saved vehicle images by dragging or with the existing arrow controls.
