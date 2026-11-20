@@ -2,8 +2,8 @@
 title: Sicherung und Wiederherstellung
 description: Sicherung und Wiederherstellung.
 audience: admin
-status: development
-reviewedVersion: main
+status: stable
+reviewedVersion: 0.3.0
 lastReviewed: 2026-11-20
 ---
 

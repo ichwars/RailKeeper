@@ -2,8 +2,8 @@
 title: Fahrzeugbilder und Beilagen
 description: Fahrzeugbilder und Beilagen hochladen, ordnen, anzeigen, herunterladen und sicher entfernen.
 audience: user
-status: development
-reviewedVersion: main
+status: stable
+reviewedVersion: 0.3.0
 lastReviewed: 2026-11-20
 ---
 

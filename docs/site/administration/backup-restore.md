@@ -2,8 +2,8 @@
 title: Backup and restore
 description: Backup and restore.
 audience: admin
-status: development
-reviewedVersion: main
+status: stable
+reviewedVersion: 0.3.0
 lastReviewed: 2026-11-20
 ---
 

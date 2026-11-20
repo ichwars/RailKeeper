@@ -2,14 +2,21 @@
 title: Modell- und Firmwarehinweise
 description: Modell- und Firmwarehinweise.
 audience: user
-status: development
-reviewedVersion: main
+status: stable
+reviewedVersion: 0.3.0
 lastReviewed: 2026-11-20
 ---
 
 # Modell- und Firmwarehinweise
 
 <GuideFigure name="decoder-library" alt="Decoderbibliothek mit Modellwahl und Quellen." caption="Die Regeln gelten für den jeweils genannten Quellen- und Firmwareumfang." />
+
+### Decoderunterlagen gesucht
+
+Bei 15 Modellvarianten fehlt eine passende CV- oder Registertabelle. Bei elf ESU- und PIKO-Varianten suchen wir die Belegung der Platine oder des Soundprojekts. Eine vorhandene Datei, ein Foto vom Beiblatt oder ein Link zur Anleitung hilft.
+
+[Zweiseitige Suchliste für Forum und Verein herunterladen (PDF)](https://raw.githubusercontent.com/ichwars/RailKeeper/main/docs/community/decoder-suchliste.pdf)
+
 
 ## Digitaldaten im Fahrzeugdialog
 

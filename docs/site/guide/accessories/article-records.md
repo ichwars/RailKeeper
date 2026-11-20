@@ -2,8 +2,8 @@
 title: Article records and technical data
 description: Create accessory records, maintain their identity, and verify technical data.
 audience: user
-status: development
-reviewedVersion: main
+status: stable
+reviewedVersion: 0.3.0
 lastReviewed: 2026-11-20
 ---
 

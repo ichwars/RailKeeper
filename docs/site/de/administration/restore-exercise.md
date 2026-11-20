@@ -2,8 +2,8 @@
 title: Eine Wiederherstellung sicher üben
 description: Eine Wiederherstellung sicher üben.
 audience: admin
-status: development
-reviewedVersion: main
+status: stable
+reviewedVersion: 0.3.0
 lastReviewed: 2026-11-20
 ---
 
