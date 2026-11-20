@@ -9,7 +9,7 @@ const inventoryChunk = /^\/assets\/VehiclesView-[^/]+\.js$/;
 const desktop = ".inventory-desktop-content";
 const mobile = ".inventory-mobile-list";
 
-async function openInventoryFromOverview(page, base, requests) {
+async function openInventoryFromOverview(page, { base }, requests) {
   await page.goto(`${base}/overview`);
   await page.getByRole("heading", { name: "Übersicht", exact: true }).first().waitFor();
   assert.ok(!requests.has(catalogPath), "Overview must not request the decoder catalog API");
@@ -83,7 +83,18 @@ async function checkResponsiveState(page) {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "Mobile layout must fit the viewport");
 }
 
-async function checkViewport(browser, { base, credentials, imageCount }, width) {
+async function checkInventory(page, { base, imageCount }, requests, width) {
+  await page.goto(`${base}/vehicles`);
+  const compact = width === 390;
+  await checkLazyImages(page, requests, imageCount, compact);
+  if (!compact) {
+    await checkResponsiveState(page);
+    await checkInventoryWindow(page, imageCount);
+  }
+}
+
+async function checkViewport(browser, config, width, check) {
+  const { base, credentials } = config;
   const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: "block" });
   try {
     await blockExternalRequests(context, new URL(base));
@@ -95,17 +106,7 @@ async function checkViewport(browser, { base, credentials, imageCount }, width) 
     const errors = [];
     page.on("request", request => requests.add(new URL(request.url()).pathname));
     page.on("pageerror", error => errors.push(error.message));
-    const compact = width === 390;
-    if (compact) {
-      await page.goto(`${base}/vehicles`);
-    } else {
-      await openInventoryFromOverview(page, base, requests);
-    }
-    await checkLazyImages(page, requests, imageCount, compact);
-    if (!compact) {
-      await checkResponsiveState(page);
-      await checkInventoryWindow(page, imageCount);
-    }
+    await check(page, config, requests, width);
     assert.deepEqual(errors, [], "No browser runtime errors");
   } finally {
     await closeContext(context);
@@ -118,8 +119,10 @@ const config = JSON.parse(input);
 assert.equal(new URL(config.base).hostname, "127.0.0.1", "Only the synthetic loopback server is supported");
 const browser = await chromium.launch();
 try {
-  await checkViewport(browser, config, 1440);
-  await checkViewport(browser, config, 390);
+  // The overview can display the same thumbnail as the last inventory row.
+  await checkViewport(browser, config, 1440, openInventoryFromOverview);
+  await checkViewport(browser, config, 1440, checkInventory);
+  await checkViewport(browser, config, 390, checkInventory);
   console.log("Browser performance checks passed");
 } finally {
   await closeBrowser(browser);
