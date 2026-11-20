@@ -2,6 +2,11 @@ name: Windows Standalone Package
 
 on:
   workflow_dispatch:
+    inputs:
+      qualification_tag:
+        description: "Qualify an existing release tag with the reviewed test suite; upload workflow artifacts only"
+        type: string
+        required: false
   push:
     tags:
       - "v*.*.*"
@@ -12,8 +17,34 @@ permissions:
 jobs:
   windows-standalone:
     runs-on: windows-latest
+    env:
+      SOURCE_DIR: ${{ inputs.qualification_tag && '.cache/release-source' || '.' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Check out the published source for requalification
+        if: inputs.qualification_tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: refs/tags/${{ inputs.qualification_tag }}
+          path: .cache/release-source
+          persist-credentials: false
+
+      - name: Verify tag identity and application source
+        if: inputs.qualification_tag
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.qualification_tag }}
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v[0-9]+(\.[0-9]+){2,3}(-[0-9A-Za-z.-]+)?$') { throw "Invalid release tag" }
+          $tag = git -C $env:SOURCE_DIR tag --points-at HEAD
+          if ($LASTEXITCODE -ne 0 -or $env:RELEASE_TAG -notin @($tag)) { throw "Release tag does not identify checkout" }
+          foreach ($path in @('backend', 'frontend', 'openapi', 'deploy/windows', '.go-version')) {
+            $source = git -C $env:SOURCE_DIR rev-parse "HEAD:$path"
+            if ($LASTEXITCODE -ne 0) { throw "Missing release object: $path" }
+            $qualified = git rev-parse "HEAD:$path"
+            if ($LASTEXITCODE -ne 0 -or $qualified -ne $source) { throw "Qualification source differs: $path" }
+          }
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
@@ -27,12 +58,12 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
-        working-directory: frontend
+        working-directory: ${{ env.SOURCE_DIR }}/frontend
         run: npm ci
 
       - name: Build standalone package
         shell: pwsh
-        run: .\tools\build_windows_standalone.ps1
+        run: .\tools\build_windows_standalone.ps1 -SourceRoot (Resolve-Path $env:SOURCE_DIR)
 
       - name: Upload sanitized qualification reports and screenshots
         if: always()
@@ -49,10 +80,11 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: railkeeper-windows-standalone
-          path: dist/windows-standalone/*.zip
+          path: ${{ env.SOURCE_DIR }}/dist/windows-standalone/*.zip
+          include-hidden-files: true
 
       - name: Upload release asset
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') && !inputs.qualification_tag
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           generate_release_notes: false

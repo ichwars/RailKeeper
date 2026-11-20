@@ -13,8 +13,8 @@ Other hosts use their own temporary-directory configuration; this launcher is no
 
 `tools/regression/matrix.py` inventories all registered HTTP methods, paths and access declarations.
 Its original reviewed digest froze 200 routes at commit `2cdfd4430ffb28d0d726d2de6cb67bc43b329946`.
-The current reviewed digest covers 222 routes, including the additive manual CV draft, catalog, decoder
-configuration and manual valuation endpoints. Original methods, paths and access declarations remain protected.
+The v0.3.0 digest covers 225 routes. The 223 routes reviewed for v0.2.0 retain their access
+declarations. The additions are the viewer-readable vehicle report data and selected attachment archive. Original methods, paths and access declarations remain protected.
 An intentional contract change requires reviewing the matrix and updating the digest. The script verifies
 that evidence source files exist. This source inventory does not establish behavioral coverage of every route.
 

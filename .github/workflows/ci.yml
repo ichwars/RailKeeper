@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Test release publication guards
         run: python3 .github/scripts/test_release_workflow.py
+      - name: Verify registered API routes and access against the reviewed baseline
+        run: python3 tools/regression/matrix.py
       - name: Check release compiler alignment
         run: python3 .github/scripts/check_go_toolchain.py
       - name: Test compiler drift rejection

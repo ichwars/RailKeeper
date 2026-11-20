@@ -11,9 +11,9 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-# All 222 previous method/path/access triples are retained. The sole addition is
-# POST /users/{id}/login-budget/reset with Admin access (reviewed for R2/R9).
-ROUTES_SHA256 = "0dbee8bbb04a6c705a5648540152a7365b9c826d6b2b7d848a76dbca619c1561"
+# All 223 v0.2.0 method/path/access triples are retained. The two read operations
+# added since then are vehicle report data and the selected vehicle attachment archive.
+ROUTES_SHA256 = "1bde3b3e0f7fa756646695c4eb918c1c2e895f74cf67f2eac37d00c45509ff7e"
 
 # Longest matching prefix wins. New top-level areas must be classified explicitly.
 FEATURES = {
@@ -49,10 +49,11 @@ FEATURES = {
                   "backend/internal/api/vehicle_valuations_test.go", "frontend/src/features/vehicles/useVehicleValuations.test.tsx"],
     },
     "media": {
-        "prefixes": ["/vehicles/{id}/images", "/vehicles/{id}/attachments"],
+        "prefixes": ["/vehicles/{id}/images", "/vehicles/{id}/attachments", "/vehicles/{id}/attachment-archive"],
         "ui": "Uploads, Vorschau, Download, Hauptbild, Verknüpfungen",
         "storage": "vehicle_images, vehicle_attachments, file_blobs and referenced files",
-        "tests": ["backend/internal/application/vehicles_test.go", "backend/internal/application/backup_test.go"],
+        "tests": ["backend/internal/application/vehicles_test.go", "backend/internal/application/backup_test.go",
+                  "backend/internal/api/vehicle_attachment_archive_test.go"],
     },
     "vehicle-catalog": {
         "prefixes": ["/catalog"],
