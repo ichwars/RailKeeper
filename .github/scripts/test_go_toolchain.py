@@ -12,9 +12,11 @@ class ToolchainAlignmentTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
         (self.root / "backend").mkdir()
+        (self.root / "tools/windows-resources").mkdir(parents=True)
         (self.root / ".github/workflows").mkdir(parents=True)
         self.write(".go-version", "1.27.3\n")
         self.write("backend/go.mod", "module example\n\ngo 1.27.3\n")
+        self.write("tools/windows-resources/go.mod", "module example/resources\n\ngo 1.27.3\n")
         self.write("Dockerfile", "FROM golang:1.27.3-alpine AS backend-build\n")
         for name in ("ci.yml", "windows-standalone.yml", "codeql.yml"):
             self.write(f".github/workflows/{name}", "go-version-file: .go-version\n")
@@ -27,11 +29,13 @@ class ToolchainAlignmentTests(unittest.TestCase):
         self.assertIn("Go 1.27.3 is identical", check(self.root))
 
     def test_separately_pinned_older_and_newer_module_versions_fail(self):
-        for version in ("1.26.10", "1.27.4"):
-            with self.subTest(version=version):
-                self.write("backend/go.mod", f"module example\ngo {version}\n")
-                with self.assertRaisesRegex(SystemExit, "same Go compiler"):
-                    check(self.root)
+        for module in ("backend/go.mod", "tools/windows-resources/go.mod"):
+            for version in ("1.26.10", "1.27.4"):
+                with self.subTest(module=module, version=version):
+                    self.write(module, f"module example\ngo {version}\n")
+                    with self.assertRaisesRegex(SystemExit, "same Go compiler"):
+                        check(self.root)
+            self.write(module, "module example\ngo 1.27.3\n")
 
     def test_docker_drift_fails(self):
         self.write("Dockerfile", "FROM golang:1.26.10-alpine AS backend-build\n")

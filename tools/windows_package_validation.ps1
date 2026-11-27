@@ -8,6 +8,37 @@ $script:ForbiddenRailKeeperDirectories = @(
   "backups"
 )
 
+$script:RequiredRailKeeperPackageFiles = @(
+  "RailKeeper.exe",
+  "start-railkeeper.bat",
+  "LICENSE.md",
+  "THIRD_PARTY_NOTICES.md",
+  "THIRD_PARTY_LICENSES.txt",
+  "web/fonts/LICENSE-Selawik.txt"
+)
+
+function Assert-RailKeeperExecutableVersion {
+  param([string]$ExePath, [string]$Version)
+
+  $info = [Diagnostics.FileVersionInfo]::GetVersionInfo($ExePath)
+  $expectedNumber = @((($Version -split '-', 2)[0] -split '\.') | ForEach-Object { [int]$_ })
+  if ($expectedNumber.Count -eq 3) { $expectedNumber += 0 }
+  $fileNumber = @($info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart, $info.FilePrivatePart)
+  $productNumber = @($info.ProductMajorPart, $info.ProductMinorPart, $info.ProductBuildPart, $info.ProductPrivatePart)
+  if ($info.ProductName -cne "RailKeeper" -or $info.OriginalFilename -cne "RailKeeper.exe" -or
+      $info.ProductVersion -cne $Version -or $info.FileVersion -cne $Version -or
+      ($fileNumber -join '.') -ne ($expectedNumber -join '.') -or
+      ($productNumber -join '.') -ne ($expectedNumber -join '.')) {
+    throw "Windows version metadata does not match RailKeeper $Version."
+  }
+
+  $runtimeVersion = & $ExePath version
+  if ($LASTEXITCODE -ne 0 -or ($runtimeVersion | ConvertFrom-Json).version -cne $Version) {
+    throw "Packaged RailKeeper.exe version does not match $Version."
+  }
+  Write-Host "Verified Windows executable $($info.OriginalFilename) ($($info.ProductName) $Version, PE $($fileNumber -join '.')) against its CLI version."
+}
+
 function Assert-SafeRailKeeperPackageEntry {
   param([string]$RelativePath)
 
@@ -52,10 +83,16 @@ function Assert-RailKeeperPackageDirectory {
     $relativePath = [IO.Path]::GetRelativePath($rootPath, $item.FullName)
     Assert-SafeRailKeeperPackageEntry -RelativePath $relativePath
   }
+  foreach ($name in $script:RequiredRailKeeperPackageFiles) {
+    $file = Get-Item -LiteralPath (Join-Path $rootPath $name) -ErrorAction SilentlyContinue
+    if (-not $file -or $file.PSIsContainer -or -not $file.Length) {
+      throw "Missing or empty package file: $name"
+    }
+  }
 }
 
 function Assert-RailKeeperPackageArchive {
-  param([string]$ZipPath)
+  param([string]$ZipPath, [string]$PackageDir)
 
   if ([string]::IsNullOrWhiteSpace($ZipPath)) {
     throw "Package archive is required."
@@ -68,8 +105,26 @@ function Assert-RailKeeperPackageArchive {
   Add-Type -AssemblyName System.IO.Compression.FileSystem
   $archive = [IO.Compression.ZipFile]::OpenRead($archiveItem.FullName)
   try {
+    $files = @{}
     foreach ($entry in $archive.Entries) {
       Assert-SafeRailKeeperPackageEntry -RelativePath $entry.FullName
+      $name = $entry.FullName.Replace("\", "/")
+      if ($files.ContainsKey($name)) { throw "Duplicate archive entry: $name" }
+      $files.Add($name, $entry)
+    }
+    foreach ($name in $script:RequiredRailKeeperPackageFiles) {
+      $entry = $files[$name]
+      if (-not $entry -or -not $entry.Length) { throw "Missing or empty archive file: $name" }
+      if ($PackageDir) {
+        $stream = $entry.Open()
+        try {
+          $actualHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($stream))
+        } finally {
+          $stream.Dispose()
+        }
+        $expectedHash = (Get-FileHash -LiteralPath (Join-Path $PackageDir $name)).Hash
+        if ($actualHash -ne $expectedHash) { throw "Archive file differs from qualified package: $name" }
+      }
     }
   } finally {
     $archive.Dispose()

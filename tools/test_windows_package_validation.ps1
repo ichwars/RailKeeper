@@ -7,7 +7,7 @@ function New-GoodPackageTree {
   param([string]$Path)
 
   New-Item -ItemType Directory -Force -Path $Path | Out-Null
-  foreach ($directory in @("web", "migrations", "seeds")) {
+  foreach ($directory in @("web/fonts", "migrations", "seeds")) {
     New-Item -ItemType Directory -Force -Path (Join-Path $Path $directory) | Out-Null
   }
   Set-Content -LiteralPath (Join-Path $Path "RailKeeper.exe") -Value "exe"
@@ -16,6 +16,9 @@ function New-GoodPackageTree {
   Set-Content -LiteralPath (Join-Path $Path "seeds\master_data.json") -Value "seed"
   Set-Content -LiteralPath (Join-Path $Path "start-railkeeper.bat") -Value "start"
   Set-Content -LiteralPath (Join-Path $Path "README-Windows.txt") -Value "readme"
+  foreach ($license in @("LICENSE.md", "THIRD_PARTY_NOTICES.md", "THIRD_PARTY_LICENSES.txt", "web/fonts/LICENSE-Selawik.txt")) {
+    Set-Content -LiteralPath (Join-Path $Path $license) -Value "license"
+  }
 }
 
 function Assert-ValidationRejectsPath {
@@ -51,7 +54,7 @@ try {
 
   $goodZip = Join-Path $resolvedRoot "good.zip"
   Compress-Archive -Path (Join-Path $goodPackage "*") -DestinationPath $goodZip
-  Assert-RailKeeperPackageArchive -ZipPath $goodZip
+  Assert-RailKeeperPackageArchive -ZipPath $goodZip -PackageDir $goodPackage
 
   $badCases = @(
     @{ RelativePath = "data\user.txt"; ExpectedPath = "data" },
@@ -79,6 +82,21 @@ try {
     Assert-ValidationRejectsPath -ExpectedPath $expectedPath -Action {
       Assert-RailKeeperPackageArchive -ZipPath $badZip
     }
+  }
+
+  $licensePath = Join-Path $goodPackage "THIRD_PARTY_LICENSES.txt"
+  Set-Content -LiteralPath $licensePath -Value "altered license"
+  Assert-ValidationRejectsPath -ExpectedPath "THIRD_PARTY_LICENSES.txt" -Action {
+    Assert-RailKeeperPackageArchive -ZipPath $goodZip -PackageDir $goodPackage
+  }
+  Remove-Item -LiteralPath $licensePath
+  Assert-ValidationRejectsPath -ExpectedPath "THIRD_PARTY_LICENSES.txt" -Action {
+    Assert-RailKeeperPackageDirectory -PackageDir $goodPackage
+  }
+  $missingLicenseZip = Join-Path $resolvedRoot "missing-license.zip"
+  Compress-Archive -Path (Join-Path $goodPackage "*") -DestinationPath $missingLicenseZip
+  Assert-ValidationRejectsPath -ExpectedPath "THIRD_PARTY_LICENSES.txt" -Action {
+    Assert-RailKeeperPackageArchive -ZipPath $missingLicenseZip
   }
 
   Write-Host "Windows package validation regression passed."
