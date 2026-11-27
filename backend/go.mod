@@ -6,7 +6,6 @@ require (
 	filippo.io/age v1.3.2
 	github.com/ProtonMail/go-crypto v1.5.2
 	golang.org/x/crypto v0.59.0
-	golang.org/x/crypto/openpgp v0.1.0-deprecated
 	golang.org/x/image v0.48.0
 	golang.org/x/sys v0.50.0
 	modernc.org/sqlite v1.62.0
