@@ -1,12 +1,7 @@
 package api
 
 import (
-	"archive/tar"
 	"bytes"
-	"compress/gzip"
-	"crypto"
-	_ "crypto/sha256"
-	"encoding/binary"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,67 +9,32 @@ import (
 	"strings"
 	"testing"
 
-	"golang.org/x/crypto/openpgp"        //nolint:staticcheck // Legacy ECoS OpenPGP format; bounded, integrity-checked read-only compatibility.
-	"golang.org/x/crypto/openpgp/packet" //nolint:staticcheck // Legacy ECoS OpenPGP format; bounded, integrity-checked read-only compatibility.
-
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/infrastructure"
 )
 
 func syntheticAPIBackup(t *testing.T, dataDir string) []byte {
 	t.Helper()
-	entity, err := openpgp.NewEntity("Synthetic API backup", "", "fixture@invalid.example",
-		&packet.Config{RSABits: 1024, DefaultHash: crypto.SHA256})
+	fixtureDir := filepath.Join("testdata", "ecos-backup")
+	backup, err := os.ReadFile(filepath.Join(fixtureDir, "synthetic-backup.gpg"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var keyring bytes.Buffer
-	if err := entity.SerializePrivate(&keyring, nil); err != nil {
+	keyring, err := os.ReadFile(filepath.Join(fixtureDir, "synthetic-keyring.gpg"))
+	if err != nil {
 		t.Fatal(err)
 	}
 	private := filepath.Join(dataDir, "private", "ecos-backup")
 	if err := os.MkdirAll(private, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	for name, data := range map[string][]byte{"keyring.gpg": keyring.Bytes(), "passphrase": []byte("synthetic-passphrase\n")} {
-		if err := os.WriteFile(filepath.Join(private, name), data, 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	serial := make([]byte, 4)
-	binary.LittleEndian.PutUint32(serial, 0x12345678)
-	var archive bytes.Buffer
-	gz := gzip.NewWriter(&archive)
-	tw := tar.NewWriter(gz)
-	for name, data := range map[string][]byte{
-		"root/loks.bin": serial, "root/usrdata/lococonfig/01002.ecs": []byte("lococonfig 0 1 1002 29\n0:1:3\n4099:257:20\n"),
-	} {
-		if err := tw.WriteHeader(&tar.Header{Name: name, Typeflag: tar.TypeReg, Mode: 0o600, Size: int64(len(data))}); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := tw.Write(data); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if err := tw.Close(); err != nil {
+	if err := os.WriteFile(filepath.Join(private, "keyring.gpg"), keyring, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := gz.Close(); err != nil {
+	if err := os.WriteFile(filepath.Join(private, "passphrase"), []byte("synthetic-passphrase\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	var encrypted bytes.Buffer
-	writer, err := openpgp.Encrypt(&encrypted, []*openpgp.Entity{entity}, nil, nil,
-		&packet.Config{DefaultCipher: packet.CipherAES128, DefaultHash: crypto.SHA256})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := writer.Write(archive.Bytes()); err != nil {
-		t.Fatal(err)
-	}
-	if err := writer.Close(); err != nil {
-		t.Fatal(err)
-	}
-	return encrypted.Bytes()
+	return backup
 }
 
 func TestECoSBackupUploadRequiresAdminCSRFAndCreatesOnlyPreview(t *testing.T) {
