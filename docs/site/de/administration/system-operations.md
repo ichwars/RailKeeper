@@ -43,7 +43,7 @@ aktiven Datenpfad und den Speichermodus. Prüfe zusätzlich deine Start- oder Co
 | Paket wählen | Passendes Windows-x64-ZIP aus den GitHub-Releases laden | Gewünschte Version und Architektur |
 | Anwendung beenden | RailKeeper sauber schließen; nicht nur den Browser-Tab | Der bisherige Prozess läuft nicht mehr |
 | Neu entpacken | Das gesamte ZIP in einen neuen Programmordner entpacken | Startdatei und mitgelieferte Unterordner vollständig |
-| Starten | `start-railkeeper.bat` im neuen Ordner starten | Browser zeigt die neue Version |
+| Starten | **Start RailKeeper** im neuen Ordner öffnen, bei älteren Paketen `start-railkeeper.bat` | Browser zeigt die neue Version |
 | Daten prüfen | Gleichen Datenpfad und Speichermodus kontrollieren | Kein versehentlich leerer neuer Bestand |
 
 Der Standard-Datenordner ist `%LOCALAPPDATA%\RailKeeper\data`; ein ausdrücklich konfigurierter

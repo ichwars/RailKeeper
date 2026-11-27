@@ -15,11 +15,15 @@ Choose where your collection will live: a Windows PC or your own server. RailKee
 
 1. Open [GitHub Releases](https://github.com/ichwars/RailKeeper/releases) and download the Windows x64 ZIP for your chosen version.
 2. Extract the entire ZIP into its own application folder.
-3. Start `start-railkeeper.bat`.
+3. Open **Start RailKeeper** in File Explorer. Use `start-railkeeper.bat` for older packages.
 4. Create your administrator on first access. There is no default password.
 5. Check the active data folder under **Settings > General > Storage usage**.
 
 The default is `%LOCALAPPDATA%\RailKeeper\data`, outside the replaceable application folder. An old `data` folder next to the EXE is migrated according to the [update safety rules](system-operations). Do not combine databases.
+
+The shortcut starts the console minimized. To stop RailKeeper, restore the console from
+the taskbar and press **Ctrl+C**. The console closes when RailKeeper exits. Closing a browser
+tab leaves RailKeeper running. For troubleshooting, run `start-railkeeper.bat` in an open terminal.
 
 ## Docker: on your computer or server
 

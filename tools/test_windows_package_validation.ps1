@@ -2,6 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $validationScript = Join-Path $PSScriptRoot "windows_package_validation.ps1"
 . $validationScript
+. (Join-Path $PSScriptRoot "windows_start_shortcut.ps1")
 
 function New-GoodPackageTree {
   param([string]$Path)
@@ -19,6 +20,7 @@ function New-GoodPackageTree {
   foreach ($license in @("LICENSE.md", "THIRD_PARTY_NOTICES.md", "THIRD_PARTY_LICENSES.txt", "web/fonts/LICENSE-Selawik.txt")) {
     Set-Content -LiteralPath (Join-Path $Path $license) -Value "license"
   }
+  New-RailKeeperStartShortcut -PackageDir $Path
 }
 
 function Assert-ValidationRejectsPath {
@@ -55,6 +57,22 @@ try {
   $goodZip = Join-Path $resolvedRoot "good.zip"
   Compress-Archive -Path (Join-Path $goodPackage "*") -DestinationPath $goodZip
   Assert-RailKeeperPackageArchive -ZipPath $goodZip -PackageDir $goodPackage
+
+  $movedPackage = Join-Path $resolvedRoot "Moved RailKeeper package"
+  Expand-Archive -LiteralPath $goodZip -DestinationPath $movedPackage
+  $shortcutPath = Join-Path $movedPackage "Start RailKeeper.lnk"
+  $shortcut = [IO.File]::ReadAllBytes($shortcutPath)
+  if ([BitConverter]::ToUInt32($shortcut, 20) -ne 0xa8 -or [BitConverter]::ToUInt32($shortcut, 60) -ne 7) {
+    throw "Shortcut must have a relative target and request a minimized window."
+  }
+  $offset = 76
+  foreach ($expected in @(".\RailKeeper.exe", "--standalone")) {
+    $length = 2 * [BitConverter]::ToUInt16($shortcut, $offset)
+    if ([Text.Encoding]::Unicode.GetString($shortcut, $offset + 2, $length) -cne $expected) {
+      throw "Unexpected Windows shortcut field. Expected '$expected'."
+    }
+    $offset += 2 + $length
+  }
 
   $badCases = @(
     @{ RelativePath = "data\user.txt"; ExpectedPath = "data" },

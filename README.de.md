@@ -14,8 +14,9 @@ Die Beschreibung folgt Main; einzelne Funktionen können dem stabilen Release vo
 
 1. Das Windows-x64-ZIP aus dem [aktuellen Release](https://github.com/ichwars/RailKeeper/releases/latest)
    vollständig in einen eigenen Programmordner entpacken.
-2. `start-railkeeper.bat` starten und das eigene Administratorkonto anlegen. Falls ein Einrichtungscode
-   abgefragt wird, steht er lokal in `%LOCALAPPDATA%\RailKeeper\data\setup-code.txt`.
+2. **Start RailKeeper** im Explorer öffnen und das eigene Administratorkonto anlegen. Ältere
+   Pakete starten per `start-railkeeper.bat`. Ein abgefragter Einrichtungscode steht lokal in
+   `%LOCALAPPDATA%\RailKeeper\data\setup-code.txt`.
 3. Die aktiven Daten liegen standardmäßig unter `%LOCALAPPDATA%\RailKeeper\data`.
 
 Vor einem Update sichern und RailKeeper schließen. Das neue ZIP in einen neuen

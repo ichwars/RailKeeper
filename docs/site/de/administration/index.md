@@ -46,7 +46,7 @@ So wird RailKeeper aktualisiert:
 1. Das passende ZIP über die Schaltfläche mit Versionsangabe oder die Release-Seite herunterladen.
 2. Eine aktuelle Anwendungssicherung erstellen und RailKeeper beenden.
 3. Das ZIP in einen neuen Programmordner entpacken. Keine Datenbank in diesen Ordner kopieren.
-4. Die neue `RailKeeper.exe` starten.
+4. Im neuen Ordner **Start RailKeeper** öffnen. Bei älteren Paketen `start-railkeeper.bat` verwenden.
 5. Anmelden, unter **Einstellungen > Allgemein > Speichernutzung** den aktiven Speicherort prüfen und den Bestand
    kontrollieren, bevor der bisherige Programmordner gelöscht wird.
 

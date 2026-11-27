@@ -25,12 +25,20 @@ Entpacken Sie das ZIP-Archiv vollstaendig auf Ihren Rechner, zum Beispiel:
 
 C:\Users\<IhrName>\Documents\RailKeeper
 
-Starten Sie anschliessend:
+Oeffnen Sie anschliessend die Verknuepfung "Start RailKeeper" im Explorer.
+Die Konsole startet minimiert. RailKeeper oeffnet den Browser automatisch.
+Falls der Browser nicht startet, holen Sie die Konsole ueber die Taskleiste
+nach vorn und oeffnen Sie die dort angezeigte lokale Adresse.
 
-start-railkeeper.bat
+Zum Beenden holen Sie die Konsole nach vorn und druecken Strg+C. Das beim
+Start geoeffnete Fenster schliesst sich mit RailKeeper. Wenn Sie nur den
+Browser-Tab schliessen, laeuft RailKeeper weiter. Fuer Fehlersuche und
+Terminalstart rufen Sie start-railkeeper.bat in einer geoeffneten Konsole auf.
 
-RailKeeper oeffnet danach automatisch den Browser. Falls der Browser nicht
-automatisch startet, oeffnen Sie die im Fenster angezeigte lokale Adresse.
+Open the "Start RailKeeper" shortcut in File Explorer. The console starts
+minimized and closes when RailKeeper exits. To stop RailKeeper, restore the
+console and press Ctrl+C. Closing a browser tab leaves RailKeeper running.
+For troubleshooting, run start-railkeeper.bat in an open terminal.
 
 Sicherer Datenordner
 --------------------
@@ -62,7 +70,6 @@ Speichers verloren. Regelmaessige externe Backups bleiben erforderlich.
 Wichtig
 -------
 
-- Lassen Sie das RailKeeper-Fenster waehrend der Nutzung geoeffnet.
 - Pruefen Sie den aktiven Datenordner unter Einstellungen > Allgemein.
 - Erstellen Sie vor Updates ein RailKeeper-Backup und nach Moeglichkeit eine
   zusaetzliche Kopie von %LOCALAPPDATA%\RailKeeper\data.
@@ -78,7 +85,7 @@ Update
    von GitHub herunter. RailKeeper installiert, entpackt oder ersetzt nichts.
 3. Ein RailKeeper-Backup erstellen und RailKeeper beenden.
 4. Das heruntergeladene ZIP in einen neuen Programmordner entpacken.
-5. start-railkeeper.bat im neuen Ordner starten.
+5. "Start RailKeeper" im neuen Ordner oeffnen.
 6. Unter Einstellungen den angezeigten Datenordner und den Bestand pruefen.
 
 Kopieren Sie keine Datenbank in den neuen Programmordner. RailKeeper verwendet

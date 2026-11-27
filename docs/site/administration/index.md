@@ -44,7 +44,7 @@ For an update:
 1. Download the matching ZIP from the versioned button or the linked release page.
 2. Create a current application backup and close RailKeeper.
 3. Extract the ZIP into a new program folder. Do not copy a database into that folder.
-4. Start the new `RailKeeper.exe`.
+4. Open **Start RailKeeper** in the new folder. Use `start-railkeeper.bat` for older packages.
 5. Sign in, check the active storage location under **Settings > General > Storage usage**, and verify the
    inventory before deleting the previous program folder.
 

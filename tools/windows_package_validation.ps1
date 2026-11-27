@@ -10,6 +10,7 @@ $script:ForbiddenRailKeeperDirectories = @(
 
 $script:RequiredRailKeeperPackageFiles = @(
   "RailKeeper.exe",
+  "Start RailKeeper.lnk",
   "start-railkeeper.bat",
   "LICENSE.md",
   "THIRD_PARTY_NOTICES.md",

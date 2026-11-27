@@ -8,6 +8,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "windows_package_validation.ps1")
 . (Join-Path $PSScriptRoot "windows_build_identity.ps1")
 . (Join-Path $PSScriptRoot "windows_package_licenses.ps1")
+. (Join-Path $PSScriptRoot "windows_start_shortcut.ps1")
 
 $repo = Resolve-Path $SourceRoot
 $frontend = Join-Path $repo "frontend"
@@ -114,6 +115,7 @@ try {
   Remove-Item -LiteralPath $resourceTemp -Recurse -Force
 }
 
+New-RailKeeperStartShortcut -PackageDir $packageDir
 Assert-RailKeeperPackageDirectory -PackageDir $packageDir
 
 if (Test-Path -LiteralPath $zipPath) {
@@ -123,15 +125,18 @@ Compress-Archive -Path (Join-Path $packageDir "*") -DestinationPath $zipPath -Fo
 Assert-RailKeeperPackageArchive -ZipPath $zipPath -PackageDir $packageDir
 
 if ($IsWindows) {
-  $extractedPackage = [IO.Directory]::CreateTempSubdirectory("railkeeper-zip-").FullName
+  $extractionRoot = [IO.Directory]::CreateTempSubdirectory("railkeeper-zip-").FullName
+  $extractedPackage = Join-Path $extractionRoot "Moved RailKeeper package"
   try {
     Expand-Archive -LiteralPath $zipPath -DestinationPath $extractedPackage
     Assert-RailKeeperExecutableVersion -ExePath (Join-Path $extractedPackage "RailKeeper.exe") -Version $Version
     if ($env:GITHUB_ACTIONS -eq "true") {
+      & python -u (Join-Path $PSScriptRoot "test_windows_launcher.py") $extractedPackage | Write-Host
+      if ($LASTEXITCODE -ne 0) { throw "Native Windows launcher qualification failed." }
       & (Join-Path $PSScriptRoot "test_windows_baseline.ps1") -PackageDir $extractedPackage -SourceRoot $repo
     }
   } finally {
-    Remove-Item -LiteralPath $extractedPackage -Recurse -Force
+    Remove-Item -LiteralPath $extractionRoot -Recurse -Force
   }
 }
 
