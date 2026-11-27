@@ -139,10 +139,14 @@ def assert_batch_failure_returns_to_prompt(package, working_dir):
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, errors="replace",
         creationflags=subprocess.CREATE_NEW_CONSOLE, cwd=working_dir, env=env, timeout=20, check=True,
     )
-    lines = result.stdout.splitlines()
+    # With redirected input, cmd writes its prompt and the echo result on the same line.
+    lines = [line.rpartition(">")[2] for line in result.stdout.splitlines()]
     require("server listen failed" in result.stdout and "RAILKEEPER_TEST_EXIT=1" in lines,
             f"The batch launcher did not propagate the application startup failure:\n{result.stdout}")
-    require(f"RAILKEEPER_TEST_CWD={working_dir}".casefold() in {line.casefold() for line in lines},
+    marker = "RAILKEEPER_TEST_CWD="
+    cwd = next((Path(line.removeprefix(marker)) for line in lines if line.startswith(marker)), None)
+    # cmd may display the short Windows path even when the caller used a long path.
+    require(cwd is not None and cwd.samefile(working_dir),
             f"The caller's Command Prompt did not retain its working directory:\n{result.stdout}")
     print("The batch launcher returned exit code 1 and restored the calling Command Prompt's directory.")
 
