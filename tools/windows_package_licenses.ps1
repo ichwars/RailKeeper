@@ -21,8 +21,8 @@ function Write-RailKeeperPackageLicenses {
   if ($LASTEXITCODE -ne 0) { throw "Could not locate the Go standard library." }
   $goVersion = & go env GOVERSION
   if ($LASTEXITCODE -ne 0) { throw "Could not identify the Go standard library version." }
-  $modules = & go list -mod=readonly -deps -f '{{with .Module}}{{if not .Main}}{{.Path}} {{.Version}}|{{.Dir}}{{end}}{{end}}' ./cmd/railkeeper
-  if ($LASTEXITCODE -ne 0) { throw "Could not identify Go modules for the Windows executable." }
+  $modules = & go list -mod=readonly -deps -f '{{with .Module}}{{if not .Main}}{{.Path}} {{.Version}}|{{.Dir}}{{end}}{{end}}' ./cmd/railkeeper ./cmd/railkeeper-launcher
+  if ($LASTEXITCODE -ne 0) { throw "Could not identify Go modules for the Windows executables." }
 
   Push-Location $Frontend
   try {

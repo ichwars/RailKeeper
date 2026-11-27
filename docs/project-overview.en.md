@@ -92,7 +92,7 @@ Does RailKeeper help you? Support the project with a [star on GitHub](https://gi
 ### Windows Standalone (no installation required)
 
 Download the Windows x64 ZIP from a release, extract it completely, and open
-**Start RailKeeper** in File Explorer. The console starts minimized. To stop RailKeeper,
+`Start RailKeeper.exe` in File Explorer. The console starts minimized. To stop RailKeeper,
 restore the console from the taskbar and press **Ctrl+C**. It closes when RailKeeper exits.
 Use `start-railkeeper.bat` from an existing terminal or with older packages.
 

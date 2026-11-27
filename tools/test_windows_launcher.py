@@ -1,4 +1,4 @@
-"""Exercise the relocated, extracted Windows ZIP using the Windows shell."""
+"""Exercise the relocated, extracted Windows ZIP on the native Windows runner."""
 
 import ctypes as ct
 from ctypes import wintypes as win
@@ -13,17 +13,6 @@ import urllib.error
 import urllib.request
 
 
-class ShellExecuteInfo(ct.Structure):
-    _fields_ = [
-        ("cbSize", win.DWORD), ("fMask", win.ULONG), ("hwnd", win.HWND),
-        ("lpVerb", win.LPCWSTR), ("lpFile", win.LPCWSTR),
-        ("lpParameters", win.LPCWSTR), ("lpDirectory", win.LPCWSTR),
-        ("nShow", ct.c_int), ("hInstApp", win.HINSTANCE), ("lpIDList", ct.c_void_p),
-        ("lpClass", win.LPCWSTR), ("hkeyClass", win.HKEY), ("dwHotKey", win.DWORD),
-        ("hIcon", win.HANDLE), ("hProcess", win.HANDLE),
-    ]
-
-
 def api(dll, name, result, *args):
     function = getattr(dll, name)
     function.restype = result
@@ -33,17 +22,13 @@ def api(dll, name, result, *args):
 
 kernel = ct.WinDLL("kernel32", use_last_error=True)
 user = ct.WinDLL("user32", use_last_error=True)
-shell = ct.WinDLL("shell32", use_last_error=True)
-ole = ct.OleDLL("ole32")
-
-shell_execute = api(shell, "ShellExecuteExW", win.BOOL, ct.POINTER(ShellExecuteInfo))
 attach_console = api(kernel, "AttachConsole", win.BOOL, win.DWORD)
 free_console = api(kernel, "FreeConsole", win.BOOL)
 console_window = api(kernel, "GetConsoleWindow", win.HWND)
 console_processes = api(kernel, "GetConsoleProcessList", win.DWORD, ct.POINTER(win.DWORD), win.DWORD)
 ignore_ctrl_c = api(kernel, "SetConsoleCtrlHandler", win.BOOL, ct.c_void_p, win.BOOL)
 send_ctrl_event = api(kernel, "GenerateConsoleCtrlEvent", win.BOOL, win.DWORD, win.DWORD)
-process_id = api(kernel, "GetProcessId", win.DWORD, win.HANDLE)
+open_process = api(kernel, "OpenProcess", win.HANDLE, win.DWORD, win.BOOL, win.DWORD)
 process_path = api(kernel, "QueryFullProcessImageNameW", win.BOOL,
                    win.HANDLE, win.DWORD, win.LPWSTR, ct.POINTER(win.DWORD))
 wait_for_process = api(kernel, "WaitForSingleObject", win.DWORD, win.HANDLE, win.DWORD)
@@ -53,6 +38,9 @@ close_handle = api(kernel, "CloseHandle", win.BOOL, win.HANDLE)
 is_window = api(user, "IsWindow", win.BOOL, win.HWND)
 is_minimized = api(user, "IsIconic", win.BOOL, win.HWND)
 
+PROCESS_TERMINATE = 0x0001
+PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+SYNCHRONIZE = 0x00100000
 WAIT_OBJECT_0 = 0
 WAIT_TIMEOUT = 258
 CTRL_C_EVENT = 0
@@ -76,53 +64,44 @@ def wait_until(predicate, message, seconds=30):
         time.sleep(0.1)
 
 
-def open_shortcut(path):
-    ole.CoInitializeEx(None, 2)  # COINIT_APARTMENTTHREADED
-    try:
-        info = ShellExecuteInfo()
-        info.cbSize = ct.sizeof(info)
-        # Keep the process handle, wait for launch, and suppress failure dialogs.
-        info.fMask = 0x40 | 0x100 | 0x400
-        info.lpFile = str(path)
-        info.lpDirectory = str(path.parent)
-        info.nShow = 1  # Normal shell invocation; the shortcut supplies its own show mode.
-        require_win32(shell_execute(ct.byref(info)), "Open the extracted Start RailKeeper shortcut")
-        require(info.hProcess, "The shortcut returned no process handle.")
-        return info.hProcess
-    finally:
-        ole.CoUninitialize()
-
-
-def assert_shortcut_lifecycle(package, address):
-    # The shell launch and its Ctrl+C must never share the CI runner's console.
+def assert_launcher_lifecycle(package, address, working_dir):
+    # Ctrl+C must only reach the new console owned by the packaged server.
     require_win32(free_console(), "Detach from the test runner console")
-    process = open_shortcut(package / "Start RailKeeper.lnk")
+    subprocess.run([str(package / "Start RailKeeper.exe")], cwd=working_dir, check=True, timeout=20)
+
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+    def ready():
+        try:
+            with opener.open(f"http://{address}/health", timeout=1) as response:
+                return response.status == 200
+        except (urllib.error.URLError, TimeoutError):
+            return False
+
+    wait_until(ready, "RailKeeper did not become ready from the relocated launcher.")
+    port = int(address.rsplit(":", 1)[1])
+    # Find the process serving the isolated endpoint after the GUI starter has exited.
+    pid = int(subprocess.check_output([
+        "powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+        f"(Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort {port} -State Listen -ErrorAction Stop).OwningProcess",
+    ], text=True, timeout=20, creationflags=subprocess.CREATE_NO_WINDOW).strip())
+    process = open_process(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE, False, pid)
+    require_win32(process, "Open the RailKeeper process serving the test endpoint")
+    verified_process = False
     try:
-        pid = process_id(process)
-        require_win32(pid, "Identify the shortcut process")
         path = ct.create_unicode_buffer(32768)
         size = win.DWORD(len(path))
-        require_win32(process_path(process, 0, path, ct.byref(size)), "Read the shortcut process path")
+        require_win32(process_path(process, 0, path, ct.byref(size)), "Read the RailKeeper process path")
         require(Path(path.value).samefile(package / "RailKeeper.exe"),
-                f"Shortcut launched an executable outside the extracted ZIP: {path.value}")
+                f"Starter launched an executable outside the extracted ZIP: {path.value}")
 
-        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-
-        def ready():
-            require(wait_for_process(process, 0) == WAIT_TIMEOUT, "RailKeeper exited during startup.")
-            try:
-                with opener.open(f"http://{address}/health", timeout=1) as response:
-                    return response.status == 200
-            except (urllib.error.URLError, TimeoutError):
-                return False
-
-        wait_until(ready, "RailKeeper did not become ready from the relocated shortcut.")
+        verified_process = True
         require_win32(attach_console(pid), "Attach to the RailKeeper console")
         try:
             window = console_window()
             require(window and is_window(window), "RailKeeper has no console window.")
-            require(is_minimized(window), "The shortcut opened a console that was not minimized.")
-            print("The relocated shortcut launched RailKeeper with a minimized console window.")
+            require(is_minimized(window), "The starter opened a console that was not minimized.")
+            print("The relocated starter launched RailKeeper with a minimized console window.")
 
             attached = (win.DWORD * 8)()
             count = console_processes(attached, len(attached))
@@ -141,7 +120,7 @@ def assert_shortcut_lifecycle(package, address):
         wait_until(lambda: not is_window(window), "The console window remained after RailKeeper exited.", seconds=10)
         print("Ctrl+C stopped RailKeeper, and the console window closed after the probe detached.")
     finally:
-        if wait_for_process(process, 0) == WAIT_TIMEOUT:
+        if verified_process and wait_for_process(process, 0) == WAIT_TIMEOUT:
             terminate_process(process, 1)
             wait_for_process(process, 5000)
         close_handle(process)
@@ -175,7 +154,7 @@ def main():
             listener.bind(("127.0.0.1", 0))
             address = f"127.0.0.1:{listener.getsockname()[1]}"
         os.environ.update(RAILKEEPER_ADDR=address, RAILKEEPER_DATA_DIR=data, RAILKEEPER_OPEN_BROWSER="false")
-        assert_shortcut_lifecycle(package, address)
+        assert_launcher_lifecycle(package, address, Path(data))
         assert_batch_failure_returns_to_prompt(package, Path(data))
 
 

@@ -8,7 +8,6 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "windows_package_validation.ps1")
 . (Join-Path $PSScriptRoot "windows_build_identity.ps1")
 . (Join-Path $PSScriptRoot "windows_package_licenses.ps1")
-. (Join-Path $PSScriptRoot "windows_start_shortcut.ps1")
 
 $repo = Resolve-Path $SourceRoot
 $frontend = Join-Path $repo "frontend"
@@ -84,6 +83,8 @@ Push-Location $backend
 try {
   $unversionedExe = Join-Path $resourceTemp "RailKeeper.exe"
   $exePath = Join-Path $packageDir "RailKeeper.exe"
+  $unversionedLauncher = Join-Path $resourceTemp "Start RailKeeper.exe"
+  $launcherPath = Join-Path $packageDir "Start RailKeeper.exe"
   $env:GOOS = "windows"
   $env:GOARCH = "amd64"
   $env:GOCACHE = Join-Path $repo ".cache\go-build"
@@ -100,12 +101,17 @@ try {
   if ($LASTEXITCODE -ne 0) {
     throw "Windows backend build failed with exit code $LASTEXITCODE"
   }
+  & go build -mod=readonly -buildvcs=false -trimpath -ldflags "-s -w -H=windowsgui" -o $unversionedLauncher ./cmd/railkeeper-launcher
+  if ($LASTEXITCODE -ne 0) { throw "Windows launcher build failed with exit code $LASTEXITCODE." }
+
   Write-RailKeeperPackageLicenses -Frontend $frontend -Npm $npm -PackageDir $packageDir
 
   $env:GOOS = $null
   $env:GOARCH = $null
   & go -C (Join-Path $PSScriptRoot "windows-resources") run -mod=readonly . $Version $brandIconSource $unversionedExe $exePath
   if ($LASTEXITCODE -ne 0) { throw "Could not write Windows icon and version resources." }
+  & go -C (Join-Path $PSScriptRoot "windows-resources") run -mod=readonly . $Version $brandIconSource $unversionedLauncher $launcherPath
+  if ($LASTEXITCODE -ne 0) { throw "Could not write Windows launcher icon and version resources." }
 } finally {
   $env:GOOS = $previousGoos
   $env:GOARCH = $previousGoarch
@@ -115,7 +121,6 @@ try {
   Remove-Item -LiteralPath $resourceTemp -Recurse -Force
 }
 
-New-RailKeeperStartShortcut -PackageDir $packageDir
 Assert-RailKeeperPackageDirectory -PackageDir $packageDir
 
 if (Test-Path -LiteralPath $zipPath) {
@@ -130,6 +135,7 @@ if ($IsWindows) {
   try {
     Expand-Archive -LiteralPath $zipPath -DestinationPath $extractedPackage
     Assert-RailKeeperExecutableVersion -ExePath (Join-Path $extractedPackage "RailKeeper.exe") -Version $Version
+    Assert-RailKeeperExecutableVersion -ExePath (Join-Path $extractedPackage "Start RailKeeper.exe") -Version $Version -MetadataOnly
     if ($env:GITHUB_ACTIONS -eq "true") {
       & python -u (Join-Path $PSScriptRoot "test_windows_launcher.py") $extractedPackage | Write-Host
       if ($LASTEXITCODE -ne 0) { throw "Native Windows launcher qualification failed." }

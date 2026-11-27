@@ -25,7 +25,7 @@ Entpacken Sie das ZIP-Archiv vollstaendig auf Ihren Rechner, zum Beispiel:
 
 C:\Users\<IhrName>\Documents\RailKeeper
 
-Oeffnen Sie anschliessend die Verknuepfung "Start RailKeeper" im Explorer.
+Oeffnen Sie anschliessend "Start RailKeeper.exe" im Explorer.
 Die Konsole startet minimiert. RailKeeper oeffnet den Browser automatisch.
 Falls der Browser nicht startet, holen Sie die Konsole ueber die Taskleiste
 nach vorn und oeffnen Sie die dort angezeigte lokale Adresse.
@@ -35,7 +35,7 @@ Start geoeffnete Fenster schliesst sich mit RailKeeper. Wenn Sie nur den
 Browser-Tab schliessen, laeuft RailKeeper weiter. Fuer Fehlersuche und
 Terminalstart rufen Sie start-railkeeper.bat in einer geoeffneten Konsole auf.
 
-Open the "Start RailKeeper" shortcut in File Explorer. The console starts
+Open "Start RailKeeper.exe" in File Explorer. The console starts
 minimized and closes when RailKeeper exits. To stop RailKeeper, restore the
 console and press Ctrl+C. Closing a browser tab leaves RailKeeper running.
 For troubleshooting, run start-railkeeper.bat in an open terminal.
@@ -85,7 +85,7 @@ Update
    von GitHub herunter. RailKeeper installiert, entpackt oder ersetzt nichts.
 3. Ein RailKeeper-Backup erstellen und RailKeeper beenden.
 4. Das heruntergeladene ZIP in einen neuen Programmordner entpacken.
-5. "Start RailKeeper" im neuen Ordner oeffnen.
+5. "Start RailKeeper.exe" im neuen Ordner oeffnen.
 6. Unter Einstellungen den angezeigten Datenordner und den Bestand pruefen.
 
 Kopieren Sie keine Datenbank in den neuen Programmordner. RailKeeper verwendet

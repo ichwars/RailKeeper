@@ -93,7 +93,7 @@ RailKeeper hilft dir? Mit einem [Stern auf GitHub](https://github.com/ichwars/Ra
 ### Windows Standalone (ohne Installation)
 
 Lade das Windows-x64-ZIP aus einem Release herunter, entpacke es vollständig und öffne
-**Start RailKeeper** im Explorer. Die Konsole startet minimiert. Hole sie zum Beenden
+`Start RailKeeper.exe` im Explorer. Die Konsole startet minimiert. Hole sie zum Beenden
 über die Taskleiste nach vorn und drücke **Strg+C**. Sie schließt sich mit RailKeeper.
 Aus einem bestehenden Terminal oder bei älteren Paketen starte `start-railkeeper.bat`.
 

@@ -42,7 +42,7 @@ storage mode. Also check the actual startup or Compose configuration.
 | Choose a package | Download the matching Windows-x64 ZIP from GitHub Releases | Intended version and architecture |
 | Stop the application | Shut down RailKeeper, not just its browser tab | Old process is no longer running |
 | Extract separately | Extract the entire ZIP into a new application directory | Startup file and bundled subdirectories are complete |
-| Start | Open **Start RailKeeper** in the new folder, or run `start-railkeeper.bat` for older packages | Browser shows the new version |
+| Start | Open `Start RailKeeper.exe` in the new folder, or run `start-railkeeper.bat` for older packages | Browser shows the new version |
 | Check data | Verify the same data path and storage mode | No accidental empty inventory |
 
 The default data directory is `%LOCALAPPDATA%\RailKeeper\data`; explicit configuration or portable
