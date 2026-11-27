@@ -6,9 +6,10 @@ def check(root):
     release = (root / ".go-version").read_text().strip()
     if not re.fullmatch(r"\d+\.\d+\.\d+", release):
         raise SystemExit(".go-version must pin a release compiler")
-    minimum = re.search(r"^go (\S+)$", (root / "backend/go.mod").read_text(), re.M)
-    if minimum is None or minimum[1] != release:
-        raise SystemExit("go.mod and .go-version must declare the same Go compiler")
+    for module in ("backend/go.mod", "tools/windows-resources/go.mod"):
+        minimum = re.search(r"^go (\S+)$", (root / module).read_text(), re.M)
+        if minimum is None or minimum[1] != release:
+            raise SystemExit(f"{module} and .go-version must declare the same Go compiler")
     docker = (root / "Dockerfile").read_text()
     if f"golang:{release}-alpine AS backend-build" not in docker:
         raise SystemExit("Docker release compiler differs from .go-version")

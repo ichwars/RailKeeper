@@ -4,6 +4,20 @@ RailKeeper Windows Standalone (ohne Installation)
 Dieses Paket kann ohne Installation gestartet werden. Es werden keine
 zusaetzlichen Programme, Datenbanken oder Laufzeitumgebungen benoetigt.
 
+Lizenz und Quellcode / License and source code
+--------------------------------------------
+
+LICENSE.md enthaelt die AGPL-3.0-Lizenz von RailKeeper. In
+THIRD_PARTY_NOTICES.md und THIRD_PARTY_LICENSES.txt stehen die Hinweise
+und Lizenztexte zu Drittanbietern. Die Schriftlizenz liegt unter
+web/fonts/LICENSE-Selawik.txt. Der Quellcode steht beim zugehoerigen
+Versionstag unter https://github.com/ichwars/RailKeeper/releases bereit.
+
+LICENSE.md contains RailKeeper's AGPL-3.0 license. See THIRD_PARTY_NOTICES.md
+and THIRD_PARTY_LICENSES.txt for third-party notices and license texts, and
+web/fonts/LICENSE-Selawik.txt for the font license. Source code is available
+under the corresponding version tag at https://github.com/ichwars/RailKeeper/releases.
+
 Empfohlene Nutzung
 ------------------
 
