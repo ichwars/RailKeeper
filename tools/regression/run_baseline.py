@@ -50,7 +50,8 @@ def verify_media(client, fixture):
 
 
 def restore(client, document, expected=200):
-    return client.upload("/api/v1/backup/restore", "reference.json", json.dumps(document).encode(),
+    content = document if isinstance(document, bytes) else json.dumps(document).encode()
+    return client.upload("/api/v1/backup/restore", "reference.json", content,
                          "application/json", expected=expected)
 
 
@@ -103,6 +104,13 @@ def run(args):
     with Runtime(previous, previous_backend, args.static_dir, source_data, root / "source-runtime",
                  image=args.image if not args.previous_binary else None, configuration=configuration) as source:
         client = source.client
+        if args.source_tag:
+            source_go = "go" + (previous_backend.parent / ".go-version").read_text().strip()
+            identity = read_candidate(client, args.expected_source_commit, source_go)
+            if f"v{identity['version']}" != args.source_tag or identity["build"]["status"] != "release":
+                raise AssertionError("Backup source does not match the expected stable release")
+            report["source"] = {"tag": args.source_tag, **identity}
+            passed("stable-source-identity")
         credentials = setup(client, "reference-admin")
         fixture = seed(client)
         role_checks(client, fixture)
@@ -111,7 +119,12 @@ def run(args):
                                   {"settings": {"railkeeper.settings.defaultView": "vehicles"}})
         if settings["settings"].get("railkeeper.settings.defaultView") != "vehicles":
             raise AssertionError("Reference user preference was not persisted")
-        backup = client.request("GET", "/api/v1/backup/export")
+        source_export = client.request("GET", "/api/v1/backup/export", raw=True)
+        source_backup = json.loads(source_export)
+        backup = source_backup
+        if args.source_tag:
+            report["sourceBackupVersion"] = source_backup["version"]
+            report["sourceBackupSHA256"] = hashlib.sha256(source_export).hexdigest()
         baseline = backup_manifest(backup)
         observed = observations(client, fixture)
         verify_media(client, fixture)
@@ -171,9 +184,16 @@ def run(args):
                 raise AssertionError("Restore fixture has no local browser-origin proof to preserve")
             local_backup = target.client.request("GET", "/api/v1/backup/export")
             local_users = {user["id"] for user in target.client.request("GET", "/api/v1/users")}
-            restore(target.client, backup)
+            if args.source_tag:
+                validation = target.client.upload("/api/v1/backup/validate", "reference.json", source_export,
+                                                  "application/json", expected=200)
+                if not validation["compatible"]:
+                    raise AssertionError("Candidate preflight rejected the stable release backup")
+                passed("candidate-preflight-accepts-original-stable-app-backup")
+            restore(target.client, source_export if args.source_tag else backup)
             restored_backup = target.client.request("GET", "/api/v1/backup/export")
-            expected = backup_manifest(expected_fresh_restore(backup, local_backup, local_users,
+            expected = backup_manifest(expected_fresh_restore(
+                source_backup if args.source_tag else backup, local_backup, local_users,
                 restored_backup if args.catalog_backfill else None, args.catalog_authority, args.decoder_model, args.decoder_backfill))
             after = installation_manifest(target.data_dir)["tables"]
             for table in ("users", "roles", "user_roles", "sessions", "password_reset_requests",
@@ -302,6 +322,8 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, required=True, help="New directory; existing paths are refused")
     parser.add_argument("--browser", action="store_true")
     parser.add_argument("--expected-commit", help="Require the actual clean source commit in the running process")
+    parser.add_argument("--source-tag", help="Require this stable release and restore its unchanged export")
+    parser.add_argument("--expected-source-commit", help="Require the previous binary to identify this commit")
     parser.add_argument("--catalog-backfill", action="store_true", help="Verify the separately checked legacy catalog backfill")
     parser.add_argument("--catalog-authority", action="store_true", help="Verify the checked catalog authority conversion")
     parser.add_argument("--catalog-writes", action="store_true", help="Verify explicit catalog field selection and rejected replays")
@@ -309,6 +331,10 @@ if __name__ == "__main__":
     parser.add_argument("--decoder-backfill", action="store_true", help="Verify complete legacy CV groups, histories and sources")
     parser.add_argument("--image", help="Optional existing image on a rootless local Docker test daemon")
     arguments = parser.parse_args()
+    if arguments.source_tag or arguments.expected_source_commit:
+        if not all((arguments.source_tag, arguments.expected_source_commit, arguments.previous_binary,
+                    arguments.previous_backend, arguments.expected_commit)):
+            parser.error("Stable qualification requires the source tag, source commit, previous binary and backend, and candidate commit")
     if arguments.decoder_backfill and not all((arguments.decoder_model, arguments.catalog_backfill, arguments.catalog_authority)):
         parser.error("--decoder-backfill requires --decoder-model --catalog-backfill --catalog-authority")
     for field in ("binary", "backend", "static_dir", "previous_binary", "previous_backend"):

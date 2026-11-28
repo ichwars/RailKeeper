@@ -88,6 +88,24 @@ sowie offene Fragen dokumentieren. Blockierende Punkte sind Datenverlust, stille
 falsche Decoderzuordnung, Rollenverletzung oder unbeabsichtigte Gerätebefehle. Zugangsdaten,
 Datenbanken, private Backups und unredigierte Logs gehören nicht in Git oder öffentliche Issues.
 
+### Automatisierte Stable-Abnahme unter Linux
+
+Verwende einen sauberen Checkout des Kandidaten und den Tag des unmittelbar vorherigen
+veröffentlichten Stable. Du benötigst Bash, Git, Go mit Toolchain-Downloads und Python 3.
+Der Zielpfad muss neu sein. Dieses Beispiel verwendet v0.3.0 als Quelle.
+
+```bash
+bash tools/regression/run_stable_qualification.sh v0.3.0 "$(mktemp -d)/railkeeper"
+```
+
+Der Test baut beide Backends aus den jeweiligen Commits und startet drei getrennte Datenpfade.
+Er prüft die Aufwärtsmigration einer Kopie der alten Installation und den unveränderten App-Export
+in einer frischen Kandidateninstanz. Prüfpunkte sind unter anderem die Anmeldung, der Bestand und
+die Inhalte von Medien. Der CI-Job **Stable upgrade and restore** wählt vor der Veröffentlichung den
+aktuellen Stable als Quelle und speichert nur `qualification/report.json`. Der Bericht hält
+beide Commits, das Backup-Format, den SHA-256-Wert des Quell-Exports und die bestandenen
+Prüfschritte fest. Diese Linux-API-Prüfung und die praktische Abnahme oben ergänzen sich.
+
 ## English
 
 A second qualified person performs the procedure on a separate test machine using synthetic data
@@ -114,3 +132,21 @@ observed outcomes, and unresolved questions. Providing this document does not es
 Do not configure real SMTP or command-station writes for this exercise. Report data loss, silent
 replacement, incorrect decoder ownership, role violations or unintended device writes as blockers.
 Keep credentials, databases, private backups and unredacted logs outside Git and public issues.
+
+### Automated stable qualification on Linux
+
+Use a clean candidate checkout and the tag of the immediately preceding published stable
+release. You need Bash, Git, Go with toolchain downloads and Python 3. The destination must
+be new. This example uses v0.3.0 as the source.
+
+```bash
+bash tools/regression/run_stable_qualification.sh v0.3.0 "$(mktemp -d)/railkeeper"
+```
+
+The test builds both backends from their respective commits and starts three isolated data
+directories. It checks migration of a copy of the old installation and restores the unchanged
+app export into a fresh candidate instance. Checks include login, the collection and media
+contents. Before publication, the **Stable upgrade and restore** CI job selects the current
+stable release as the source and saves only `qualification/report.json`. The report records both
+commits, the backup format, the SHA-256 digest of the source export and the completed checks.
+This Linux API check complements the hands-on procedure above.

@@ -58,6 +58,12 @@ Bestand, aber keine lokalen Konten oder Anmeldedaten. Für einen vollständigen 
 wird zusätzlich eine geschützte Installationssicherung benötigt. Geräteänderungen erfolgen
 nur nach Vorschau und ausdrücklicher Bestätigung im jeweiligen Arbeitsablauf.
 
+Für jedes stabile Release prüfen wir das Upgrade vom unmittelbar vorherigen Stable
+und die Wiederherstellung eines dort erzeugten App-Backups. Besondere Migrationsschritte
+beschreiben wir in den Release-Notizen. Erstelle vor dem Update eine externe Sicherung
+und prüfe nach dem Start den Bestand. Die [Versionshinweise im Handbuch](docs/site/de/reference/releases-and-support.md)
+führen zu den Arbeitsschritten und Prüfnachweisen.
+
 ## English
 
 [English quick start and documentation](README.md#english).

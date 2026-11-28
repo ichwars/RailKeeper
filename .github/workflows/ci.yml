@@ -35,6 +35,39 @@ jobs:
       - name: Test disposable pilot bootstrap
         run: python3 -m unittest discover -s tools -p test_strix_pilot.py
 
+  stable-qualification:
+    name: Stable upgrade and restore
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: .go-version
+          cache-dependency-path: backend/go.sum
+      - name: Select the previous published stable tag
+        id: stable
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh api repos/ichwars/RailKeeper/releases/latest             --jq 'select(.draft == false and .prerelease == false) | .tag_name')
+          [[ $tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]
+          printf 'tag=%s\n' "$tag" >> "$GITHUB_OUTPUT"
+      - name: Verify the stable upgrade and restore its unchanged app backup
+        env:
+          SOURCE_TAG: ${{ steps.stable.outputs.tag }}
+        run: bash tools/regression/run_stable_qualification.sh "$SOURCE_TAG" "$RUNNER_TEMP/stable-qualification"
+      - name: Upload the synthetic qualification report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: stable-upgrade-and-restore
+          path: ${{ runner.temp }}/stable-qualification/qualification/report.json
+          if-no-files-found: error
+          retention-days: 30
+
   backend:
     name: Backend tests
     needs: [backend-coverage, backend-minimum, backend-race, backend-fuzz, release-workflow]

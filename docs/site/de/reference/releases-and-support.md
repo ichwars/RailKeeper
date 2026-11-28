@@ -29,6 +29,24 @@ beschreiben die Änderungen dieses Releases.
 Die [Release-Nachweise zu v0.3.0](https://github.com/ichwars/RailKeeper/blob/main/docs/releases/v0.3.0.md#go-tests-und-abdeckung)
 verlinken den erfolgreichen Go-Testlauf sowie dauerhaft gespeicherte Coverage-Berichte.
 
+## Upgrade vom vorherigen Stable
+
+Für jedes stabile Release prüfen wir das Upgrade vom unmittelbar vorherigen Stable und den
+Restore eines App-Backups aus dieser Version in einer separaten Instanz. Müssen Daten gesondert
+migriert werden, beschreiben die Release-Notizen den Migrationspfad und die nötigen Sicherungen.
+Wenn du mehrere Stable-Versionen überspringen möchtest, lies die Versionshinweise der
+Zwischenversionen und arbeite die dokumentierten Schritte der Reihe nach ab.
+
+1. Prüfe die [Release-Notizen](https://github.com/ichwars/RailKeeper/releases) der Zielversion.
+2. Exportiere ein [App-Backup](../administration/backup-restore) und erstelle für eine
+   vollständige Rückkehr zusätzlich eine [Installationssicherung](../administration/server-restore).
+3. Folge der [Update-Anleitung für Windows oder Docker](../administration/system-operations).
+   Prüfe nach dem Neustart Anmeldung, Bestand, Bilder und Anhänge. Verwende bei Bedarf die
+   [Restore-Übung](../administration/restore-exercise), um die Sicherung getrennt zu verifizieren.
+
+Die [unabhängige Build- und Restore-Abnahme](https://github.com/ichwars/RailKeeper/blob/main/docs/independent-qualification.md#deutsch)
+beschreibt auch, wie du die automatisierte Stable-Abnahme mit synthetischen Daten wiederholst.
+
 ## Rückmeldung zur v0.2.x-Testphase
 
 Nutze die kurze [Vorlage für Erfahrungsberichte](https://github.com/ichwars/RailKeeper/issues/new?template=experience_report.md).
