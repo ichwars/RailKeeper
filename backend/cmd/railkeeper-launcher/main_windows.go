@@ -18,6 +18,7 @@ import (
 
 func main() {
 	if err := startRailKeeper(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		message, _ := windows.UTF16PtrFromString("RailKeeper konnte nicht gestartet werden. / Could not start RailKeeper.\n\n" + err.Error())
 		title, _ := windows.UTF16PtrFromString("RailKeeper")
 		_, _ = windows.MessageBox(0, message, title, windows.MB_OK|windows.MB_ICONERROR)

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"unsafe"
 
@@ -223,7 +224,16 @@ func (w *desktopWindow) openExternal(target *url.URL) {
 	address, err := windows.UTF16PtrFromString(target.String())
 	if err == nil {
 		hwnd := w.hwnd
-		go func() { _ = windows.ShellExecute(hwnd, wide("open"), address, nil, nil, windows.SW_SHOWNORMAL) }()
+		go func() {
+			runtime.LockOSThread()
+			defer runtime.UnlockOSThread()
+			// The default protocol handler may be implemented as a shell extension.
+			if err := initializeSTA(); err != nil {
+				return
+			}
+			defer windows.CoUninitialize()
+			_ = windows.ShellExecute(hwnd, wide("open"), address, nil, nil, windows.SW_SHOWNORMAL)
+		}()
 	}
 }
 

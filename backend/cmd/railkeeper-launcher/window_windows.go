@@ -116,7 +116,7 @@ func startRailKeeper() error {
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	if err := windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED); err != nil && !errors.Is(err, syscall.Errno(windows.S_FALSE)) {
+	if err := initializeSTA(); err != nil {
 		return fmt.Errorf("initialize WebView2 COM thread: %w", err)
 	}
 	defer windows.CoUninitialize()
@@ -316,6 +316,14 @@ func (w *desktopWindow) beginShutdown() {
 		return
 	}
 	_ = w.instance.stop.Close()
+}
+
+func initializeSTA() error {
+	err := windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED)
+	if errors.Is(err, syscall.Errno(windows.S_FALSE)) {
+		return nil
+	}
+	return err
 }
 
 func wide(text string) *uint16 {
