@@ -200,7 +200,7 @@ func runServer(logger *slog.Logger) (exitErr error) {
 	logger.Info("railkeeper started", "build", buildinfo.Current(), "addr", server.Addr, "url", appURL, "version", version, "standalone", standalone)
 	if standalone {
 		printStandaloneStart(appURL, dataDir)
-		if env("RAILKEEPER_OPEN_BROWSER", "true") != "false" {
+		if control == nil && env("RAILKEEPER_OPEN_BROWSER", "true") != "false" {
 			go openBrowser(logger, appURL)
 		}
 	}

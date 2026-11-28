@@ -93,11 +93,13 @@ RailKeeper hilft dir? Mit einem [Stern auf GitHub](https://github.com/ichwars/Ra
 ### Windows Standalone (ohne Installation)
 
 Lade das Windows-x64-ZIP aus einem Release herunter, entpacke es vollständig und öffne
-`Start RailKeeper.exe` im Explorer. Die Konsole startet minimiert. Hole sie zum Beenden
-über die Taskleiste nach vorn und drücke **Strg+C**. Sie schließt sich mit RailKeeper.
-Aus einem bestehenden Terminal oder bei älteren Paketen starte `start-railkeeper.bat`.
+`Start RailKeeper.exe` im Explorer. Der Starter öffnet ein eigenes RailKeeper-Fenster mit
+der Microsoft Edge WebView2 Evergreen Runtime. Die Konsole startet minimiert und schließt sich,
+sobald RailKeeper nach **X** oder **Alt+F4** beendet ist. Falls WebView2 fehlt, kannst du die
+Runtime von Microsoft installieren oder `start-railkeeper.bat` im Terminal verwenden.
+Der Batch-Starter öffnet den Standardbrowser und lässt sich mit **Strg+C** beenden.
 
-RailKeeper läuft lokal ohne zusätzliche Software. Persistente Daten liegen standardmäßig außerhalb
+Persistente Daten liegen standardmäßig außerhalb
 des austauschbaren Programmordners unter `%LOCALAPPDATA%\RailKeeper\data`. Das ZIP enthält bewusst
 keine Datenbank, Uploads, Backups oder einen Ordner `data`. Das Ersetzen des entpackten
 Programmordners ersetzt deshalb nicht die aktiven Benutzerdaten.

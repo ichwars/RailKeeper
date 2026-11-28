@@ -9,7 +9,7 @@ lastReviewed: 2026-11-01
 
 # Install RailKeeper
 
-Choose where your collection will live: a Windows PC or your own server. RailKeeper needs no cloud service. A browser connects to the running application.
+Choose where your collection will live: a Windows PC or your own server. RailKeeper needs no cloud service. For self-hosted installations, connect to the application in a browser.
 
 ## Windows: no additional installation
 
@@ -21,9 +21,11 @@ Choose where your collection will live: a Windows PC or your own server. RailKee
 
 The default is `%LOCALAPPDATA%\RailKeeper\data`, outside the replaceable application folder. An old `data` folder next to the EXE is migrated according to the [update safety rules](system-operations). Do not combine databases.
 
-The starter opens RailKeeper in a minimized console. To stop RailKeeper, restore the console from
-the taskbar and press **Ctrl+C**. The console closes when RailKeeper exits. Closing a browser
-tab leaves RailKeeper running. For troubleshooting, run `start-railkeeper.bat` in an open terminal.
+Packages with WebView2 open a dedicated RailKeeper window. Close it with **X** or **Alt+F4**.
+The minimized console closes once RailKeeper has exited. If WebView2 is missing, install the
+[Evergreen Runtime from Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/#download-section)
+or run `start-railkeeper.bat` in a terminal to open RailKeeper in your default browser.
+For browser-based starts, including older packages, press **Ctrl+C** in the console to exit.
 
 ## Docker: on your computer or server
 

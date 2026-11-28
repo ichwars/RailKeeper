@@ -40,6 +40,9 @@ function Write-RailKeeperPackageLicenses {
     foreach ($module in ($modules | Where-Object { $_ } | Sort-Object -Unique)) {
       $name, $directory = $module -split '\|', 2
       Get-RailKeeperComponentNotices -Component $name -Directory $directory
+      if ($name -like 'github.com/wailsapp/wails/webview2 *') {
+        Get-RailKeeperComponentNotices -Component "$name (WebView2 loader)" -Directory (Join-Path $directory "webviewloader")
+      }
     }
     foreach ($directory in ($npmDirectories | Where-Object { $_ -and $_ -ne $Frontend } | Sort-Object -Unique)) {
       $manifest = Get-Content -LiteralPath (Join-Path $directory "package.json") -Raw | ConvertFrom-Json

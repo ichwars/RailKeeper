@@ -37,6 +37,13 @@ wait_for_process = api(kernel, "WaitForSingleObject", win.DWORD, win.HANDLE, win
 get_exit_code = api(kernel, "GetExitCodeProcess", win.BOOL, win.HANDLE, ct.POINTER(win.DWORD))
 terminate_process = api(kernel, "TerminateProcess", win.BOOL, win.HANDLE, win.UINT)
 close_handle = api(kernel, "CloseHandle", win.BOOL, win.HANDLE)
+enum_windows_callback = ct.WINFUNCTYPE(win.BOOL, win.HWND, win.LPARAM)
+enum_windows = api(user, "EnumWindows", win.BOOL, enum_windows_callback, win.LPARAM)
+window_pid = api(user, "GetWindowThreadProcessId", win.DWORD, win.HWND, ct.POINTER(win.DWORD))
+get_window_class = api(user, "GetClassNameW", ct.c_int, win.HWND, win.LPWSTR, ct.c_int)
+get_window_text = api(user, "GetWindowTextW", ct.c_int, win.HWND, win.LPWSTR, ct.c_int)
+is_visible = api(user, "IsWindowVisible", win.BOOL, win.HWND)
+post_message = api(user, "PostMessageW", win.BOOL, win.HWND, win.UINT, win.WPARAM, win.LPARAM)
 is_window = api(user, "IsWindow", win.BOOL, win.HWND)
 is_minimized = api(user, "IsIconic", win.BOOL, win.HWND)
 
@@ -46,6 +53,7 @@ SYNCHRONIZE = 0x00100000
 WAIT_OBJECT_0 = 0
 WAIT_TIMEOUT = 258
 CTRL_C_EVENT = 0
+WM_CLOSE = 0x0010
 
 
 def require(ok, message):
@@ -65,10 +73,32 @@ def wait_until(predicate, message, seconds=30):
         time.sleep(0.1)
 
 
-def assert_launcher_lifecycle(package, address, working_dir, *, close_launcher):
+def find_desktop_window(pid):
+    found = None
+
+    @enum_windows_callback
+    def find(hwnd, _):
+        nonlocal found
+        owner = win.DWORD()
+        window_pid(hwnd, ct.byref(owner))
+        if owner.value == pid and is_visible(hwnd):
+            name = ct.create_unicode_buffer(64)
+            title = ct.create_unicode_buffer(64)
+            get_window_class(hwnd, name, len(name))
+            get_window_text(hwnd, title, len(title))
+            # The native launcher sets this title after successful WebView2 navigation.
+            if name.value == "RailKeeperDesktopWindow" and title.value == "RailKeeper":
+                found = hwnd
+        return True
+
+    require_win32(enum_windows(find, 0), "Find the WebView2 desktop window")
+    return found
+
+
+def assert_launcher_lifecycle(package, address, working_dir, *, shutdown):
     launcher = subprocess.Popen([str(package / "Start RailKeeper.exe")], cwd=working_dir)
     try:
-        assert_server_lifecycle(package, address, launcher, close_launcher=close_launcher)
+        assert_server_lifecycle(package, address, launcher, shutdown=shutdown)
     finally:
         if launcher.poll() is None:
             launcher.kill()
@@ -80,7 +110,7 @@ def assert_launcher_lifecycle(package, address, working_dir, *, close_launcher):
                 "SQLite could not be reopened cleanly after shutdown.")
 
 
-def assert_server_lifecycle(package, address, launcher, *, close_launcher):
+def assert_server_lifecycle(package, address, launcher, *, shutdown):
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
     def ready():
@@ -91,6 +121,9 @@ def assert_server_lifecycle(package, address, launcher, *, close_launcher):
             return False
 
     wait_until(ready, "RailKeeper did not become ready from the relocated launcher.")
+    wait_until(lambda: find_desktop_window(launcher.pid),
+               "RailKeeper did not finish loading its local app in a visible WebView2 window.", seconds=60)
+    desktop = find_desktop_window(launcher.pid)
     port = int(address.rsplit(":", 1)[1])
     require(launcher.poll() is None, "The launcher did not stay alive to supervise its server.")
     # Find the process serving this test's isolated endpoint.
@@ -116,11 +149,13 @@ def assert_server_lifecycle(package, address, launcher, *, close_launcher):
             require(is_minimized(window), "The starter opened a console that was not minimized.")
             print("The relocated starter launched RailKeeper with a minimized console window.")
 
-            if close_launcher:
+            if shutdown == "pipe":
                 # Only terminate the test's launcher. Windows closes its private
                 # shutdown pipe, which must make the server exit on its own.
                 launcher.terminate()
                 launcher.wait(timeout=10)
+            elif shutdown == "window X":
+                require_win32(post_message(desktop, WM_CLOSE, 0, 0), "Close the RailKeeper desktop window")
             else:
                 send_console_interrupt(pid)
 
@@ -132,12 +167,13 @@ def assert_server_lifecycle(package, address, launcher, *, close_launcher):
             require_win32(free_console(), "Detach the probe from the RailKeeper console")
 
         wait_until(lambda: not is_window(window), "The console window remained after RailKeeper exited.", seconds=10)
+        wait_until(lambda: not is_window(desktop), "The desktop window remained after RailKeeper exited.", seconds=10)
         wait_until(lambda: not ready(), "RailKeeper's listener remained after shutdown.", seconds=5)
-        if close_launcher:
+        if shutdown == "pipe":
             print("Closing the launcher's pipe stopped RailKeeper cleanly and closed its console.")
         else:
             require(launcher.wait(timeout=10) == 0, "The launcher did not report a clean exit.")
-            print("Ctrl+C stopped RailKeeper cleanly and closed its console.")
+            print(f"{shutdown} stopped RailKeeper cleanly and closed the WebView2 window and console.")
     finally:
         if verified_process and wait_for_process(process, 0) == WAIT_TIMEOUT:
             terminate_process(process, 1)
@@ -183,14 +219,14 @@ def main():
     package = Path(sys.argv[1]).resolve(strict=True)
     require_win32(free_console(), "Detach from the test runner console")
     with tempfile.TemporaryDirectory(prefix="railkeeper-launcher-data-") as root:
-        for close_launcher in (False, True):
-            data = Path(root) / ("close launcher" if close_launcher else "control C")
+        for shutdown in ("window X", "Ctrl+C", "pipe"):
+            data = Path(root) / shutdown
             data.mkdir()
             with socket.socket() as listener:
                 listener.bind(("127.0.0.1", 0))
                 address = f"127.0.0.1:{listener.getsockname()[1]}"
-            os.environ.update(RAILKEEPER_ADDR=address, RAILKEEPER_DATA_DIR=str(data), RAILKEEPER_OPEN_BROWSER="false")
-            assert_launcher_lifecycle(package, address, data, close_launcher=close_launcher)
+            os.environ.update(RAILKEEPER_ADDR=address, RAILKEEPER_DATA_DIR=str(data))
+            assert_launcher_lifecycle(package, address, data, shutdown=shutdown)
         assert_batch_failure_returns_to_prompt(package, Path(root))
 
 

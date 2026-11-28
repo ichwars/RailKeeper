@@ -1,8 +1,13 @@
 RailKeeper Windows Standalone (ohne Installation)
 =================================================
 
-Dieses Paket kann ohne Installation gestartet werden. Es werden keine
-zusaetzlichen Programme, Datenbanken oder Laufzeitumgebungen benoetigt.
+RailKeeper selbst wird nicht installiert. Das Programmfenster verwendet
+die Microsoft Edge WebView2 Evergreen Runtime, die auf vielen Windows-PCs
+bereits vorhanden ist. Die Runtime wird nicht mit dem ZIP ausgeliefert.
+
+RailKeeper itself does not require installation. The desktop window uses
+the Microsoft Edge WebView2 Evergreen Runtime, which is already present
+on many Windows PCs. The ZIP does not include the runtime.
 
 Lizenz und Quellcode / License and source code
 --------------------------------------------
@@ -26,19 +31,23 @@ Entpacken Sie das ZIP-Archiv vollstaendig auf Ihren Rechner, zum Beispiel:
 C:\Users\<IhrName>\Documents\RailKeeper
 
 Oeffnen Sie anschliessend "Start RailKeeper.exe" im Explorer.
-Die Konsole startet minimiert. RailKeeper oeffnet den Browser automatisch.
-Falls der Browser nicht startet, holen Sie die Konsole ueber die Taskleiste
-nach vorn und oeffnen Sie die dort angezeigte lokale Adresse.
+RailKeeper oeffnet ein eigenes Fenster. Die Konsole startet minimiert.
+Schliessen Sie das RailKeeper-Fenster ueber X oder Alt+F4. RailKeeper
+schliesst die Konsole automatisch, sobald das Programm beendet ist.
 
-Zum Beenden holen Sie die Konsole nach vorn und druecken Strg+C. Das beim
-Start geoeffnete Fenster schliesst sich mit RailKeeper. Wenn Sie nur den
-Browser-Tab schliessen, laeuft RailKeeper weiter. Fuer Fehlersuche und
-Terminalstart rufen Sie start-railkeeper.bat in einer geoeffneten Konsole auf.
+Fehlt WebView2, installieren Sie die Evergreen Runtime von Microsoft:
+https://developer.microsoft.com/microsoft-edge/webview2/#download-section
+Alternativ starten Sie start-railkeeper.bat im Terminal. Dann oeffnet sich
+RailKeeper im Standardbrowser. Strg+C im Terminal beendet diese Instanz.
 
-Open "Start RailKeeper.exe" in File Explorer. The console starts
-minimized and closes when RailKeeper exits. To stop RailKeeper, restore the
-console and press Ctrl+C. Closing a browser tab leaves RailKeeper running.
-For troubleshooting, run start-railkeeper.bat in an open terminal.
+Open "Start RailKeeper.exe" in File Explorer. RailKeeper opens its own
+window and starts its console minimized. Close the RailKeeper window
+with X or Alt+F4. The console closes automatically when RailKeeper exits.
+
+If WebView2 is missing, install the Evergreen Runtime from Microsoft:
+https://developer.microsoft.com/microsoft-edge/webview2/#download-section
+Alternatively, run start-railkeeper.bat in a terminal. RailKeeper opens
+in your default browser. Press Ctrl+C in that terminal to exit.
 
 Sicherer Datenordner
 --------------------
@@ -47,6 +56,11 @@ Ihre Daten liegen standardmaessig nicht im austauschbaren Programmordner,
 sondern hier:
 
 %LOCALAPPDATA%\RailKeeper\data
+
+Das Profil fuer das Programmfenster liegt separat unter
+%LOCALAPPDATA%\RailKeeper\WebView2. Es gehoert nicht zum Daten-Backup.
+The desktop window profile is stored separately under
+%LOCALAPPDATA%\RailKeeper\WebView2. It is not part of the data backup.
 
 Das ZIP enthaelt absichtlich keinen Datenordner. Ein neuer Programmordner
 verwendet deshalb beim naechsten Start wieder dieselben vorhandenen Daten.
@@ -74,7 +88,7 @@ Wichtig
 - Erstellen Sie vor Updates ein RailKeeper-Backup und nach Moeglichkeit eine
   zusaetzliche Kopie von %LOCALAPPDATA%\RailKeeper\data.
 - Wenn Port 8080 belegt ist, waehlt RailKeeper automatisch einen der naechsten
-  freien lokalen Ports und zeigt die Adresse im Fenster an.
+  freien lokalen Ports. Die Konsole zeigt die verwendete Adresse an.
 - Windows Standalone bindet standardmaessig nur lokal an 127.0.0.1.
 
 Update

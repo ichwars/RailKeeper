@@ -9,7 +9,7 @@ lastReviewed: 2026-11-01
 
 # RailKeeper installieren
 
-Wähle zuerst, wo dein Bestand liegen soll: auf einem Windows-PC oder auf einem eigenen Server. RailKeeper benötigt keinen Cloud-Dienst. Ein Browser greift auf die laufende Anwendung zu.
+Wähle zuerst, wo dein Bestand liegen soll: auf einem Windows-PC oder auf einem eigenen Server. RailKeeper benötigt keinen Cloud-Dienst. Auf dem eigenen Server greifst du über den Browser auf die Anwendung zu.
 
 ## Windows: ohne zusätzliche Installation
 
@@ -21,10 +21,11 @@ Wähle zuerst, wo dein Bestand liegen soll: auf einem Windows-PC oder auf einem 
 
 Der Standard ist `%LOCALAPPDATA%\RailKeeper\data`. Er liegt außerhalb des austauschbaren Programmordners. Bei einem alten `data`-Ordner neben der EXE übernimmt RailKeeper die Daten nur nach den [Sicherheitsregeln für Updates](system-operations). Vermische keine Datenbanken.
 
-Der Starter öffnet RailKeeper in einer minimierten Konsole. Hole sie über die Taskleiste nach vorn
-und drücke **Strg+C**, um RailKeeper zu beenden. Die Konsole schließt sich mit RailKeeper.
-Beim Schließen eines Browser-Tabs läuft RailKeeper weiter. Zur Fehlersuche kannst du
-`start-railkeeper.bat` in einer bereits geöffneten Konsole ausführen.
+Bei Paketen mit WebView2 öffnet der Starter ein eigenes RailKeeper-Fenster. Schließe es über
+**X** oder **Alt+F4**. Die minimierte Konsole schließt sich, sobald RailKeeper beendet ist.
+Fehlt WebView2, installiere die [Evergreen Runtime von Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/#download-section)
+oder starte `start-railkeeper.bat` im Terminal, um RailKeeper im Standardbrowser zu öffnen.
+Ein Start im Browser, auch bei älteren Paketen, endet über **Strg+C** in der Konsole.
 
 ## Docker: auf deinem eigenen Rechner oder Server
 
