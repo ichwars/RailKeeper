@@ -37,6 +37,27 @@ storage mode. Also check the actual startup or Compose configuration.
 
 ## 3. Update Windows
 
+Download the ZIP and `checksums.txt` from the same release. Run the following in PowerShell
+from the download folder. Use the GitHub CLI to verify the build attestation.
+
+```powershell
+$tag = Read-Host 'Release tag (including v)'
+$zip = "RailKeeper-windows-x64-$tag.zip"
+$checksum = @(Get-Content -LiteralPath .\checksums.txt |
+    Where-Object { $_ -cmatch ('^[0-9a-f]{64}  ' + [regex]::Escape($zip) + '$') })
+$hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($checksum.Count -ne 1 -or $checksum[0] -cne "$hash  $zip") {
+    throw 'SHA-256 check failed.'
+}
+gh attestation verify $zip --repo ichwars/RailKeeper `
+    --signer-workflow ichwars/RailKeeper/.github/workflows/windows-standalone.yml `
+    --source-ref "refs/tags/$tag" --deny-self-hosted-runners
+if ($LASTEXITCODE -ne 0) { throw 'GitHub attestation verification failed.' }
+```
+
+Extract the ZIP after both checks pass. Older releases may predate these verification files
+and attestations.
+
 | Step | Action | Check |
 | --- | --- | --- |
 | Choose a package | Download the matching Windows-x64 ZIP from GitHub Releases | Intended version and architecture |

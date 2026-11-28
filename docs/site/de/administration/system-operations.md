@@ -38,6 +38,27 @@ aktiven Datenpfad und den Speichermodus. Prüfe zusätzlich deine Start- oder Co
 
 ## 3. Windows aktualisieren
 
+Lade ZIP und `checksums.txt` aus demselben Release herunter. Führe im Downloadordner
+Folgendes in PowerShell aus. Die GitHub CLI prüft die Herkunft des Builds.
+
+```powershell
+$tag = Read-Host 'Release-Tag einschließlich v'
+$zip = "RailKeeper-windows-x64-$tag.zip"
+$checksum = @(Get-Content -LiteralPath .\checksums.txt |
+    Where-Object { $_ -cmatch ('^[0-9a-f]{64}  ' + [regex]::Escape($zip) + '$') })
+$hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($checksum.Count -ne 1 -or $checksum[0] -cne "$hash  $zip") {
+    throw 'SHA-256-Prüfung fehlgeschlagen.'
+}
+gh attestation verify $zip --repo ichwars/RailKeeper `
+    --signer-workflow ichwars/RailKeeper/.github/workflows/windows-standalone.yml `
+    --source-ref "refs/tags/$tag" --deny-self-hosted-runners
+if ($LASTEXITCODE -ne 0) { throw 'GitHub-Attestierung ungültig.' }
+```
+
+Entpacke das ZIP, sobald beide Prüfungen bestanden sind. Ältere Releases können vor der
+Einführung dieser Nachweise erschienen sein.
+
 | Schritt | Aktion | Kontrolle |
 | --- | --- | --- |
 | Paket wählen | Passendes Windows-x64-ZIP aus den GitHub-Releases laden | Gewünschte Version und Architektur |

@@ -233,29 +233,31 @@ Nach erfolgreicher `CI` für einen Push auf `main` prüft **Publish Release** di
 in `backend/cmd/railkeeper/main.go` und die passende Release-Datei, beispielsweise
 `docs/releases/v0.1.22.md`.
 Der geprüfte Commit muss weiterhin der aktuelle Stand von `main` sein. Für eine noch nicht
-veröffentlichte Version erstellt der Workflow Tag und GitHub-Release mit den zweisprachigen
-Release-Notizen und startet die vorhandenen Docker- und Windows-Workflows für diesen Tag.
+veröffentlichte Version bereitet der Workflow den Tag am geprüften Commit vor und startet
+den Windows-Workflow für diesen Tag. Ein separater Job lädt das Paket herunter und prüft
+SHA-256 und GitHub-Build-Attestierung einschließlich Repository, Workflow, Tag und Commit.
+Der Release-Workflow lädt das geprüfte Artefakt erneut, wiederholt die Prüfung und erstellt
+den GitHub-Release zusammen mit ZIP, `checksums.txt` und den zweisprachigen Notizen.
+Anschließend startet der Docker-Workflow für denselben Tag.
 
-Bestehende Releases und Tags werden nicht überschrieben. Fehlen passende Release-Notizen,
-schlägt die CI fehl oder verweist ein bestehender Tag auf einen anderen Commit, wird keine neue
-Veröffentlichung ausgeführt. Ein erneuter Versuch desselben Release-Laufs kann die Paket-Builds
-nach einer unterbrochenen Veröffentlichung erneut starten, solange `main` noch auf denselben
-Commit zeigt. Bei inzwischen weitergelaufenem `main` die beiden Paket-Workflows manuell am
-bestehenden Release-Tag starten. Der manuelle Release-Start auf `main` prüft ebenfalls zuerst
-dessen erfolgreiche CI. Der Windows-Upload erhält die vorhandenen Release-Notizen.
+Fehlende oder fehlerhafte Windows-Nachweise blockieren den Release. Ein vorbereiteter Tag
+kann bei einem erneuten Versuch verwendet werden, wenn er auf denselben geprüften Commit
+zeigt und `main` weiterhin dort steht. Bei einem vorhandenen Release endet der Workflow.
+Einen vorhandenen Entwurf nach einem fehlgeschlagenen Upload sichten, bevor die
+Veröffentlichung erneut gestartet wird. Einen fehlgeschlagenen Docker-Lauf am vorhandenen
+Release-Tag direkt im Docker-Workflow neu starten.
 
-Das repositoryeigene `GITHUB_TOKEN` benötigt nur `contents: write` zum Veröffentlichen und
-`actions: write` zum Starten der Paket-Builds. Tag-Schreibvorgänge mit diesem Token lösen keine
-Push-Workflows aus; deshalb werden die beiden Builds ausdrücklich per `workflow_dispatch`
-gestartet. Vor einem produktiven Update den erfolgreichen Docker-Build und die Verfügbarkeit
-des gewünschten Windows-Pakets im Release prüfen.
+Der Release-Workflow verwendet `contents: write` für Tag und Release sowie `actions: write`
+zum Starten der Paket-Builds. Tag-Schreibvorgänge mit diesem Token lösen keine Push-Workflows
+aus. Beide Builds starten ausdrücklich per `workflow_dispatch`. Auf einem Entwicklungsbranch
+liefert der direkt gestartete Windows-Workflow ZIP und Herkunftsnachweise als Actions-Artefakt.
 
 Für eine erneute Windows-Qualifikation eines veröffentlichten Tags kann der manuelle
 Windows-Workflow mit `qualification_tag` auf einem geprüften Stand der Testwerkzeuge laufen.
 Der Runner vergleicht Backend, Frontend, OpenAPI, Windows-Startdateien und Go-Version mit dem Tag.
 Er baut aus einem eigenen, unveränderten Tag-Checkout und speichert ZIP und Prüfberichte als
-Workflow-Artefakte. Vor dem Anhängen eines fehlenden ZIPs an das bestehende Release die
-Buildkennung der nativen EXE, Archivprüfung und Ziel-Tag abgleichen.
+Workflow-Artefakte. Für eine Herkunftsattestierung startet der Windows-Workflow direkt am
+Quell-Tag, sodass die Attestierung dieselbe Quelle ausweist.
 
 Die Go-Test- und Coverage-Nachweise des tatsächlichen Release-Commits aus der erfolgreichen CI
 als zusätzliche Release-Anhänge dauerhaft sichern und in den DE/EN-Release-Notizen verlinken.
