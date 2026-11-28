@@ -63,13 +63,17 @@ func (s *ECoSService) StartLiveWithInterruption(
 	s.livePulse = nowTime.Truncate(time.Second)
 	s.liveCount = 0
 	status := cloneECoSLiveStatus(s.liveStatus)
+	s.liveWorkers.Add(2)
 	s.liveMu.Unlock()
 
-	go s.runECoSLiveSampler(liveCtx, generation)
-	go s.runECoSLiveSession(
-		liveCtx, cancel, generation, onInterrupted, conn, reader, client,
-		append([]string(nil), commands...), done,
-	)
+	go func() {
+		defer s.liveWorkers.Done()
+		s.runECoSLiveSampler(liveCtx, generation)
+	}()
+	go func() {
+		defer s.liveWorkers.Done()
+		s.runECoSLiveSession(liveCtx, cancel, generation, onInterrupted, conn, reader, client, commands, done)
+	}()
 	return &status, nil
 }
 
@@ -87,6 +91,13 @@ func (s *ECoSService) StopLive() ECoSLiveStatus {
 	s.liveStatus.Message = "ECoS-Live-Verbindung beendet."
 	s.liveStatus.LastMessage = "Verbindung beendet."
 	return cloneECoSLiveStatus(s.liveStatus)
+}
+
+// StopLiveAndWait releases live workers and their storage callbacks after HTTP draining.
+// The caller must ensure that no new live sessions can start.
+func (s *ECoSService) StopLiveAndWait() {
+	s.StopLive()
+	s.liveWorkers.Wait()
 }
 
 func (s *ECoSService) PauseLive(ctx context.Context) (ECoSLiveStatus, error) {

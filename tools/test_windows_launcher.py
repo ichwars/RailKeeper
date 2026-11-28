@@ -1,10 +1,12 @@
 """Exercise the relocated, extracted Windows ZIP on the native Windows runner."""
 
+from contextlib import closing
 import ctypes as ct
 from ctypes import wintypes as win
 import os
 from pathlib import Path
 import socket
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -44,7 +46,6 @@ SYNCHRONIZE = 0x00100000
 WAIT_OBJECT_0 = 0
 WAIT_TIMEOUT = 258
 CTRL_C_EVENT = 0
-STATUS_CONTROL_C_EXIT = 0xC000013A
 
 
 def require(ok, message):
@@ -64,11 +65,22 @@ def wait_until(predicate, message, seconds=30):
         time.sleep(0.1)
 
 
-def assert_launcher_lifecycle(package, address, working_dir):
-    # Ctrl+C must only reach the new console owned by the packaged server.
-    require_win32(free_console(), "Detach from the test runner console")
-    subprocess.run([str(package / "Start RailKeeper.exe")], cwd=working_dir, check=True, timeout=20)
+def assert_launcher_lifecycle(package, address, working_dir, *, close_launcher):
+    launcher = subprocess.Popen([str(package / "Start RailKeeper.exe")], cwd=working_dir)
+    try:
+        assert_server_lifecycle(package, address, launcher, close_launcher=close_launcher)
+    finally:
+        if launcher.poll() is None:
+            launcher.kill()
+        launcher.wait(timeout=10)
 
+    database = working_dir / "railkeeper.db"
+    with closing(sqlite3.connect(f"{database.as_uri()}?mode=rw", uri=True)) as reopened:
+        require(reopened.execute("PRAGMA quick_check").fetchone() == ("ok",),
+                "SQLite could not be reopened cleanly after shutdown.")
+
+
+def assert_server_lifecycle(package, address, launcher, *, close_launcher):
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
     def ready():
@@ -80,7 +92,8 @@ def assert_launcher_lifecycle(package, address, working_dir):
 
     wait_until(ready, "RailKeeper did not become ready from the relocated launcher.")
     port = int(address.rsplit(":", 1)[1])
-    # Find the process serving the isolated endpoint after the GUI starter has exited.
+    require(launcher.poll() is None, "The launcher did not stay alive to supervise its server.")
+    # Find the process serving this test's isolated endpoint.
     pid = int(subprocess.check_output([
         "powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
         f"(Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort {port} -State Listen -ErrorAction Stop).OwningProcess",
@@ -103,27 +116,42 @@ def assert_launcher_lifecycle(package, address, working_dir):
             require(is_minimized(window), "The starter opened a console that was not minimized.")
             print("The relocated starter launched RailKeeper with a minimized console window.")
 
-            attached = (win.DWORD * 8)()
-            count = console_processes(attached, len(attached))
-            require(count == 2 and set(attached[:count]) == {pid, os.getpid()},
-                    "Refusing to send Ctrl+C to a console shared with other processes.")
-            require_win32(ignore_ctrl_c(None, True), "Keep the console probe alive during Ctrl+C")
-            require_win32(send_ctrl_event(CTRL_C_EVENT, 0), "Send Ctrl+C to the RailKeeper console")
-            require(wait_for_process(process, 15000) == WAIT_OBJECT_0, "RailKeeper did not exit after Ctrl+C.")
+            if close_launcher:
+                # Only terminate the test's launcher. Windows closes its private
+                # shutdown pipe, which must make the server exit on its own.
+                launcher.terminate()
+                launcher.wait(timeout=10)
+            else:
+                send_console_interrupt(pid)
+
+            require(wait_for_process(process, 15000) == WAIT_OBJECT_0, "RailKeeper did not exit after shutdown.")
             exit_code = win.DWORD()
             require_win32(get_exit_code(process, ct.byref(exit_code)), "Read the RailKeeper exit code")
-            require(exit_code.value in {0, STATUS_CONTROL_C_EXIT},
-                    f"Unexpected exit code after Ctrl+C: {exit_code.value:#x}")
+            require(exit_code.value == 0, f"Unexpected shutdown exit code: {exit_code.value:#x}")
         finally:
             require_win32(free_console(), "Detach the probe from the RailKeeper console")
 
         wait_until(lambda: not is_window(window), "The console window remained after RailKeeper exited.", seconds=10)
-        print("Ctrl+C stopped RailKeeper, and the console window closed after the probe detached.")
+        wait_until(lambda: not ready(), "RailKeeper's listener remained after shutdown.", seconds=5)
+        if close_launcher:
+            print("Closing the launcher's pipe stopped RailKeeper cleanly and closed its console.")
+        else:
+            require(launcher.wait(timeout=10) == 0, "The launcher did not report a clean exit.")
+            print("Ctrl+C stopped RailKeeper cleanly and closed its console.")
     finally:
         if verified_process and wait_for_process(process, 0) == WAIT_TIMEOUT:
             terminate_process(process, 1)
             wait_for_process(process, 5000)
         close_handle(process)
+
+
+def send_console_interrupt(pid):
+    attached = (win.DWORD * 8)()
+    count = console_processes(attached, len(attached))
+    require(count == 2 and set(attached[:count]) == {pid, os.getpid()},
+            "Refusing to send Ctrl+C to a console shared with other processes.")
+    require_win32(ignore_ctrl_c(None, True), "Keep the console probe alive during Ctrl+C")
+    require_win32(send_ctrl_event(CTRL_C_EVENT, 0), "Send Ctrl+C to the RailKeeper console")
 
 
 def assert_batch_failure_returns_to_prompt(package, working_dir):
@@ -153,13 +181,17 @@ def assert_batch_failure_returns_to_prompt(package, working_dir):
 
 def main():
     package = Path(sys.argv[1]).resolve(strict=True)
-    with tempfile.TemporaryDirectory(prefix="railkeeper-launcher-data-") as data:
-        with socket.socket() as listener:
-            listener.bind(("127.0.0.1", 0))
-            address = f"127.0.0.1:{listener.getsockname()[1]}"
-        os.environ.update(RAILKEEPER_ADDR=address, RAILKEEPER_DATA_DIR=data, RAILKEEPER_OPEN_BROWSER="false")
-        assert_launcher_lifecycle(package, address, Path(data))
-        assert_batch_failure_returns_to_prompt(package, Path(data))
+    require_win32(free_console(), "Detach from the test runner console")
+    with tempfile.TemporaryDirectory(prefix="railkeeper-launcher-data-") as root:
+        for close_launcher in (False, True):
+            data = Path(root) / ("close launcher" if close_launcher else "control C")
+            data.mkdir()
+            with socket.socket() as listener:
+                listener.bind(("127.0.0.1", 0))
+                address = f"127.0.0.1:{listener.getsockname()[1]}"
+            os.environ.update(RAILKEEPER_ADDR=address, RAILKEEPER_DATA_DIR=str(data), RAILKEEPER_OPEN_BROWSER="false")
+            assert_launcher_lifecycle(package, address, data, close_launcher=close_launcher)
+        assert_batch_failure_returns_to_prompt(package, Path(root))
 
 
 if __name__ == "__main__":

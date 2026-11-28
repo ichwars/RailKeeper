@@ -22,6 +22,7 @@ type ECoSService struct {
 	backupDataDir            string
 	storedWebFactory         func(context.Context, string) (storedECoSWeb, error)
 	liveMu                   sync.Mutex
+	liveWorkers              sync.WaitGroup
 	liveCancel               context.CancelFunc
 	liveDone                 chan struct{}
 	liveStatus               ECoSLiveStatus

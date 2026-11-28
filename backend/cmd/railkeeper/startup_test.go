@@ -54,9 +54,9 @@ func TestPrepareStartupConflictSkipsDatabaseMigrationsSeedsAndRouter(t *testing.
 		SeedMasterData: func(*sql.DB, string) error { calls = append(calls, "seed-master"); return nil },
 		BuildHandler: func(
 			context.Context, *sql.DB, applicationDataPaths, StartupState,
-		) (http.Handler, error) {
+		) (http.Handler, func(), error) {
 			calls = append(calls, "router")
-			return http.NotFoundHandler(), nil
+			return http.NotFoundHandler(), nil, nil
 		},
 	}
 
@@ -187,11 +187,11 @@ func TestPrepareStartupUsesResolvedSafePathEverywhereAndCapturesExistenceBeforeO
 		},
 		BuildHandler: func(
 			_ context.Context, _ *sql.DB, paths applicationDataPaths, state StartupState,
-		) (http.Handler, error) {
+		) (http.Handler, func(), error) {
 			calls = append(calls, "router")
 			capturedPaths = paths
 			capturedState = state
-			return http.NotFoundHandler(), nil
+			return http.NotFoundHandler(), nil, nil
 		},
 	}
 
@@ -243,8 +243,8 @@ func TestPrepareStartupClosesDatabaseWhenLaterStartupFails(t *testing.T) {
 		SeedMasterData: func(*sql.DB, string) error { return nil },
 		BuildHandler: func(
 			context.Context, *sql.DB, applicationDataPaths, StartupState,
-		) (http.Handler, error) {
-			return nil, errors.New("router failed")
+		) (http.Handler, func(), error) {
+			return nil, nil, errors.New("router failed")
 		},
 	}
 

@@ -38,10 +38,11 @@ type applicationDataPaths struct {
 }
 
 type startupResult struct {
-	State    StartupState
-	Handler  http.Handler
-	Database *sql.DB
-	Conflict *startup.LegacyConflictInfo
+	State          StartupState
+	Handler        http.Handler
+	Database       *sql.DB
+	Conflict       *startup.LegacyConflictInfo
+	StopBackground func()
 }
 
 type startupDependencies struct {
@@ -65,7 +66,7 @@ type startupDependencies struct {
 	SeedMasterData func(*sql.DB, string) error
 	BuildHandler   func(
 		context.Context, *sql.DB, applicationDataPaths, StartupState,
-	) (http.Handler, error)
+	) (http.Handler, func(), error)
 }
 
 type applicationHandlerOptions struct {
@@ -157,11 +158,12 @@ func prepareStartup(
 	if seedErr := dependencies.SeedMasterData(database, result.State.Runtime.SeedsDir); seedErr != nil {
 		return startupResult{}, fmt.Errorf("seed master data: %w", seedErr)
 	}
-	handler, buildErr := dependencies.BuildHandler(ctx, database, paths, result.State)
+	handler, stopBackground, buildErr := dependencies.BuildHandler(ctx, database, paths, result.State)
 	if buildErr != nil {
 		return startupResult{}, fmt.Errorf("build application handler: %w", buildErr)
 	}
 	result.Handler = handler
+	result.StopBackground = stopBackground
 	completed = true
 	return result, nil
 }
@@ -208,7 +210,7 @@ func defaultStartupDependencies(options applicationHandlerOptions) startupDepend
 			database *sql.DB,
 			paths applicationDataPaths,
 			state StartupState,
-		) (http.Handler, error) {
+		) (http.Handler, func(), error) {
 			options.PasswordResetMailer = passwordResetMailer
 			return buildApplicationHandler(ctx, database, paths, state, options)
 		},
@@ -221,14 +223,14 @@ func buildApplicationHandler(
 	paths applicationDataPaths,
 	state StartupState,
 	options applicationHandlerOptions,
-) (http.Handler, error) {
+) (http.Handler, func(), error) {
 	fileBlobService := application.NewFileBlobService(database, paths.BlobDataDir)
 	if err := fileBlobService.MigrateFilesystemBlobs(ctx); err != nil {
-		return nil, fmt.Errorf("migrate file blobs: %w", err)
+		return nil, nil, fmt.Errorf("migrate file blobs: %w", err)
 	}
 	masterDataService := application.NewMasterDataService(database)
 	if err := masterDataService.WarmCache(ctx); err != nil {
-		return nil, fmt.Errorf("warm master data cache: %w", err)
+		return nil, nil, fmt.Errorf("warm master data cache: %w", err)
 	}
 
 	accessoryRepository := infrastructure.NewAccessoryRepository(database)
@@ -237,15 +239,15 @@ func buildApplicationHandler(
 	setupService := application.NewSetupService(database)
 	setupRequired, err := setupService.SetupRequired(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if setupRequired {
 		code, err := startup.ReadOrCreateSetupCode(paths.DataDir)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if _, err := setupService.PrepareAuthorization(ctx, code); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if options.Logger != nil {
 			options.Logger.Info("first administrator requires the local setup code", "file", filepath.Join(paths.DataDir, startup.SetupCodeFile))
@@ -253,7 +255,7 @@ func buildApplicationHandler(
 	}
 	vehicleService := application.NewVehicleService(database)
 	if err := application.BackfillLegacyDecoderCV(ctx, database, paths.BlobDataDir); err != nil {
-		return nil, fmt.Errorf("adopt legacy decoder working state: %w", err)
+		return nil, nil, fmt.Errorf("adopt legacy decoder working state: %w", err)
 	}
 	ecosService := application.NewECoSService()
 	digitalCenterService := application.NewDigitalCenterService()
@@ -331,7 +333,7 @@ func buildApplicationHandler(
 			OpenFolder:           openStorageFolder,
 			AcknowledgeMigration: startup.AcknowledgeMigrationReceipt,
 		},
-	}), nil
+	}), ecosService.StopLiveAndWait, nil
 }
 
 func storageFolderCommand(dataPath string) *exec.Cmd {
