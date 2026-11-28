@@ -180,7 +180,9 @@ func (w *desktopWindow) navigationCompleted(args *navigationCompletedArgs) {
 }
 
 func (w *desktopWindow) sameOrigin(target *url.URL) bool {
-	return target.User == nil && target.Scheme+"://"+target.Host == w.address
+	// Chromium can omit the explicit default port from the navigation URI.
+	return target.User == nil && target.Scheme == "http" &&
+		"http://"+strings.TrimSuffix(target.Host, ":80") == strings.TrimSuffix(w.address, ":80")
 }
 
 func (w *desktopWindow) navigationStarting(args *navigationStartingArgs) {
