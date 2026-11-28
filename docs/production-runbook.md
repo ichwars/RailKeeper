@@ -29,6 +29,24 @@ Architekturen vor einem Wechsel prüfen:
 docker buildx imagetools inspect ghcr.io/ichwars/railkeeper:latest
 ```
 
+Für Registry-Builds testet und scannt der Docker-Workflow die per Digest heruntergeladenen
+Plattform-Images. Der Multi-Plattform-Index erhält die SPDX-SBOM und die SLSA-Build-Provenance
+für `linux/amd64` und `linux/arm64`. Vor dem Setzen von Versions- und Kanal-Tags prüft
+ein eigener Job den Index in GHCR, beide getesteten Manifest-Digests und ihre Nachweise
+einschließlich Quellrepository und Commit.
+
+Ein manueller Build auf einem Entwicklungsbranch erstellt den Prüf-Tag
+`ci-<run-id>-<attempt>`. Im Actions-Artefakt `docker-image-evidence` stehen Index-Digest,
+Plattform-Digests, SBOM und Provenance. Die Nachweise eines geprüften Images lassen sich
+per Digest direkt aus der Registry lesen:
+
+```bash
+read -r -p 'SHA-256-Index-Digest (inklusive sha256:): ' digest
+image="ghcr.io/ichwars/railkeeper@$digest"
+docker buildx imagetools inspect "$image" --format '{{json .SBOM}}'
+docker buildx imagetools inspect "$image" --format '{{json .Provenance}}'
+```
+
 ### Container einrichten
 
 1. `.env` nur anlegen, wenn Werte überschrieben werden müssen.

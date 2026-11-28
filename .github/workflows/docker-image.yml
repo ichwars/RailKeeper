@@ -14,11 +14,13 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ichwars/railkeeper
+  IMAGE: ghcr.io/ichwars/railkeeper
 
 jobs:
   docker:
     name: Docker (${{ matrix.arch }})
+    env:
+      TEST_IMAGE: ghcr.io/ichwars/railkeeper:test
     strategy:
       fail-fast: false
       matrix:
@@ -37,13 +39,17 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Test Docker evidence verification
+        if: matrix.arch == 'amd64'
+        run: python3 .github/scripts/test_verify_docker_image.py
+
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.IMAGE }}
           tags: |
             type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
@@ -52,7 +58,8 @@ jobs:
             type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=sha,prefix=sha-
 
-      - name: Build Docker image for native tests
+      - name: Build local Docker image for pull requests
+        if: github.event_name == 'pull_request'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
@@ -64,12 +71,59 @@ jobs:
             BUILD_MODIFIED=false
           platforms: ${{ matrix.platform }}
           load: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
+          provenance: false
+          sbom: false
+          tags: ${{ env.TEST_IMAGE }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and stage Docker image with attestations
+        if: github.event_name != 'pull_request'
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: ${{ github.server_url }}/${{ github.repository }}.git#${{ github.sha }}
+          file: Dockerfile
+          target: runtime
+          build-args: |
+            BUILD_COMMIT=${{ github.sha }}
+            BUILD_KIND=${{ startsWith(github.ref, 'refs/tags/v') && 'release' || 'development' }}
+            BUILD_MODIFIED=false
+          platforms: ${{ matrix.platform }}
+          tags: ${{ env.IMAGE }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=min,version=v1
+          sbom: true
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=true,oci-artifact=false
+
+      - name: Pull the exact platform image for native tests
+        if: github.event_name != 'pull_request'
+        env:
+          INDEX_DIGEST: ${{ steps.build.outputs.digest }}
+          PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          [[ "$INDEX_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          platform_digest="$(docker buildx imagetools inspect "$IMAGE@$INDEX_DIGEST" --raw |
+            jq -er --arg arch "$ARCH" '
+              [.manifests[] | select(.platform.os == "linux" and .platform.architecture == $arch)] |
+              select(length == 1) | .[0].digest | select(test("^sha256:[a-f0-9]{64}$"))')"
+          docker pull --platform "$PLATFORM" "$IMAGE@$platform_digest"
+          {
+            printf 'TEST_IMAGE=%s@%s\n' "$IMAGE" "$platform_digest"
+            printf 'TESTED_PLATFORM_DIGEST=%s\n' "$platform_digest"
+            printf 'TESTED_INDEX_DIGEST=%s\n' "$INDEX_DIGEST"
+          } >> "$GITHUB_ENV"
 
       - name: Test Docker startup, SQLite and frontend
         env:
-          TEST_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
           TEST_ARCH: ${{ matrix.arch }}
         run: bash .github/scripts/smoke_docker_image.sh "$TEST_IMAGE" "$TEST_ARCH"
 
@@ -85,7 +139,7 @@ jobs:
       - name: Scan Docker image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
+          image-ref: ${{ env.TEST_IMAGE }}
           scanners: vuln
           vuln-type: os,library
           severity: HIGH,CRITICAL
@@ -105,50 +159,28 @@ jobs:
           sarif_file: trivy-image.sarif
           category: trivy-container-${{ matrix.arch }}
 
-      - name: Log in to GitHub Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push tested Docker image by digest
-        if: github.event_name != 'pull_request'
-        id: build
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
-        with:
-          context: .
-          file: Dockerfile
-          target: runtime
-          build-args: |
-            BUILD_COMMIT=${{ github.sha }}
-            BUILD_KIND=${{ startsWith(github.ref, 'refs/tags/v') && 'release' || 'development' }}
-            BUILD_MODIFIED=false
-          platforms: ${{ matrix.platform }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
-
-      - name: Export image digest
+      - name: Record tested platform and staging index digests
         if: github.event_name != 'pull_request'
         env:
-          DIGEST: ${{ steps.build.outputs.digest }}
+          ARCH: ${{ matrix.arch }}
         run: |
-          mkdir -p "$RUNNER_TEMP/digests"
-          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+          mkdir -p "$RUNNER_TEMP/qualified"
+          jq --arg index "$TESTED_INDEX_DIGEST" --arg platform "$TESTED_PLATFORM_DIGEST" \
+            '. + {indexDigest: $index, platformDigest: $platform}' \
+            "output/docker-qualification-$ARCH.json" > "$RUNNER_TEMP/qualified/$ARCH.json"
 
-      - name: Upload image digest
+      - name: Upload tested image identity
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: image-digest-${{ matrix.arch }}
-          path: ${{ runner.temp }}/digests/*
+          name: docker-qualified-${{ matrix.arch }}
+          path: ${{ runner.temp }}/qualified/*.json
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 14
+          overwrite: true
 
   manifest:
-    name: Publish multi-platform image
+    name: Verify and promote multi-platform image
     if: github.event_name != 'pull_request'
     needs: docker
     runs-on: ubuntu-24.04
@@ -156,10 +188,14 @@ jobs:
       contents: read
       packages: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          path: ${{ runner.temp }}/digests
-          pattern: image-digest-*
+          path: ${{ runner.temp }}/qualified
+          pattern: docker-qualified-*
           merge-multiple: true
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
@@ -175,7 +211,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.IMAGE }}
           tags: |
             type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
@@ -184,22 +220,45 @@ jobs:
             type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=sha,prefix=sha-
 
-      - name: Publish and verify image manifest
-        working-directory: ${{ runner.temp }}/digests
+      - name: Assemble and verify the candidate by registry digest
+        id: verified
+        run: |
+          sources=()
+          for arch in amd64 arm64; do
+            digest="$(jq -er '.indexDigest | select(test("^sha256:[a-f0-9]{64}$"))' "$RUNNER_TEMP/qualified/$arch.json")"
+            sources+=("$IMAGE@$digest")
+          done
+          candidate="$IMAGE:ci-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          metadata="$RUNNER_TEMP/docker-candidate.json"
+          docker buildx imagetools create --tag "$candidate" --metadata-file "$metadata" "${sources[@]}"
+          digest="$(jq -er '.["containerimage.descriptor"].digest' "$metadata")"
+          python3 .github/scripts/verify_docker_image.py "$IMAGE" "$digest" "$RUNNER_TEMP/qualified" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$GITHUB_SHA" output/docker-image-evidence
+          printf 'Candidate: `%s` (digest `%s`)\n' "$candidate" "$digest" >> "$GITHUB_STEP_SUMMARY"
+          printf 'digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Upload verified Docker evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: docker-image-evidence
+          path: output/docker-image-evidence
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: true
+
+      - name: Promote the verified digest to release or edge tags
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
         env:
-          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          IMAGE_VERSION: ${{ steps.meta.outputs.version }}
+          DIGEST: ${{ steps.verified.outputs.digest }}
         run: |
           mapfile -t tags < <(jq -r '.tags[]' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          [[ "${#tags[@]}" -gt 0 && "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           args=()
           for tag in "${tags[@]}"; do
             args+=(--tag "$tag")
           done
-          for digest in *; do
-            [[ "$digest" =~ ^[0-9a-f]{64}$ ]]
-            args+=("$IMAGE@sha256:$digest")
+          docker buildx imagetools create "${args[@]}" "$IMAGE@$DIGEST"
+          for tag in "${tags[@]}"; do
+            actual="$(docker buildx imagetools inspect "$tag" --format '{{.Manifest.Digest}}')"
+            [[ "$actual" == "$DIGEST" ]]
           done
-          docker buildx imagetools create "${args[@]}"
-          docker buildx imagetools inspect "$IMAGE:$IMAGE_VERSION" --raw | jq -e '
-            [.manifests[].platform | select(.os == "linux") | .architecture] |
-            sort == ["amd64", "arm64"]'
