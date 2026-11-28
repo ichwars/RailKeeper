@@ -2,16 +2,19 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"railkeeper/backend/internal/application"
@@ -51,11 +54,20 @@ func main() {
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	if err := runServer(logger); err != nil {
+		logger.Error("RailKeeper stopped", "error", err)
+		os.Exit(1)
+	}
+}
+
+func runServer(logger *slog.Logger) (exitErr error) {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	baseDir := executableDir()
 	workingDir, err := os.Getwd()
 	if err != nil {
-		logger.Error("working directory resolution failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("working directory resolution failed: %w", err)
 	}
 	runtimeConfig, err := startup.ResolveRuntimeConfig(startup.RuntimeInputs{
 		GOOS:          runtime.GOOS,
@@ -68,8 +80,18 @@ func main() {
 		AbsPath:       filepath.Abs,
 	})
 	if err != nil {
-		logger.Error("runtime configuration failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("runtime configuration failed: %w", err)
+	}
+	control, err := openDesktopControl(os.Args[1:], runtimeConfig.WindowsStandalone)
+	if err != nil {
+		return err
+	}
+	if control != nil {
+		defer func() { _ = control.ready.Close() }()
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithCancel(ctx)
+		defer cancel()
+		go control.watch(cancel)
 	}
 	standalone := runtimeConfig.Standalone
 	addr := env("RAILKEEPER_ADDR", runtimeConfig.AddrDefault)
@@ -83,16 +105,17 @@ func main() {
 
 	loginWork, err := startup.ResolveLoginWorkLimiter(os.LookupEnv)
 	if err != nil {
-		logger.Error("login resource configuration failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("login resource configuration failed: %w", err)
 	}
 
 	listener, appURL, err := listen(addr, standalone)
 	if err != nil {
-		logger.Error("server listen failed", "error", err, "addr", addr)
-		os.Exit(1)
+		return fmt.Errorf("server listen failed: %w", err)
 	}
 	defer func() { _ = listener.Close() }()
+	if control != nil && !addressIsLoopback(listener.Addr()) {
+		return errors.New("desktop control requires a loopback listener")
+	}
 
 	publicURL := env("RAILKEEPER_PUBLIC_URL", "")
 	if standalone && publicURL == "" {
@@ -100,8 +123,7 @@ func main() {
 	}
 	cookieSecure, err := startup.ResolveCookieSecurity(env("RAILKEEPER_COOKIE_SECURE", "auto"), publicURL)
 	if err != nil {
-		logger.Error("cookie security configuration failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("cookie security configuration failed: %w", err)
 	}
 	smtpConfig := application.SMTPPasswordResetMailConfig{
 		Host:     env("RAILKEEPER_SMTP_HOST", ""),
@@ -132,11 +154,17 @@ func main() {
 		}),
 	)
 	if err != nil {
-		logger.Error("application startup failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("application startup failed: %w", err)
 	}
 	if startupResult.Database != nil {
-		defer func() { _ = startupResult.Database.Close() }()
+		defer func() {
+			if err := startupResult.Database.Close(); err != nil {
+				exitErr = errors.Join(exitErr, fmt.Errorf("close database: %w", err))
+			}
+		}()
+	}
+	if startupResult.StopBackground != nil {
+		defer startupResult.StopBackground()
 	}
 	dataDir := startupResult.State.Runtime.DataDir
 	if startupResult.State.SafetyBackupPath != "" {
@@ -144,14 +172,27 @@ func main() {
 	}
 	if startupResult.Conflict != nil {
 		if !addressIsLoopback(listener.Addr()) {
-			logger.Error("legacy data conflict page requires a loopback listener", "addr", listener.Addr().String())
-			os.Exit(1)
+			return errors.New("legacy data conflict page requires a loopback listener")
 		}
 		logger.Warn(
 			"legacy data conflict detected",
 			"safe_path", startupResult.Conflict.SafePath,
 			"legacy_path", startupResult.Conflict.LegacyPath,
 		)
+	}
+
+	if ctx.Err() != nil {
+		return nil
+	}
+	if control != nil {
+		_, err := fmt.Fprintln(control.ready, appURL)
+		_ = control.ready.Close()
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil
+			}
+			return fmt.Errorf("report desktop readiness: %w", err)
+		}
 	}
 
 	server := newHTTPServer(listener.Addr().String(), startupResult.Handler)
@@ -163,10 +204,7 @@ func main() {
 			go openBrowser(logger, appURL)
 		}
 	}
-	if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
-		logger.Error("server stopped", "error", err)
-		os.Exit(1)
-	}
+	return serveUntilShutdown(ctx, server, listener)
 }
 
 func newHTTPServer(addr string, handler http.Handler) *http.Server {
