@@ -70,6 +70,9 @@ auf derselben Seite.
 Windows startet aus einem ZIP. Für den Heimserver gibt es Docker-Images für AMD64 und ARM64.
 Das [Handbuch](guide/) hilft bei den nächsten Schritten, die
 [Installationsanleitung](administration/deployment-configuration) beim dauerhaften Betrieb.
+
+[Code signing policy für Windows (Entwurf)](reference/code-signing-policy)
+
 Die Abbildungen zeigen **v0.3.0** mit künstlichen Demodaten. Den Versionsumfang findest du in den
 [Release-Notizen](https://github.com/ichwars/RailKeeper/releases/tag/v0.3.0) und im
 [Änderungsprotokoll](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.de.md#030---2026-11-20).

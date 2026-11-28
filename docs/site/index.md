@@ -67,6 +67,9 @@ to adding a third vehicle with a picture. The downloads and a short checklist ar
 Windows runs from a ZIP. AMD64 and ARM64 Docker images are available for your home server.
 Use the [handbook](guide/) for the next tasks and the
 [installation guide](administration/deployment-configuration) for ongoing operation.
+
+[Code signing policy for Windows (draft)](reference/code-signing-policy)
+
 The pictures show **v0.3.0** with synthetic demo data. See the
 [release notes](https://github.com/ichwars/RailKeeper/releases/tag/v0.3.0) and
 [changelog](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.md#030---2026-11-20) for this version's scope.
