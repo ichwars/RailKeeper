@@ -15,11 +15,16 @@ Wähle zuerst, wo dein Bestand liegen soll: auf einem Windows-PC oder auf einem 
 
 1. Öffne die [GitHub-Releases](https://github.com/ichwars/RailKeeper/releases) und lade das Windows-x64-ZIP der gewünschten Version herunter.
 2. Entpacke das gesamte ZIP in einen eigenen Programmordner.
-3. Starte `start-railkeeper.bat`.
+3. Öffne `Start RailKeeper.exe` im Explorer. Ältere Pakete starten per `start-railkeeper.bat`.
 4. Lege beim ersten Aufruf deinen Admin an. Es gibt kein Standardpasswort.
 5. Prüfe unter **Einstellungen > Allgemein > Speichernutzung** den aktiven Datenordner.
 
 Der Standard ist `%LOCALAPPDATA%\RailKeeper\data`. Er liegt außerhalb des austauschbaren Programmordners. Bei einem alten `data`-Ordner neben der EXE übernimmt RailKeeper die Daten nur nach den [Sicherheitsregeln für Updates](system-operations). Vermische keine Datenbanken.
+
+Der Starter öffnet RailKeeper in einer minimierten Konsole. Hole sie über die Taskleiste nach vorn
+und drücke **Strg+C**, um RailKeeper zu beenden. Die Konsole schließt sich mit RailKeeper.
+Beim Schließen eines Browser-Tabs läuft RailKeeper weiter. Zur Fehlersuche kannst du
+`start-railkeeper.bat` in einer bereits geöffneten Konsole ausführen.
 
 ## Docker: auf deinem eigenen Rechner oder Server
 

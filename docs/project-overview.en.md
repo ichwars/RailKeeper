@@ -91,11 +91,10 @@ Does RailKeeper help you? Support the project with a [star on GitHub](https://gi
 
 ### Windows Standalone (no installation required)
 
-Download the Windows x64 ZIP from a release, extract it completely and start:
-
-```text
-start-railkeeper.bat
-```
+Download the Windows x64 ZIP from a release, extract it completely, and open
+`Start RailKeeper.exe` in File Explorer. The console starts minimized. To stop RailKeeper,
+restore the console from the taskbar and press **Ctrl+C**. It closes when RailKeeper exits.
+Use `start-railkeeper.bat` from an existing terminal or with older packages.
 
 RailKeeper runs locally without additional software. By default, persistent data is stored outside
 the replaceable program folder at `%LOCALAPPDATA%\RailKeeper\data`. The ZIP deliberately contains

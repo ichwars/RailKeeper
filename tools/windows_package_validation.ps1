@@ -10,6 +10,7 @@ $script:ForbiddenRailKeeperDirectories = @(
 
 $script:RequiredRailKeeperPackageFiles = @(
   "RailKeeper.exe",
+  "Start RailKeeper.exe",
   "start-railkeeper.bat",
   "LICENSE.md",
   "THIRD_PARTY_NOTICES.md",
@@ -18,18 +19,23 @@ $script:RequiredRailKeeperPackageFiles = @(
 )
 
 function Assert-RailKeeperExecutableVersion {
-  param([string]$ExePath, [string]$Version)
+  param([string]$ExePath, [string]$Version, [switch]$MetadataOnly)
 
   $info = [Diagnostics.FileVersionInfo]::GetVersionInfo($ExePath)
   $expectedNumber = @((($Version -split '-', 2)[0] -split '\.') | ForEach-Object { [int]$_ })
   if ($expectedNumber.Count -eq 3) { $expectedNumber += 0 }
   $fileNumber = @($info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart, $info.FilePrivatePart)
   $productNumber = @($info.ProductMajorPart, $info.ProductMinorPart, $info.ProductBuildPart, $info.ProductPrivatePart)
-  if ($info.ProductName -cne "RailKeeper" -or $info.OriginalFilename -cne "RailKeeper.exe" -or
+  if ($info.ProductName -cne "RailKeeper" -or $info.OriginalFilename -cne [IO.Path]::GetFileName($ExePath) -or
       $info.ProductVersion -cne $Version -or $info.FileVersion -cne $Version -or
       ($fileNumber -join '.') -ne ($expectedNumber -join '.') -or
       ($productNumber -join '.') -ne ($expectedNumber -join '.')) {
     throw "Windows version metadata does not match RailKeeper $Version."
+  }
+
+  if ($MetadataOnly) {
+    Write-Host "Verified Windows executable $($info.OriginalFilename) ($($info.ProductName) $Version, PE $($fileNumber -join '.'))."
+    return
   }
 
   $runtimeVersion = & $ExePath version

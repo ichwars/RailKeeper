@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -30,7 +31,7 @@ func main() {
 }
 
 func writeResources(release, iconPath, inputPath, outputPath string) error {
-	info, err := versionInfo(release)
+	info, err := versionInfo(release, filepath.Base(outputPath))
 	if err != nil {
 		return err
 	}
@@ -79,7 +80,7 @@ func writeResources(release, iconPath, inputPath, outputPath string) error {
 	return output.Close()
 }
 
-func versionInfo(release string) (version.Info, error) {
+func versionInfo(release, filename string) (version.Info, error) {
 	var info version.Info
 	if !releaseVersion.MatchString(release) {
 		return info, fmt.Errorf("invalid RailKeeper release version %q", release)
@@ -99,8 +100,8 @@ func versionInfo(release string) (version.Info, error) {
 		{version.ProductVersion, release},
 		{version.FileVersion, release},
 		{version.FileDescription, "RailKeeper"},
-		{version.InternalName, "RailKeeper.exe"},
-		{version.OriginalFilename, "RailKeeper.exe"},
+		{version.InternalName, filename},
+		{version.OriginalFilename, filename},
 	} {
 		if err := info.Set(version.LangDefault, field.key, field.value); err != nil {
 			return info, err

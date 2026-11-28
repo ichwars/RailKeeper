@@ -19,6 +19,7 @@ function New-GoodPackageTree {
   foreach ($license in @("LICENSE.md", "THIRD_PARTY_NOTICES.md", "THIRD_PARTY_LICENSES.txt", "web/fonts/LICENSE-Selawik.txt")) {
     Set-Content -LiteralPath (Join-Path $Path $license) -Value "license"
   }
+  Set-Content -LiteralPath (Join-Path $Path "Start RailKeeper.exe") -Value "launcher"
 }
 
 function Assert-ValidationRejectsPath {
