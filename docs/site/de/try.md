@@ -19,6 +19,7 @@ Eine Digitalzentrale und echte Sammlungsdaten sind für diese Übung nicht nöti
 
 1. Öffne das [aktuelle Release](https://github.com/ichwars/RailKeeper/releases/latest).
    Lade unter **Assets** das ZIP für Windows x64 herunter und entpacke es vollständig.
+   [Code signing policy für Windows (Entwurf)](reference/code-signing-policy)
 2. Öffne im entpackten Ordner ein PowerShell-Fenster. Starte mit einem eigenen Demo-Datenordner:
 
 ```powershell

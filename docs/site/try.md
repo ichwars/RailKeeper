@@ -19,6 +19,7 @@ This exercise does not need a command station or your real collection data.
 
 1. Open the [latest release](https://github.com/ichwars/RailKeeper/releases/latest).
    Under **Assets**, download the Windows x64 ZIP and extract it completely.
+   [Code signing policy for Windows (draft)](reference/code-signing-policy)
 2. Open PowerShell in the extracted folder. Start with a separate demo data directory:
 
 ```powershell

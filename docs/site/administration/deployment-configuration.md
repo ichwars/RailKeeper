@@ -14,6 +14,7 @@ Choose where your collection will live: a Windows PC or your own server. RailKee
 ## Windows: no additional installation
 
 1. Open [GitHub Releases](https://github.com/ichwars/RailKeeper/releases) and download the Windows x64 ZIP for your chosen version.
+   [Code signing policy for Windows (draft)](../reference/code-signing-policy)
 2. Extract the entire ZIP into its own application folder.
 3. Open `Start RailKeeper.exe` in File Explorer. Use `start-railkeeper.bat` for older packages.
 4. Create your administrator on first access. There is no default password.

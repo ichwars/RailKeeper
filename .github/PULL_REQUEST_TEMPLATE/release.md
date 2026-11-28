@@ -16,6 +16,9 @@ vorhandenen Release-Workflow, ohne direkten Release-Commit auf `main`.
 - [ ] Nach dem Merge Main-CI und Paketprüfungen prüfen; erst danach das Release empfehlen.
 - [ ] Go-Test-/Coverage-Nachweise des tatsächlichen Release-Commits dauerhaft anhängen und in beiden
       Sprachfassungen der Release-Notizen verlinken. Bestehende Tags und Pakete nicht überschreiben.
+- [ ] Bei einem signierten Windows-Paket und freigegebener Richtlinie die
+      [Code signing policy](https://ichwars.github.io/RailKeeper/de/reference/code-signing-policy)
+      in den deutschen GitHub-Release-Notizen beim Windows-Download verlinken.
 - [ ] Keine Zugangsdaten, Laufzeitdaten oder privaten Sicherungen enthalten.
 
 ## English
@@ -36,4 +39,7 @@ without a direct release commit to `main`.
 - [ ] After merging, check Main CI and package qualification before recommending the release.
 - [ ] Retain Go test/coverage evidence from the actual release commit as permanent release assets
       and link it from both release-note languages. Do not overwrite existing tags or packages.
+- [ ] For a signed Windows package with an approved policy, link the
+      [Code signing policy](https://ichwars.github.io/RailKeeper/reference/code-signing-policy)
+      alongside the Windows download in the English GitHub release notes.
 - [ ] Include no credentials, runtime data or private backups.

@@ -14,6 +14,7 @@ Wähle zuerst, wo dein Bestand liegen soll: auf einem Windows-PC oder auf einem 
 ## Windows: ohne zusätzliche Installation
 
 1. Öffne die [GitHub-Releases](https://github.com/ichwars/RailKeeper/releases) und lade das Windows-x64-ZIP der gewünschten Version herunter.
+   [Code signing policy für Windows (Entwurf)](../reference/code-signing-policy)
 2. Entpacke das gesamte ZIP in einen eigenen Programmordner.
 3. Öffne `Start RailKeeper.exe` im Explorer. Ältere Pakete starten per `start-railkeeper.bat`.
 4. Lege beim ersten Aufruf deinen Admin an. Es gibt kein Standardpasswort.
