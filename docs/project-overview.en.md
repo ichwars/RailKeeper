@@ -92,11 +92,13 @@ Does RailKeeper help you? Support the project with a [star on GitHub](https://gi
 ### Windows Standalone (no installation required)
 
 Download the Windows x64 ZIP from a release, extract it completely, and open
-`Start RailKeeper.exe` in File Explorer. The console starts minimized. To stop RailKeeper,
-restore the console from the taskbar and press **Ctrl+C**. It closes when RailKeeper exits.
-Use `start-railkeeper.bat` from an existing terminal or with older packages.
+`Start RailKeeper.exe` in File Explorer. The starter opens its own RailKeeper window using the
+Microsoft Edge WebView2 Evergreen Runtime. The console starts minimized and closes once RailKeeper
+has exited after **X** or **Alt+F4**. If WebView2 is missing, install the runtime from Microsoft or
+run `start-railkeeper.bat` in a terminal. The batch launcher opens your default browser and stops
+when you press **Ctrl+C** in that terminal.
 
-RailKeeper runs locally without additional software. By default, persistent data is stored outside
+By default, persistent data is stored outside
 the replaceable program folder at `%LOCALAPPDATA%\RailKeeper\data`. The ZIP deliberately contains
 no database, uploads, backups, or `data` directory. Replacing the extracted program folder therefore
 does not replace the active user data.

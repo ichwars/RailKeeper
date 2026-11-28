@@ -25,32 +25,6 @@ func main() {
 	}
 }
 
-func startRailKeeper() error {
-	launcherPath, err := os.Executable()
-	if err != nil {
-		return err
-	}
-	instance, err := launchInstance(filepath.Dir(launcherPath))
-	if err != nil {
-		return err
-	}
-	defer func() { _ = windows.CloseHandle(instance.process) }()
-	defer func() { _ = instance.stop.Close() }()
-
-	if _, err := instance.readiness(); err != nil {
-		_ = instance.stop.Close()
-		if waitErr := instance.wait(); waitErr != nil {
-			return waitErr
-		}
-		if errors.Is(err, io.EOF) {
-			// RailKeeper can exit cleanly before publishing its address.
-			return nil
-		}
-		return fmt.Errorf("read RailKeeper readiness: %w", err)
-	}
-	return instance.wait()
-}
-
 type instance struct {
 	process windows.Handle
 	stop    *os.File
