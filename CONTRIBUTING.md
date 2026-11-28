@@ -3,6 +3,8 @@
 Thank you for improving RailKeeper. Keep changes focused, reviewable, and aligned with its
 local-first, self-hosted architecture.
 
+[Maintainer onboarding](MAINTAINERS.md) explains how to start reviewing changes and qualifying builds.
+
 ## Before You Start
 
 - Use Go and Node.js versions compatible with `backend/go.mod`, `frontend/package.json`, and the
