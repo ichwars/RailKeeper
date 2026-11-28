@@ -116,6 +116,7 @@ jobs:
             dist/windows-standalone/checksums.txt
             dist/windows-standalone/windows-provenance.jsonl
           if-no-files-found: error
+          include-hidden-files: true
           overwrite: true
 
   verify-windows-package:
@@ -141,18 +142,31 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash .github/scripts/verify_windows_release.sh evidence "$GITHUB_REF" "$GITHUB_SHA"
 
-      - name: Reject branch attestations as release-tag evidence
+      - name: Rehearse rejection of incomplete or invalid release evidence
         if: github.ref_type == 'branch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           shopt -s nullglob
           packages=(evidence/RailKeeper-windows-x64-*.zip)
-          tag="${packages[0]##*/}"
-          tag="${tag#RailKeeper-windows-x64-}"
+          name="${packages[0]##*/}"
+          tag="${name#RailKeeper-windows-x64-}"
           tag="${tag%.zip}"
           if bash .github/scripts/verify_windows_release.sh evidence "refs/tags/$tag" "$GITHUB_SHA"; then
             echo "::error::A branch build was accepted as release-tag evidence."
+            exit 1
+          fi
+
+          incomplete="$(mktemp -d)"
+          trap 'rm -rf -- "$incomplete"' EXIT
+          if bash .github/scripts/verify_windows_release.sh "$incomplete" "$GITHUB_REF" "$GITHUB_SHA"; then
+            echo "::error::Missing package was accepted."
+            exit 1
+          fi
+          cp -- "${packages[0]}" evidence/windows-provenance.jsonl "$incomplete/"
+          printf '%064d  %s\n' 0 "$name" > "$incomplete/checksums.txt"
+          if bash .github/scripts/verify_windows_release.sh "$incomplete" "$GITHUB_REF" "$GITHUB_SHA"; then
+            echo "::error::A mismatched checksum was accepted."
             exit 1
           fi
 
