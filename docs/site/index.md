@@ -71,6 +71,13 @@ The pictures show **v0.3.0** with synthetic demo data. See the
 [release notes](https://github.com/ichwars/RailKeeper/releases/tag/v0.3.0) and
 [changelog](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.md#030---2026-11-20) for this version's scope.
 
+## How is RailKeeper tested?
+
+[Release checks](reference/releases-and-support) link to the evidence for published versions.
+Follow the [independent build and restore guide](https://github.com/ichwars/RailKeeper/blob/main/docs/independent-qualification.md#english)
+to verify a build yourself. The [restore exercise](administration/restore-exercise) walks through
+exporting, importing into a separate instance and comparing the restored data.
+
 ## Share your experience
 
 Tell us what worked and where you got stuck in

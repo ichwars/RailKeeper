@@ -29,6 +29,24 @@ describe this release's changes.
 The [v0.3.0 release evidence](https://github.com/ichwars/RailKeeper/blob/main/docs/releases/v0.3.0.md#go-tests-and-coverage)
 links the successful Go test run and permanently retained coverage reports.
 
+## Upgrading from the previous stable release
+
+For every stable release, we verify the upgrade from the immediately preceding stable
+release and restore an app backup from that version into a separate instance. When a
+migration requires separate steps, the release notes describe the migration path and the
+backups it needs. If you plan to skip stable versions, read the intervening release notes
+and follow any documented steps in order.
+
+1. Read the [release notes](https://github.com/ichwars/RailKeeper/releases) for your target version.
+2. Export an [app backup](../administration/backup-restore) and also create an
+   [installation backup](../administration/server-restore) for full rollback.
+3. Follow the [Windows or Docker upgrade instructions](../administration/system-operations).
+   After restarting, check login, the collection, images and attachments. Use the
+   [restore exercise](../administration/restore-exercise) to verify your backup separately.
+
+The [independent build and restore guide](https://github.com/ichwars/RailKeeper/blob/main/docs/independent-qualification.md#english)
+also shows how to repeat the automated stable qualification with synthetic data.
+
 ## Feedback from the v0.2.x trial
 
 Use the short [experience report template](https://github.com/ichwars/RailKeeper/issues/new?template=experience_report.md).

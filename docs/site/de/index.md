@@ -74,6 +74,13 @@ Die Abbildungen zeigen **v0.3.0** mit künstlichen Demodaten. Den Versionsumfang
 [Release-Notizen](https://github.com/ichwars/RailKeeper/releases/tag/v0.3.0) und im
 [Änderungsprotokoll](https://github.com/ichwars/RailKeeper/blob/main/CHANGELOG.de.md#030---2026-11-20).
 
+## Wie wird RailKeeper geprüft?
+
+Die [Release-Prüfungen](reference/releases-and-support) bündeln die Nachweise zu veröffentlichten Versionen.
+Mit der [unabhängigen Build- und Restore-Anleitung](https://github.com/ichwars/RailKeeper/blob/main/docs/independent-qualification.md#deutsch)
+kannst du einen Build selbst prüfen. Die [Restore-Übung](administration/restore-exercise) führt durch
+Export, Import in eine separate Instanz und den anschließenden Datenvergleich.
+
 ## Deine Erfahrung hilft weiter
 
 Teile in den [Discussions](https://github.com/ichwars/RailKeeper/discussions/categories/general),

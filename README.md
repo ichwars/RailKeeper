@@ -58,6 +58,12 @@ Bestand, aber keine lokalen Konten oder Anmeldedaten. Für einen vollständigen 
 wird zusätzlich eine geschützte Installationssicherung benötigt. Geräteänderungen erfolgen
 nur nach Vorschau und ausdrücklicher Bestätigung im jeweiligen Arbeitsablauf.
 
+Für jedes stabile Release prüfen wir das Upgrade vom unmittelbar vorherigen Stable
+und die Wiederherstellung eines dort erzeugten App-Backups. Besondere Migrationsschritte
+beschreiben wir in den Release-Notizen. Erstelle vor dem Update eine externe Sicherung
+und prüfe nach dem Start den Bestand. Die [Versionshinweise im Handbuch](docs/site/de/reference/releases-and-support.md)
+führen zu den Arbeitsschritten und Prüfnachweisen.
+
 ## English
 
 Manage your model railway collection on your own computer or server: vehicles and sets,
@@ -96,6 +102,12 @@ Create a fresh external backup and practice a separate restore before updating.
 App backups preserve collection data and exclude local authentication. A protected installation
 backup is additionally needed for full server recovery. Preview and explicit confirmation guard
 device writes. See the overview for the exact scope of each command-station integration.
+
+For every stable release, we verify the upgrade from the immediately preceding stable
+release and the restore of an app backup it created. We document any special migration steps
+in the release notes. Save an external backup before updating and check your collection after
+startup. The [handbook version guide](docs/site/reference/releases-and-support.md) links to
+the upgrade procedure and test evidence.
 
 ## Bestehende Verweise / Existing links
 
